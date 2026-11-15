@@ -571,3 +571,57 @@ Disbanded,محلولة
 A structure grouping field is not readable.,لا يمكن قراءة أحد حقول تجميع البنية.
 Center on selected record,التمركز حول السجل المحدد
 Show all records,إظهار جميع السجلات
+Treemap,خريطة متفرعة
+Rings,حلقات
+Flow,تدفق
+Matrix,مصفوفة
+Discs,أقراص
+Tree,شجرة
+Table,جدول
+Show or hide data table,إظهار جدول البيانات أو إخفاؤه
+Structure diagram,مخطط الهيكل
+Groups,المجموعات
+Folded groups,المجموعات المطوية
+Folded records,السجلات المطوية
+Explore group,استكشاف المجموعة
+Collapse branch,طي الفرع
+Expand branch,توسيع الفرع
+No subgroups to display.,لا توجد مجموعات فرعية للعرض.
+Explore a different group to see a matrix.,استكشف مجموعة أخرى لعرض المصفوفة.
+Counts include only records you can read. Folded branches retain their record and group counts.,تشمل الأعداد السجلات المصرح لك بقراءتها فقط. تحتفظ الفروع المطوية بأعداد السجلات والمجموعات.
+Record leaves are hidden; enable Records to show them.,أوراق السجلات مخفية؛ فعّل السجلات لإظهارها.
+Flow shows two grouping levels; explore a group to see deeper levels.,يعرض التدفق مستويين من التجميع؛ استكشف مجموعة لعرض المستويات الأعمق.
+Matrix shows two grouping levels; explore a group to see deeper levels.,تعرض المصفوفة مستويين من التجميع؛ استكشف مجموعة لعرض المستويات الأعمق.
+{0} more records,{0} سجلات إضافية
+Unable to load record details.,تعذر تحميل تفاصيل السجل.
+Force,قوة
+Orbit,مدار
+Relationship matrix,مصفوفة العلاقات
+All relationship types,كل أنواع العلاقات
+Hide ended relationships,إخفاء العلاقات المنتهية
+Mapped records,السجلات على الخريطة
+Mapped records ({0}),السجلات على الخريطة ({0})
+Show more,عرض المزيد
+Records panel,لوحة السجلات
+Details panel,لوحة التفاصيل
+Measure area,قياس المساحة
+Click at least three points to measure area.,انقر ثلاث نقاط على الأقل لقياس المساحة.
+Approximate area: {0} km²,المساحة التقريبية: {0} كم²
+Command hierarchy,التسلسل القيادي
+Units — command hierarchy,الوحدات — التسلسل القيادي
+"Forces — echelon, status, classification",القوات — الإطار والحالة والتصنيف
+Regions — command hierarchy,المناطق — التسلسل القيادي
+Zoom in,تكبير
+Zoom out,تصغير
+Fit,احتواء
+Export SVG,تصدير SVG
+Export CSV,تصدير CSV
+Arrangement,الترتيب
+Center on a person or organization,التمركز حول شخص أو مؤسسة
+Coordinates,الإحداثيات
+DMS coordinates,الإحداثيات بالدرجات والدقائق والثواني
+Go,انتقال
+Enter a valid latitude and longitude.,أدخل خط عرض وخط طول صحيحين.
+Show relationship lines,إظهار خطوط العلاقات
+Hide relationship lines,إخفاء خطوط العلاقات
+Unable to load relationship lines.,تعذر تحميل خطوط العلاقات.

@@ -42,6 +42,8 @@ class FakeFrappe(types.SimpleNamespace):
         start = kwargs.get('limit_start', 0)
         size = kwargs.get('page_length', kwargs.get('limit_page_length', 20))
         rows = sorted(self.rows.get(doctype, []), key=lambda row: row['name'])
+        filters = kwargs.get('filters') or {}
+        rows = [row for row in rows if all(row.get(key) == value for key, value in filters.items())]
         return [{field: row.get(field) for field in fields if field not in self.hidden_fields}
                 for row in rows[start:start + size]]
 
@@ -110,6 +112,80 @@ class VisualizationTest(unittest.TestCase):
         for child in result['children'][:-1]:
             self.assertEqual(sum(item['count'] for item in child['children']), child['count'])
 
+    def test_record_dossier_respects_record_permissions_and_field_restrictions(self):
+        f = FakeFrappe({'Person': [{'name': 'p1', 'display_name': 'One', 'nationality': 'Iraq'},
+                                   {'name': 'p2', 'display_name': 'Private'}]}, denied={('Person', 'p2')})
+        f.hidden_fields.add('nationality')
+        v = load_visualization(f)
+        record = v.record_detail('Person', 'p1')
+        self.assertEqual(record['label'], 'One')
+        self.assertNotIn('nationality', record['details'])
+        with self.assertRaises(PermissionError): v.record_detail('Person', 'p2')
+        with self.assertRaises(ValueError): v.record_detail('User', 'Administrator')
+
+    def test_missing_group_and_literal_label_remain_distinct(self):
+        f = FakeFrappe({'Person': [{'name': '1', 'nationality': None},
+                                   {'name': '2', 'nationality': 'Not recorded'}]})
+        groups = load_visualization(f).structure_data('people')['children']
+        self.assertEqual(len(groups), 2)
+        self.assertEqual({group['key'] for group in groups}, {None, 'Not recorded'})
+
+    def test_hierarchy_folds_count_subtrees_not_only_direct_children(self):
+        rows = [{'name': f'root{i:02}', 'unit_name': f'Root {i}', 'parent_unit': None} for i in range(50)]
+        rows += [{'name': 'child', 'unit_name': 'Child', 'parent_unit': 'root49'}]
+        result = load_visualization(FakeFrappe({'Military Unit': rows})).structure_data('units')
+        self.assertEqual(result['count'], 51)
+        self.assertEqual(result['group_count'], 50)
+        self.assertEqual(result['children'][-1]['folded_groups'], 2)
+        self.assertEqual(sum(child['count'] for child in result['children']), 51)
+
+    def test_unit_hierarchy_counts_orphans_cycles_and_permissions(self):
+        rows = [{'name': 'a', 'unit_name': 'Alpha', 'parent_unit': None},
+                {'name': 'b', 'unit_name': 'Bravo', 'parent_unit': 'a'},
+                {'name': 'c', 'unit_name': 'Charlie', 'parent_unit': 'b'},
+                {'name': 'x', 'unit_name': 'Cycle X', 'parent_unit': 'y'},
+                {'name': 'y', 'unit_name': 'Cycle Y', 'parent_unit': 'x'},
+                {'name': 'orphan', 'unit_name': 'Orphan', 'parent_unit': 'secret'},
+                {'name': 'secret', 'unit_name': 'Secret', 'parent_unit': None}]
+        result = load_visualization(FakeFrappe({'Military Unit': rows}, denied={('Military Unit', 'secret')})).structure_data('units')
+        self.assertEqual(result['count'], 6)
+        self.assertEqual(sum(child['count'] for child in result['children']), 6)
+        nodes = {child['name']: child for child in result['children']}
+        self.assertEqual(nodes['a']['count'], 3)
+        self.assertEqual(nodes['x']['count'], 2)
+        self.assertEqual(nodes['orphan']['count'], 1)
+        self.assertNotIn('secret', nodes)
+        self.assertTrue(nodes['a']['target'])
+
+    def test_region_hierarchy_respects_parent_and_permissions(self):
+        rows = [{'name': 'root', 'region_name': 'Region', 'parent_region': None},
+                {'name': 'child', 'region_name': 'Area', 'parent_region': 'root'}]
+        result = load_visualization(FakeFrappe({'Command Region': rows})).structure_data('regions')
+        self.assertEqual(result['count'], 2)
+        self.assertEqual(result['children'][0]['count'], 2)
+        self.assertEqual(result['children'][0]['children'][0]['name'], 'child')
+
+    def test_maps_scan_beyond_old_cutoff(self):
+        people = [{'name': str(i).zfill(5), 'display_name': f'Person {i}', 'latitude': 1, 'longitude': 2} for i in range(1601)]
+        relationships = [{'name': str(i).zfill(5), 'subject_type': 'Person', 'subject': str(i).zfill(5),
+                          'object_type': 'Person', 'object': '00000'} for i in range(1601)]
+        result = load_visualization(FakeFrappe({'Person': people, 'Relationship': relationships}))
+        self.assertEqual(len(result.relationship_data()['edges']), 1601)
+        self.assertEqual(len(result.geographic_data()['points']), 1601)
+
+    def test_structure_record_leaves_have_bounded_explicit_tail(self):
+        f = FakeFrappe({'Person': [{'name': str(i).zfill(3), 'display_name': 'Person ' + str(i),
+                                    'nationality': 'Iraq', 'classification': 'A', 'workflow_state': 'Draft'}
+                                   for i in range(60)]}, denied={('Person', '000')})
+        result = load_visualization(f).structure_data('people')
+        group = result['children'][0]['children'][0]['children'][0]
+        self.assertEqual(group['count'], 59)
+        self.assertEqual(group['record_count'], 59)
+        self.assertEqual(len(group['children']), 49)
+        self.assertEqual(group['children'][0]['name'], '001')
+        self.assertEqual(group['children'][-1]['folded_records'], 11)
+        self.assertEqual(sum(child['count'] for child in group['children']), 59)
+
     def test_structure_deep_folding_counts_and_denied_source(self):
         f = FakeFrappe({'Person': [{'name': str(i).zfill(3), 'nationality': 'Iraq',
                                      'classification': f'Class-{i:02}', 'workflow_state': 'Draft'}
@@ -130,12 +206,11 @@ class VisualizationTest(unittest.TestCase):
         f.hidden_fields.add('nationality')
         with self.assertRaises(PermissionError): load_visualization(f).structure_data('people')
 
-    def test_cutoff_and_denied_doctype(self):
-        f = FakeFrappe({'Person': [{'name': str(i)} for i in range(4)]}, denied={'Event'})
+    def test_full_scan_and_denied_doctype(self):
+        f = FakeFrappe({'Person': [{'name': str(i)} for i in range(1600)]}, denied={'Event'})
         v = load_visualization(f)
-        v.MAX_RECORDS = 3
-        self.assertEqual(len(v._records('Person', [])[0]), 3)
-        self.assertTrue(v._records('Person', [])[1])
+        self.assertEqual(len(v._records('Person', [])[0]), 1600)
+        self.assertFalse(v._records('Person', [])[1])
         self.assertEqual(v._records('Event', []), ([], False))
         with self.assertRaises(PermissionError):
             v.structure_data('events')
@@ -156,10 +231,15 @@ class VisualizationTest(unittest.TestCase):
                 with self.subTest(doctype=dt, field=field):
                     self.assertIn(field, specs[dt])
                     self.assertFalse(specs[dt][field].get('permlevel'))
-        for field in ['relationship_type', 'subject_type', 'subject', 'object_type', 'object', 'direction', 'description', 'workflow_state']:
+        for field in ['relationship_type', 'subject_type', 'subject', 'object_type', 'object', 'direction', 'description', 'workflow_state', 'is_current', 'end_date', 'authentication_level', 'primary_source']:
             with self.subTest(doctype='Relationship', field=field):
                 self.assertIn(field, specs['Relationship'])
                 self.assertFalse(specs['Relationship'][field].get('permlevel'))
+        for dt, fields in v.DETAIL_FIELDS.items():
+            for field in fields:
+                with self.subTest(doctype=dt, field=field):
+                    self.assertIn(field, specs[dt])
+                    self.assertFalse(specs[dt][field].get('permlevel'))
         for dt, fields in v.STRUCTURES.values():
             for field in fields:
                 with self.subTest(doctype=dt, field=field):
