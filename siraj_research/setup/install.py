@@ -8,6 +8,19 @@ import frappe
 ROLES = ("SIRAJ Viewer", "SIRAJ Researcher", "SIRAJ Reviewer", "SIRAJ Administrator")
 
 
+def ensure_default_workflow_state():
+	"""Provide the Link target used by SIRAJ DocTypes' default state.
+
+	Preserve an existing site's Draft state and its settings. This creates only the
+	Link target; it does not configure or activate a review workflow.
+	"""
+	if not frappe.db.exists("Workflow State", "Draft"):
+		frappe.get_doc({
+			"doctype": "Workflow State",
+			"workflow_state_name": "Draft",
+		}).insert(ignore_permissions=True)
+
+
 def after_install():
 	"""Create the four SIRAJ roles.
 
@@ -22,4 +35,4 @@ def after_install():
 				"desk_access": 1,
 			}).insert(ignore_permissions=True)
 
-	frappe.db.commit()
+	ensure_default_workflow_state()

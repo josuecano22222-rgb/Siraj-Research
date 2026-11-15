@@ -11,6 +11,7 @@ app_license = "mit"
 # required_apps = []
 
 after_install = "siraj_research.setup.install.after_install"
+after_migrate = "siraj_research.setup.install.ensure_default_workflow_state"
 
 fixtures = [
 	# the four SIRAJ roles (Del. 8 �4); the DocPerm rows on the DocTypes name them
