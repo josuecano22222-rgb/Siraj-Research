@@ -40,12 +40,20 @@ class SirajExplorer {
 		try {
 			if (this.kind === 'structures') {
 				await this.structures(renderId);
+			} else if (this.kind === 'geography') {
+				// A failing data endpoint must not prevent the local base map loading.
+				let data;
+				try {
+					const res = await frappe.call({ method: 'siraj_research.visualization.geographic_data' });
+					data = res.message;
+				} catch (error) {
+					console.error(error);
+					data = { points: [], truncated: [], unavailable: true };
+				}
+				if (renderId === this.renderId) await this.geography(data, renderId);
 			} else {
-				const method = this.kind === 'geography' ? 'geographic_data' : 'relationship_data';
-				const res = await frappe.call({ method: 'siraj_research.visualization.' + method });
-				if (renderId !== this.renderId) return;
-				if (this.kind === 'geography') await this.geography(res.message, renderId);
-				else await this.relationships(res.message, renderId);
+				const res = await frappe.call({ method: 'siraj_research.visualization.relationship_data' });
+				if (renderId === this.renderId) await this.relationships(res.message, renderId);
 			}
 		} catch (error) {
 			if (renderId !== this.renderId) return;
@@ -70,10 +78,13 @@ class SirajExplorer {
 		});
 		if (target) this.button(__('Open record'), () => frappe.set_route('Form', target.doctype, target.name), true).addClass('sx-open').appendTo(this.aside);
 	}
-	showLegend(types) {
+	showLegend(types, icons = null) {
 		types.forEach(type => {
-			const item = $('<span></span>').appendTo(this.legend);
-			$('<i class="sx-pin-key"></i>').css('background', this.colors[type]).appendTo(item);
+			const item = $('<span class="sx-legend-item"></span>').appendTo(this.legend);
+			if (icons && icons[type]) {
+				// SVG fragments are fixed application constants, never record data.
+				$('<span class="sx-map-pin sx-legend-pin"><svg viewBox="0 0 24 24" aria-hidden="true">' + icons[type] + '</svg></span>').css('background', this.colors[type]).appendTo(item);
+			} else $('<i class="sx-pin-key"></i>').css('background', this.colors[type]).appendTo(item);
 			item.append(document.createTextNode(__(type)));
 		});
 	}
@@ -86,37 +97,124 @@ class SirajExplorer {
 		select.on('change', () => onChange(search.val(), select.val()));
 	}
 	async geography(data, renderId) {
-		await frappe.require(['/assets/siraj_research/vendor/leaflet/leaflet.css', '/assets/siraj_research/vendor/leaflet/leaflet.js', '/assets/siraj_research/css/siraj_explorer.css']);
+		await frappe.require([
+			'/assets/siraj_research/vendor/leaflet/leaflet.css',
+			'/assets/siraj_research/vendor/leaflet/leaflet.js',
+			'/assets/siraj_research/vendor/leaflet-markercluster/leaflet.markercluster.js',
+			'/assets/siraj_research/vendor/topojson/topojson-client.min.js',
+			'/assets/siraj_research/css/siraj_explorer.css'
+		]);
 		if (renderId !== this.renderId) return;
-		this.map = L.map(this.canvas[0], { worldCopyJump: true }).setView([30, 20], 2);
-		let markers = L.featureGroup().addTo(this.map);
-		let tileLayer = null;
-		const types = [...new Set(data.points.map(p => p.doctype))];
-		this.showLegend(types);
-		const update = (search = '', type = '') => {
-			markers.clearLayers();
-			const term = search.toLocaleLowerCase();
-			const points = data.points.filter(p => (!type || p.doctype === type) && (p.label + ' ' + p.name).toLocaleLowerCase().includes(term));
-			points.forEach(p => {
-				const marker = L.circleMarker([Number(p.latitude), Number(p.longitude)], { radius: 8, color: '#fff', weight: 2, fillColor: this.colors[p.doctype], fillOpacity: 0.9 });
-				marker.bindTooltip(this.escape(p.label));
-				marker.on('click', () => this.showDetails(p.label, [[__('Type'), __(p.doctype)], [__('ID'), p.name], [__('Latitude'), p.latitude], [__('Longitude'), p.longitude], [__('Coordinate precision'), p.geo_precision], [__('How the point was obtained'), p.geocoding_method], [__('Uncertainty radius (m)'), p.geo_uncertainty_m], [__('Point source'), p.geometry_source]], p));
-				marker.addTo(markers);
-			});
-			this.note.text(__('Showing {0} record-owned points. Unset and ambiguous 0,0 coordinates are excluded.', [points.length]) + ' ' + this.warning(data));
+		const map = this.map = L.map(this.canvas[0], { worldCopyJump: true, preferCanvas: true }).setView([33.3152, 44.3661], 4);
+		L.control.scale({ imperial: false }).addTo(map);
+		// All basemap geometry is served by this site; no external request is
+		// made until the user explicitly selects OpenStreetMap.
+		let offlineLayer = null, onlineLayer = null, selectedCircle = null;
+		const mapStatus = $('<div class="sx-map-status" role="status"></div>').appendTo(this.root);
+		try {
+			const response = await fetch('/assets/siraj_research/vendor/world-atlas/countries-110m.json');
+			if (!response.ok) throw new Error('Offline basemap HTTP ' + response.status);
+			const world = await response.json();
+			if (renderId !== this.renderId) return;
+			offlineLayer = L.geoJSON(topojson.feature(world, world.objects.countries), {
+				interactive: false, style: { color: '#a4b4a8', weight: 0.7, fillColor: '#e8e4cf', fillOpacity: 1 }
+			}).addTo(map);
+			map.attributionControl.addAttribution('Natural Earth / world-atlas');
+			mapStatus.text(__('Offline basemap: Natural Earth, low detail.'));
+		} catch (error) {
+			console.error(error);
+			if (renderId !== this.renderId) return;
+			mapStatus.text(__('Local basemap could not be loaded. You can still use the markers or enable online tiles.')).addClass('sx-warning');
+		}
+		const icons = {
+			'Person': '<circle cx="12" cy="8" r="3"/><path d="M5 19c0-4 3-6 7-6s7 2 7 6"/>',
+			'Institution': '<path d="M3 9h18L12 3 3 9Zm2 1v8m5-8v8m4-8v8m5-8v8M3 20h18"/>',
+			'Place': '<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11Z"/><circle cx="12" cy="10" r="2"/>',
+			'Event': '<path d="M12 2l2.5 6 6.5.5-5 4 1.5 6.5-5.5-3.5L6.5 19 8 12.5l-5-4L9.5 8Z"/>',
+			'Military Unit': '<path d="M12 2 20 5v6c0 5-3 8-8 11-5-3-8-6-8-11V5Z"/><path d="M12 7v10M7 12h10"/>',
+			'Operational Deployment': '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>'
 		};
-		this.filterControls(types, update);
-		this.button(__('Fit points'), () => { if (markers.getLayers().length) this.map.fitBounds(markers.getBounds().pad(0.15), { maxZoom: 12 }); }).appendTo(this.tools);
-		this.button(__('Toggle OpenStreetMap tiles'), () => {
-			if (tileLayer) { this.map.removeLayer(tileLayer); tileLayer = null; }
-			else {
-				tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(this.map);
-			}
+		const types = [...new Set(data.points.map(p => p.doctype))];
+		this.showLegend(types, icons);
+		let clustered = true, currentPoints = [], searchTerm = '', selectedType = '';
+		let markers = L.markerClusterGroup({
+			maxClusterRadius: 45, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
+			iconCreateFunction: cluster => L.divIcon({ className: 'sx-cluster', html: '<span>' + cluster.getChildCount() + '</span>', iconSize: [40, 40] })
+		}).addTo(map);
+		const pointIcon = p => L.divIcon({
+			className: 'sx-pin-wrapper', iconSize: [36, 36], iconAnchor: [18, 18],
+			html: '<span class="sx-map-pin" style="background:' + this.colors[p.doctype] + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + icons[p.doctype] + '</svg></span>'
+		});
+		const draw = () => {
+			if (selectedCircle) { map.removeLayer(selectedCircle); selectedCircle = null; }
+			markers.clearLayers();
+			const term = searchTerm.toLocaleLowerCase();
+			currentPoints = data.points.filter(p => (!selectedType || p.doctype === selectedType) && (p.label + ' ' + p.name).toLocaleLowerCase().includes(term));
+			currentPoints.forEach(p => {
+				const marker = L.marker([Number(p.latitude), Number(p.longitude)], { icon: pointIcon(p), title: p.label, keyboard: true });
+				marker.bindTooltip(this.escape(p.label));
+				marker.on('click', () => {
+					if (selectedCircle) map.removeLayer(selectedCircle);
+					const radius = Number(p.geo_uncertainty_m);
+					if (Number.isFinite(radius) && radius > 0 && radius <= 1000000) selectedCircle = L.circle([p.latitude, p.longitude], { radius, color: this.colors[p.doctype], fillOpacity: 0.1, interactive: false }).addTo(map);
+					this.showDetails(p.label, [[__('Type'), __(p.doctype)], [__('ID'), p.name], [__('Latitude'), p.latitude], [__('Longitude'), p.longitude], [__('Coordinate precision'), p.geo_precision], [__('How the point was obtained'), p.geocoding_method], [__('Uncertainty radius (m)'), p.geo_uncertainty_m], [__('Point source'), p.geometry_source]], p);
+				});
+				markers.addLayer(marker);
+			});
+			const text = data.unavailable ? __('Record data could not be loaded. The local basemap may still be available.') : __('Showing {0} record-owned points. Unset and ambiguous 0,0 coordinates are excluded.', [currentPoints.length]) + ' ' + this.warning(data);
+			this.note.toggleClass('sx-warning', !!data.unavailable).text(text);
+		};
+		this.filterControls(types, (search, type) => { searchTerm = search; selectedType = type; draw(); });
+		this.button(__('Fit points'), () => { if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p => [Number(p.latitude), Number(p.longitude)])).pad(0.15), { maxZoom: 12 }); }).appendTo(this.tools);
+		const clusterButton = this.button(__('Clusters: on'), () => {
+			clustered = !clustered;
+			map.removeLayer(markers);
+			markers = clustered ? L.markerClusterGroup({ maxClusterRadius: 45, showCoverageOnHover: false, spiderfyOnMaxZoom: true, iconCreateFunction: cluster => L.divIcon({ className: 'sx-cluster', html: '<span>' + cluster.getChildCount() + '</span>', iconSize: [40, 40] }) }) : L.featureGroup();
+			markers.addTo(map); clusterButton.text(clustered ? __('Clusters: on') : __('Clusters: off')); draw();
 		}).appendTo(this.tools);
-		this.showDetails(__('Geographic map'), [[__('About this view'), __('Select a marker to inspect its record. Tiles are optional; enabling them sends map requests to OpenStreetMap.')]]);
-		update();
-		if (markers.getLayers().length) this.map.fitBounds(markers.getBounds().pad(0.15), { maxZoom: 12 });
+		const base = $('<select class="form-control input-sm" aria-label="Basemap"></select>').appendTo(this.tools);
+		$('<option value="local"></option>').text(__('Offline basemap')).appendTo(base);
+		$('<option value="online"></option>').text(__('Online: OpenStreetMap')).appendTo(base);
+		base.on('change', () => {
+			if (onlineLayer) { map.removeLayer(onlineLayer); onlineLayer = null; }
+			if (base.val() === 'online') {
+				if (offlineLayer) map.removeLayer(offlineLayer);
+				onlineLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
+				onlineLayer.on('tileerror', () => mapStatus.text(__('Some online tiles failed to load. Choose the offline basemap to continue.')).addClass('sx-warning'));
+				mapStatus.text(__('Online tiles disclose your IP address and viewed area to OpenStreetMap.')).removeClass('sx-warning');
+			} else {
+				if (offlineLayer) offlineLayer.addTo(map).bringToBack();
+				mapStatus.text(offlineLayer ? __('Offline basemap: Natural Earth, low detail.') : __('Local basemap could not be loaded. You can still use the markers or enable online tiles.')).toggleClass('sx-warning', !offlineLayer);
+			}
+		});
+		this.button(__('Export visible points'), () => {
+			const geojson = { type: 'FeatureCollection', features: currentPoints.map(p => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [Number(p.longitude), Number(p.latitude)] }, properties: { doctype: p.doctype, name: p.name, label: p.label, precision: p.geo_precision, method: p.geocoding_method, uncertainty_m: p.geo_uncertainty_m, source: p.geometry_source } })) };
+			const url = URL.createObjectURL(new Blob([JSON.stringify(geojson)], { type: 'application/geo+json' }));
+			const a = document.createElement('a'); a.href = url; a.download = 'siraj-visible-points.geojson'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+		}).appendTo(this.tools);
+		let measuring = false, measurePoints = [], measureLine = null;
+		const measureStatus = $('<div class="sx-map-status" role="status"></div>').appendTo(this.root);
+		const measureButton = this.button(__('Measure distance'), () => {
+			measuring = !measuring; measurePoints = [];
+			if (measureLine) { map.removeLayer(measureLine); measureLine = null; }
+			measureStatus.text(measuring ? __('Click two points on the map to measure distance.') : '');
+			measureButton.text(measuring ? __('Clear measurement') : __('Measure distance'));
+		}).appendTo(this.tools);
+		map.on('click', event => {
+			if (!measuring) return;
+			if (measurePoints.length === 2) { measurePoints = []; if (measureLine) map.removeLayer(measureLine); }
+			measurePoints.push(event.latlng);
+			if (measurePoints.length === 2) {
+				measureLine = L.polyline(measurePoints, { color: '#1a6670', weight: 3, dashArray: '6 5', interactive: false }).addTo(map);
+				const distance = map.distance(measurePoints[0], measurePoints[1]);
+				measureStatus.text(__('Distance: {0} km', [(distance / 1000).toFixed(2)]));
+			}
+		});
+		this.showDetails(__('Geographic map'), [[__('About this view'), __('Select a marker to inspect its record. Clusters show the number of nearby points. Online tiles are optional.')]]);
+		draw();
+		if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p => [Number(p.latitude), Number(p.longitude)])).pad(0.15), { maxZoom: 12 });
 	}
+
 	async relationships(data, renderId) {
 		await frappe.require(['/assets/siraj_research/vendor/vis-network/vis-network.min.js', '/assets/siraj_research/css/siraj_explorer.css']);
 		if (renderId !== this.renderId) return;
@@ -124,44 +222,71 @@ class SirajExplorer {
 		const types = [...new Set(data.nodes.map(n => n.doctype))];
 		this.showLegend(types);
 		const all = new Map(data.nodes.map(n => [this.id(n), n]));
+		const edgeLookup = new Map(data.edges.map(e => [e.name, e]));
 		const nodeSet = new vis.DataSet();
 		const edgeSet = new vis.DataSet();
+		let currentEdges = [], history = [], currentId = null;
 		this.network = new vis.Network(this.canvas[0], { nodes: nodeSet, edges: edgeSet }, {
 			interaction: { hover: true, navigationButtons: true, keyboard: true },
 			physics: { stabilization: { iterations: 100 }, barnesHut: { gravitationalConstant: -5000, springLength: 150 } },
 			nodes: { shape: 'dot', size: 13, font: { size: 13 }, borderWidth: 2 },
 			edges: { color: { color: '#9aa9b1', highlight: '#267b77' }, smooth: { type: 'dynamic' }, font: { size: 11, align: 'middle' } }
 		});
+		const showNode = (id, remember = true) => {
+			const node = all.get(id);
+			if (!node || !nodeSet.get(id)) return;
+			if (remember && currentId && currentId !== id) history.push(currentId);
+			currentId = id;
+			this.network.selectNodes([id]);
+			this.network.focus(id, { scale: 1, animation: { duration: 400 } });
+			this.showDetails(node.label, [[__('Type'), __(node.doctype)], [__('ID'), node.name]], node);
+			const connected = currentEdges.filter(e => JSON.stringify(e.source) === id || JSON.stringify(e.target) === id);
+			$('<h5 class="sx-neighbors-heading"></h5>').text(__('Connections ({0})', [connected.length])).appendTo(this.aside);
+			if (!connected.length) $('<p class="sx-muted"></p>').text(__('No visible connections in this view.')).appendTo(this.aside);
+			connected.forEach(edge => {
+				const sourceId = JSON.stringify(edge.source), targetId = JSON.stringify(edge.target);
+				const neighbor = all.get(sourceId === id ? targetId : sourceId);
+				if (!neighbor) return;
+				const row = $('<div class="sx-neighbor"></div>').appendTo(this.aside);
+				$('<small></small>').text(edge.type || __('Relationship')).appendTo(row);
+				this.button(neighbor.label, () => showNode(this.id(neighbor))).addClass('sx-neighbor-link').appendTo(row);
+			});
+		};
+		const showEdge = edge => {
+			if (!edge) return;
+			this.showDetails(edge.type || __('Relationship'), [[__('ID'), edge.name], [__('Direction'), edge.direction], [__('Description'), edge.description], [__('Record status'), edge.state]], { doctype: 'Relationship', name: edge.name });
+			[edge.source, edge.target].forEach((key, index) => {
+				const id = JSON.stringify(key), node = all.get(id);
+				if (!node) return;
+				const row = $('<div class="sx-neighbor"></div>').appendTo(this.aside);
+				$('<small></small>').text(index === 0 ? __('Subject') : __('Object')).appendTo(row);
+				this.button(node.label, () => showNode(id)).addClass('sx-neighbor-link').appendTo(row);
+			});
+		};
 		const update = (search = '', type = '') => {
 			const term = search.toLocaleLowerCase();
 			const nodes = data.nodes.filter(n => (!type || n.doctype === type) && (n.label + ' ' + n.name).toLocaleLowerCase().includes(term));
 			const ids = new Set(nodes.map(n => this.id(n)));
-			const edges = data.edges.filter(e => ids.has(JSON.stringify(e.source)) && ids.has(JSON.stringify(e.target)));
-			edgeSet.clear(); nodeSet.clear();
-			// Force simulation on thousands of nodes can freeze the Desk. Use a
-			// deterministic, draggable grid for large results instead.
+			currentEdges = data.edges.filter(e => ids.has(JSON.stringify(e.source)) && ids.has(JSON.stringify(e.target)));
+			edgeSet.clear(); nodeSet.clear(); history = []; currentId = null;
 			const large = nodes.length > 500;
 			this.network.setOptions({ physics: { enabled: !large } });
 			const columns = Math.ceil(Math.sqrt(nodes.length || 1));
 			nodeSet.add(nodes.map((n, i) => ({ id: this.id(n), label: n.label, color: this.colors[n.doctype],
 				...(large ? { x: (i % columns) * 180, y: Math.floor(i / columns) * 110 } : {}) })));
-			edgeSet.add(edges.map(e => ({ id: e.name, from: JSON.stringify(e.source), to: JSON.stringify(e.target), label: e.type, arrows: /^(directed|one.way)$/i.test(e.direction) ? 'to' : '' })));
-			this.note.text(__('Showing {0} records and {1} relationships. Only visible records and links are included.', [nodes.length, edges.length]) + ' ' + this.warning(data));
+			edgeSet.add(currentEdges.map(e => ({ id: e.name, from: JSON.stringify(e.source), to: JSON.stringify(e.target), label: e.type, arrows: /^(directed|one.way)$/i.test(e.direction) ? 'to' : '' })));
+			this.note.text(__('Showing {0} records and {1} relationships. Only visible records and links are included.', [nodes.length, currentEdges.length]) + ' ' + this.warning(data));
+			this.showDetails(__('Relationship map'), [[__('About this view'), __('Select a record or a connection to inspect it. Drag nodes to rearrange the network.')]]);
 		};
-		this.network.on('selectNode', event => {
-			const n = all.get(event.nodes[0]);
-			if (n) this.showDetails(n.label, [[__('Type'), __(n.doctype)], [__('ID'), n.name]], n);
-		});
-		this.network.on('selectEdge', event => {
-			const e = data.edges.find(edge => edge.name === event.edges[0]);
-			if (e) this.showDetails(e.type || __('Relationship'), [[__('ID'), e.name], [__('Subject'), (all.get(JSON.stringify(e.source)) || {}).label], [__('Object'), (all.get(JSON.stringify(e.target)) || {}).label], [__('Direction'), e.direction], [__('Description'), e.description], [__('Record status'), e.state]], { doctype: 'Relationship', name: e.name });
-		});
+		this.network.on('selectNode', event => showNode(event.nodes[0]));
+		this.network.on('selectEdge', event => showEdge(edgeLookup.get(event.edges[0])));
 		this.filterControls(types, update);
+		this.button(__('Back'), () => { while (history.length) { const id = history.pop(); if (nodeSet.get(id)) { showNode(id, false); break; } } }).appendTo(this.tools);
 		this.button(__('Fit network'), () => this.network.fit({ animation: true })).appendTo(this.tools);
 		this.button(__('Stabilize layout'), () => this.network.stabilize()).appendTo(this.tools);
-		this.showDetails(__('Relationship map'), [[__('About this view'), __('Select a record or a connection to inspect it. Drag nodes to rearrange the network.')]]);
 		update();
 	}
+
 	async structures(renderId) {
 		await frappe.require(['/assets/siraj_research/css/siraj_explorer.css']);
 		if (renderId !== this.renderId) return;
@@ -195,6 +320,7 @@ class SirajExplorer {
 						const details = $('<details></details>').appendTo(parent);
 						const summary = $('<summary></summary>').appendTo(details);
 						$('<span></span>').text(group.label).appendTo(summary);
+						if (group.children.length) $('<span class="sx-group-count"></span>').text(__('Groups: {0}', [group.children.length])).appendTo(summary);
 						$('<span class="sx-count"></span>').text(group.count).appendTo(summary);
 						if (group.children.length) appendGroups(details, group.children);
 					});

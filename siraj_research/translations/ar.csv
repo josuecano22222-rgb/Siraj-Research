@@ -521,3 +521,21 @@ Unknown structure source,مصدر البنية غير معروف
 Not permitted to read {0},ليس لديك صلاحية قراءة {0}
 Open geographic explorer,فتح المستكشف الجغرافي
 Unit name,اسم الوحدة
+"Offline basemap: Natural Earth, low detail.",خريطة أساسية دون اتصال: بيانات Natural Earth بتفاصيل محدودة.
+Local basemap could not be loaded. You can still use the markers or enable online tiles.,تعذّر تحميل الخريطة المحلية. لا يزال بإمكانك استخدام العلامات أو تفعيل الخريطة عبر الإنترنت.
+Record data could not be loaded. The local basemap may still be available.,تعذّر تحميل بيانات السجلات. قد تظل الخريطة المحلية متاحة.
+Clusters: on,تجميع العلامات: مفعّل
+Clusters: off,تجميع العلامات: متوقف
+Offline basemap,خريطة دون اتصال
+Online: OpenStreetMap,عبر الإنترنت: OpenStreetMap
+Some online tiles failed to load. Choose the offline basemap to continue.,تعذّر تحميل بعض مربعات الخريطة. اختر الخريطة المحلية للمتابعة.
+Online tiles disclose your IP address and viewed area to OpenStreetMap.,تُرسل الخريطة عبر الإنترنت عنوان IP والمنطقة المعروضة إلى OpenStreetMap.
+Export visible points,تصدير النقاط الظاهرة
+Select a marker to inspect its record. Clusters show the number of nearby points. Online tiles are optional.,اختر علامة للاطلاع على سجلها. تظهر المجموعات عدد النقاط المتقاربة. الخريطة عبر الإنترنت اختيارية.
+Connections ({0}),العلاقات ({0})
+No visible connections in this view.,لا توجد علاقات مرئية في هذا العرض.
+Measure distance,قياس المسافة
+Clear measurement,مسح القياس
+Click two points on the map to measure distance.,انقر نقطتين على الخريطة لقياس المسافة.
+Distance: {0} km,المسافة: {0} كم
+Groups: {0},المجموعات: {0}

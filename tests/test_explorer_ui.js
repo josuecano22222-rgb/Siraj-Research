@@ -1,0 +1,19 @@
+const { JSDOM } = require('jsdom'); const fs = require('fs'); const assert = require('assert');
+const root=require('path').resolve(__dirname, '..') + '/';
+const dom=new JSDOM('<div id="host"></div>',{runScripts:'dangerously',url:'http://site.test/app/siraj-explorer'}); const w=dom.window; const $=require('jquery')(w); w.$=$; w.console={error: (...args) => { if (!geoFail) console.error(...args); }};
+w.__=(s,args)=>args?s.replace(/\{(\d+)\}/g,(_,i)=>args[i]):s;
+let geoFail=false, lastMap, lastNetwork;
+class Layer { constructor(){this.items=[]; this.events={};} addTo(x){if(x&&x.addLayer)x.addLayer(this);return this;} addLayer(x){this.items.push(x);return this;} clearLayers(){this.items=[];} on(n,fn){this.events[n]=fn;return this;} bindTooltip(){return this;} bringToBack(){return this;} getChildCount(){return 1;} }
+class Map { constructor(){this.items=[];this.events={};this.attributionControl={addAttribution(){}};lastMap=this;} setView(){return this;} addLayer(x){this.items.push(x);return this;} removeLayer(){} remove(){} on(n,fn){this.events[n]=fn;return this;} fitBounds(){} distance(){return 1000;} }
+w.L={map:()=>new Map(),control:{scale:()=>new Layer()},geoJSON:()=>new Layer(),markerClusterGroup:()=>new Layer(),featureGroup:()=>new Layer(),marker:()=>new Layer(),circle:()=>new Layer(),polyline:()=>new Layer(),tileLayer:()=>new Layer(),divIcon:x=>x,latLngBounds:()=>({pad(){return this;}})};
+w.topojson=require(root+'siraj_research/public/vendor/topojson/topojson-client.min.js'); w.fetch=async()=>({ok:true,json:async()=>JSON.parse(fs.readFileSync(root+'siraj_research/public/vendor/world-atlas/countries-110m.json','utf8'))});
+class DataSet { constructor(){this.items=new global.Map();} add(xs){xs.forEach(x=>this.items.set(x.id,x));} get(x){return this.items.get(x);} clear(){this.items.clear();} }
+class Network { constructor(){this.events={};lastNetwork=this;} on(k,fn){this.events[k]=fn;} selectNodes(){} focus(){} setOptions(){} fit(){} stabilize(){} destroy(){} }
+w.vis={DataSet,Network};
+const nodes=[{doctype:'Person',name:'P1',label:'A'},{doctype:'Institution',name:'I1',label:'B'}];
+const geo={points:[{...nodes[0],latitude:10,longitude:20}],truncated:[]};
+const graph={nodes,edges:[{name:'R1',source:['Person','P1'],target:['Institution','I1'],type:'Member',direction:'Directed'}],truncated:[]};
+w.frappe={pages:{'siraj-explorer':{}},ui:{make_app_page:({parent})=>({main:$(parent)})},require:async()=>{},call:async({method})=>{if(method.endsWith('geographic_data')){if(geoFail)throw Error('test');return {message:geo};}if(method.endsWith('relationship_data'))return {message:graph};},set_route(){}};
+w.eval(fs.readFileSync(root+'siraj_research/siraj_research/page/siraj_explorer/siraj_explorer.js','utf8'));
+const wait=()=>new Promise(r=>setTimeout(r,20));
+(async()=>{w.frappe.pages['siraj-explorer'].on_page_load(w.document.getElementById('host'));await wait();assert(w.document.body.textContent.includes('Offline basemap: Natural Earth'));assert(w.document.body.textContent.includes('Showing 1 record-owned points'));$("button").filter((i,x)=>x.textContent==='Relationship map').trigger('click');await wait();lastNetwork.events.selectNode({nodes:[JSON.stringify(['Person','P1'])]});assert(w.document.body.textContent.includes('Connections (1)'));$("button").filter((i,x)=>x.textContent==='B').trigger('click');assert(w.document.querySelector('.sx-aside h4').textContent==='B');$("button").filter((i,x)=>x.textContent==='Back').trigger('click');assert(w.document.querySelector('.sx-aside h4').textContent==='A');geoFail=true;$("button").filter((i,x)=>x.textContent==='Geographic map').trigger('click');await wait();assert(w.document.body.textContent.includes('Record data could not be loaded'));assert(w.document.body.textContent.includes('Offline basemap: Natural Earth'));console.log('Mock DOM smoke: basemap, navigation, history and data-failure fallback passed');})().catch(e=>{console.error(e);process.exitCode=1;});

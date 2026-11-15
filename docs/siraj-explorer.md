@@ -1,13 +1,34 @@
 # SIRAJ Explorer
 
-The **SIRAJ Explorer** Desk page brings together three read-only views. It is linked from the Siraj Research workspace. On an existing site run `bench --site <site> migrate` after updating the app; the standard Page and workspace must be synced. Clear the site cache and reload the browser. If the site already has a customized workspace, the standard workspace shortcut may not replace that customization; open `/app/siraj-explorer` directly.
+Open **SIRAJ Explorer** from the workspace or `/app/siraj-explorer`. On an existing site, migrate the app, build assets and clear the site cache after updating; restart web processes if they still serve old Python modules. The previous HTTP 500 errors require the server traceback if they continue: these map changes do not diagnose site-specific backend failures.
 
-* **Geographic map**: record-owned coordinates of Person, Institution, Place, Event, Military Unit and Operational Deployment; search, type filter, fit-to-points and an in-page detail panel. The map does not substitute coordinates of linked places. Unset, invalid, and the ambiguous (0, 0) pair are excluded. Because coordinates use Frappe Float fields, a single zero cannot reliably be distinguished from an unset field: review coordinates in the source record before drawing conclusions. Precision and provenance are shown where present.
-* **Relationship map**: five registry entity types and stored Relationship records, including isolated records, with search, type filter, directed arrows, dragging, fit and a detail panel linking to records. An edge is included only if the user can read the relationship and both endpoints. For more than 500 displayed nodes the network uses a draggable grid rather than a force simulation.
-* **Structures**: permission-filtered groupings for people, institutions, places, events, relationships, sources and military units. Expandable tree and first-level distribution bars are available; every branch count comes from the same loaded records. This is not yet the original application's complete six-renderer structure deck, hierarchical military cross-module explorer, or map-library feature set.
+## Geographic map
 
-Only records permitted by Frappe list and per-document read checks are returned. Doctype and document restrictions can result in an empty or smaller view; this is intentional. Results are bounded to the first 1,500 list-visible records per type, ordered by name; a warning appears when there are more, and structure counts then describe the loaded subset, not the whole database. The check for individual custom permissions may also remove records from that subset. No restricted fields or place-derived coordinates are added to the response.
+The map starts with a locally hosted **Natural Earth 1:110m** country basemap. It is a generalized, low-detail world overview, not a street map or authoritative boundary dataset. Leaflet, marker clustering, TopoJSON and the dataset are bundled with licenses under `siraj_research/public/vendor`. No third-party requests are made in local mode. The Frappe server and the user's authorized session must remain reachable: this is offline **from the public Internet**, not an offline-first application or a saved copy of research data. No offline street tiles, download pack, or background cache is included.
 
-Leaflet and vis-network are bundled locally under `siraj_research/public/vendor` with their licenses. The map starts without a base layer: pressing **Toggle OpenStreetMap tiles** uses the public OpenStreetMap tile service and discloses the browser IP and requested map area to that service. Sites needing offline use, privacy guarantees, higher traffic, or a different provider should configure their own compliant tile infrastructure; no offline basemap is included. Maps work without external tiles, but only markers and the blank background are shown. Records are not sent to the tile provider.
+Choose **Online: OpenStreetMap** to request public OSM raster tiles. This sends the browser IP address and viewed area to OpenStreetMap; it does not send research records. Attribution is displayed. If tiles fail, select the local basemap. The public tile service is subject to its usage policy; production sites should assess their own provider requirements. The existing SIRAJ Settings map provider, download, overlays and other map preferences are not currently wired to the explorer.
 
-Tests not requiring a Frappe bench: `python3 -m unittest discover -s tests -v` and `node --check siraj_research/siraj_research/page/siraj_explorer/siraj_explorer.js`. Integration should also be tested on a v15 bench with users of different roles and document/user permissions, non-empty coordinates, restricted endpoints and more than 1,500 records; these tests do not replace browser or bench integration testing.
+Marker shapes and colors identify Person, Institution, Place, Event, Military Unit and Operational Deployment. Select a marker for its record-owned coordinates, uncertainty and source; circles visualize positive recorded uncertainty up to 1,000 km. Cluster counts, type filtering, text search, fit, metric scale, two-point distance measurement and export of the filtered visible points as GeoJSON are available. Exported files can contain sensitive research data and should be handled accordingly. Record-owned coordinates are never replaced with a linked Place's coordinates. Unset, invalid, and ambiguous (0, 0) pairs are excluded. A single zero may also be an unset Frappe Float field; review the record before drawing conclusions.
+
+If the geographic-data endpoint fails, the basemap can still load and the page says record data is unavailable. It does not fabricate markers. If the local basemap asset itself fails, the status message reports that as well.
+
+## Relationship map
+
+The graph contains visible Person, Institution, Place, Event and Source records, including isolated nodes. It shows a relationship only if the relationship and both endpoints are readable. Click a node or edge for details; the inspector lists visible connections and clickable neighboring records. Use **Back** to retrace node navigation, or drag, zoom, search, filter and fit the network. Search and type filters remove nonmatching nodes and their edges from the current view. For more than 500 nodes the graph uses a draggable grid rather than force simulation. This is not a complete replacement for the original application's full atlas and layouts.
+
+## Structures and security
+
+Structures group people, institutions, places, events, relationships, sources and military units. The current modes are an expandable tree and first-level distribution bars; a tree branch displays its child-group count. The original six-renderer structure deck and cross-module military explorer remain unimplemented.
+
+All explorer data uses Frappe list and per-document permission checks. The server returns at most the first 1,500 list-visible records per type, ordered by name, and warns when truncated. Counts and graph coverage are for the loaded, permitted subset, **not necessarily the whole database**. User permissions may also remove records from that subset. The app does not persist exported data or offline record caches.
+
+## Checks
+
+Run `python3 -m unittest discover -s tests -v`, `node tests/test_explorer_assets.js`, and `node --check siraj_research/siraj_research/page/siraj_explorer/siraj_explorer.js`. The mocked UI smoke test can be run without modifying the app's dependency tree:
+
+```bash
+npm install --prefix /tmp/siraj-ui-test --no-save jsdom@24.1.3 jquery@3.7.1
+NODE_PATH=/tmp/siraj-ui-test/node_modules node tests/test_explorer_ui.js
+```
+
+These are not a substitute for testing on an actual Frappe v15 site and browser with different roles, restricted records, more than 1,500 records, offline Internet access, tile failures, keyboard use and mobile layout.

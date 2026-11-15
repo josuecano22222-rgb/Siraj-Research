@@ -15,3 +15,20 @@
 .sx-pin-key { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-inline-end: 6px; }
 .sx-open { margin-top: 12px; } .sx-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; font-size: 12px; }
 @media (max-width: 800px) { .sx-layout { grid-template-columns: 1fr; } .sx-canvas { min-height: 420px; height: 55vh; } }
+/* The offline map and its fixed, type-specific symbols work without an icon font. */
+.siraj-explorer .leaflet-container { background: #c8dfe0; }
+.sx-pin-wrapper { border: 0; background: transparent; }
+.sx-map-pin { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 3px solid #fff; border-radius: 50%; color: #fff; box-shadow: 0 2px 7px #263c4055; }
+.sx-map-pin svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sx-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.sx-legend-pin { display: inline-flex; width: 24px; height: 24px; border-width: 2px; }
+.sx-legend-pin svg { width: 15px; height: 15px; }
+.sx-cluster { display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #fff; background: #1a6670; border: 4px solid #c4e5de; box-shadow: 0 2px 7px #263c4066; font-weight: 700; }
+.sx-map-status { margin-top: 8px; color: var(--text-muted); font-size: 12px; }
+.sx-neighbors-heading { margin-top: 24px; } .sx-muted { color: var(--text-muted); font-size: 12px; }
+.sx-neighbor { border-top: 1px solid var(--sx-line); padding: 8px 0; }
+.sx-neighbor small { display: block; color: var(--text-muted); }
+.sx-neighbor-link { margin-top: 3px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.leaflet-cluster-anim .leaflet-marker-icon { transition: transform .3s ease-out, opacity .3s ease-in; }
+
+.sx-group-count { margin-inline-start: 8px; color: var(--text-muted); font-size: 12px; }
