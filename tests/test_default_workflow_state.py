@@ -39,6 +39,16 @@ class DefaultWorkflowStateTest(unittest.TestCase):
         install.ensure_default_workflow_state()
         frappe.get_doc.assert_not_called()
 
+    def test_install_also_seeds_reference_data(self):
+        frappe = types.SimpleNamespace(db=MagicMock(), get_doc=MagicMock())
+        frappe.db.exists.return_value = True
+        install = load_install(frappe)
+        master = types.ModuleType('siraj_research.setup.master_data')
+        master.seed_master_data = MagicMock(return_value={'created': {}})
+        with patch.dict(sys.modules, {'siraj_research.setup.master_data': master}), patch('builtins.print'):
+            install.after_install()
+        master.seed_master_data.assert_called_once_with()
+
     def test_doctype_defaults_match_installed_state(self):
         fields = []
         for path in (ROOT / "siraj_research/siraj_research/doctype").glob("*/*.json"):

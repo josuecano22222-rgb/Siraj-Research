@@ -22,11 +22,7 @@ def ensure_default_workflow_state():
 
 
 def after_install():
-	"""Create the four SIRAJ roles.
-
-	Roles are data in Frappe and every DocPerm row names one, so they must exist before
-	a user is granted one. Idempotent, which is what `bench reinstall` needs.
-	"""
+	"""Create roles, default workflow state and additive reference data."""
 	for role in ROLES:
 		if not frappe.db.exists("Role", role):
 			frappe.get_doc({
@@ -36,3 +32,7 @@ def after_install():
 			}).insert(ignore_permissions=True)
 
 	ensure_default_workflow_state()
+	# Master data is additive and rerunnable; do not seed synthetic demos.
+	from siraj_research.setup.master_data import seed_master_data
+
+	print("SIRAJ reference data:", seed_master_data())
