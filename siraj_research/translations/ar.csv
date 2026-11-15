@@ -539,3 +539,5 @@ Clear measurement,مسح القياس
 Click two points on the map to measure distance.,انقر نقطتين على الخريطة لقياس المسافة.
 Distance: {0} km,المسافة: {0} كم
 Groups: {0},المجموعات: {0}
+Unsupported tree type,نوع الشجرة غير مدعوم
+Not permitted to read this tree node,ليس لديك صلاحية قراءة عقدة الشجرة هذه

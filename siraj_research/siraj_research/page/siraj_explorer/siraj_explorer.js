@@ -105,7 +105,7 @@ class SirajExplorer {
 			'/assets/siraj_research/css/siraj_explorer.css'
 		]);
 		if (renderId !== this.renderId) return;
-		const map = this.map = L.map(this.canvas[0], { worldCopyJump: true, preferCanvas: true }).setView([33.3152, 44.3661], 4);
+		const map = this.map = L.map(this.canvas[0], { worldCopyJump: true, preferCanvas: true, minZoom: 2, maxZoom: 19 }).setView([33.3152, 44.3661], 4);
 		L.control.scale({ imperial: false }).addTo(map);
 		// All basemap geometry is served by this site; no external request is
 		// made until the user explicitly selects OpenStreetMap.

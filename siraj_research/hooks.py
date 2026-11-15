@@ -60,7 +60,11 @@ add_to_apps_screen = [
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
-# doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
+doctype_tree_js = {
+	"Place": "public/js/tree_navigation.js",
+	"Military Unit": "public/js/tree_navigation.js",
+	"Command Region": "public/js/tree_navigation.js",
+}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
 # Svg Icons
