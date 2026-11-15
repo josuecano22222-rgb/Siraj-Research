@@ -95,8 +95,18 @@ class MilitaryUnitTest(unittest.TestCase):
         unit.on_update()
         self.assertEqual(self.f.rows['A']['subtree_personnel'], 11)
 
+    def test_sparse_new_form_payload_allows_missing_optional_fields(self):
+        # The browser does not send absent Link fields; Frappe's new-document
+        # defaults don't populate None values as attributes before validate.
+        unit = self.controller.MilitaryUnit()
+        unit.name, unit.new, unit.before = 'MIL-UNIT-0001', True, None
+        unit.direct_personnel = 0
+        unit.validate()
+        self.assertEqual(unit.subtree_personnel, 0)
+        unit.on_update()
+
     def test_edit_and_reparent_recalculate_both_chains(self):
-        unit = self.unit('B', 'D', 8, before=types.SimpleNamespace(parent_unit='A'))
+        unit = self.unit('B', 'D', 8, before=types.SimpleNamespace(get=lambda field: {'parent_unit': 'A'}.get(field)))
         unit.validate()
         self.assertEqual(unit.subtree_personnel, 11)
         self.f.rows['B'].update(parent_unit='D', direct_personnel=8)

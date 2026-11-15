@@ -19,7 +19,8 @@ class MilitaryUnit(Document):
 		self.subtree_personnel = self.compute_subtree_personnel()
 
 	def validate_parent(self):
-		if self.parent_unit and self.name in ancestors(self.doctype, self.parent_unit):
+		parent_unit = self.get("parent_unit")
+		if parent_unit and self.name in ancestors(self.doctype, parent_unit):
 			frappe.throw(_("A military unit cannot be its own ancestor."), frappe.ValidationError)
 
 	def validate_holdings(self):
@@ -56,21 +57,22 @@ class MilitaryUnit(Document):
 
 	def validate_commander(self):
 		"""rules.check_commander_person — only a military person may command a unit."""
-		if self.commander and not military_person(self.commander):
+		commander = self.get("commander")
+		if commander and not military_person(commander):
 			frappe.throw(_("The commander of {0} must be a person of the Military category.")
 			             .format(self.name), title=_("Invalid commander"))
 
 	def validate_personnel(self):
-		if (self.direct_personnel or 0) < 0:
+		if (self.get("direct_personnel") or 0) < 0:
 			frappe.throw(_("Direct personnel cannot be negative."))
 
 	def compute_subtree_personnel(self) -> int:
 		"""Use submitted direct personnel plus persisted subordinate personnel."""
 		if self.is_new():
-			return int(self.direct_personnel or 0)
+			return int(self.get("direct_personnel") or 0)
 		return subtree_personnel(self.doctype, self.name) - int(
 			frappe.db.get_value(self.doctype, self.name, "direct_personnel") or 0
-		) + int(self.direct_personnel or 0)
+		) + int(self.get("direct_personnel") or 0)
 
 	def update_ancestor_totals(self, *parents):
 		# Both old and new chains matter when a unit is reparented.
@@ -85,10 +87,10 @@ class MilitaryUnit(Document):
 
 	def on_update(self):
 		before = self.get_doc_before_save()
-		self.update_ancestor_totals(self.parent_unit, before.parent_unit if before else None)
+		self.update_ancestor_totals(self.get("parent_unit"), before.get("parent_unit") if before else None)
 
 	def after_delete(self):
-		self.update_ancestor_totals(self.parent_unit)
+		self.update_ancestor_totals(self.get("parent_unit"))
 
 	@frappe.whitelist()
 	def get_descendants(self):
