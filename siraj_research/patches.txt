@@ -1,0 +1,5 @@
+
+siraj_research.patches.v1_0.set_naming_counters
+siraj_research.patches.v1_0.fold_commanders
+siraj_research.patches.v1_0.migrate_person_traits
+siraj_research.patches.v1_0.map_notes_to_comments

@@ -1,0 +1,68 @@
+{
+ "doctype": "DocType",
+ "name": "Unit Armament Holding",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "armament",
+  "quantity",
+  "condition",
+  "acquisition_year",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "armament",
+   "fieldtype": "Link",
+   "label": "Armament",
+   "options": "Armament",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "What the unit holds. The holding is a row, not a column: one unit holds many kinds of armament, each with its own quantity and condition."
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Int",
+   "label": "Quantity",
+   "reqd": 1,
+   "in_list_view": 1,
+   "non_negative": 1,
+   "default": "1",
+   "description": "Positive by rule (`check_holding`)."
+  },
+  {
+   "fieldname": "condition",
+   "fieldtype": "Select",
+   "label": "Condition",
+   "options": "Serviceable\nLimited\nUnserviceable\nIn Refit",
+   "default": "Serviceable",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Serviceability, from the closed list in `military/vocab.py` (`HOLDING_CONDITIONS`)."
+  },
+  {
+   "fieldname": "acquisition_year",
+   "fieldtype": "Int",
+   "label": "Acquisition year",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "permissions": [],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "sort_field": "modified",
+ "sort_order": "ASC",
+ "row_format": "Dynamic",
+ "autoname": "hash",
+ "istable": 1,
+ "editable_grid": 1,
+ "in_create": 1,
+ "description": "The source's `unit_armament` table: one row per (unit, armament), with a uniqueness constraint and a positive-quantity check. Owned repeated data of a unit, so a child table — and the unique pair becomes the child-table rule in the controller."
+}

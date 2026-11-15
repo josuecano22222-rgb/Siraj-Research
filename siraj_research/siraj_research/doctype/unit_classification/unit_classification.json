@@ -1,0 +1,273 @@
+{
+ "doctype": "DocType",
+ "name": "Unit Classification",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "tab_classification",
+  "sb_identity",
+  "naming_series",
+  "classification_name",
+  "cb_classification",
+  "category",
+  "readiness_tier",
+  "sb_classification_main",
+  "description",
+  "tab_provenance",
+  "sb_evidence",
+  "primary_source",
+  "documentation_level",
+  "authentication_level",
+  "cb_provenance",
+  "workflow_state",
+  "researcher_notes",
+  "sb_identifiers",
+  "external_identifiers"
+ ],
+ "fields": [
+  {
+   "fieldname": "tab_classification",
+   "fieldtype": "Tab Break",
+   "label": "Classification"
+  },
+  {
+   "fieldname": "sb_identity",
+   "fieldtype": "Section Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "MIL-CLS-.####",
+   "default": "MIL-CLS-.####",
+   "reqd": 1,
+   "description": "The source's one option for classifications."
+  },
+  {
+   "fieldname": "classification_name",
+   "fieldtype": "Data",
+   "label": "Classification",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "length": 140,
+   "description": "Unique, human, and what a unit's link field shows."
+  },
+  {
+   "fieldname": "cb_classification",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "label": "Category",
+   "options": "Combat\nSupport\nReserve\nTraining",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Combat / Support / Reserve / Training ⇒ `vocab.CLASS_CATEGORIES`."
+  },
+  {
+   "fieldname": "readiness_tier",
+   "fieldtype": "Select",
+   "label": "Readiness tier",
+   "options": "High\nMedium\nLow",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "High / Medium / Low."
+  },
+  {
+   "fieldname": "sb_classification_main",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "tab_provenance",
+   "fieldtype": "Tab Break",
+   "label": "Provenance & State"
+  },
+  {
+   "fieldname": "sb_evidence",
+   "fieldtype": "Section Break",
+   "label": "Source & verification"
+  },
+  {
+   "fieldname": "primary_source",
+   "fieldtype": "Link",
+   "label": "Primary source",
+   "options": "Source",
+   "description": "The source the record rests on. Additional claims from other sources are recorded in the Evidence table, one claim per row."
+  },
+  {
+   "fieldname": "documentation_level",
+   "fieldtype": "Link",
+   "label": "Documentation level",
+   "options": "Documentation Level"
+  },
+  {
+   "fieldname": "authentication_level",
+   "fieldtype": "Link",
+   "label": "Authentication level",
+   "options": "Authentication Level",
+   "description": "How strongly the record's content is verified."
+  },
+  {
+   "fieldname": "cb_provenance",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "label": "Record status",
+   "options": "Workflow State",
+   "default": "Draft",
+   "read_only": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "no_copy": 1,
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
+  },
+  {
+   "fieldname": "researcher_notes",
+   "fieldtype": "Text",
+   "label": "Researcher's notes",
+   "permlevel": 1,
+   "description": "Internal working notes. At permission level 1, so visible to reviewers and administrators only; discussion belongs in the document's comment thread instead."
+  },
+  {
+   "fieldname": "sb_identifiers",
+   "fieldtype": "Section Break",
+   "label": "External identifiers"
+  },
+  {
+   "fieldname": "external_identifiers",
+   "fieldtype": "Table",
+   "label": "External identifiers",
+   "options": "External Identifier",
+   "no_copy": 1,
+   "columns": 8,
+   "description": "VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record."
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 0,
+   "share": 0,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "System Manager",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "links": [
+  {
+   "link_doctype": "Military Unit",
+   "link_fieldname": "classification",
+   "group": "Units"
+  }
+ ],
+ "actions": [],
+ "states": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "row_format": "Dynamic",
+ "autoname": "field:classification_name",
+ "naming_rule": "By fieldname",
+ "editable_grid": 1,
+ "track_changes": 1,
+ "quick_entry": 1,
+ "allow_import": 1,
+ "in_create": 1,
+ "search_fields": "classification_name,category",
+ "icon": "tag",
+ "description": "Unit classifications with their category and readiness tier (the source's `classification` table)."
+}

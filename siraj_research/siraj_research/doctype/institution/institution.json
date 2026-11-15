@@ -1,0 +1,688 @@
+{
+ "doctype": "DocType",
+ "name": "Institution",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "tab_identity",
+  "sb_identity",
+  "naming_series",
+  "display_name",
+  "cb_identity",
+  "name_ar",
+  "name_en",
+  "name_original",
+  "name_original_lang",
+  "abbreviation",
+  "cb_type",
+  "institution_type",
+  "institution_subcategory",
+  "governance_system",
+  "image",
+  "image_url",
+  "image_alt",
+  "tab_history",
+  "sb_history",
+  "founded_date_as_stated",
+  "founded_date",
+  "founded_date_precision",
+  "closed_date_as_stated",
+  "closed_date",
+  "closed_date_precision",
+  "sb_seat",
+  "country",
+  "governorate",
+  "cb_seat",
+  "place",
+  "city_as_stated",
+  "address",
+  "sb_profile",
+  "objectives",
+  "org_structure",
+  "research_significance",
+  "cb_profile",
+  "leadership_as_stated",
+  "founders_as_stated",
+  "website",
+  "social_accounts",
+  "expertise",
+  "tab_evidence",
+  "sb_geo",
+  "latitude",
+  "longitude",
+  "geo_precision",
+  "geocoding_method",
+  "geo_uncertainty_m",
+  "geometry_source",
+  "tab_provenance",
+  "sb_evidence",
+  "primary_source",
+  "documentation_level",
+  "authentication_level",
+  "cb_provenance",
+  "workflow_state",
+  "researcher_notes",
+  "sb_evidence_table",
+  "evidence",
+  "sb_identifiers",
+  "external_identifiers"
+ ],
+ "fields": [
+  {
+   "fieldname": "tab_identity",
+   "fieldtype": "Tab Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "sb_identity",
+   "fieldtype": "Section Break",
+   "label": ""
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "INS-.####\nINS-.YY.-.####",
+   "reqd": 1,
+   "default": "INS-.####"
+  },
+  {
+   "fieldname": "display_name",
+   "fieldtype": "Data",
+   "label": "Display name",
+   "read_only": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "in_global_search": 1,
+   "length": 140,
+   "in_preview": 1
+  },
+  {
+   "fieldname": "cb_identity",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "name_ar",
+   "fieldtype": "Data",
+   "label": "Name (Arabic)",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "in_global_search": 1,
+   "length": 140,
+   "in_preview": 1,
+   "allow_in_quick_entry": 1
+  },
+  {
+   "fieldname": "name_en",
+   "fieldtype": "Data",
+   "label": "Name (English)",
+   "in_list_view": 1,
+   "search_index": 1,
+   "in_global_search": 1,
+   "length": 140,
+   "in_preview": 1
+  },
+  {
+   "fieldname": "name_original",
+   "fieldtype": "Data",
+   "label": "Name (original language)",
+   "length": 140
+  },
+  {
+   "fieldname": "name_original_lang",
+   "fieldtype": "Link",
+   "label": "Original-name language",
+   "options": "Language"
+  },
+  {
+   "fieldname": "abbreviation",
+   "fieldtype": "Data",
+   "label": "Abbreviation",
+   "length": 64,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cb_type",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "institution_type",
+   "fieldtype": "Link",
+   "label": "Type of institution",
+   "options": "Institution Type",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "in_preview": 1,
+   "allow_in_quick_entry": 1
+  },
+  {
+   "fieldname": "institution_subcategory",
+   "fieldtype": "Link",
+   "label": "Subcategory",
+   "options": "Institution Subcategory",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "governance_system",
+   "fieldtype": "Link",
+   "label": "Governance system",
+   "options": "Governance System"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image",
+   "in_preview": 1
+  },
+  {
+   "fieldname": "image_url",
+   "fieldtype": "Data",
+   "label": "Image URL (external)",
+   "options": "URL"
+  },
+  {
+   "fieldname": "image_alt",
+   "fieldtype": "Data",
+   "label": "Image alt text",
+   "length": 140
+  },
+  {
+   "fieldname": "tab_history",
+   "fieldtype": "Tab Break",
+   "label": "History & seat"
+  },
+  {
+   "fieldname": "sb_history",
+   "fieldtype": "Section Break",
+   "label": "History"
+  },
+  {
+   "fieldname": "founded_date_as_stated",
+   "fieldtype": "Data",
+   "label": "Date of establishment (as stated)",
+   "description": "Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.",
+   "in_global_search": 1,
+   "length": 32
+  },
+  {
+   "fieldname": "founded_date",
+   "fieldtype": "Date",
+   "label": "Date of establishment (comparable)",
+   "description": "Machine-comparable value derived from the 'as stated' value; used for filters, sorting and reports. Never more precise than what is stated.",
+   "search_index": 1,
+   "reqd": 0,
+   "no_copy": 1,
+   "read_only": 1,
+   "in_preview": 1
+  },
+  {
+   "fieldname": "founded_date_precision",
+   "fieldtype": "Select",
+   "label": "Date of establishment precision",
+   "options": "exact\nminute\nday\nmonth\nyear\ndecade\napproximate\nuncertain\nrange\nunknown",
+   "default": "unknown",
+   "no_copy": 1,
+   "read_only": 1,
+   "description": "How much of the date is actually known. 'approximate' keeps c. 1850; 'year' keeps 1850; 'decade' keeps '1850s'; 'minute' keeps a time of day."
+  },
+  {
+   "fieldname": "closed_date_as_stated",
+   "fieldtype": "Data",
+   "label": "Date of closure (as stated)",
+   "description": "Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.",
+   "in_global_search": 1,
+   "length": 32
+  },
+  {
+   "fieldname": "closed_date",
+   "fieldtype": "Date",
+   "label": "Date of closure (comparable)",
+   "description": "Machine-comparable value derived from the 'as stated' value; used for filters, sorting and reports. Never more precise than what is stated.",
+   "search_index": 1,
+   "reqd": 0,
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "closed_date_precision",
+   "fieldtype": "Select",
+   "label": "Date of closure precision",
+   "options": "exact\nminute\nday\nmonth\nyear\ndecade\napproximate\nuncertain\nrange\nunknown",
+   "default": "unknown",
+   "no_copy": 1,
+   "read_only": 1,
+   "description": "How much of the date is actually known. 'approximate' keeps c. 1850; 'year' keeps 1850; 'decade' keeps '1850s'; 'minute' keeps a time of day."
+  },
+  {
+   "fieldname": "sb_seat",
+   "fieldtype": "Section Break",
+   "label": "Seat"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "in_standard_filter": 1,
+   "in_preview": 1,
+   "allow_in_quick_entry": 1
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate",
+   "link_filters": "[[\"Governorate\", \"country\", \"=\", \"eval:doc.country\"]]"
+  },
+  {
+   "fieldname": "cb_seat",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "place",
+   "fieldtype": "Link",
+   "label": "Place (record)",
+   "options": "Place",
+   "description": "The named settlement or building; association only, never a source of coordinates.",
+   "in_preview": 1
+  },
+  {
+   "fieldname": "city_as_stated",
+   "fieldtype": "Data",
+   "label": "City (as stated)",
+   "length": 140
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Small Text",
+   "label": "Official address"
+  },
+  {
+   "fieldname": "sb_profile",
+   "fieldtype": "Section Break",
+   "label": "Profile"
+  },
+  {
+   "fieldname": "objectives",
+   "fieldtype": "Text Editor",
+   "label": "Statement of objectives"
+  },
+  {
+   "fieldname": "org_structure",
+   "fieldtype": "Text Editor",
+   "label": "Organisational structure"
+  },
+  {
+   "fieldname": "research_significance",
+   "fieldtype": "Text Editor",
+   "label": "Research significance"
+  },
+  {
+   "fieldname": "cb_profile",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "leadership_as_stated",
+   "fieldtype": "Small Text",
+   "label": "Current leadership (as stated)",
+   "description": "Free text as recorded. Named office-holders with dates belong in Relationship rows of type 'Director of' / 'Board member of'."
+  },
+  {
+   "fieldname": "founders_as_stated",
+   "fieldtype": "Small Text",
+   "label": "Founders (as stated)",
+   "description": "As recorded in the source. Structured founder links are Relationship rows of type 'Founded by'."
+  },
+  {
+   "fieldname": "website",
+   "fieldtype": "Data",
+   "label": "Website",
+   "options": "URL"
+  },
+  {
+   "fieldname": "social_accounts",
+   "fieldtype": "Table",
+   "label": "Official accounts",
+   "options": "Social Account",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "expertise",
+   "fieldtype": "Table MultiSelect",
+   "label": "Areas of expertise",
+   "options": "Expertise Link",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "tab_evidence",
+   "fieldtype": "Tab Break",
+   "label": "Position & evidence"
+  },
+  {
+   "fieldname": "sb_geo",
+   "fieldtype": "Section Break",
+   "label": "Position (this record's own)",
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude",
+   "precision": "6",
+   "description": "This record's own latitude, independent of any linked place.",
+   "in_standard_filter": 0
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude",
+   "precision": "6",
+   "description": "This record's own longitude, independent of any linked place."
+  },
+  {
+   "fieldname": "geo_precision",
+   "fieldtype": "Select",
+   "label": "Coordinate precision",
+   "options": "exact\napproximate\ncentroid\nuncertain",
+   "description": "How close the point is to the true position.",
+   "depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "geocoding_method",
+   "fieldtype": "Select",
+   "label": "How the point was obtained",
+   "options": "manual\nmap_pick\ncoordinate_entry\ngazetteer\nadministrative\ncity_centroid\ngeocoder\nhistorical_map\ninherited",
+   "description": "A city centroid is not a street address; recording the method stops a centroid from being read as a verified location.",
+   "depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "geo_uncertainty_m",
+   "fieldtype": "Float",
+   "label": "Uncertainty radius (m)",
+   "precision": "1",
+   "description": "The radius the true position could lie within.",
+   "depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "geometry_source",
+   "fieldtype": "Data",
+   "label": "Point source",
+   "length": 140,
+   "description": "The map, survey or gazetteer the coordinates came from.",
+   "depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "tab_provenance",
+   "fieldtype": "Tab Break",
+   "label": "Provenance & State"
+  },
+  {
+   "fieldname": "sb_evidence",
+   "fieldtype": "Section Break",
+   "label": "Source & verification"
+  },
+  {
+   "fieldname": "primary_source",
+   "fieldtype": "Link",
+   "label": "Primary source",
+   "options": "Source",
+   "description": "The source the record rests on. Additional claims from other sources are recorded in the Evidence table, one claim per row."
+  },
+  {
+   "fieldname": "documentation_level",
+   "fieldtype": "Link",
+   "label": "Documentation level",
+   "options": "Documentation Level"
+  },
+  {
+   "fieldname": "authentication_level",
+   "fieldtype": "Link",
+   "label": "Authentication level",
+   "options": "Authentication Level",
+   "description": "How strongly the record's content is verified."
+  },
+  {
+   "fieldname": "cb_provenance",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "label": "Record status",
+   "options": "Workflow State",
+   "default": "Draft",
+   "read_only": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "no_copy": 1,
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
+  },
+  {
+   "fieldname": "researcher_notes",
+   "fieldtype": "Text",
+   "label": "Researcher's notes",
+   "permlevel": 1,
+   "description": "Internal working notes. At permission level 1, so visible to reviewers and administrators only; discussion belongs in the document's comment thread instead."
+  },
+  {
+   "fieldname": "sb_evidence_table",
+   "fieldtype": "Section Break",
+   "label": "Evidence (claims this record makes)"
+  },
+  {
+   "fieldname": "evidence",
+   "fieldtype": "Table",
+   "label": "Evidence",
+   "options": "Evidence",
+   "no_copy": 1,
+   "columns": 9,
+   "description": "One row per claim: which source says what, where in the source, whether it supports or contradicts, and who verified it. Not copied with the record: a claim is evidence about one specific record."
+  },
+  {
+   "fieldname": "sb_identifiers",
+   "fieldtype": "Section Break",
+   "label": "External identifiers"
+  },
+  {
+   "fieldname": "external_identifiers",
+   "fieldtype": "Table",
+   "label": "External identifiers",
+   "options": "External Identifier",
+   "no_copy": 1,
+   "columns": 8,
+   "description": "VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record."
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 0,
+   "share": 0,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "System Manager",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "links": [
+  {
+   "link_doctype": "Person Position",
+   "link_fieldname": "institution",
+   "group": "Posts recorded here",
+   "is_child_table": 1,
+   "parent_doctype": "Person",
+   "table_fieldname": "positions"
+  }
+ ],
+ "actions": [
+  {
+   "label": "Find duplicates",
+   "group": "Data quality",
+   "action_type": "Server Action",
+   "action": "siraj.api.duplicate_candidates_for_doc",
+   "hidden": 0,
+   "custom": 0
+  },
+  {
+   "label": "Open on the map",
+   "group": "Geography",
+   "action_type": "Server Action",
+   "action": "siraj.api.open_on_map",
+   "hidden": 0,
+   "custom": 0
+  },
+  {
+   "label": "Merge a duplicate into this record",
+   "group": "Data quality",
+   "action_type": "Server Action",
+   "action": "siraj.api.merge_duplicate_into",
+   "hidden": 0,
+   "custom": 0
+  }
+ ],
+ "states": [
+  {
+   "title": "Draft",
+   "color": "Gray"
+  },
+  {
+   "title": "In Review",
+   "color": "Orange"
+  },
+  {
+   "title": "Verified",
+   "color": "Light Blue"
+  },
+  {
+   "title": "Published",
+   "color": "Green"
+  },
+  {
+   "title": "Needs Update",
+   "color": "Yellow"
+  },
+  {
+   "title": "Disputed",
+   "color": "Red"
+  },
+  {
+   "title": "Archived",
+   "color": "Purple"
+  },
+  {
+   "title": "Rejected",
+   "color": "Red"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "row_format": "Dynamic",
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "editable_grid": 1,
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1,
+ "quick_entry": 1,
+ "allow_rename": 1,
+ "allow_import": 1,
+ "show_title_field_in_link": 1,
+ "show_preview_popup": 1,
+ "allow_copy": 1,
+ "allow_events_in_timeline": 1,
+ "in_create": 1,
+ "title_field": "display_name",
+ "image_field": "image",
+ "search_fields": "display_name,name_ar,name_en,abbreviation,name_original",
+ "icon": "building",
+ "description": "Universities, research centres, ministries, associations and other bodies.",
+ "default_print_format": "SIRAJ Research Dossier"
+}

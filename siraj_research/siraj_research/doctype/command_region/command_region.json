@@ -1,0 +1,315 @@
+{
+ "doctype": "DocType",
+ "name": "Command Region",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "tab_region",
+  "sb_identity",
+  "naming_series",
+  "region_name",
+  "region_type",
+  "cb_region_scope",
+  "is_group",
+  "parent_region",
+  "country",
+  "sb_region_main",
+  "description",
+  "tab_provenance",
+  "sb_evidence",
+  "primary_source",
+  "documentation_level",
+  "authentication_level",
+  "cb_provenance",
+  "workflow_state",
+  "researcher_notes",
+  "sb_evidence_table",
+  "evidence",
+  "sb_identifiers",
+  "external_identifiers"
+ ],
+ "fields": [
+  {
+   "fieldname": "tab_region",
+   "fieldtype": "Tab Break",
+   "label": "Region"
+  },
+  {
+   "fieldname": "sb_identity",
+   "fieldtype": "Section Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "MIL-REG-.####",
+   "default": "MIL-REG-.####",
+   "reqd": 1,
+   "description": "The source's one option for regions (`MIL-REG-`)."
+  },
+  {
+   "fieldname": "region_name",
+   "fieldtype": "Data",
+   "label": "Region name",
+   "reqd": 1,
+   "in_list_view": 1,
+   "length": 140
+  },
+  {
+   "fieldname": "region_type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "Theater\nRegion\nZone\nArea",
+   "default": "Region",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Theater / Region / Zone / Area — a closed list from `vocab.REGION_TYPES`."
+  },
+  {
+   "fieldname": "cb_region_scope",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "is_group",
+   "fieldtype": "Check",
+   "label": "Group",
+   "default": "0",
+   "in_standard_filter": 1,
+   "description": "Frappe's tree convention: a group node is a container and cannot be deployed as a leaf. The source has no such column — its `path`/`depth` text columns lose the distinction — so this is the one field the framework adds to the source's shape."
+  },
+  {
+   "fieldname": "parent_region",
+   "fieldtype": "Link",
+   "label": "Parent region",
+   "options": "Command Region",
+   "description": "Native tree: `Command Region` is a NestedSet, so a region carries `lft`/`rgt` instead of the source's `path`/`depth` text columns. A region cannot be its own ancestor."
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "in_standard_filter": 1,
+   "description": "Native `Country` master — the source keeps this as a vocabulary code."
+  },
+  {
+   "fieldname": "sb_region_main",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "tab_provenance",
+   "fieldtype": "Tab Break",
+   "label": "Provenance & State"
+  },
+  {
+   "fieldname": "sb_evidence",
+   "fieldtype": "Section Break",
+   "label": "Source & verification"
+  },
+  {
+   "fieldname": "primary_source",
+   "fieldtype": "Link",
+   "label": "Primary source",
+   "options": "Source",
+   "description": "The source the record rests on. Additional claims from other sources are recorded in the Evidence table, one claim per row."
+  },
+  {
+   "fieldname": "documentation_level",
+   "fieldtype": "Link",
+   "label": "Documentation level",
+   "options": "Documentation Level"
+  },
+  {
+   "fieldname": "authentication_level",
+   "fieldtype": "Link",
+   "label": "Authentication level",
+   "options": "Authentication Level",
+   "description": "How strongly the record's content is verified."
+  },
+  {
+   "fieldname": "cb_provenance",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "label": "Record status",
+   "options": "Workflow State",
+   "default": "Draft",
+   "read_only": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "no_copy": 1,
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
+  },
+  {
+   "fieldname": "researcher_notes",
+   "fieldtype": "Text",
+   "label": "Researcher's notes",
+   "permlevel": 1,
+   "description": "Internal working notes. At permission level 1, so visible to reviewers and administrators only; discussion belongs in the document's comment thread instead."
+  },
+  {
+   "fieldname": "sb_evidence_table",
+   "fieldtype": "Section Break",
+   "label": "Evidence (claims this record makes)"
+  },
+  {
+   "fieldname": "evidence",
+   "fieldtype": "Table",
+   "label": "Evidence",
+   "options": "Evidence",
+   "no_copy": 1,
+   "columns": 9,
+   "description": "One row per claim: which source says what, where in the source, whether it supports or contradicts, and who verified it. Not copied with the record: a claim is evidence about one specific record."
+  },
+  {
+   "fieldname": "sb_identifiers",
+   "fieldtype": "Section Break",
+   "label": "External identifiers"
+  },
+  {
+   "fieldname": "external_identifiers",
+   "fieldtype": "Table",
+   "label": "External identifiers",
+   "options": "External Identifier",
+   "no_copy": 1,
+   "columns": 8,
+   "description": "VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record."
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 0,
+   "share": 0,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "System Manager",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "links": [
+  {
+   "link_doctype": "Military Division",
+   "link_fieldname": "region",
+   "group": "Divisions"
+  },
+  {
+   "link_doctype": "Military Unit",
+   "link_fieldname": "region",
+   "group": "Units"
+  }
+ ],
+ "actions": [],
+ "states": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "row_format": "Dynamic",
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "is_tree": 1,
+ "editable_grid": 1,
+ "track_changes": 1,
+ "track_views": 1,
+ "quick_entry": 1,
+ "allow_import": 1,
+ "show_title_field_in_link": 1,
+ "allow_copy": 1,
+ "in_create": 1,
+ "nsm_parent_field": "parent_region",
+ "title_field": "region_name",
+ "search_fields": "region_name,region_type",
+ "icon": "map",
+ "description": "Command regions and areas — the military command geography, which is separate from the administrative chain on Place. The source's `region` table; a NestedSet here."
+}

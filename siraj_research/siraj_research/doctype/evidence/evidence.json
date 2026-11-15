@@ -1,0 +1,124 @@
+{
+ "doctype": "DocType",
+ "name": "Evidence",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "source",
+  "support_type",
+  "field_key",
+  "cb_claim",
+  "supported_claim",
+  "page_or_timestamp",
+  "sb_review",
+  "authentication_level",
+  "reviewer",
+  "review_date",
+  "cb_review",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "source",
+   "fieldtype": "Link",
+   "label": "Source",
+   "options": "Source",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "support_type",
+   "fieldtype": "Select",
+   "label": "Support",
+   "options": "supports\ncontradicts\ncontextualizes",
+   "reqd": 1,
+   "default": "supports",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "allow_bulk_edit": 1,
+   "description": "A contradiction is a different claim, so the same source may both support and contradict the same record on different grounds.",
+   "columns": 2
+  },
+  {
+   "fieldname": "field_key",
+   "fieldtype": "Data",
+   "label": "Supports which field",
+   "length": 64,
+   "in_list_view": 1,
+   "description": "Optional fieldname of the parent record the claim is about ('birth_date', 'latitude'…). Validated against the parent's meta, so a citation can never point at a field that no longer exists.",
+   "columns": 2
+  },
+  {
+   "fieldname": "cb_claim",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "supported_claim",
+   "fieldtype": "Small Text",
+   "label": "Statement in the source",
+   "description": "The claim in the researcher's words: a quotation or a faithful paraphrase of one."
+  },
+  {
+   "fieldname": "page_or_timestamp",
+   "fieldtype": "Data",
+   "label": "Where in the source",
+   "length": 120,
+   "description": "Page, folio, column, or minute:second.",
+   "columns": 2
+  },
+  {
+   "fieldname": "sb_review",
+   "fieldtype": "Section Break",
+   "label": "Verification"
+  },
+  {
+   "fieldname": "authentication_level",
+   "fieldtype": "Link",
+   "label": "Authentication level",
+   "options": "Authentication Level",
+   "allow_bulk_edit": 1,
+   "description": "Set it on several rows at once in the grid: one reviewer clearing a batch of claims marks them all 'single source'."
+  },
+  {
+   "fieldname": "reviewer",
+   "fieldtype": "Link",
+   "label": "Reviewed by",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "review_date",
+   "fieldtype": "Date",
+   "label": "Review date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_review",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "permissions": [],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "sort_field": "modified",
+ "sort_order": "ASC",
+ "row_format": "Dynamic",
+ "autoname": "hash",
+ "istable": 1,
+ "editable_grid": 1,
+ "in_create": 1,
+ "grid_page_length": 30,
+ "rows_threshold_for_grid_search": 30,
+ "description": "One claim a source makes about the parent record (or about one field of it). The original `evidence` table, owned by the record it supports."
+}

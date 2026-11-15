@@ -1,0 +1,267 @@
+{
+ "doctype": "DocType",
+ "name": "SIRAJ Settings",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "tab_quality",
+  "sb_quality",
+  "require_source_on_publish",
+  "min_completeness_to_publish",
+  "cb_quality",
+  "stale_review_days",
+  "tab_transfer",
+  "sb_transfer",
+  "import_max_rows",
+  "import_default_mode",
+  "cb_transfer",
+  "export_max_rows",
+  "export_include_arabic_labels",
+  "tab_map",
+  "sb_map",
+  "map_provider",
+  "map_center_lat",
+  "map_center_lon",
+  "cb_map",
+  "map_zoom",
+  "map_max_points",
+  "map_cluster",
+  "map_units",
+  "map_show_labels",
+  "sb_map_overlays",
+  "map_overlays",
+  "cb_map_downloads",
+  "map_download_max_zoom",
+  "map_download_max_tiles",
+  "map_download_delay_ms"
+ ],
+ "fields": [
+  {
+   "fieldname": "tab_quality",
+   "fieldtype": "Tab Break",
+   "label": "Data quality"
+  },
+  {
+   "fieldname": "sb_quality",
+   "fieldtype": "Section Break",
+   "label": ""
+  },
+  {
+   "fieldname": "require_source_on_publish",
+   "fieldtype": "Check",
+   "label": "Require a source before publishing",
+   "default": "1",
+   "description": "A record cannot move to Verified/Published without a primary source or an Evidence row. Every published claim stays traceable."
+  },
+  {
+   "fieldname": "min_completeness_to_publish",
+   "fieldtype": "Int",
+   "label": "Minimum completeness to publish (%)",
+   "default": "0",
+   "non_negative": 1,
+   "description": "0 disables the floor. Above 0, publishing a record below this score is refused, with the missing fields listed."
+  },
+  {
+   "fieldname": "cb_quality",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "stale_review_days",
+   "fieldtype": "Int",
+   "label": "Days before a record is 'awaiting review'",
+   "default": "14",
+   "non_negative": 1,
+   "description": "Age at which the editorial reminder fires for records sitting in In Review. Consumed by the 'SIRAJ · review overdue' Notification condition."
+  },
+  {
+   "fieldname": "tab_transfer",
+   "fieldtype": "Tab Break",
+   "label": "Import & export"
+  },
+  {
+   "fieldname": "sb_transfer",
+   "fieldtype": "Section Break",
+   "label": ""
+  },
+  {
+   "fieldname": "import_max_rows",
+   "fieldtype": "Int",
+   "label": "Maximum rows per import",
+   "default": "20000",
+   "non_negative": 1,
+   "description": "A Data Import beyond this ceiling is refused before anything is written, so one bad file cannot stall the registry."
+  },
+  {
+   "fieldname": "import_default_mode",
+   "fieldtype": "Select",
+   "label": "Default import mode",
+   "options": "Insert New Records\nUpdate Existing Records\nInsert or Update (Upsert)",
+   "default": "Insert New Records",
+   "description": "What the Data Import wizard starts with."
+  },
+  {
+   "fieldname": "cb_transfer",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "export_max_rows",
+   "fieldtype": "Int",
+   "label": "Maximum rows per export",
+   "default": "50000",
+   "non_negative": 1,
+   "description": "Ceiling for a synchronous export; larger exports go through Frappe's Data Export, which runs in the background."
+  },
+  {
+   "fieldname": "export_include_arabic_labels",
+   "fieldtype": "Check",
+   "label": "Export Arabic vocabulary labels",
+   "default": "1",
+   "description": "Adds the Arabic label column beside each linked vocabulary value in exports, as the original bilingual export did."
+  },
+  {
+   "fieldname": "tab_map",
+   "fieldtype": "Tab Break",
+   "label": "Map"
+  },
+  {
+   "fieldname": "sb_map",
+   "fieldtype": "Section Break",
+   "label": ""
+  },
+  {
+   "fieldname": "map_provider",
+   "fieldtype": "Select",
+   "label": "Base map provider",
+   "options": "local\nosm\ncarto_light\ncarto_dark\nesri_world_imagery\nesri_world_imagery_hybrid\nopen_topo",
+   "default": "local",
+   "description": "'local' draws the offline vector pack shipped with the app; the rest are public tile services whose attribution must stay visible."
+  },
+  {
+   "fieldname": "map_center_lat",
+   "fieldtype": "Float",
+   "label": "Initial latitude",
+   "default": "33.3152",
+   "precision": "6",
+   "non_negative": 0
+  },
+  {
+   "fieldname": "map_center_lon",
+   "fieldtype": "Float",
+   "label": "Initial longitude",
+   "default": "44.3661",
+   "precision": "6"
+  },
+  {
+   "fieldname": "cb_map",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "map_zoom",
+   "fieldtype": "Int",
+   "label": "Initial zoom",
+   "default": "5"
+  },
+  {
+   "fieldname": "map_max_points",
+   "fieldtype": "Int",
+   "label": "Maximum markers per view",
+   "default": "4000",
+   "non_negative": 1,
+   "description": "The map reports what it left out and asks the reader to zoom in; it never draws a silent sample."
+  },
+  {
+   "fieldname": "map_cluster",
+   "fieldtype": "Check",
+   "label": "Group nearby markers",
+   "default": "1"
+  },
+  {
+   "fieldname": "map_units",
+   "fieldtype": "Select",
+   "label": "Measurement units",
+   "options": "metric\nimperial",
+   "default": "metric"
+  },
+  {
+   "fieldname": "map_show_labels",
+   "fieldtype": "Check",
+   "label": "Place labels on the map",
+   "default": "1"
+  },
+  {
+   "fieldname": "sb_map_overlays",
+   "fieldtype": "Section Break",
+   "label": "Overlays"
+  },
+  {
+   "fieldname": "map_overlays",
+   "fieldtype": "Small Text",
+   "label": "Default overlays",
+   "default": "place_hierarchy",
+   "description": "Comma-separated overlay ids drawn over the base map ('place_hierarchy', 'relationships')."
+  },
+  {
+   "fieldname": "cb_map_downloads",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "map_download_max_zoom",
+   "fieldtype": "Int",
+   "label": "Download zoom ceiling",
+   "default": "15"
+  },
+  {
+   "fieldname": "map_download_max_tiles",
+   "fieldtype": "Int",
+   "label": "Download size cap (tiles)",
+   "default": "25000",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "map_download_delay_ms",
+   "fieldtype": "Int",
+   "label": "Download politeness delay (ms)",
+   "default": "250",
+   "non_negative": 1,
+   "description": "Milliseconds between tile fetches, so a download stays polite to the public tile service."
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "print": 1,
+   "share": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "print": 1,
+   "share": 1
+  }
+ ],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "row_format": "Dynamic",
+ "issingle": 1,
+ "editable_grid": 1,
+ "track_changes": 1,
+ "allow_import": 1,
+ "in_create": 1,
+ "icon": "settings",
+ "description": "Instance-wide policy for the SIRAJ research registry."
+}

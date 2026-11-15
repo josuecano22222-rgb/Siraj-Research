@@ -1,0 +1,812 @@
+{
+ "doctype": "DocType",
+ "name": "Person",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "tab_identity",
+  "sb_identity",
+  "naming_series",
+  "display_name",
+  "cb_identity",
+  "name_ar",
+  "name_en",
+  "name_original",
+  "name_original_lang",
+  "name_transliteration",
+  "name_variants",
+  "cb_media",
+  "image",
+  "image_url",
+  "image_alt",
+  "tab_life",
+  "sb_birth",
+  "birth_date_as_stated",
+  "birth_date",
+  "birth_date_precision",
+  "sb_death",
+  "death_date_as_stated",
+  "death_date",
+  "death_date_precision",
+  "sb_origin",
+  "nationality",
+  "cb_origin",
+  "birthplace",
+  "birthplace_as_stated",
+  "tab_career",
+  "sb_class",
+  "classification",
+  "person_status",
+  "cb_class",
+  "category",
+  "current_position_as_stated",
+  "declared_affiliation",
+  "sb_military",
+  "rank_title",
+  "branch",
+  "commission_date",
+  "service_status",
+  "military_biography",
+  "leadership_assessments",
+  "sb_positions",
+  "positions",
+  "sb_expertise",
+  "specializations",
+  "sb_activity",
+  "public_activity",
+  "website",
+  "social_accounts",
+  "tab_evidence",
+  "sb_geo",
+  "latitude",
+  "longitude",
+  "geo_precision",
+  "geocoding_method",
+  "geo_uncertainty_m",
+  "geometry_source",
+  "tab_provenance",
+  "sb_evidence",
+  "primary_source",
+  "documentation_level",
+  "authentication_level",
+  "cb_provenance",
+  "workflow_state",
+  "researcher_notes",
+  "sb_evidence_table",
+  "evidence",
+  "sb_identifiers",
+  "external_identifiers",
+  "tab_quality",
+  "completeness_score"
+ ],
+ "fields": [
+  {
+   "fieldname": "tab_identity",
+   "fieldtype": "Tab Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "sb_identity",
+   "fieldtype": "Section Break",
+   "label": ""
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "PER-.####\nPER-.YY.-.####",
+   "reqd": 1,
+   "default": "PER-.####",
+   "description": "Identifier series. 'PER-.####' numbers continuously; 'PER-.YY.-.####' restarts each year — the native equivalent of the original `sequence.reset_policy = yearly`."
+  },
+  {
+   "fieldname": "display_name",
+   "fieldtype": "Data",
+   "label": "Display name",
+   "read_only": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "in_global_search": 1,
+   "length": 140,
+   "in_preview": 1,
+   "no_copy": 1,
+   "description": "Computed on save: English name, else Arabic name. Frappe's `title_field`, so link fields, list views and the global search show one readable name for a bilingual record."
+  },
+  {
+   "fieldname": "cb_identity",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "name_ar",
+   "fieldtype": "Data",
+   "label": "Name (Arabic)",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "in_global_search": 1,
+   "length": 140,
+   "in_preview": 1,
+   "allow_in_quick_entry": 1
+  },
+  {
+   "fieldname": "name_en",
+   "fieldtype": "Data",
+   "label": "Name (English)",
+   "in_list_view": 1,
+   "search_index": 1,
+   "in_global_search": 1,
+   "length": 140,
+   "in_preview": 1,
+   "allow_in_quick_entry": 1
+  },
+  {
+   "fieldname": "name_original",
+   "fieldtype": "Data",
+   "label": "Name (original language)",
+   "length": 140,
+   "description": "The name in the script and language of the source."
+  },
+  {
+   "fieldname": "name_original_lang",
+   "fieldtype": "Link",
+   "label": "Original-name language",
+   "options": "Language",
+   "description": "Native `Language` doctype — not a free-text language code."
+  },
+  {
+   "fieldname": "name_transliteration",
+   "fieldtype": "Data",
+   "label": "Transliteration",
+   "length": 140,
+   "description": "Latin transliteration of the original-script name."
+  },
+  {
+   "fieldname": "name_variants",
+   "fieldtype": "Small Text",
+   "label": "Other recorded forms of the name",
+   "description": "Spellings met in sources that are not the preferred form. Searchable, so 'Mosul' finds 'Mūṣil'."
+  },
+  {
+   "fieldname": "cb_media",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Portrait",
+   "description": "Uploaded portrait (native File, permission-checked by Frappe).",
+   "in_preview": 1
+  },
+  {
+   "fieldname": "image_url",
+   "fieldtype": "Data",
+   "label": "Portrait URL (external)",
+   "options": "URL",
+   "description": "Use for a portrait hosted elsewhere; the uploaded portrait wins when both are set."
+  },
+  {
+   "fieldname": "image_alt",
+   "fieldtype": "Data",
+   "label": "Portrait alt text",
+   "length": 140,
+   "description": "Short description of the portrait for accessibility and print."
+  },
+  {
+   "fieldname": "tab_life",
+   "fieldtype": "Tab Break",
+   "label": "Life & dates"
+  },
+  {
+   "fieldname": "sb_birth",
+   "fieldtype": "Section Break",
+   "label": "Birth"
+  },
+  {
+   "fieldname": "birth_date_as_stated",
+   "fieldtype": "Data",
+   "label": "Date of birth (as stated)",
+   "description": "A birth year alone is a legitimate value: '1912', 'c. 1912', '1910s'.",
+   "in_global_search": 1,
+   "length": 32
+  },
+  {
+   "fieldname": "birth_date",
+   "fieldtype": "Date",
+   "label": "Date of birth (comparable)",
+   "description": "Machine-comparable value derived from the 'as stated' value; used for filters, sorting and reports. Never more precise than what is stated.",
+   "search_index": 1,
+   "reqd": 0,
+   "no_copy": 1,
+   "read_only": 1,
+   "in_preview": 1
+  },
+  {
+   "fieldname": "birth_date_precision",
+   "fieldtype": "Select",
+   "label": "Date of birth precision",
+   "options": "exact\nminute\nday\nmonth\nyear\ndecade\napproximate\nuncertain\nrange\nunknown",
+   "default": "unknown",
+   "no_copy": 1,
+   "read_only": 1,
+   "description": "How much of the date is actually known. 'approximate' keeps c. 1850; 'year' keeps 1850; 'decade' keeps '1850s'; 'minute' keeps a time of day."
+  },
+  {
+   "fieldname": "sb_death",
+   "fieldtype": "Section Break",
+   "label": "Death"
+  },
+  {
+   "fieldname": "death_date_as_stated",
+   "fieldtype": "Data",
+   "label": "Date of death (as stated)",
+   "description": "Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.",
+   "in_global_search": 1,
+   "length": 32
+  },
+  {
+   "fieldname": "death_date",
+   "fieldtype": "Date",
+   "label": "Date of death (comparable)",
+   "description": "Machine-comparable value derived from the 'as stated' value; used for filters, sorting and reports. Never more precise than what is stated.",
+   "search_index": 1,
+   "reqd": 0,
+   "no_copy": 1,
+   "read_only": 1,
+   "in_preview": 1
+  },
+  {
+   "fieldname": "death_date_precision",
+   "fieldtype": "Select",
+   "label": "Date of death precision",
+   "options": "exact\nminute\nday\nmonth\nyear\ndecade\napproximate\nuncertain\nrange\nunknown",
+   "default": "unknown",
+   "no_copy": 1,
+   "read_only": 1,
+   "description": "How much of the date is actually known. 'approximate' keeps c. 1850; 'year' keeps 1850; 'decade' keeps '1850s'; 'minute' keeps a time of day."
+  },
+  {
+   "fieldname": "sb_origin",
+   "fieldtype": "Section Break",
+   "label": "Origin"
+  },
+  {
+   "fieldname": "nationality",
+   "fieldtype": "Link",
+   "label": "Nationality",
+   "options": "Country",
+   "in_preview": 1,
+   "allow_in_quick_entry": 1,
+   "description": "Native `Country` master (ISO 3166). Remembers the last value picked: a recorder entering people from one country picks it once.",
+   "remember_last_selected_value": 1
+  },
+  {
+   "fieldname": "cb_origin",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "birthplace",
+   "fieldtype": "Link",
+   "label": "Place of birth",
+   "options": "Place",
+   "description": "Association only — it never assigns that place's coordinates to this person."
+  },
+  {
+   "fieldname": "birthplace_as_stated",
+   "fieldtype": "Data",
+   "label": "Place of birth (as stated)",
+   "length": 140,
+   "mandatory_depends_on": "eval:!doc.birthplace",
+   "description": "What the source says, kept verbatim even when the place cannot be linked to a Place record. Mandatory while no Place is linked: an unlinked place must still be recorded."
+  },
+  {
+   "fieldname": "tab_career",
+   "fieldtype": "Tab Break",
+   "label": "Career"
+  },
+  {
+   "fieldname": "sb_class",
+   "fieldtype": "Section Break",
+   "label": "Classification"
+  },
+  {
+   "fieldname": "classification",
+   "fieldtype": "Link",
+   "label": "Occupation / classification",
+   "options": "Person Classification",
+   "in_standard_filter": 1,
+   "remember_last_selected_value": 1,
+   "in_preview": 1,
+   "allow_in_quick_entry": 1
+  },
+  {
+   "fieldname": "person_status",
+   "fieldtype": "Link",
+   "label": "Current status",
+   "options": "Person Status",
+   "in_standard_filter": 1,
+   "description": "Living, deceased, whereabouts unknown …",
+   "in_preview": 1
+  },
+  {
+   "fieldname": "cb_class",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Link",
+   "label": "Category",
+   "options": "Person Category",
+   "in_standard_filter": 1,
+   "description": "Military / Civilian / Other. The category decides which attributes apply: a military person shows rank, branch, commission date, service status and military biography; a civilian shows the career fields. This is the 2026 update that folded the separate `commander` (Leader) table into Person (migration 020)."
+  },
+  {
+   "fieldname": "current_position_as_stated",
+   "fieldtype": "Data",
+   "label": "Current position (as stated)",
+   "length": 140,
+   "description": "Free text as the source gives it. The structured, dated post is a row in Positions below."
+  },
+  {
+   "fieldname": "declared_affiliation",
+   "fieldtype": "Small Text",
+   "label": "Declared affiliation (as stated)",
+   "description": "An affiliation the person (or a source) asserts but that is not corroborated. Corroborated posts go in Positions with 'Verified' ticked."
+  },
+  {
+   "fieldname": "sb_military",
+   "fieldtype": "Section Break",
+   "label": "Military service",
+   "depends_on": "eval:doc.category == 'Military'",
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:doc.category == 'Military'",
+   "description": "Service attributes that apply to a person of the military category. The row of a source's `commander` table is this section plus a Person record."
+  },
+  {
+   "fieldname": "rank_title",
+   "fieldtype": "Data",
+   "label": "Rank",
+   "length": 120,
+   "depends_on": "eval:doc.category == 'Military'",
+   "description": "The rank held. Free text on purpose: a historical rank (Ottoman, mandate-era, foreign) must not be forced into a modern list."
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Service branch",
+   "options": "Military Branch",
+   "depends_on": "eval:doc.category == 'Military'",
+   "description": "Army, Navy, Air Force, Joint, Gendarmerie, Coast Guard — a governed vocabulary (migration 020 domain `military_branch`), extendable without a code change."
+  },
+  {
+   "fieldname": "commission_date",
+   "fieldtype": "Date",
+   "label": "Commission date",
+   "depends_on": "eval:doc.category == 'Military'",
+   "description": "When the person was commissioned. A year alone is acceptable, which is why this is a plain Date and not the three-field historical-date trio: military commission records are day-precise in this dataset."
+  },
+  {
+   "fieldname": "service_status",
+   "fieldtype": "Link",
+   "label": "Service status",
+   "options": "Military Service Status",
+   "depends_on": "eval:doc.category == 'Military'",
+   "in_standard_filter": 1,
+   "description": "Active → Reserve → Retired, and Retired is terminal (source `SERVICE_STATUS_TRANSITIONS`). The transition is enforced in the controller; see Del. 12 §4."
+  },
+  {
+   "fieldname": "military_biography",
+   "fieldtype": "Text Editor",
+   "label": "Military biography",
+   "depends_on": "eval:doc.category == 'Military'",
+   "description": "Service history, commands and campaigns — the military record behind the rank."
+  },
+  {
+   "fieldname": "leadership_assessments",
+   "fieldtype": "Table",
+   "label": "Leadership qualities",
+   "options": "Leadership Quality Assessment",
+   "no_copy": 1,
+   "columns": 9,
+   "depends_on": "eval:doc.category == 'Military'",
+   "description": "Judgements about a leader, one row per quality, and each row must carry its basis (who assessed it, when, on what evidence). The source keeps these in a separate `commander_trait`/`person_trait` table; a judgement about a person is owned by that person, so it is a child table here."
+  },
+  {
+   "fieldname": "sb_positions",
+   "fieldtype": "Section Break",
+   "label": "Posts held (history)"
+  },
+  {
+   "fieldname": "positions",
+   "fieldtype": "Table",
+   "label": "Positions",
+   "options": "Person Position",
+   "no_copy": 1,
+   "columns": 9,
+   "description": "One row per post, with its own dates, institution, place and verification state. This is the single home of a person's affiliations — there is deliberately no second 'current institution' field to fall out of step with it. Not copied with the record: a duplicate person is a new person, not a second copy of someone's career."
+  },
+  {
+   "fieldname": "sb_expertise",
+   "fieldtype": "Section Break",
+   "label": "Specialisation"
+  },
+  {
+   "fieldname": "specializations",
+   "fieldtype": "Table MultiSelect",
+   "label": "Specialisations",
+   "options": "Specialization Link",
+   "description": "Governed vocabulary (Table MultiSelect). Free keywords are added with Frappe's native tags instead.",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_activity",
+   "fieldtype": "Section Break",
+   "label": "Public activity"
+  },
+  {
+   "fieldname": "public_activity",
+   "fieldtype": "Text Editor",
+   "label": "Public activity"
+  },
+  {
+   "fieldname": "website",
+   "fieldtype": "Data",
+   "label": "Official website",
+   "options": "URL"
+  },
+  {
+   "fieldname": "social_accounts",
+   "fieldtype": "Table",
+   "label": "Official accounts",
+   "options": "Social Account",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "tab_evidence",
+   "fieldtype": "Tab Break",
+   "label": "Position & evidence"
+  },
+  {
+   "fieldname": "sb_geo",
+   "fieldtype": "Section Break",
+   "label": "Position (this record's own)",
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude",
+   "precision": "6",
+   "description": "This record's own latitude, independent of any linked place.",
+   "in_standard_filter": 0
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude",
+   "precision": "6",
+   "description": "This record's own longitude, independent of any linked place."
+  },
+  {
+   "fieldname": "geo_precision",
+   "fieldtype": "Select",
+   "label": "Coordinate precision",
+   "options": "exact\napproximate\ncentroid\nuncertain",
+   "description": "How close the point is to the true position.",
+   "depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "geocoding_method",
+   "fieldtype": "Select",
+   "label": "How the point was obtained",
+   "options": "manual\nmap_pick\ncoordinate_entry\ngazetteer\nadministrative\ncity_centroid\ngeocoder\nhistorical_map\ninherited",
+   "description": "A city centroid is not a street address; recording the method stops a centroid from being read as a verified location.",
+   "depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "geo_uncertainty_m",
+   "fieldtype": "Float",
+   "label": "Uncertainty radius (m)",
+   "precision": "1",
+   "description": "The radius the true position could lie within.",
+   "depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "geometry_source",
+   "fieldtype": "Data",
+   "label": "Point source",
+   "length": 140,
+   "description": "The map, survey or gazetteer the coordinates came from.",
+   "depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "tab_provenance",
+   "fieldtype": "Tab Break",
+   "label": "Provenance & State"
+  },
+  {
+   "fieldname": "sb_evidence",
+   "fieldtype": "Section Break",
+   "label": "Source & verification"
+  },
+  {
+   "fieldname": "primary_source",
+   "fieldtype": "Link",
+   "label": "Primary source",
+   "options": "Source",
+   "description": "The source the record rests on. Additional claims from other sources are recorded in the Evidence table, one claim per row."
+  },
+  {
+   "fieldname": "documentation_level",
+   "fieldtype": "Link",
+   "label": "Documentation level",
+   "options": "Documentation Level"
+  },
+  {
+   "fieldname": "authentication_level",
+   "fieldtype": "Link",
+   "label": "Authentication level",
+   "options": "Authentication Level",
+   "description": "How strongly the record's content is verified."
+  },
+  {
+   "fieldname": "cb_provenance",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "label": "Record status",
+   "options": "Workflow State",
+   "default": "Draft",
+   "read_only": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "no_copy": 1,
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
+  },
+  {
+   "fieldname": "researcher_notes",
+   "fieldtype": "Text",
+   "label": "Researcher's notes",
+   "permlevel": 1,
+   "description": "Internal working notes. At permission level 1, so visible to reviewers and administrators only; discussion belongs in the document's comment thread instead."
+  },
+  {
+   "fieldname": "sb_evidence_table",
+   "fieldtype": "Section Break",
+   "label": "Evidence (claims this record makes)"
+  },
+  {
+   "fieldname": "evidence",
+   "fieldtype": "Table",
+   "label": "Evidence",
+   "options": "Evidence",
+   "no_copy": 1,
+   "columns": 9,
+   "description": "One row per claim: which source says what, where in the source, whether it supports or contradicts, and who verified it. Not copied with the record: a claim is evidence about one specific record."
+  },
+  {
+   "fieldname": "sb_identifiers",
+   "fieldtype": "Section Break",
+   "label": "External identifiers"
+  },
+  {
+   "fieldname": "external_identifiers",
+   "fieldtype": "Table",
+   "label": "External identifiers",
+   "options": "External Identifier",
+   "no_copy": 1,
+   "columns": 8,
+   "description": "VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record."
+  },
+  {
+   "fieldname": "tab_quality",
+   "fieldtype": "Tab Break",
+   "label": "Quality"
+  },
+  {
+   "fieldname": "completeness_score",
+   "fieldtype": "Int",
+   "label": "Completeness (%)",
+   "read_only": 1,
+   "in_standard_filter": 0,
+   "no_copy": 1,
+   "print_hide": 1,
+   "report_hide": 1,
+   "description": "Share of the record's critical fields that are filled in. Computed on save; used by the quality report and by the 'minimum completeness to publish' rule. Completeness, not truth."
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 0,
+   "share": 0,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "System Manager",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "links": [
+  {
+   "link_doctype": "Command Appointment",
+   "link_fieldname": "commander",
+   "group": "Commands held"
+  },
+  {
+   "link_doctype": "Military Unit",
+   "link_fieldname": "commander",
+   "group": "Units commanded"
+  }
+ ],
+ "actions": [
+  {
+   "label": "Find duplicates",
+   "group": "Data quality",
+   "action_type": "Server Action",
+   "action": "siraj.api.duplicate_candidates_for_doc",
+   "hidden": 0,
+   "custom": 0
+  },
+  {
+   "label": "Open on the map",
+   "group": "Geography",
+   "action_type": "Server Action",
+   "action": "siraj.api.open_on_map",
+   "hidden": 0,
+   "custom": 0
+  },
+  {
+   "label": "Merge a duplicate into this record",
+   "group": "Data quality",
+   "action_type": "Server Action",
+   "action": "siraj.api.merge_duplicate_into",
+   "hidden": 0,
+   "custom": 0
+  }
+ ],
+ "states": [
+  {
+   "title": "Draft",
+   "color": "Gray"
+  },
+  {
+   "title": "In Review",
+   "color": "Orange"
+  },
+  {
+   "title": "Verified",
+   "color": "Light Blue"
+  },
+  {
+   "title": "Published",
+   "color": "Green"
+  },
+  {
+   "title": "Needs Update",
+   "color": "Yellow"
+  },
+  {
+   "title": "Disputed",
+   "color": "Red"
+  },
+  {
+   "title": "Archived",
+   "color": "Purple"
+  },
+  {
+   "title": "Rejected",
+   "color": "Red"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "row_format": "Dynamic",
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "editable_grid": 1,
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1,
+ "quick_entry": 1,
+ "allow_rename": 1,
+ "allow_import": 1,
+ "show_title_field_in_link": 1,
+ "show_preview_popup": 1,
+ "allow_copy": 1,
+ "allow_events_in_timeline": 1,
+ "in_create": 1,
+ "title_field": "display_name",
+ "image_field": "image",
+ "search_fields": "display_name,name_ar,name_en,name_original,name_transliteration",
+ "icon": "user",
+ "description": "Researchers, scholars, officials and other individuals.",
+ "default_print_format": "SIRAJ Research Dossier"
+}

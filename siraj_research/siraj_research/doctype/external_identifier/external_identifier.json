@@ -1,0 +1,59 @@
+{
+ "doctype": "DocType",
+ "name": "External Identifier",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "scheme",
+  "value",
+  "url",
+  "note"
+ ],
+ "fields": [
+  {
+   "fieldname": "scheme",
+   "fieldtype": "Link",
+   "label": "Scheme",
+   "options": "External ID Scheme",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "value",
+   "fieldtype": "Data",
+   "label": "Value",
+   "reqd": 1,
+   "in_list_view": 1,
+   "length": 140,
+   "columns": 3
+  },
+  {
+   "fieldname": "url",
+   "fieldtype": "Data",
+   "label": "URL",
+   "options": "URL",
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Data",
+   "label": "Note",
+   "length": 140
+  }
+ ],
+ "permissions": [],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "sort_field": "modified",
+ "sort_order": "ASC",
+ "row_format": "Dynamic",
+ "autoname": "hash",
+ "istable": 1,
+ "editable_grid": 1,
+ "in_create": 1,
+ "description": "An authority-file or legacy identifier for the parent record (the original `entity_external_id`)."
+}

@@ -1,0 +1,314 @@
+{
+ "doctype": "DocType",
+ "name": "Command Appointment",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "tab_appointment",
+  "sb_identity",
+  "naming_series",
+  "unit",
+  "commander",
+  "cb_appointment",
+  "role",
+  "is_current",
+  "sb_appointment_dates",
+  "assigned_date",
+  "relieved_date",
+  "sb_appointment_notes",
+  "notes",
+  "tab_provenance",
+  "sb_evidence",
+  "primary_source",
+  "documentation_level",
+  "authentication_level",
+  "cb_provenance",
+  "workflow_state",
+  "researcher_notes",
+  "sb_evidence_table",
+  "evidence",
+  "sb_identifiers",
+  "external_identifiers"
+ ],
+ "fields": [
+  {
+   "fieldname": "tab_appointment",
+   "fieldtype": "Tab Break",
+   "label": "Appointment"
+  },
+  {
+   "fieldname": "sb_identity",
+   "fieldtype": "Section Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "MIL-ASG-.####\nMIL-ASG-.YYYY-.####",
+   "default": "MIL-ASG-.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "unit",
+   "fieldtype": "Link",
+   "label": "Unit",
+   "options": "Military Unit",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "commander",
+   "fieldtype": "Link",
+   "label": "Person appointed",
+   "options": "Person",
+   "reqd": 1,
+   "in_list_view": 1,
+   "link_filters": "[[\"Person\", \"category\", \"=\", \"Military\"]]",
+   "description": "A commander is a Person of the military category (migration 020 folded the `commander` table into `person`)."
+  },
+  {
+   "fieldname": "cb_appointment",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "role",
+   "fieldtype": "Select",
+   "label": "Role",
+   "options": "Commanding Officer\nDeputy Commander\nChief of Staff\nActing Commander",
+   "default": "Commanding Officer",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "is_current",
+   "fieldtype": "Check",
+   "label": "Current appointment",
+   "default": "1",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "sb_appointment_dates",
+   "fieldtype": "Section Break",
+   "label": "Dates"
+  },
+  {
+   "fieldname": "assigned_date",
+   "fieldtype": "Date",
+   "label": "Assigned on",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "relieved_date",
+   "fieldtype": "Date",
+   "label": "Relieved on",
+   "description": "Empty means the appointment is still open — which is what makes the overlap rule decidable (`rules.check_assignment`)."
+  },
+  {
+   "fieldname": "sb_appointment_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "tab_provenance",
+   "fieldtype": "Tab Break",
+   "label": "Provenance & State"
+  },
+  {
+   "fieldname": "sb_evidence",
+   "fieldtype": "Section Break",
+   "label": "Source & verification"
+  },
+  {
+   "fieldname": "primary_source",
+   "fieldtype": "Link",
+   "label": "Primary source",
+   "options": "Source",
+   "description": "The source the record rests on. Additional claims from other sources are recorded in the Evidence table, one claim per row."
+  },
+  {
+   "fieldname": "documentation_level",
+   "fieldtype": "Link",
+   "label": "Documentation level",
+   "options": "Documentation Level"
+  },
+  {
+   "fieldname": "authentication_level",
+   "fieldtype": "Link",
+   "label": "Authentication level",
+   "options": "Authentication Level",
+   "description": "How strongly the record's content is verified."
+  },
+  {
+   "fieldname": "cb_provenance",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "label": "Record status",
+   "options": "Workflow State",
+   "default": "Draft",
+   "read_only": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "no_copy": 1,
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
+  },
+  {
+   "fieldname": "researcher_notes",
+   "fieldtype": "Text",
+   "label": "Researcher's notes",
+   "permlevel": 1,
+   "description": "Internal working notes. At permission level 1, so visible to reviewers and administrators only; discussion belongs in the document's comment thread instead."
+  },
+  {
+   "fieldname": "sb_evidence_table",
+   "fieldtype": "Section Break",
+   "label": "Evidence (claims this record makes)"
+  },
+  {
+   "fieldname": "evidence",
+   "fieldtype": "Table",
+   "label": "Evidence",
+   "options": "Evidence",
+   "no_copy": 1,
+   "columns": 9,
+   "description": "One row per claim: which source says what, where in the source, whether it supports or contradicts, and who verified it. Not copied with the record: a claim is evidence about one specific record."
+  },
+  {
+   "fieldname": "sb_identifiers",
+   "fieldtype": "Section Break",
+   "label": "External identifiers"
+  },
+  {
+   "fieldname": "external_identifiers",
+   "fieldtype": "Table",
+   "label": "External identifiers",
+   "options": "External Identifier",
+   "no_copy": 1,
+   "columns": 8,
+   "description": "VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record."
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 0,
+   "share": 0,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "System Manager",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "row_format": "Dynamic",
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "editable_grid": 1,
+ "track_changes": 1,
+ "track_views": 1,
+ "quick_entry": 1,
+ "allow_import": 1,
+ "in_create": 1,
+ "search_fields": "role",
+ "icon": "briefcase",
+ "description": "Who commands which unit, from when to when. The source's `command_assignment` table."
+}

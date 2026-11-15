@@ -1,0 +1,523 @@
+{
+ "doctype": "DocType",
+ "name": "Source",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "tab_identity",
+  "sb_identity",
+  "naming_series",
+  "display_name",
+  "cb_identity",
+  "title",
+  "title_ar",
+  "source_type",
+  "publisher",
+  "cb_biblio",
+  "language",
+  "isbn_issn",
+  "archive_reference",
+  "url",
+  "tab_dates",
+  "sb_dates",
+  "publication_date_as_stated",
+  "publication_date",
+  "publication_date_precision",
+  "access_date",
+  "tab_assessment",
+  "sb_assessment",
+  "source_reliability",
+  "verification_notes",
+  "tab_files",
+  "sb_files",
+  "scan",
+  "tab_evidence",
+  "tab_provenance",
+  "sb_evidence",
+  "primary_source",
+  "documentation_level",
+  "authentication_level",
+  "cb_provenance",
+  "workflow_state",
+  "researcher_notes",
+  "sb_identifiers",
+  "external_identifiers"
+ ],
+ "fields": [
+  {
+   "fieldname": "tab_identity",
+   "fieldtype": "Tab Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "sb_identity",
+   "fieldtype": "Section Break",
+   "label": ""
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "SRC-.####\nSRC-.YY.-.####",
+   "reqd": 1,
+   "default": "SRC-.####"
+  },
+  {
+   "fieldname": "display_name",
+   "fieldtype": "Data",
+   "label": "Display name",
+   "read_only": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "in_global_search": 1,
+   "in_preview": 1
+  },
+  {
+   "fieldname": "cb_identity",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Small Text",
+   "label": "Source name / title",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_global_search": 1,
+   "description": "Small Text, not Data: a bibliographic title is often longer than the 140-character Data column, and the global search reads it through `search_fields` rather than a column index.",
+   "in_preview": 1,
+   "allow_in_quick_entry": 1
+  },
+  {
+   "fieldname": "title_ar",
+   "fieldtype": "Small Text",
+   "label": "Title (Arabic)",
+   "in_list_view": 1,
+   "in_global_search": 1,
+   "in_preview": 1
+  },
+  {
+   "fieldname": "source_type",
+   "fieldtype": "Link",
+   "label": "Source type",
+   "options": "Source Type",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "in_preview": 1,
+   "allow_in_quick_entry": 1
+  },
+  {
+   "fieldname": "publisher",
+   "fieldtype": "Data",
+   "label": "Publisher",
+   "length": 140,
+   "in_preview": 1
+  },
+  {
+   "fieldname": "cb_biblio",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "language",
+   "fieldtype": "Link",
+   "label": "Language",
+   "options": "Language"
+  },
+  {
+   "fieldname": "isbn_issn",
+   "fieldtype": "Data",
+   "label": "ISBN / ISSN",
+   "length": 64
+  },
+  {
+   "fieldname": "archive_reference",
+   "fieldtype": "Data",
+   "label": "Archive reference",
+   "length": 140,
+   "description": "Shelfmark, fonds, box or register number."
+  },
+  {
+   "fieldname": "url",
+   "fieldtype": "Data",
+   "label": "Web link",
+   "options": "URL"
+  },
+  {
+   "fieldname": "tab_dates",
+   "fieldtype": "Tab Break",
+   "label": "Dates"
+  },
+  {
+   "fieldname": "sb_dates",
+   "fieldtype": "Section Break",
+   "label": "Publication & access"
+  },
+  {
+   "fieldname": "publication_date_as_stated",
+   "fieldtype": "Data",
+   "label": "Publication date (as stated)",
+   "description": "Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.",
+   "in_global_search": 1,
+   "length": 32
+  },
+  {
+   "fieldname": "publication_date",
+   "fieldtype": "Datetime",
+   "label": "Publication date (comparable)",
+   "description": "Machine-comparable value derived from the 'as stated' value; used for filters, sorting and reports. Never more precise than what is stated.",
+   "search_index": 1,
+   "reqd": 0,
+   "no_copy": 1,
+   "read_only": 1,
+   "hide_seconds": 1,
+   "in_preview": 1,
+   "allow_in_quick_entry": 1
+  },
+  {
+   "fieldname": "publication_date_precision",
+   "fieldtype": "Select",
+   "label": "Publication date precision",
+   "options": "exact\nminute\nday\nmonth\nyear\ndecade\napproximate\nuncertain\nrange\nunknown",
+   "default": "unknown",
+   "no_copy": 1,
+   "read_only": 1,
+   "description": "How much of the date is actually known. 'approximate' keeps c. 1850; 'year' keeps 1850; 'decade' keeps '1850s'; 'minute' keeps a time of day."
+  },
+  {
+   "fieldname": "access_date",
+   "fieldtype": "Date",
+   "label": "Access date",
+   "description": "When the researcher consulted it. Always an exact date, so it needs no precision trio."
+  },
+  {
+   "fieldname": "tab_assessment",
+   "fieldtype": "Tab Break",
+   "label": "Assessment"
+  },
+  {
+   "fieldname": "sb_assessment",
+   "fieldtype": "Section Break",
+   "label": "Reliability & verification"
+  },
+  {
+   "fieldname": "source_reliability",
+   "fieldtype": "Link",
+   "label": "Reliability assessment",
+   "options": "Source Reliability",
+   "in_standard_filter": 1,
+   "in_preview": 1
+  },
+  {
+   "fieldname": "verification_notes",
+   "fieldtype": "Small Text",
+   "label": "Verification notes",
+   "description": "How the source was authenticated: who holds the original, what was compared, what remains doubtful."
+  },
+  {
+   "fieldname": "tab_files",
+   "fieldtype": "Tab Break",
+   "label": "Files"
+  },
+  {
+   "fieldname": "sb_files",
+   "fieldtype": "Section Break",
+   "label": "Attachments"
+  },
+  {
+   "fieldname": "scan",
+   "fieldtype": "Attach",
+   "label": "Scan / PDF",
+   "description": "Native File; Frappe keeps the file, its size, hash and the permission of the record it hangs from."
+  },
+  {
+   "fieldname": "tab_evidence",
+   "fieldtype": "Tab Break",
+   "label": "Provenance & state"
+  },
+  {
+   "fieldname": "tab_provenance",
+   "fieldtype": "Tab Break",
+   "label": "Provenance & State"
+  },
+  {
+   "fieldname": "sb_evidence",
+   "fieldtype": "Section Break",
+   "label": "Source & verification"
+  },
+  {
+   "fieldname": "primary_source",
+   "fieldtype": "Link",
+   "label": "Primary source",
+   "options": "Source",
+   "description": "The source the record rests on. Additional claims from other sources are recorded in the Evidence table, one claim per row."
+  },
+  {
+   "fieldname": "documentation_level",
+   "fieldtype": "Link",
+   "label": "Documentation level",
+   "options": "Documentation Level"
+  },
+  {
+   "fieldname": "authentication_level",
+   "fieldtype": "Link",
+   "label": "Authentication level",
+   "options": "Authentication Level",
+   "description": "How strongly the record's content is verified."
+  },
+  {
+   "fieldname": "cb_provenance",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "label": "Record status",
+   "options": "Workflow State",
+   "default": "Draft",
+   "read_only": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "no_copy": 1,
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
+  },
+  {
+   "fieldname": "researcher_notes",
+   "fieldtype": "Text",
+   "label": "Researcher's notes",
+   "permlevel": 1,
+   "description": "Internal working notes. At permission level 1, so visible to reviewers and administrators only; discussion belongs in the document's comment thread instead."
+  },
+  {
+   "fieldname": "sb_identifiers",
+   "fieldtype": "Section Break",
+   "label": "External identifiers"
+  },
+  {
+   "fieldname": "external_identifiers",
+   "fieldtype": "Table",
+   "label": "External identifiers",
+   "options": "External Identifier",
+   "no_copy": 1,
+   "columns": 8,
+   "description": "VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record."
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 0,
+   "share": 0,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "System Manager",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "links": [
+  {
+   "link_doctype": "Evidence",
+   "link_fieldname": "source",
+   "group": "Claims citing this source",
+   "is_child_table": 1,
+   "parent_doctype": "Person",
+   "table_fieldname": "evidence"
+  },
+  {
+   "link_doctype": "Evidence",
+   "link_fieldname": "source",
+   "group": "Claims citing this source",
+   "is_child_table": 1,
+   "parent_doctype": "Institution",
+   "table_fieldname": "evidence"
+  },
+  {
+   "link_doctype": "Evidence",
+   "link_fieldname": "source",
+   "group": "Claims citing this source",
+   "is_child_table": 1,
+   "parent_doctype": "Place",
+   "table_fieldname": "evidence"
+  },
+  {
+   "link_doctype": "Evidence",
+   "link_fieldname": "source",
+   "group": "Claims citing this source",
+   "is_child_table": 1,
+   "parent_doctype": "Event",
+   "table_fieldname": "evidence"
+  },
+  {
+   "link_doctype": "Evidence",
+   "link_fieldname": "source",
+   "group": "Claims citing this source",
+   "is_child_table": 1,
+   "parent_doctype": "Relationship",
+   "table_fieldname": "evidence"
+  }
+ ],
+ "actions": [
+  {
+   "label": "Find duplicates",
+   "group": "Data quality",
+   "action_type": "Server Action",
+   "action": "siraj.api.duplicate_candidates_for_doc",
+   "hidden": 0,
+   "custom": 0
+  },
+  {
+   "label": "Open on the map",
+   "group": "Geography",
+   "action_type": "Server Action",
+   "action": "siraj.api.open_on_map",
+   "hidden": 0,
+   "custom": 0
+  },
+  {
+   "label": "Merge a duplicate into this record",
+   "group": "Data quality",
+   "action_type": "Server Action",
+   "action": "siraj.api.merge_duplicate_into",
+   "hidden": 0,
+   "custom": 0
+  }
+ ],
+ "states": [
+  {
+   "title": "Draft",
+   "color": "Gray"
+  },
+  {
+   "title": "In Review",
+   "color": "Orange"
+  },
+  {
+   "title": "Verified",
+   "color": "Light Blue"
+  },
+  {
+   "title": "Published",
+   "color": "Green"
+  },
+  {
+   "title": "Needs Update",
+   "color": "Yellow"
+  },
+  {
+   "title": "Disputed",
+   "color": "Red"
+  },
+  {
+   "title": "Archived",
+   "color": "Purple"
+  },
+  {
+   "title": "Rejected",
+   "color": "Red"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "row_format": "Dynamic",
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "editable_grid": 1,
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1,
+ "quick_entry": 1,
+ "allow_rename": 1,
+ "allow_import": 1,
+ "show_title_field_in_link": 1,
+ "show_preview_popup": 1,
+ "allow_copy": 1,
+ "allow_events_in_timeline": 1,
+ "in_create": 1,
+ "title_field": "display_name",
+ "search_fields": "display_name,title,title_ar,publisher,archive_reference,isbn_issn",
+ "icon": "book",
+ "description": "Documents, archives, interviews and web references.",
+ "default_print_format": "SIRAJ Research Dossier"
+}

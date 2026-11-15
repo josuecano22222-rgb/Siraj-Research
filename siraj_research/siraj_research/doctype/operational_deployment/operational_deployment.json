@@ -1,0 +1,428 @@
+{
+ "doctype": "DocType",
+ "name": "Operational Deployment",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "tab_deployment",
+  "sb_identity",
+  "naming_series",
+  "deployment_name",
+  "unit",
+  "cb_deployment_type",
+  "deployment_type",
+  "is_current",
+  "sb_deployment_dates",
+  "start_date",
+  "end_date",
+  "status",
+  "sb_deployment_area",
+  "location",
+  "area_of_operations",
+  "sb_geo",
+  "latitude",
+  "longitude",
+  "geo_precision",
+  "geocoding_method",
+  "geo_uncertainty_m",
+  "geometry_source",
+  "geo_description",
+  "sb_deployment_notes",
+  "notes",
+  "tab_provenance",
+  "sb_evidence",
+  "primary_source",
+  "documentation_level",
+  "authentication_level",
+  "cb_provenance",
+  "workflow_state",
+  "researcher_notes",
+  "sb_evidence_table",
+  "evidence",
+  "sb_identifiers",
+  "external_identifiers"
+ ],
+ "fields": [
+  {
+   "fieldname": "tab_deployment",
+   "fieldtype": "Tab Break",
+   "label": "Deployment"
+  },
+  {
+   "fieldname": "sb_identity",
+   "fieldtype": "Section Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "MIL-DEP-.YYYY-.####\nMIL-DEP-.####",
+   "default": "MIL-DEP-.YYYY-.####",
+   "reqd": 1,
+   "description": "Year-partitioned by default (`MIL-DEP-.YYYY.-`), so each year starts its own sequence — the source's `year_token` behaviour, which is the `.YYYY.` token in a native Naming Series. The unpartitioned option is available per record."
+  },
+  {
+   "fieldname": "deployment_name",
+   "fieldtype": "Data",
+   "label": "Deployment name",
+   "reqd": 1,
+   "in_list_view": 1,
+   "length": 140
+  },
+  {
+   "fieldname": "unit",
+   "fieldtype": "Link",
+   "label": "Unit",
+   "options": "Military Unit",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "cb_deployment_type",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "deployment_type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "Operational\nTraining\nHumanitarian\nPeacekeeping\nReserve",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "is_current",
+   "fieldtype": "Check",
+   "label": "Current deployment",
+   "default": "0",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "At most one current deployment per unit (`rules.check_deployment`); the unit's read-only pointer is updated from it."
+  },
+  {
+   "fieldname": "sb_deployment_dates",
+   "fieldtype": "Section Break",
+   "label": "Dates & state"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start date",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End date",
+   "in_list_view": 1,
+   "description": "Mandatory by rule once the deployment is Completed, which is the kind of condition metadata cannot express."
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Planned\nActive\nCompleted\nSuspended",
+   "default": "Planned",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "description": "Planned → Active / Suspended → Completed, Completed terminal (source `DEPLOYMENT_TRANSITIONS`). A Select with a controller-enforced transition table rather than a native Workflow: Frappe runs ONE workflow per DocType, and that one is taken by the editorial SIRAJ Review workflow on `workflow_state`. Two independent state machines on one record need two fields, not one workflow — see Del. 12 §5."
+  },
+  {
+   "fieldname": "sb_deployment_area",
+   "fieldtype": "Section Break",
+   "label": "Area of operations"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Location (as stated)",
+   "length": 140
+  },
+  {
+   "fieldname": "area_of_operations",
+   "fieldtype": "Small Text",
+   "label": "Area of operations"
+  },
+  {
+   "fieldname": "sb_geo",
+   "fieldtype": "Section Break",
+   "label": "Position (this record's own)",
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude",
+   "precision": "6",
+   "description": "This record's own latitude, independent of any linked place.",
+   "in_standard_filter": 0
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude",
+   "precision": "6",
+   "description": "This record's own longitude, independent of any linked place."
+  },
+  {
+   "fieldname": "geo_precision",
+   "fieldtype": "Select",
+   "label": "Coordinate precision",
+   "options": "exact\napproximate\ncentroid\nuncertain",
+   "description": "How close the point is to the true position.",
+   "depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "geocoding_method",
+   "fieldtype": "Select",
+   "label": "How the point was obtained",
+   "options": "manual\nmap_pick\ncoordinate_entry\ngazetteer\nadministrative\ncity_centroid\ngeocoder\nhistorical_map\ninherited",
+   "description": "A city centroid is not a street address; recording the method stops a centroid from being read as a verified location.",
+   "depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "geo_uncertainty_m",
+   "fieldtype": "Float",
+   "label": "Uncertainty radius (m)",
+   "precision": "1",
+   "description": "The radius the true position could lie within.",
+   "depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "geometry_source",
+   "fieldtype": "Data",
+   "label": "Point source",
+   "length": 140,
+   "description": "The map, survey or gazetteer the coordinates came from.",
+   "depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "geo_description",
+   "fieldtype": "Text Editor",
+   "label": "Geographic description",
+   "collapsible": 1,
+   "description": "The deployed area's own coordinates — a deployment has a position of its own, independent of the unit's home station (migration 018)."
+  },
+  {
+   "fieldname": "sb_deployment_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "tab_provenance",
+   "fieldtype": "Tab Break",
+   "label": "Provenance & State"
+  },
+  {
+   "fieldname": "sb_evidence",
+   "fieldtype": "Section Break",
+   "label": "Source & verification"
+  },
+  {
+   "fieldname": "primary_source",
+   "fieldtype": "Link",
+   "label": "Primary source",
+   "options": "Source",
+   "description": "The source the record rests on. Additional claims from other sources are recorded in the Evidence table, one claim per row."
+  },
+  {
+   "fieldname": "documentation_level",
+   "fieldtype": "Link",
+   "label": "Documentation level",
+   "options": "Documentation Level"
+  },
+  {
+   "fieldname": "authentication_level",
+   "fieldtype": "Link",
+   "label": "Authentication level",
+   "options": "Authentication Level",
+   "description": "How strongly the record's content is verified."
+  },
+  {
+   "fieldname": "cb_provenance",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "label": "Record status",
+   "options": "Workflow State",
+   "default": "Draft",
+   "read_only": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "no_copy": 1,
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
+  },
+  {
+   "fieldname": "researcher_notes",
+   "fieldtype": "Text",
+   "label": "Researcher's notes",
+   "permlevel": 1,
+   "description": "Internal working notes. At permission level 1, so visible to reviewers and administrators only; discussion belongs in the document's comment thread instead."
+  },
+  {
+   "fieldname": "sb_evidence_table",
+   "fieldtype": "Section Break",
+   "label": "Evidence (claims this record makes)"
+  },
+  {
+   "fieldname": "evidence",
+   "fieldtype": "Table",
+   "label": "Evidence",
+   "options": "Evidence",
+   "no_copy": 1,
+   "columns": 9,
+   "description": "One row per claim: which source says what, where in the source, whether it supports or contradicts, and who verified it. Not copied with the record: a claim is evidence about one specific record."
+  },
+  {
+   "fieldname": "sb_identifiers",
+   "fieldtype": "Section Break",
+   "label": "External identifiers"
+  },
+  {
+   "fieldname": "external_identifiers",
+   "fieldtype": "Table",
+   "label": "External identifiers",
+   "options": "External Identifier",
+   "no_copy": 1,
+   "columns": 8,
+   "description": "VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record."
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 0,
+   "share": 0,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "report": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "System Manager",
+   "permlevel": 1,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  }
+ ],
+ "links": [
+  {
+   "link_doctype": "Mission",
+   "link_fieldname": "deployment",
+   "group": "Missions"
+  },
+  {
+   "link_doctype": "Military Unit",
+   "link_fieldname": "current_deployment",
+   "group": "Current deployment of"
+  }
+ ],
+ "actions": [],
+ "states": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "row_format": "Dynamic",
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "editable_grid": 1,
+ "track_changes": 1,
+ "track_views": 1,
+ "quick_entry": 1,
+ "allow_import": 1,
+ "show_title_field_in_link": 1,
+ "allow_copy": 1,
+ "in_create": 1,
+ "title_field": "deployment_name",
+ "search_fields": "deployment_name,deployment_type",
+ "icon": "send",
+ "description": "Operational deployments of a unit, with their own area and coordinates. The source's `operational_deployment` table; its status machine becomes a native Workflow."
+}

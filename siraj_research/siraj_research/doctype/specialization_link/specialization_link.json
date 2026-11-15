@@ -1,0 +1,32 @@
+{
+ "doctype": "DocType",
+ "name": "Specialization Link",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "specialization"
+ ],
+ "fields": [
+  {
+   "fieldname": "specialization",
+   "fieldtype": "Link",
+   "label": "Specialization",
+   "options": "Specialization",
+   "reqd": 1,
+   "in_list_view": 1
+  }
+ ],
+ "permissions": [],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "sort_field": "modified",
+ "sort_order": "ASC",
+ "row_format": "Dynamic",
+ "autoname": "hash",
+ "istable": 1,
+ "editable_grid": 1,
+ "in_create": 1,
+ "description": "Table MultiSelect link child for `Person.specializations`."
+}

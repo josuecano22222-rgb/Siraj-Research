@@ -1,0 +1,232 @@
+{
+ "doctype": "DocType",
+ "name": "Village",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "code",
+  "label_en",
+  "label_ar",
+  "description_en",
+  "description_ar",
+  "color",
+  "icon",
+  "sort_order",
+  "disabled",
+  "is_system",
+  "sb_scope",
+  "municipality",
+  "district",
+  "governorate",
+  "country"
+ ],
+ "fields": [
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "label": "Code",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "length": 64,
+   "set_only_once": 1,
+   "description": "Stable machine code used by data imports, report filters and the migration. Values are never reused."
+  },
+  {
+   "fieldname": "label_en",
+   "fieldtype": "Data",
+   "label": "English label",
+   "reqd": 0,
+   "in_list_view": 1,
+   "search_index": 1,
+   "in_global_search": 1,
+   "length": 140,
+   "description": "The label shown in English lists, filters and exports."
+  },
+  {
+   "fieldname": "label_ar",
+   "fieldtype": "Data",
+   "label": "Arabic label",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "in_global_search": 1,
+   "length": 140,
+   "description": "The Arabic label printed in Arabic exports and reports."
+  },
+  {
+   "fieldname": "description_en",
+   "fieldtype": "Small Text",
+   "label": "Description (EN)"
+  },
+  {
+   "fieldname": "description_ar",
+   "fieldtype": "Small Text",
+   "label": "Description (AR)"
+  },
+  {
+   "fieldname": "color",
+   "fieldtype": "Color",
+   "label": "Colour",
+   "description": "Badge colour used on cards, list indicators and reports."
+  },
+  {
+   "fieldname": "icon",
+   "fieldtype": "Icon",
+   "label": "Icon",
+   "description": "Frappe icon name (e.g. 'building', 'map-pin')."
+  },
+  {
+   "fieldname": "sort_order",
+   "fieldtype": "Int",
+   "label": "Sort order",
+   "default": "100",
+   "in_list_view": 1,
+   "description": "Position within its own list; lower comes first."
+  },
+  {
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled",
+   "description": "Disabled values stay on existing records but are not offered for new ones."
+  },
+  {
+   "fieldname": "is_system",
+   "fieldtype": "Check",
+   "label": "System value",
+   "read_only": 1,
+   "default": "0",
+   "description": "Seeded by the application; cannot be renamed or deleted."
+  },
+  {
+   "fieldname": "sb_scope",
+   "fieldtype": "Section Break",
+   "label": "Scope"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District",
+   "read_only": 1,
+   "fetch_from": "municipality.district"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate",
+   "read_only": 1,
+   "fetch_from": "municipality.governorate"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "read_only": 1,
+   "fetch_from": "municipality.country"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 0,
+   "share": 0,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 0,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  }
+ ],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "sort_field": "sort_order",
+ "sort_order": "ASC",
+ "row_format": "Dynamic",
+ "autoname": "field:code",
+ "naming_rule": "By fieldname",
+ "editable_grid": 1,
+ "quick_entry": 1,
+ "allow_import": 1,
+ "show_title_field_in_link": 1,
+ "in_create": 1,
+ "title_field": "label_en",
+ "search_fields": "label_en,label_ar,code",
+ "default_view": "List",
+ "icon": "home",
+ "description": "Fourth level of the administrative chain: a neighbourhood or village inside a municipality (SIRAJ migration 016)."
+}
