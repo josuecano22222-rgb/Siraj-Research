@@ -30,7 +30,7 @@ class FakeFrappe(types.SimpleNamespace):
     def whitelist(self):
         return lambda fn: fn
 
-    def has_permission(self, doctype, mode, doc=None, **kwargs):
+    def has_permission(self, doctype=None, ptype='read', doc=None, user=None, throw=False, *, parent_doctype=None, debug=False, ignore_share_permissions=False):
         return doctype not in self.denied and (doctype, doc) not in self.denied
 
     def get_list(self, doctype, fields, **kwargs):

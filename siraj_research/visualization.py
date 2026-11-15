@@ -44,7 +44,7 @@ def _records(doctype, fields):
     # get_list applies query-level restrictions; the additional document check
     # respects custom has_permission hooks which are not always expressible in SQL.
     visible = [row for row in rows[:MAX_RECORDS]
-               if frappe.has_permission(doctype, "read", doc=row["name"], raise_exception=False)]
+               if frappe.has_permission(doctype, "read", doc=row["name"], throw=False)]
     return visible, len(rows) > MAX_RECORDS
 
 

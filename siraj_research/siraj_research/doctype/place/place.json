@@ -524,26 +524,10 @@
  ],
  "actions": [
   {
-   "label": "Find duplicates",
-   "group": "Data quality",
-   "action_type": "Server Action",
-   "action": "siraj.api.duplicate_candidates_for_doc",
-   "hidden": 0,
-   "custom": 0
-  },
-  {
-   "label": "Open on the map",
+   "label": "Open geographic explorer",
    "group": "Geography",
-   "action_type": "Server Action",
-   "action": "siraj.api.open_on_map",
-   "hidden": 0,
-   "custom": 0
-  },
-  {
-   "label": "Merge a duplicate into this record",
-   "group": "Data quality",
-   "action_type": "Server Action",
-   "action": "siraj.api.merge_duplicate_into",
+   "action_type": "Route",
+   "action": "siraj-explorer",
    "hidden": 0,
    "custom": 0
   }
