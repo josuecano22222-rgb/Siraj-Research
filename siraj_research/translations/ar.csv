@@ -325,3 +325,50 @@ Symmetric,متماثل
 Unconfirmed,غير مؤكد
 Unknown,غير معروف
 Write,تعديل
+Identity,الهوية
+Life & dates,الحياة والتواريخ
+Position & evidence,الموقع والأدلة
+Provenance & State,المصدر والحالة
+Name (original language),الاسم (باللغة الأصلية)
+Original-name language,لغة الاسم الأصلي
+Transliteration,النقحرة (الكتابة اللاتينية)
+Other recorded forms of the name,صيغ أخرى مسجلة للاسم
+Portrait URL (external),رابط الصورة (خارجي)
+Portrait alt text,النص البديل للصورة
+Date of birth (as stated),تاريخ الميلاد (كما ورد)
+Date of birth precision,دقة تاريخ الميلاد
+Date of death (as stated),تاريخ الوفاة (كما ورد)
+Date of death precision,دقة تاريخ الوفاة
+Place of birth,مكان الميلاد
+Place of birth (as stated),مكان الميلاد (كما ورد)
+Occupation / classification,المهنة / التصنيف
+Declared affiliation (as stated),الانتماء المعلن (كما ورد)
+Posts held (history),المناصب السابقة (السجل)
+Positions,المناصب
+Post title (Arabic),مسمى المنصب (عربي)
+Post title (English),مسمى المنصب (إنجليزي)
+Current post,المنصب الحالي
+Verified by a source,موثق بمصدر
+Specialisation,التخصص
+Specialisations,التخصصات
+Public activity,النشاط العام
+Official website,الموقع الرسمي
+Official accounts,الحسابات الرسمية
+Handle,اسم المستخدم / المعرف
+Position (this record's own),الموقع الجغرافي (الخاص بهذا السجل)
+Source & verification,المصدر والتحقق
+Primary source,المصدر الأساسي
+Record status,حالة السجل
+Researcher's notes,ملاحظات الباحث
+Evidence (claims this record makes),الأدلة (الادعاءات المسجلة)
+Supports which field,يدعم أي حقل
+Scheme,النظام
+External identifiers,المعرفات الخارجية
+The name in the script and language of the source.,الاسم بالخط واللغة الواردة في المصدر.
+Native `Language` doctype — not a free-text language code.,مستند اللغة الأصلي في النظام — وليس رمز لغة نصياً حراً.
+Latin transliteration of the original-script name.,النقحرة اللاتينية للاسم المكتوب بخطه الأصلي.
+"Uploaded portrait (native File, permission-checked by Frappe).",صورة شخصية مرفوعة (ملف أصلي محمي بصلاحيات النظام).
+Use for a portrait hosted elsewhere; the uploaded portrait wins when both are set.,يُستخدم لصورة مستضافة خارجياً؛ وتُفضّل الصورة المرفوعة عند توفر الاثنين.
+"This record's own latitude, independent of any linked place.",خط العرض الخاص بهذا السجل، مستقل عن أي مكان مرتبط.
+"This record's own longitude, independent of any linked place.",خط الطول الخاص بهذا السجل، مستقل عن أي مكان مرتبط.
+How strongly the record's content is verified.,مدى قوة توثيق محتوى السجل.
