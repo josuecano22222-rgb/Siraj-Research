@@ -52,41 +52,54 @@ def check_transition(table: dict[str, tuple[str, ...]], field: str, old: str | N
 		)
 
 
-def descendants(doctype: str, name: str) -> list[str]:
-	"""Every descendant of a NestedSet node, by name.
+def _check_unit_tree(doctype: str) -> None:
+	if doctype != "Military Unit":
+		frappe.throw(_("Unsupported military hierarchy type"), frappe.ValidationError)
 
-	NestedSet stores `lft`/`rgt`; the subtree of a node is the range between them,
-	which is what the source computed recursively in `rules.subtree_ids()`.
-	"""
-	lft, rgt = frappe.db.get_value(doctype, name, ["lft", "rgt"])
-	if lft is None:
-		return []
-	return frappe.get_all(
-		doctype, filters={"lft": (">", lft), "rgt": ("<", rgt)},
-		pluck="name", order_by="lft asc",
-	)
+
+def ancestors(doctype: str, name: str | None) -> list[str]:
+	"""Walk actual parent links, rejecting a cycle rather than looping forever."""
+	_check_unit_tree(doctype)
+	result, seen = [], set()
+	while name:
+		if name in seen:
+			frappe.throw(_("The military unit hierarchy contains a cycle."), frappe.ValidationError)
+		seen.add(name)
+		result.append(name)
+		name = frappe.db.get_value(doctype, name, "parent_unit")
+	return result
+
+
+def descendants(doctype: str, name: str) -> list[str]:
+	"""Return descendants using parent_unit, without assuming nested-set indexes."""
+	_check_unit_tree(doctype)
+	seen, found, frontier = {name}, [], [name]
+	while frontier:
+		children = frappe.get_all(
+			doctype, filters={"parent_unit": ("in", frontier)},
+			pluck="name", order_by="name asc", limit_page_length=0,
+		)
+		frontier = []
+		for child in children:
+			if child in seen:
+				frappe.throw(_("The military unit hierarchy contains a cycle."), frappe.ValidationError)
+			seen.add(child)
+			found.append(child)
+			frontier.append(child)
+	return found
 
 
 def is_ancestor(doctype: str, ancestor: str, name: str) -> bool:
-	"""True when `ancestor` is `name` or one of its ancestors."""
-	if ancestor == name:
-		return True
-	return ancestor in set(
-		frappe.get_all(
-			doctype, filters={"lft": ("<=", frappe.db.get_value(doctype, name, "lft")),
-			                  "rgt": (">=", frappe.db.get_value(doctype, name, "rgt"))},
-			pluck="name",
-		)
-	)
+	"""True when ancestor is the unit itself or is in its parent chain."""
+	return ancestor in ancestors(doctype, name)
 
 
 def subtree_personnel(doctype: str, name: str) -> int:
-	"""S direct_personnel over a node and its descendants (`rules.descendant_personnel`)."""
+	"""Sum direct personnel over the persisted parent-linked subtree."""
 	names = [name, *descendants(doctype, name)]
-	if not names:
-		return 0
-	total = frappe.db.get_all(
-		doctype, filters={"name": ("in", names)}, fields=["sum(direct_personnel) as total"]
+	total = frappe.get_all(
+		doctype, filters={"name": ("in", names)}, fields=["sum(direct_personnel) as total"],
+		limit_page_length=0,
 	)
 	return int((total[0].total if total else 0) or 0)
 

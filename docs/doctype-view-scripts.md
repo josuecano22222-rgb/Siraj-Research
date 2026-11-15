@@ -10,7 +10,9 @@ Frappe v15 automatically discovers standard `<doctype>_tree.js` and `<doctype>_l
 
 These configure the native tree UI separately for each tree DocType. An empty virtual root supports no or multiple root records; child queries go to `siraj_research.treeview.get_children`, which restricts DocTypes, applies Frappe list and document read permissions, and pages through visible children. Opening a node uses its document ID rather than its displayed title.
 
-Tree modification is intentionally disabled: the existing hierarchy controllers and historical nested-set indexes need a separately tested repair/migration. Creating or editing records remains available through the normal forms; it does not imply existing nested-set indices are correct. This tree UI is not the same as the explorer's Structures tab.
+The generic Frappe tree mutation dialog is disabled because it does not use the declared parent field. The Military Unit tree instead offers **New Military Unit** to users with create access, and **Add child** on group nodes. Both open the standard form; the latter pre-fills `parent_unit` with the node's document ID. Frappe enforces permissions and validation when the form is saved. Place and Command Region trees remain navigation-only; use their normal forms to create records. This tree UI is not the same as the explorer's Structures tab.
+
+Military Unit hierarchy checks and personnel calculations use parent links, not nested-set indexes. Saving or deleting a unit recalculates the affected ancestor totals. The implementation does not repair existing totals globally, serialize concurrent changes to the same hierarchy, or repair historical nested-set indexes. Back up and assess existing hierarchies before bulk migration; test concurrent updates and permissions on a Frappe bench.
 
 ## List views
 

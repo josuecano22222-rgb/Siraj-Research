@@ -14,7 +14,7 @@ Map/query results currently cap at 1,500 list-visible records per type. A trunca
 
 ## Tree navigation repair
 
-The standard Frappe v15 tree view assumes a returned root and fails when the list is empty. SIRAJ's Place, Military Unit and Command Region tree views use a virtual root and a read-only, permission-checked child query over the explicitly declared parent fields. The view supports empty and multiple roots, without creating records or changing hierarchy data. Use normal forms to create/edit records. These views do **not** repair or validate historic nested-set `lft`/`rgt` indices: the existing controllers do not consistently implement Frappe's `NestedSet` lifecycle. A separate, backed-up migration and bench integration testing are required before relying on nested-set calculations, tree mutation, or rebuilding indices. This change deliberately does not perform such a migration.
+The standard Frappe v15 tree view assumes a returned root and fails when the list is empty. SIRAJ's Place, Military Unit and Command Region tree views use a virtual root and a read-only, permission-checked child query over the explicitly declared parent fields. The view supports empty and multiple roots. Military Unit's New and Add child actions open the normal form, with the latter setting the parent ID; Place and Command Region remain navigation-only. Military Unit calculations now traverse parent links rather than nested-set indexes and reject cycles on save. Existing totals are not globally rebuilt, and concurrent hierarchy edits are not serialized. The views do **not** repair historic nested-set indices. A separately tested, backed-up migration is required before using nested-set calculations or rebuilding indices.
 
 ## Diagnostics still requiring site context
 

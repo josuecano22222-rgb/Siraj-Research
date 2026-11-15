@@ -541,3 +541,12 @@ Distance: {0} km,المسافة: {0} كم
 Groups: {0},المجموعات: {0}
 Unsupported tree type,نوع الشجرة غير مدعوم
 Not permitted to read this tree node,ليس لديك صلاحية قراءة عقدة الشجرة هذه
+This value is disabled. Existing linked records are retained.,هذه القيمة معطّلة. تُحفظ السجلات المرتبطة بها كما هي.
+Some settings are not yet connected to the explorer or other workflows.,بعض الإعدادات غير مرتبطة بعد بالمستكشف أو بسير العمل الآخر.
+This current position also has an end date. Please review the source.,لهذا المنصب الحالي تاريخ انتهاء أيضاً. يرجى مراجعة المصدر.
+Please review this holding: the quantity is not positive.,يرجى مراجعة هذه الحيازة: الكمية ليست موجبة.
+New Military Unit,وحدة عسكرية جديدة
+Add child,إضافة وحدة فرعية
+Unsupported military hierarchy type,نوع التسلسل العسكري غير مدعوم
+The military unit hierarchy contains a cycle.,يحتوي التسلسل الهرمي للوحدات العسكرية على حلقة.
+A military unit cannot be its own ancestor.,لا يمكن أن تكون الوحدة العسكرية أصلاً لنفسها.

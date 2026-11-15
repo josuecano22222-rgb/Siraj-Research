@@ -4,17 +4,23 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from siraj_research.report_access import readable_rows
 from siraj_research.utils.military import (
-	descendants, military_person, subtree_personnel,
+	ancestors, descendants, military_person, subtree_personnel,
 )
 
 
 class MilitaryUnit(Document):
 	def validate(self):
+		self.validate_parent()
 		self.validate_commander()
 		self.validate_personnel()
 		self.validate_holdings()
 		self.subtree_personnel = self.compute_subtree_personnel()
+
+	def validate_parent(self):
+		if self.parent_unit and self.name in ancestors(self.doctype, self.parent_unit):
+			frappe.throw(_("A military unit cannot be its own ancestor."), frappe.ValidationError)
 
 	def validate_holdings(self):
 		"""015_military_org.sql UNIQUE(unit_id, armament_id): one row per pair.
@@ -59,25 +65,35 @@ class MilitaryUnit(Document):
 			frappe.throw(_("Direct personnel cannot be negative."))
 
 	def compute_subtree_personnel(self) -> int:
-		"""rules.descendant_personnel — the rollup the source computed recursively.
-
-		On insert the node has no `lft`/`rgt` yet, so the subtree is the node alone.
-		"""
+		"""Use submitted direct personnel plus persisted subordinate personnel."""
 		if self.is_new():
 			return int(self.direct_personnel or 0)
-		return subtree_personnel(self.doctype, self.name)
+		return subtree_personnel(self.doctype, self.name) - int(
+			frappe.db.get_value(self.doctype, self.name, "direct_personnel") or 0
+		) + int(self.direct_personnel or 0)
+
+	def update_ancestor_totals(self, *parents):
+		# Both old and new chains matter when a unit is reparented.
+		updated = set()
+		for parent in parents:
+			for ancestor in ancestors(self.doctype, parent):
+				if ancestor not in updated:
+					frappe.db.set_value(self.doctype, ancestor, "subtree_personnel",
+					                    subtree_personnel(self.doctype, ancestor),
+					                    update_modified=False)
+					updated.add(ancestor)
 
 	def on_update(self):
-		"""A changed child count changes every ancestor's rollup."""
-		for ancestor in frappe.get_all(
-			self.doctype,
-			filters={"lft": ("<", self.lft), "rgt": (">", self.rgt)},
-			pluck="name",
-		):
-			frappe.db.set_value(self.doctype, ancestor, "subtree_personnel",
-			                    subtree_personnel(self.doctype, ancestor),
-			                    update_modified=False)
+		before = self.get_doc_before_save()
+		self.update_ancestor_totals(self.parent_unit, before.parent_unit if before else None)
+
+	def after_delete(self):
+		self.update_ancestor_totals(self.parent_unit)
 
 	@frappe.whitelist()
 	def get_descendants(self):
-		return descendants(self.doctype, self.name)
+		self.check_permission("read")
+		names = descendants(self.doctype, self.name)
+		if not names:
+			return []
+		return [row["name"] for row in readable_rows(self.doctype, [], {"name": ["in", names]})]
