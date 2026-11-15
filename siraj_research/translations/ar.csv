@@ -489,3 +489,33 @@ Verification notes,ملاحظات التحقق
 Files,الملفات
 Scan / PDF,نسخة مصورة / PDF
 Provenance & state,المصدر والحالة
+SIRAJ Explorer,مستكشف سراج
+Geographic map,الخريطة الجغرافية
+Relationship map,خريطة العلاقات
+Structures,البنى
+Loading…,جارٍ التحميل…
+Unable to load the explorer. Check permissions and try again.,تعذّر تحميل المستكشف. تحقق من الصلاحيات وحاول مجددًا.
+Results are limited to {0} visible records per type; the view is incomplete.,النتائج محدودة بـ {0} سجل مرئي لكل نوع؛ العرض غير مكتمل.
+Open record,فتح السجل
+Search records,البحث في السجلات
+All types,جميع الأنواع
+"Showing {0} record-owned points. Unset and ambiguous 0,0 coordinates are excluded.",عرض {0} نقطة تخص سجلاتها. تُستبعد الإحداثيات غير المحددة والإحداثيات الملتبسة 0،0.
+Fit points,إظهار جميع النقاط
+Toggle OpenStreetMap tiles,إظهار أو إخفاء خريطة OpenStreetMap
+About this view,حول هذا العرض
+Select a marker to inspect its record. Tiles are optional; enabling them sends map requests to OpenStreetMap.,اختر علامة للاطلاع على سجلها. خلفية الخريطة اختيارية؛ تفعيلها يرسل طلبات الخريطة إلى OpenStreetMap.
+Showing {0} records and {1} relationships. Only visible records and links are included.,عرض {0} سجل و{1} علاقة. تظهر السجلات والعلاقات المسموح بالاطلاع عليها فقط.
+Fit network,إظهار الشبكة كاملة
+Stabilize layout,تثبيت التخطيط
+Select a record or a connection to inspect it. Drag nodes to rearrange the network.,اختر سجلًا أو علاقة للاطلاع عليهما. اسحب العقد لإعادة ترتيب الشبكة.
+Expandable tree,شجرة قابلة للتوسيع
+Distribution bars,أشرطة التوزيع
+Counting {0} visible records.,عدد السجلات المرئية: {0}.
+Grouping,التجميع
+Records,السجلات
+Counts reflect visible records only. Expand a branch to inspect its groups.,تعكس الأعداد السجلات المرئية فقط. وسّع الفرع للاطلاع على مجموعاته.
+No records to display.,لا توجد سجلات للعرض.
+Unable to load this structure. Check permissions.,تعذّر تحميل هذه البنية. تحقق من الصلاحيات.
+Not recorded,غير مسجل
+Unknown structure source,مصدر البنية غير معروف
+Not permitted to read {0},ليس لديك صلاحية قراءة {0}
