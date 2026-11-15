@@ -301,7 +301,7 @@ class SirajExplorer {
 		const nodeSet = new vis.DataSet();
 		const edgeSet = new vis.DataSet();
 		let currentEdges = [], history = [], currentId = null, centerId = null;
-		let searchTerm = '', selectedType = '', edgeType = '', hideEnded = false, layout = 'force';
+		let searchTerm = '', selectedType = '', edgeType = '', hideEnded = false, layout = 'force', maxDistance = 1;
 		let centerButton, resetButton;
 		const graphHost = $('<div class="sx-graph-host"></div>').appendTo(this.canvas);
 		const matrixHost = $('<div class="sx-atlas-matrix"></div>').hide().appendTo(this.canvas);
@@ -351,7 +351,7 @@ class SirajExplorer {
 			const side = Math.max(450, offset + nodes.length * step + 20);
 			const svg = document.createElementNS(NS, 'svg');
 			svg.setAttribute('width', side); svg.setAttribute('height', side);
-			svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', __('Relationship matrix'));
+			svg.setAttribute('role', 'group'); svg.setAttribute('aria-label', __('Relationship matrix'));
 			matrixHost.append(svg);
 			const positions = new Map(nodes.map((node, i) => [this.id(node), i]));
 			const text = (x, y, label, transform, node) => {
@@ -390,30 +390,52 @@ class SirajExplorer {
 			const term = searchTerm.toLocaleLowerCase();
 			let nodes = data.nodes.filter(n => (!selectedType || n.doctype === selectedType) && (n.label + ' ' + n.name).toLocaleLowerCase().includes(term));
 			let ids = new Set(nodes.map(n => this.id(n)));
+			const eligibleEdges = data.edges.filter(e => ids.has(JSON.stringify(e.source)) && ids.has(JSON.stringify(e.target)) && (!edgeType || e.type === edgeType) && (!hideEnded || !e.end_date));
+			const distance = new Map();
 			if (centerId && ids.has(centerId)) {
-				const neighborhood = new Set([centerId]);
-				data.edges.filter(e => (!edgeType || e.type === edgeType) && (!hideEnded || !e.end_date)).forEach(e => {
-					const source = JSON.stringify(e.source), target = JSON.stringify(e.target);
-					if (source === centerId && ids.has(target)) neighborhood.add(target);
-					if (target === centerId && ids.has(source)) neighborhood.add(source);
+				const neighbors = new Map();
+				eligibleEdges.forEach(e => {
+					const a = JSON.stringify(e.source), b = JSON.stringify(e.target);
+					if (!neighbors.has(a)) neighbors.set(a, []);
+					if (!neighbors.has(b)) neighbors.set(b, []);
+					neighbors.get(a).push(b); neighbors.get(b).push(a);
 				});
-				nodes = nodes.filter(n => neighborhood.has(this.id(n)));
-				ids = neighborhood;
+				distance.set(centerId, 0);
+				const queue = [centerId];
+				for (let index = 0; index < queue.length; index++) {
+					const id = queue[index], depth = distance.get(id);
+					if (depth >= maxDistance) continue;
+					(neighbors.get(id) || []).forEach(neighbor => {
+						if (!distance.has(neighbor)) { distance.set(neighbor, depth + 1); queue.push(neighbor); }
+					});
+				}
+				nodes = nodes.filter(n => distance.has(this.id(n)));
+				ids = new Set(distance.keys());
 			} else { centerId = null; }
-			currentEdges = data.edges.filter(e => ids.has(JSON.stringify(e.source)) && ids.has(JSON.stringify(e.target)) && (!edgeType || e.type === edgeType) && (!hideEnded || !e.end_date));
+			currentEdges = eligibleEdges.filter(e => ids.has(JSON.stringify(e.source)) && ids.has(JSON.stringify(e.target)));
 			edgeSet.clear(); nodeSet.clear(); history = []; currentId = null;
 			if (centerButton) centerButton.prop('disabled', true);
 			if (resetButton) resetButton.prop('disabled', !centerId);
 			const large = nodes.length > 500;
 			this.network.setOptions({ physics: { enabled: layout === 'force' && !large } });
 			const columns = Math.ceil(Math.sqrt(nodes.length || 1));
-			const orbitCenter = centerId && ids.has(centerId) ? centerId : null;
-			const around = nodes.filter(n => this.id(n) !== orbitCenter);
-			const positions = new Map(around.map((n, i) => {
-				const a = 2 * Math.PI * i / Math.max(1, around.length), radius = Math.max(220, around.length * 22);
-				return [this.id(n), {x: radius * Math.cos(a), y: radius * Math.sin(a)}];
-			}));
-			if (orbitCenter) positions.set(orbitCenter, {x: 0, y: 0});
+			const positions = new Map(), rings = new Map();
+			nodes.forEach(n => {
+				const id = this.id(n), ring = centerId ? distance.get(id) : 1;
+				if (!rings.has(ring)) rings.set(ring, []);
+				rings.get(ring).push(id);
+			});
+			let previousRadius = 0;
+			[...rings.keys()].sort((a, b) => a - b).forEach(ring => {
+				const idsInRing = rings.get(ring);
+				if (ring === 0) { positions.set(idsInRing[0], {x: 0, y: 0}); return; }
+				const radius = Math.max(previousRadius + 220, idsInRing.length * 22);
+				previousRadius = radius;
+				idsInRing.forEach((id, i) => {
+					const angle = 2 * Math.PI * i / idsInRing.length;
+					positions.set(id, {x: radius * Math.cos(angle), y: radius * Math.sin(angle)});
+				});
+			});
 			nodeSet.add(nodes.map((n, i) => ({ id: this.id(n), label: n.label, color: this.colors[n.doctype],
 				...(layout === 'orbit' ? positions.get(this.id(n)) : large ? { x: (i % columns) * 180, y: Math.floor(i / columns) * 110 } : {}) })));
 			graphHost.toggle(layout !== 'matrix'); matrixHost.toggle(layout === 'matrix');
@@ -438,6 +460,12 @@ class SirajExplorer {
 		const ended = $('<label class="sx-check"></label>').appendTo(this.rail);
 		$('<input type="checkbox">').on('change', e => { hideEnded = e.target.checked; update(); }).appendTo(ended);
 		ended.append(document.createTextNode(__('Hide ended relationships')));
+		const depthSelect = $('<select class="form-control input-sm" aria-label="Relationship depth"></select>').appendTo(this.tools);
+		[[1, __('Direct relationships')], [2, __('Two degrees')], [3, __('Three degrees')]].forEach(([value, title]) => $('<option></option>').val(value).text(title).appendTo(depthSelect));
+		depthSelect.on('change', () => {
+			maxDistance = Number(depthSelect.val()); update();
+			if (centerId) { showNode(centerId, false); if (layout !== 'matrix') this.network.fit({animation: true}); }
+		});
 		const centerSelect = $('<select class="form-control input-sm sx-center-select" aria-label="Center on a person or organization"></select>').appendTo(this.tools);
 		$('<option value=""></option>').text(__('Center on a person or organization')).appendTo(centerSelect);
 		['Person', 'Institution'].forEach(type => {
