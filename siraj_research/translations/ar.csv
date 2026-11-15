@@ -74,3 +74,92 @@ Review State,حالة المراجعة
 Draft,مسودة
 In Review,قيد المراجعة
 Verified / Approved,موثق / معتمد
+Naming Series,سلسلة التسمية
+Full Name (Arabic),الاسم الكامل (عربي)
+Full Name (English),الاسم الكامل (إنجليزي)
+Name (Arabic),الاسم (عربي)
+Name (English),الاسم (إنجليزي)
+Label (Arabic),التسمية (عربي)
+Label (English),التسمية (إنجليزي)
+Description (Arabic),الوصف (عربي)
+Description (English),الوصف (إنجليزي)
+Summary (Arabic),الملخص (عربي)
+Summary (English),الملخص (إنجليزي)
+Notes,ملاحظات
+Status,الحالة
+Active,نشط
+Inactive,غير نشط
+Code,الرمز
+Color,اللون
+Is System,افتراضي للنظام
+Sort Order,ترتيب الفرز
+Parent Place,المكان الأب
+Parent Unit,الوحدة الأب
+Parent Region,المنطقة الأب
+Is Group,مجموعة
+Latitude,خط العرض
+Longitude,خط الطول
+Coordinate Precision,دقة الإحداثيات
+Geocoding Method,طريقة الترميز الجغرافي
+Geometry Provenance,مصدر الإحداثيات
+Geographic Description,الوصف الجغرافي
+Birth Date,تاريخ الميلاد
+Birth Date Precision,دقة تاريخ الميلاد
+Death Date,تاريخ الوفاة
+Death Date Precision,دقة تاريخ الوفاة
+Start Date,تاريخ البداية
+Start Date Precision,دقة تاريخ البداية
+End Date,تاريخ النهاية
+End Date Precision,دقة تاريخ النهاية
+Event Date,تاريخ الحدث
+Event Date Precision,دقة تاريخ الحدث
+Is Approximate,تاريخ تقريبي
+Is Uncertain,غير مؤكد
+Gender,الجنس
+Male,ذكر
+Female,أنثى
+Nationality,الجنسية
+Place of Birth,مكان الميلاد
+Place of Death,مكان الوفاة
+Current Residence,مكان الإقامة الحالي
+Biography (Arabic),السيرة الذاتية (عربي)
+Biography (English),السيرة الذاتية (إنجليزي)
+Positions & Appointments,المناصب والتعيينات
+External Identifiers,المعرفات الخارجية
+Social Accounts,حسابات التواصل الاجتماعي
+Evidence & Citations,الأدلة والاستشهادات
+Source Type,نوع المصدر
+Source DocType,نوع المستند المصدر
+Source Record,السجل المصدر
+Target Type,نوع الهدف
+Target DocType,نوع المستند الهدف
+Target Record,السجل الهدف
+Is Symmetric,متماثلة
+Inverse Label (Arabic),التسمية العكسية (عربي)
+Inverse Label (English),التسمية العكسية (إنجليزي)
+Direction,الاتجاه
+Validity Period,فترة الصلاحية
+Title (Arabic),العنوان (عربي)
+Title (English),العنوان (إنجليزي)
+Author,المؤلف
+Publisher,الناشر
+Publication Date,تاريخ النشر
+URL,الرابط
+Archive URL,رابط الأرشيف
+Citation,الاستشهاد
+Page / Reference,الصفحة / المرجع
+Excerpt,مقتطف
+Reliability,الموثوقية
+Verification Status,حالة التحقق
+Verified By,تم التحقق بواسطة
+Verification Date,تاريخ التحقق
+Unit Name (Arabic),اسم الوحدة (عربي)
+Unit Name (English),اسم الوحدة (إنجليزي)
+Unit Code,رمز الوحدة
+Emblem,الشعار
+Commander,القائد
+Personnel Count,عدد الأفراد
+Armament Holdings,عهدة التسليح
+Quantity,الكمية
+Condition,الحالة الفنية
+Workflow State,حالة سير العمل
