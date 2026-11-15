@@ -48,3 +48,7 @@ bench --site YOUR-SITE execute siraj_research.setup.patch_diagnostics.inspect_pa
 ```
 
 This reports whether each named module exists and whether a non-skipped Patch Log entry exists. A completed log entry is **not** proof that its data transformation ran: normal fresh Frappe app installation marks patches completed without executing them. Safe remediation requires the historical schema, intended transformations and a representative backup, none of which are available in this checkout.
+
+## Record titles
+
+On normal saves, Person, Institution and Place derive `display_name` from the English name, falling back to Arabic; Event uses its English then Arabic title, Source uses its title, and Relationship uses the stored endpoint identifiers and type. Titles are trimmed to 140 characters. Existing records are **not** mass-updated by this change; they acquire a derived title on a later normal save, and the Explorer otherwise falls back to the record ID. If a site customizes field-level permissions, treat the derived `display_name` as exposing the corresponding source name/title fields and configure its permissions accordingly.

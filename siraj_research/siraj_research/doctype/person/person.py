@@ -5,10 +5,15 @@ from frappe import _
 from frappe.utils import getdate
 from frappe.model.document import Document
 
+from siraj_research.utils.display_name import set_display_name
+
 from siraj_research.utils.military import SERVICE_STATUS_TRANSITIONS, check_transition
 
 
 class Person(Document):
+	def before_validate(self):
+		set_display_name(self, 'name_en', 'name_ar')
+
 	def validate(self):
 		self.validate_military()
 		self.validate_service_status()

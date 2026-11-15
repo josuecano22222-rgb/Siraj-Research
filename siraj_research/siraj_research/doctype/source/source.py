@@ -3,6 +3,9 @@
 
 from frappe.model.document import Document
 
+from siraj_research.utils.display_name import set_display_name
+
 
 class Source(Document):
-	pass
+	def before_validate(self):
+		set_display_name(self, 'title', 'title_ar')
