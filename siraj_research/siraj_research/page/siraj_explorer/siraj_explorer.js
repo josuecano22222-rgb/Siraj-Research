@@ -300,8 +300,8 @@ class SirajExplorer {
 		const edgeLookup = new Map(data.edges.map(e => [e.name, e]));
 		const nodeSet = new vis.DataSet();
 		const edgeSet = new vis.DataSet();
-		let currentEdges = [], history = [], currentId = null, centerId = null;
-		let searchTerm = '', selectedType = '', edgeType = '', hideEnded = false, layout = 'force', maxDistance = 1;
+		let currentEdges = [], history = [], trail = [], currentId = null, centerId = null;
+		let searchTerm = '', selectedType = '', edgeType = '', hideEnded = false, evidenceOnly = false, evidenceLoaded = false, layout = 'force', maxDistance = 1;
 		let centerButton, resetButton;
 		const graphHost = $('<div class="sx-graph-host"></div>').appendTo(this.canvas);
 		const matrixHost = $('<div class="sx-atlas-matrix"></div>').hide().appendTo(this.canvas);
@@ -336,7 +336,7 @@ class SirajExplorer {
 			if (!edge) return;
 			currentId = null;
 			if (centerButton) centerButton.prop('disabled', true);
-			this.showDetails(edge.type || __('Relationship'), [[__('ID'), edge.name], [__('Direction'), edge.direction], [__('Description'), edge.description], [__('Record status'), edge.state], [__('Authentication level'), edge.authentication_level], [__('End date'), edge.end_date], [__('Primary source'), edge.primary_source]], { doctype: 'Relationship', name: edge.name });
+			this.showDetails(edge.type || __('Relationship'), [[__('ID'), edge.name], [__('Direction'), edge.direction], [__('Description'), edge.description], [__('Record status'), edge.state], [__('Authentication level'), edge.authentication_level], [__('End date'), edge.end_date], [__('Primary source'), edge.primary_source], [__('Evidence'), edge.evidence_count]], { doctype: 'Relationship', name: edge.name });
 			[edge.source, edge.target].forEach((key, index) => {
 				const id = JSON.stringify(key), node = all.get(id);
 				if (!node) return;
@@ -390,7 +390,7 @@ class SirajExplorer {
 			const term = searchTerm.toLocaleLowerCase();
 			let nodes = data.nodes.filter(n => (!selectedType || n.doctype === selectedType) && (n.label + ' ' + n.name).toLocaleLowerCase().includes(term));
 			let ids = new Set(nodes.map(n => this.id(n)));
-			const eligibleEdges = data.edges.filter(e => ids.has(JSON.stringify(e.source)) && ids.has(JSON.stringify(e.target)) && (!edgeType || e.type === edgeType) && (!hideEnded || !e.end_date));
+			const eligibleEdges = data.edges.filter(e => ids.has(JSON.stringify(e.source)) && ids.has(JSON.stringify(e.target)) && (!edgeType || e.type === edgeType) && (!hideEnded || !e.end_date) && (!evidenceOnly || Number(e.evidence_count) > 0));
 			const distance = new Map();
 			if (centerId && ids.has(centerId)) {
 				const neighbors = new Map();
@@ -441,13 +441,13 @@ class SirajExplorer {
 			graphHost.toggle(layout !== 'matrix'); matrixHost.toggle(layout === 'matrix');
 			if (layout === 'matrix') drawMatrix(nodes, currentEdges);
 			edgeSet.add(currentEdges.map(e => ({ id: e.name, from: JSON.stringify(e.source), to: JSON.stringify(e.target), label: e.type, arrows: /^(directed|one.way)$/i.test(e.direction) ? 'to' : '' })));
-			this.note.text(__('Showing {0} records and {1} relationships. Only visible records and links are included.', [nodes.length, currentEdges.length]) + ' ' + this.warning(data));
+			this.note.text(__('Showing {0} records and {1} relationships. Only visible records and links are included.', [nodes.length, currentEdges.length]) + ' ' + this.warning(data) + (evidenceOnly && data.edges.some(e => e.evidence_count == null) ? ' ' + __('Evidence counts are unavailable for some relationships.') : ''));
 			this.showDetails(__('Relationship map'), [[__('About this view'), __('Select a record or a connection to inspect it. Drag nodes to rearrange the network.')]]);
 		};
 		this.network.on('selectNode', event => showNode(event.nodes[0]));
 		this.network.on('selectEdge', event => showEdge(edgeLookup.get(event.edges[0])));
 		$('<h5></h5>').text(__('Filters')).appendTo(this.rail);
-		const filters = this.filterControls(types, (search, type) => { searchTerm = search; selectedType = type; centerId = null; centerSelect.val(''); update(); }, this.rail);
+		const filters = this.filterControls(types, (search, type) => { searchTerm = search; selectedType = type; centerId = null; trail = []; centerSelect.val(''); update(); }, this.rail);
 		$('<h5></h5>').text(__('Arrangement')).appendTo(this.rail);
 		const layoutSelect = $('<select class="form-control input-sm" aria-label="Relationship layout"></select>').appendTo(this.rail);
 		[['force', __('Force')], ['orbit', __('Orbit')], ['matrix', __('Matrix')]].forEach(([id, title]) => $('<option></option>').val(id).text(title).appendTo(layoutSelect));
@@ -460,6 +460,26 @@ class SirajExplorer {
 		const ended = $('<label class="sx-check"></label>').appendTo(this.rail);
 		$('<input type="checkbox">').on('change', e => { hideEnded = e.target.checked; update(); }).appendTo(ended);
 		ended.append(document.createTextNode(__('Hide ended relationships')));
+		const evidenceLabel = $('<label class="sx-check"></label>').appendTo(this.rail);
+		const evidenceCheck = $('<input type="checkbox">').appendTo(evidenceLabel);
+		evidenceLabel.append(document.createTextNode(__('Only relationships with evidence')));
+		evidenceCheck.on('change', async () => {
+			if (!evidenceCheck.prop('checked')) { evidenceOnly = false; update(); return; }
+			if (!evidenceLoaded) {
+				evidenceCheck.prop('disabled', true);
+				try {
+					const response = await frappe.call({method: 'siraj_research.visualization.relationship_data', args: {include_evidence: 1}});
+					if (renderId !== this.renderId) return;
+					const counts = new Map(response.message.edges.map(edge => [edge.name, edge.evidence_count]));
+					data.edges.forEach(edge => { edge.evidence_count = counts.has(edge.name) ? counts.get(edge.name) : null; });
+					evidenceLoaded = true;
+				} catch (error) {
+					if (renderId === this.renderId) { evidenceCheck.prop('checked', false); this.note.text(__('Unable to load evidence counts.')).addClass('sx-warning'); }
+					return;
+				} finally { evidenceCheck.prop('disabled', false); }
+			}
+			evidenceOnly = evidenceCheck.prop('checked'); update();
+		});
 		const depthSelect = $('<select class="form-control input-sm" aria-label="Relationship depth"></select>').appendTo(this.tools);
 		[[1, __('Direct relationships')], [2, __('Two degrees')], [3, __('Three degrees')]].forEach(([value, title]) => $('<option></option>').val(value).text(title).appendTo(depthSelect));
 		depthSelect.on('change', () => {
@@ -475,18 +495,23 @@ class SirajExplorer {
 		centerSelect.on('change', () => {
 			const id = centerSelect.val();
 			searchTerm = ''; selectedType = ''; filters.search.val(''); filters.select.val('');
-			centerId = id || null; update();
+			if (centerId && id && centerId !== id) trail.push(centerId);
+			centerId = id || null; if (!id) trail = []; update();
 			if (centerId) { showNode(centerId, false); if (layout !== 'matrix') this.network.fit({animation: true}); }
 		});
 		centerButton = this.button(__('Center on selected record'), () => {
 			if (!currentId) return;
+			if (centerId && centerId !== currentId) trail.push(centerId);
 			centerId = currentId;
 			update();
 			showNode(centerId, false);
 			if (layout !== 'matrix') this.network.fit({animation: true});
 		}).prop('disabled', true).appendTo(this.tools);
-		resetButton = this.button(__('Show all records'), () => { centerId = null; centerSelect.val(''); update(); }).prop('disabled', true).appendTo(this.tools);
-		this.button(__('Back'), () => { while (history.length) { const id = history.pop(); if (nodeSet.get(id)) { showNode(id, false); break; } } }).appendTo(this.tools);
+		resetButton = this.button(__('Show all records'), () => { centerId = null; trail = []; centerSelect.val(''); update(); }).prop('disabled', true).appendTo(this.tools);
+		this.button(__('Back'), () => {
+			while (history.length) { const id = history.pop(); if (nodeSet.get(id)) { showNode(id, false); return; } }
+			if (trail.length) { centerId = trail.pop(); centerSelect.val(centerId); update(); if (centerId) { showNode(centerId, false); if (layout !== 'matrix') this.network.fit({animation: true}); } }
+		}).appendTo(this.tools);
 		this.button(__('Fit network'), () => this.network.fit({ animation: true })).appendTo(this.tools);
 		this.button(__('Stabilize layout'), () => this.network.stabilize()).appendTo(this.tools);
 		update();
@@ -498,7 +523,7 @@ class SirajExplorer {
 		await frappe.require('/assets/siraj_research/js/structure_deck.js');
 		if (renderId !== this.renderId) return;
 		this.canvas.removeClass('sx-canvas');
-		const choices = [['people', __('Person')], ['institutions', __('Institution')], ['places', __('Place')], ['events', __('Event')], ['relationships', __('Relationship')], ['sources', __('Source')], ['units', __('Units — command hierarchy')], ['regions', __('Regions — command hierarchy')], ['forces', __('Forces — echelon, status, classification')]];
+		const choices = [['people', __('Person')], ['institutions', __('Institution')], ['places', __('Place')], ['events', __('Event')], ['relationships', __('Relationship')], ['sources', __('Source')], ['units', __('Units — command hierarchy')], ['regions', __('Regions — command hierarchy')], ['regions-units', __('Regions × Units')], ['units-ops', __('Units × Operations')], ['forces', __('Forces — echelon, status, classification')]];
 		const select = $('<select class="form-control input-sm" aria-label="Structure source"></select>').appendTo(this.tools);
 		choices.forEach(([id, title]) => $('<option></option>').val(id).text(title).appendTo(select));
 		let request = 0;
@@ -510,7 +535,7 @@ class SirajExplorer {
 				const result = await frappe.call({ method: 'siraj_research.visualization.structure_data', args: { source: select.val() } });
 				if (renderId !== this.renderId || current !== request) return;
 				const data = result.message;
-				this.note.text(__('Counting {0} visible records.', [data.count]));
+				this.note.text(__('Counting {0} visible records.', [data.count]) + (data.unavailable_types && data.unavailable_types.length ? ' ' + __('Some record types are not readable: {0}', [data.unavailable_types.map(type => __(type)).join(', ')]) : ''));
 				new window.SirajStructureDeck(this, this.canvas, this.aside, data);
 			} catch (error) {
 				if (renderId !== this.renderId || current !== request) return;

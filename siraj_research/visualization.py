@@ -22,6 +22,8 @@ ENTITIES = {
     "Military Unit": "unit_name",
     "Operational Deployment": "deployment_name",
     "Command Region": "region_name",
+    "Mission": "mission_name",
+    "Training Exercise": "exercise_name",
 }
 # Explicit, low-sensitivity fields already readable on each record's form.
 DETAIL_FIELDS = {
@@ -33,6 +35,9 @@ DETAIL_FIELDS = {
     "Military Unit": ("echelon", "status", "region", "division", "direct_personnel", "workflow_state"),
     "Relationship": ("relationship_type", "direction", "description", "authentication_level", "workflow_state"),
     "Command Region": ("region_type", "country", "workflow_state"),
+    "Operational Deployment": ("deployment_type", "status", "location", "workflow_state"),
+    "Mission": ("mission_type", "status", "area", "workflow_state"),
+    "Training Exercise": ("training_type", "assessment", "location", "workflow_state"),
 }
 GEO_TYPES = ("Person", "Institution", "Place", "Event", "Military Unit", "Operational Deployment")
 GRAPH_TYPES = ("Person", "Institution", "Place", "Event", "Source")
@@ -89,14 +94,19 @@ def geographic_data():
 
 
 @frappe.whitelist()
-def relationship_data():
-    """Only expose edges whose relationship and both endpoint records are visible."""
+def relationship_data(include_evidence=0):
+    """Only expose edges whose relationship and both endpoint records are visible.
+
+    Evidence is optional because checking the parent's child table requires an
+    additional document load. An inaccessible evidence field yields None.
+    """
     nodes, truncated = _entity_rows(GRAPH_TYPES, include_details=True)
     visible = {(node["doctype"], node["name"]) for node in nodes}
     rows, cut = _records("Relationship", ["relationship_type", "subject_type", "subject", "object_type", "object", "direction", "description", "workflow_state", "is_current", "end_date", "authentication_level", "primary_source"])
     if cut:
         truncated.append("Relationship")
     edges = []
+    with_evidence = str(include_evidence).lower() in ("1", "true")
     for row in rows:
         source = (row.get("subject_type"), row.get("subject"))
         target = (row.get("object_type"), row.get("object"))
@@ -106,6 +116,16 @@ def relationship_data():
                           "description": row.get("description") or "", "state": row.get("workflow_state") or "",
                           "is_current": row.get("is_current"), "end_date": row.get("end_date"),
                           "authentication_level": row.get("authentication_level") or "", "primary_source": row.get("primary_source") or ""})
+            if with_evidence:
+                doc = frappe.get_doc("Relationship", row["name"])
+                doc.check_permission("read")
+                field = doc.meta.get_field("evidence")
+                can_read = bool(field) and (not getattr(field, "permlevel", 0) or frappe.session.user == "Administrator" or doc.has_permlevel_access_to("evidence", field, "read"))
+                if can_read:
+                    doc.apply_fieldlevel_read_permissions()
+                    edges[-1]["evidence_count"] = len(doc.get("evidence") or [])
+                else:
+                    edges[-1]["evidence_count"] = None
     return {"nodes": nodes, "edges": edges, "truncated": truncated}
 
 
@@ -180,21 +200,23 @@ def _structure_children(node, dimensions, depth=0):
     return children
 
 
-def _hierarchy(doctype, title_field, parent_field):
-    """Build a permission-visible command tree; unreadable parents become roots.
-
-    Each record counts once, including the record represented by a branch. Broken
-    links and cycles are detached rather than exposing inaccessible parent IDs.
-    """
-    if not frappe.has_permission(doctype, "read"):
-        frappe.throw(_("Not permitted to read {0}").format(_(doctype)), frappe.PermissionError)
-    rows = list(readable_rows(doctype, (title_field, parent_field)))
-    if any(parent_field not in row for row in rows):
+def _hierarchy_rows(doctype, title, fields):
+    """Load structural fields through Frappe's list and document permissions."""
+    rows = list(readable_rows(doctype, (title, *fields)))
+    if any(any(field not in row for field in fields) for row in rows):
         frappe.throw(_("A structure grouping field is not readable."), frappe.PermissionError)
+    return rows
+
+
+def _forest(doctype, rows, title, parent_field, partition_field=None):
+    """Produce an acyclic forest of readable records, optionally within partitions."""
     by_name = {row["name"]: row for row in rows}
-    parents = {name: row.get(parent_field) if row.get(parent_field) in by_name else None
-               for name, row in by_name.items()}
-    # Detach one edge in every cycle, deterministically by name.
+    parents = {}
+    for name, row in by_name.items():
+        parent = row.get(parent_field) if parent_field else None
+        if parent not in by_name or (partition_field and by_name[parent].get(partition_field) != row.get(partition_field)):
+            parent = None
+        parents[name] = parent
     done = set()
     for name in sorted(parents):
         trail, index, cur = [], {}, name
@@ -205,13 +227,18 @@ def _hierarchy(doctype, title_field, parent_field):
         if cur in index:
             parents[min(trail[index[cur]:])] = None
         done.update(trail)
-    nodes = {name: {"label": row.get(title_field) or name, "name": name,
-                    "target": True, "count": 1, "group_count": 0, "children": []}
+    nodes = {name: {"label": row.get(title) or name, "name": name, "target": True,
+                    "target_doctype": doctype, "count": 1, "group_count": 0, "children": []}
              for name, row in by_name.items()}
-    root = {"count": 0, "children": []}
+    tops = []
     for name, node in nodes.items():
         parent = parents[name]
-        (nodes[parent] if parent else root)["children"].append(node)
+        (nodes[parent]["children"] if parent else tops).append(node)
+    return nodes, tops, by_name
+
+
+def _finalize_forest(root):
+    """Count and fold bottom-up; a real record contributes one to its subtree."""
     stack = [(root, False, 0)]
     while stack:
         node, visited, depth = stack.pop()
@@ -219,8 +246,8 @@ def _hierarchy(doctype, title_field, parent_field):
             stack.append((node, True, depth))
             stack.extend((child, False, depth + 1) for child in node["children"])
             continue
-        children = sorted(node["children"], key=lambda child: (-child["count"], child["label"].casefold(), child["name"]))
-        node["count"] = (0 if node is root else 1) + sum(child["count"] for child in children)
+        children = sorted(node["children"], key=lambda child: (-child["count"], child["label"].casefold(), child.get("name", "")))
+        node["count"] = int(bool(node.get("target"))) + sum(child["count"] for child in children)
         node["group_count"] = len(children)
         budget = min(60, STRUCTURE_MAX_CHILDREN * 2) if depth == 0 else max(5, STRUCTURE_MAX_CHILDREN // (depth + 1))
         tail = children[budget:]
@@ -229,8 +256,61 @@ def _hierarchy(doctype, title_field, parent_field):
             node["children"].append({"label": _("{0} smaller groups").format(len(tail)),
                                      "count": sum(child["count"] for child in tail),
                                      "folded_groups": len(tail), "group_count": 0, "children": []})
+    return root
+
+
+def _hierarchy(doctype, title_field, parent_field):
+    """Build a permission-visible command tree; unreadable parents become roots."""
+    if not frappe.has_permission(doctype, "read"):
+        frappe.throw(_("Not permitted to read {0}").format(_(doctype)), frappe.PermissionError)
+    rows = _hierarchy_rows(doctype, title_field, (parent_field,))
+    nodes, tops, indexed = _forest(doctype, rows, title_field, parent_field)
+    root = _finalize_forest({"count": 0, "children": tops})
     return {"doctype": doctype, "dimensions": [_('Command hierarchy')], "count": root["count"],
             "truncated": False, "group_count": root["group_count"], "children": root["children"]}
+
+
+def _composite(source):
+    """Count each readable record once, including records with no visible parent.
+
+    Region/unit and unit/operation links are never shown when their parent is
+    unreadable. Such children are placed in an anonymous unassigned branch.
+    """
+    regions = source == "regions-units"
+    main = "Command Region" if regions else "Military Unit"
+    main_title, main_parent = ("region_name", "parent_region") if regions else ("unit_name", "parent_unit")
+    if not frappe.has_permission(main, "read"):
+        frappe.throw(_("Not permitted to read {0}").format(_(main)), frappe.PermissionError)
+    main_rows = _hierarchy_rows(main, main_title, (main_parent,))
+    main_nodes, tops, indexed_main = _forest(main, main_rows, main_title, main_parent)
+    unassigned = []
+    unavailable = []
+    if regions:
+        if frappe.has_permission("Military Unit", "read"):
+            rows = _hierarchy_rows("Military Unit", "unit_name", ("parent_unit", "region"))
+            unit_nodes, unit_tops, indexed = _forest("Military Unit", rows, "unit_name", "parent_unit", "region")
+            for node in unit_tops:
+                region = indexed[node["name"]].get("region")
+                (main_nodes[region]["children"] if region in main_nodes else unassigned).append(node)
+        else:
+            unavailable.append("Military Unit")
+    else:
+        for doctype, title in (("Operational Deployment", "deployment_name"), ("Mission", "mission_name"),
+                               ("Training Exercise", "exercise_name")):
+            if not frappe.has_permission(doctype, "read"):
+                unavailable.append(doctype)
+                continue
+            rows = _hierarchy_rows(doctype, title, ("unit",))
+            attached_nodes, attached, indexed = _forest(doctype, rows, title, None)
+            for node in attached:
+                unit = indexed[node["name"]].get("unit")
+                (main_nodes[unit]["children"] if unit in main_nodes else unassigned).append(node)
+    if unassigned:
+        tops.append({"label": _("Unassigned or inaccessible parent"), "count": 0, "group_count": 0, "children": unassigned})
+    root = _finalize_forest({"count": 0, "children": tops})
+    return {"doctype": main, "label": _("Regions × Units") if regions else _("Units × Operations"),
+            "dimensions": [_('Command hierarchy')], "count": root["count"], "truncated": False,
+            "unavailable_types": unavailable, "group_count": root["group_count"], "children": root["children"]}
 
 
 @frappe.whitelist()
@@ -240,6 +320,8 @@ def structure_data(source="people"):
     This synchronous scan can be expensive for large sites or custom permission
     hooks. Counts represent the current user's visible records, not global totals.
     """
+    if source in ("regions-units", "units-ops"):
+        return _composite(source)
     if source == "units":
         return _hierarchy("Military Unit", "unit_name", "parent_unit")
     if source == "regions":

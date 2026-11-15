@@ -56,8 +56,17 @@ async function executable() {
 			assert((await page.$$('.sd-mark')).length, `${mode} must render selectable marks`);
 			assert.strictEqual(await page.$$eval('.sd-stage [d]', els => els.filter(e => /NaN|Infinity/.test(e.getAttribute('d'))).length), 0);
 		}
+		await page.select('select[aria-label="Structure depth"]', '1');
+		assert(await page.$eval('.sd-stage', el => el.textContent.includes('▸ 5')), 'depth-collapsed tree must show the group count');
+		await page.select('select[aria-label="Structure depth"]', '3');
+		await page.focus('.sd-stage'); await page.keyboard.press('2');
+		assert(await page.$eval('.sd-tabs [data-mode="rings"]', el => el.classList.contains('active')), 'number key should switch layout');
+		await page.click('.sd-tabs [data-mode="tree"]');
 		await page.click('.sd-toggle[aria-label="Expand branch"]');
 		assert((await page.$$('.sd-mark')).length > 8, 'tree expansion must reveal children');
+		await page.type('.sd-find', 'Historian'); await page.keyboard.press('Enter');
+		assert.strictEqual(await page.$eval('.sx-aside h4', el => el.textContent), 'Historian');
+		assert(await page.$eval('.sd-crumbs', el => el.textContent.includes('Iraq')));
 		await page.click('.sd-tabs [data-mode="flow"]');
 		const stroke = await page.$eval('.sd-stage path.sd-mark', el => ({stroke: getComputedStyle(el).stroke, width: parseFloat(getComputedStyle(el).strokeWidth)}));
 		assert(stroke.width > 1 && stroke.stroke !== 'rgb(255, 255, 255)', 'flow links must be visible');

@@ -628,3 +628,16 @@ Unable to load relationship lines.,تعذر تحميل خطوط العلاقات
 Direct relationships,العلاقات المباشرة
 Two degrees,درجتان
 Three degrees,ثلاث درجات
+Regions × Units,المناطق × الوحدات
+Units × Operations,الوحدات × العمليات
+Unassigned or inaccessible parent,غير مرتبط أو الأصل غير متاح
+Some record types are not readable: {0},بعض أنواع السجلات غير قابلة للقراءة: {0}
+Only relationships with evidence,العلاقات التي لها أدلة فقط
+Evidence counts are unavailable for some relationships.,أعداد الأدلة غير متاحة لبعض العلاقات.
+Unable to load evidence counts.,تعذر تحميل أعداد الأدلة.
+Depth {0},العمق {0}
+Structure depth,عمق الهيكل
+Find in structure,البحث في الهيكل
+Find,بحث
+Legend,المفتاح
+No matching group or record in the loaded structure.,لا توجد مجموعة أو سجل مطابق في الهيكل المحمّل.

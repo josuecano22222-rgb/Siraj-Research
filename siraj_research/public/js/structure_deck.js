@@ -13,12 +13,14 @@
 			this.aside = aside;
 			this.data = data;
 			this.mode = 'treemap';
-			this.root = { label: __(data.doctype), count: data.count, group_count: data.group_count, children: data.children };
+			this.root = { label: data.label || __(data.doctype), count: data.count, group_count: data.group_count, children: data.children };
 			this.focus = this.root;
 			this.path = [this.root];
 			this.expanded = new Set([this.root]);
 			this.selected = null;
 			this.tableVisible = false;
+			this.legendVisible = true;
+			this.maxDepth = 3;
 			// Large registries start with record leaves hidden to avoid constructing an
 			// enormous SVG. They remain available when the user enables Records.
 			this.showRecords = data.count <= 3000;
@@ -38,9 +40,16 @@
 				b.attr({ role: 'tab', 'data-mode': key });
 				return b;
 			});
+			const depth = $('<select class="form-control input-sm sd-depth" aria-label="Structure depth"></select>').appendTo(this.bar);
+			[1, 2, 3].forEach(n => $('<option></option>').val(n).text(__('Depth {0}', [n])).appendTo(depth));
+			depth.val(this.maxDepth).on('change', () => { this.maxDepth = Number(depth.val()); this.render(); });
 			const recordToggle = $('<label class="sd-check"></label>').appendTo(this.bar);
-			$('<input type="checkbox">').prop('checked', this.showRecords).on('change', e => { this.showRecords = e.target.checked; this.render(); }).appendTo(recordToggle);
+			this.recordInput = $('<input type="checkbox">').prop('checked', this.showRecords).on('change', e => { this.showRecords = e.target.checked; this.render(); }).appendTo(recordToggle);
 			recordToggle.append(document.createTextNode(__('Records')));
+			const find = $('<input type="search" class="form-control input-sm sd-find">').attr({'aria-label': __('Find in structure'), placeholder: __('Find in structure')}).appendTo(this.bar);
+			find.on('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); this.find(find.val()); } });
+			this.button(__('Find'), () => this.find(find.val()), this.bar);
+			this.button(__('Legend'), () => { this.legendVisible = !this.legendVisible; this.legend.toggle(this.legendVisible); }, this.bar);
 			this.button(__('Table'), () => { this.tableVisible = !this.tableVisible; this.renderTable(); }, this.bar).attr('aria-label', __('Show or hide data table'));
 			this.button(__('Zoom in'), () => { if (this.svgRoot) this.svgRoot.call(this.zoom.scaleBy, 1.25); }, this.bar);
 			this.button(__('Zoom out'), () => { if (this.svgRoot) this.svgRoot.call(this.zoom.scaleBy, 0.8); }, this.bar);
@@ -48,14 +57,24 @@
 			this.button(__('Export SVG'), () => this.exportSvg(), this.bar);
 			this.button(__('Export CSV'), () => this.exportCsv(), this.bar);
 			this.crumbs = $('<nav class="sd-crumbs" aria-label="Structure path"></nav>').appendTo(this.canvas);
-			this.stage = $('<div class="sd-stage"></div>').appendTo(this.canvas);
+			this.stage = $('<div class="sd-stage" tabindex="0"></div>').appendTo(this.canvas);
 			this.legend = $('<div class="sd-legend" aria-label="Legend"></div>').appendTo(this.canvas);
 			this.footer = $('<div class="sd-footer" role="status"></div>').appendTo(this.canvas);
 			this.table = $('<div class="sd-table"></div>').appendTo(this.canvas);
+			this.canvas.off('keydown.structureDeck').on('keydown.structureDeck', e => {
+				if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+				const mode = Number(e.key);
+				if (mode >= 1 && mode <= 6 && String(mode) === e.key) { e.preventDefault(); this.tabButtons[mode - 1].trigger('click'); }
+				if (e.key === 'Escape' && this.path.length > 1) { e.preventDefault(); this.path.pop(); this.focus = this.path[this.path.length - 1]; this.render(); }
+			});
 			this.render();
 		}
 		children(data) {
-			return (data.children || []).filter(child => this.showRecords || (!child.record && !child.folded_records));
+			const depth = this.depths ? this.depths.get(data) || 0 : 0;
+			return (data.children || []).filter(child => {
+				const record = child.record || child.folded_records;
+				return record ? this.showRecords : depth < this.maxDepth;
+			});
 		}
 		hierarchy() {
 			return d3.hierarchy(this.focus, d => this.children(d))
@@ -99,10 +118,10 @@
 		select(data) {
 			this.selected = data;
 			this.explorer.showDetails(data.label, [[__('Records'), data.count], [__('Groups'), data.group_count],
-				[__('Folded groups'), data.folded_groups], [__('Folded records'), data.folded_records], [__('Grouping'), data.field ? __(data.field) : '']], (data.record || data.target) ? {doctype: this.data.doctype, name: data.name} : null);
+				[__('Folded groups'), data.folded_groups], [__('Folded records'), data.folded_records], [__('Grouping'), data.field ? __(data.field) : '']], (data.record || data.target) ? {doctype: data.target_doctype || this.data.doctype, name: data.name} : null);
 			if (data.record || data.target) {
 				const selection = data;
-				frappe.call({method: 'siraj_research.visualization.record_detail', args: {doctype: this.data.doctype, name: data.name}}).then(result => {
+				frappe.call({method: 'siraj_research.visualization.record_detail', args: {doctype: data.target_doctype || this.data.doctype, name: data.name}}).then(result => {
 					if (this.selected !== selection || this.renderId !== this.explorer.renderId || this.explorer.structureDeck !== this || !result.message) return;
 					const record = result.message;
 					this.explorer.showDetails(record.label, [[__('Type'), __(record.doctype)], [__('ID'), record.name], ...Object.entries(record.details || {}).map(([label, value]) => [__(label), value])], record);
@@ -112,7 +131,7 @@
 			this.addExplore(data);
 		}
 		addExplore(data) {
-			if (data !== this.focus && this.children(data).length) {
+			if (data !== this.focus && (data.children || []).length) {
 				this.button(__('Explore group'), () => { this.path.push(data); this.focus = data; this.expanded.add(data); this.render(); }, this.aside).addClass('sd-explore');
 			}
 		}
@@ -125,7 +144,14 @@
 			});
 			this.stage.empty();
 			this.svgRoot = null;
-			this.legend.empty();
+			this.legend.empty().toggle(this.legendVisible);
+			this.depths = new WeakMap();
+			const stack = [[this.focus, 0]];
+			while (stack.length) {
+				const [node, depth] = stack.pop();
+				this.depths.set(node, depth);
+				if (depth <= this.maxDepth) (node.children || []).forEach(child => stack.push([child, depth + 1]));
+			}
 			this.select(this.focus);
 			this.footer.text(__('Counts include only records you can read. Folded branches retain their record and group counts.') + (this.showRecords ? '' : ' ' + __('Record leaves are hidden; enable Records to show them.')));
 			if (!this.focus.count) this.stage.text(__('No records to display.'));
@@ -196,7 +222,7 @@
 			// Folded tails from different parents are not the same category.
 			const cols = new Map();
 			rows.forEach((row, ri) => (row.children || []).forEach(c => {
-				const key = c.data.folded_groups ? 'fold:' + ri : JSON.stringify([c.data.field, Object.prototype.hasOwnProperty.call(c.data, 'key') ? c.data.key : c.data.label]);
+				const key = (c.data.folded_groups || c.data.folded_records) ? 'fold:' + ri : (c.data.target || c.data.record) ? JSON.stringify(['record', c.data.target_doctype || this.data.doctype, c.data.name]) : JSON.stringify([c.data.field, Object.prototype.hasOwnProperty.call(c.data, 'key') ? c.data.key : c.data.label]);
 				if (!cols.has(key)) cols.set(key, { key, label: c.data.label, index: cols.size });
 				c.matrixColumn = cols.get(key).index;
 			}));
@@ -235,13 +261,30 @@
 				const item = g.append('g').attr('transform', `translate(${n.y},${n.x - 12})`);
 				this.mark(item.append('rect').attr('width', 195).attr('height', 24).attr('rx', 4).attr('fill', n.depth ? this.color(n) : '#243c39').attr('fill-opacity', 0.18).attr('stroke', '#71918a').attr('class', 'sd-mark'), n);
 				const kids = this.children(n.data).length;
-				this.label(item, 6, 16, this.short(n.data.label, 20) + ' · ' + n.data.count + (kids && !this.expanded.has(n.data) ? '  ▸ ' + (n.data.group_count || n.data.record_count || kids) : ''));
+				const hidden = (n.data.children || []).length && (!kids || !this.expanded.has(n.data));
+				this.label(item, 6, 16, this.short(n.data.label, 20) + ' · ' + n.data.count + (hidden ? '  ▸ ' + (n.data.group_count || n.data.record_count || kids) : ''));
 				if (kids) {
 					const toggle = item.append('text').attr('x', 177).attr('y', 16).attr('class', 'sd-toggle').attr('tabindex', 0).attr('role', 'button').attr('aria-label', this.expanded.has(n.data) ? __('Collapse branch') : __('Expand branch')).text(this.expanded.has(n.data) ? '−' : '+');
 					const change = event => { event.stopPropagation(); if (this.expanded.has(n.data)) this.expanded.delete(n.data); else this.expanded.add(n.data); this.render(); };
 					toggle.on('click', change).on('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); change(event); } });
 				}
 			});
+		}
+		find(value) {
+			const term = String(value || '').trim().toLocaleLowerCase();
+			if (!term) return;
+			const stack = [{node: this.root, parents: []}];
+			while (stack.length) {
+				const {node, parents} = stack.pop();
+				if (node !== this.root && String(node.label).toLocaleLowerCase().includes(term)) {
+					this.path = parents; this.focus = parents[parents.length - 1];
+					if (node.record || node.folded_records) { this.showRecords = true; this.recordInput.prop('checked', true); }
+					this.render(); this.select(node); return;
+				}
+				const children = node.children || [];
+				for (let i = children.length - 1; i >= 0; i--) stack.push({node: children[i], parents: [...parents, node]});
+			}
+			this.footer.text(__('No matching group or record in the loaded structure.'));
 		}
 		download(name, content, type) {
 			const url = URL.createObjectURL(new Blob([content], {type}));

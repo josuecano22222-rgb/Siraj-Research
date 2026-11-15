@@ -83,6 +83,30 @@ class VisualizationTest(unittest.TestCase):
         self.assertEqual([edge['name'] for edge in result['edges']], ['r1'])
         self.assertEqual({node['name'] for node in result['nodes']}, {'p1', 'i1'})
 
+    def test_relationship_evidence_counts_require_readable_parent_field(self):
+        f = FakeFrappe({'Person': [{'name': 'p1', 'display_name': 'Public'}],
+                        'Relationship': [{'name': 'r1', 'subject_type': 'Person', 'subject': 'p1',
+                                          'object_type': 'Person', 'object': 'p1'},
+                                         {'name': 'r2', 'subject_type': 'Person', 'subject': 'p1',
+                                          'object_type': 'Person', 'object': 'p1'},
+                                         {'name': 'r3', 'subject_type': 'Person', 'subject': 'p1',
+                                          'object_type': 'Person', 'object': 'p1'}]}, denied={('Relationship', 'r3')})
+        f.session = types.SimpleNamespace(user='researcher')
+        seen = []
+        class Doc:
+            def __init__(self, name): self.name = name; self.meta = types.SimpleNamespace(get_field=lambda name: types.SimpleNamespace(permlevel=1 if self.name == 'r2' else 0))
+            def check_permission(self, permission): seen.append((self.name, permission))
+            def has_permlevel_access_to(self, name, field, permission): return self.name != 'r2'
+            def apply_fieldlevel_read_permissions(self): pass
+            def get(self, field): return [1, 2]
+        f.get_doc = lambda doctype, name: Doc(name)
+        v = load_visualization(f)
+        plain = v.relationship_data()
+        self.assertNotIn('evidence_count', plain['edges'][0])
+        result = v.relationship_data('1')
+        self.assertEqual([edge['evidence_count'] for edge in result['edges']], [2, None])
+        self.assertEqual(seen, [('r1', 'read'), ('r2', 'read')])
+
     def test_structure_counts_sum_at_every_level(self):
         v = load_visualization(FakeFrappe())
         rows = [{'a': 'A', 'b': 'B'}, {'a': 'A', 'b': 'C'}, {'a': None, 'b': 'B'}]
@@ -165,6 +189,52 @@ class VisualizationTest(unittest.TestCase):
         self.assertEqual(result['children'][0]['count'], 2)
         self.assertEqual(result['children'][0]['children'][0]['name'], 'child')
 
+    def test_regions_units_composite_counts_and_does_not_expose_private_parents(self):
+        f = FakeFrappe({
+            'Command Region': [{'name': 'r1', 'region_name': 'Region One', 'parent_region': None},
+                               {'name': 'secret-region', 'region_name': 'Private', 'parent_region': None}],
+            'Military Unit': [{'name': 'u1', 'unit_name': 'Unit One', 'parent_unit': None, 'region': 'r1'},
+                              {'name': 'u2', 'unit_name': 'Unit Two', 'parent_unit': 'u1', 'region': 'r1'},
+                              {'name': 'u3', 'unit_name': 'Unit Three', 'parent_unit': None, 'region': 'secret-region'},
+                              {'name': 'u4', 'unit_name': 'Unit Four', 'parent_unit': 'u1', 'region': None},
+                              {'name': 'hidden-unit', 'unit_name': 'Hidden', 'parent_unit': None, 'region': 'r1'}]},
+            denied={('Command Region', 'secret-region'), ('Military Unit', 'hidden-unit')})
+        v = load_visualization(f)
+        result = v.structure_data('regions-units')
+        self.assertEqual(result['count'], 5)
+        self.assertEqual(sum(node['count'] for node in result['children']), 5)
+        region = next(node for node in result['children'] if node.get('name') == 'r1')
+        self.assertEqual(region['count'], 3)
+        self.assertEqual(region['children'][0]['target_doctype'], 'Military Unit')
+        self.assertEqual(region['children'][0]['children'][0]['name'], 'u2')
+        orphan = next(node for node in result['children'] if not node.get('target'))
+        self.assertEqual(orphan['count'], 2)
+        self.assertNotIn('secret-region', str(result))
+        self.assertNotIn('hidden-unit', str(result))
+        f.denied.add('Military Unit')
+        result = v.structure_data('regions-units')
+        self.assertEqual(result['count'], 1)
+        self.assertEqual(result['unavailable_types'], ['Military Unit'])
+
+    def test_units_operations_composite_counts_and_field_permissions(self):
+        f = FakeFrappe({
+            'Military Unit': [{'name': 'unit', 'unit_name': 'Unit', 'parent_unit': None}],
+            'Operational Deployment': [{'name': 'd1', 'deployment_name': 'Deployment', 'unit': 'unit'},
+                                       {'name': 'd2', 'deployment_name': 'Unassigned', 'unit': None}],
+            'Mission': [{'name': 'm1', 'mission_name': 'Mission', 'unit': 'unit'}],
+            'Training Exercise': [{'name': 't1', 'exercise_name': 'Training', 'unit': 'unit'}],
+        })
+        v = load_visualization(f)
+        result = v.structure_data('units-ops')
+        self.assertEqual(result['count'], 5)
+        unit = next(node for node in result['children'] if node.get('name') == 'unit')
+        self.assertEqual(unit['count'], 4)
+        self.assertEqual({node['target_doctype'] for node in unit['children']},
+                         {'Operational Deployment', 'Mission', 'Training Exercise'})
+        self.assertEqual(sum(node['count'] for node in result['children']), 5)
+        f.hidden_fields.add('unit')
+        with self.assertRaises(PermissionError): v.structure_data('units-ops')
+
     def test_maps_scan_beyond_old_cutoff(self):
         people = [{'name': str(i).zfill(5), 'display_name': f'Person {i}', 'latitude': 1, 'longitude': 2} for i in range(1601)]
         relationships = [{'name': str(i).zfill(5), 'subject_type': 'Person', 'subject': str(i).zfill(5),
@@ -236,6 +306,12 @@ class VisualizationTest(unittest.TestCase):
                 self.assertIn(field, specs['Relationship'])
                 self.assertFalse(specs['Relationship'][field].get('permlevel'))
         for dt, fields in v.DETAIL_FIELDS.items():
+            for field in fields:
+                with self.subTest(doctype=dt, field=field):
+                    self.assertIn(field, specs[dt])
+                    self.assertFalse(specs[dt][field].get('permlevel'))
+        for dt, fields in {'Military Unit': ('parent_unit', 'region'), 'Command Region': ('parent_region',),
+                           'Operational Deployment': ('unit',), 'Mission': ('unit',), 'Training Exercise': ('unit',)}.items():
             for field in fields:
                 with self.subTest(doctype=dt, field=field):
                     self.assertIn(field, specs[dt])
