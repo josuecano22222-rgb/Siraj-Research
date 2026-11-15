@@ -421,3 +421,71 @@ Point source,مصدر النقطة
 "VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record.",معرفات خارجية مثل VIAF أو Wikidata أو أرقام الأرشيف.
 Quality,الجودة
 "Share of the record's critical fields that are filled in. Computed on save; used by the quality report and by the 'minimum completeness to publish' rule. Completeness, not truth.",نسبة اكتمال الحقول الأساسية في السجل؛ تُحسب عند الحفظ.
+Type of institution,نوع المؤسسة
+Governance system,نظام الحوكمة
+Image URL (external),رابط الصورة (خارجي)
+Image alt text,النص البديل للصورة
+History & seat,التاريخ والمقر
+Date of establishment (as stated),تاريخ التأسيس (كما ورد)
+Date of establishment (comparable),تاريخ التأسيس (للمقارنة)
+Date of establishment precision,دقة تاريخ التأسيس
+Date of closure (as stated),تاريخ الإغلاق (كما ورد)
+Date of closure (comparable),تاريخ الإغلاق (للمقارنة)
+Date of closure precision,دقة تاريخ الإغلاق
+Seat,المقر
+Place (record),المكان (سجل)
+Official address,العنوان الرسمي
+Profile,الملف التعريفي
+Statement of objectives,بيان الأهداف
+Organisational structure,الهيكل التنظيمي
+Research significance,الأهمية البحثية
+Founders (as stated),المؤسسون (كما وردوا)
+Is group,مجموعة
+Part of (parent place),تابع لـ (المكان الأب)
+District / region,القضاء / المنطقة
+Neighbourhood / village,الحي / القرية
+Locality (as stated),المحلة / الموقع (كما ورد)
+Geographic description,الوصف الجغرافي
+Research,البحث
+Timing & place,التوقيت والمكان
+When,متى
+Start (as stated),البداية (كما وردت)
+Start (comparable),البداية (للمقارنة)
+Start precision,دقة البداية
+End (as stated),النهاية (كما وردت)
+End (comparable),النهاية (للمقارنة)
+End precision,دقة النهاية
+Where,أين
+Place (as stated),المكان (كما ورد)
+Significance,الأهمية
+The link,الرابط
+Ongoing,مستمر
+From (subject),من (الفاعل / المصدر)
+Subject type,نوع الفاعل
+Subject,الفاعل
+To (object),إلى (المفعول / الهدف)
+Object type,نوع الهدف
+Object,الهدف
+Detail,التفاصيل
+Validity,الصلاحية
+What the link asserts,ما يثبته الرابط
+Relationship description,وصف العلاقة
+Role / title (as stated),الدور / المسمى (كما ورد)
+Evidence & review,الأدلة والمراجعة
+Review,المراجعة
+Last review date,تاريخ آخر مراجعة
+Source name / title,اسم المصدر / العنوان
+Source type,نوع المصدر
+ISBN / ISSN,الرقم المعياري (ISBN / ISSN)
+Web link,الرابط الإلكتروني
+Dates,التواريخ
+Publication & access,النشر والوصول
+Publication date (as stated),تاريخ النشر (كما ورد)
+Publication date (comparable),تاريخ النشر (للمقارنة)
+Publication date precision,دقة تاريخ النشر
+Reliability & verification,الموثوقية والتحقق
+Reliability assessment,تقييم الموثوقية
+Verification notes,ملاحظات التحقق
+Files,الملفات
+Scan / PDF,نسخة مصورة / PDF
+Provenance & state,المصدر والحالة
