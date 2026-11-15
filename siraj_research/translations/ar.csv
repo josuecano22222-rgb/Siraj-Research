@@ -372,3 +372,52 @@ Use for a portrait hosted elsewhere; the uploaded portrait wins when both are se
 "This record's own latitude, independent of any linked place.",خط العرض الخاص بهذا السجل، مستقل عن أي مكان مرتبط.
 "This record's own longitude, independent of any linked place.",خط الطول الخاص بهذا السجل، مستقل عن أي مكان مرتبط.
 How strongly the record's content is verified.,مدى قوة توثيق محتوى السجل.
+Series,السلسلة
+Identifier series. 'PER-.####' numbers continuously; 'PER-.YY.-.####' restarts each year — the native equivalent of the original `sequence.reset_policy = yearly`.,سلسلة المعرفات. 'PER-.####' يرقم بشكل مستمر؛ و'PER-.YY.-.####' يعيد الترقيم كل سنة.
+Display name,الاسم المعروض
+"Computed on save: English name, else Arabic name. Frappe's `title_field`, so link fields, list views and the global search show one readable name for a bilingual record.",يُحسب عند الحفظ: الاسم الإنجليزي وإلا الاسم العربي، ليظهر اسم واحد مقروء في القوائم والبحث.
+"Spellings met in sources that are not the preferred form. Searchable, so 'Mosul' finds 'Mūṣil'.",تهجئات وردت في المصادر وليست الصيغة المفضلة، وتُستخدم لتسهيل البحث.
+Portrait,الصورة الشخصية
+Short description of the portrait for accessibility and print.,وصف مختصر للصورة الشخصية لإتاحة الوصول والطباعة.
+"A birth year alone is a legitimate value: '1912', 'c. 1912', '1910s'.",سنة الميلاد وحدها قيمة مقبولة: '1912' أو 'حوالي 1912' أو 'عقد 1910'.
+Date of birth (comparable),تاريخ الميلاد (للمقارنة)
+"Machine-comparable value derived from the 'as stated' value; used for filters, sorting and reports. Never more precise than what is stated.",قيمة قابلة للمقارنة مشتقة من التاريخ كما ورد؛ تُستخدم للفرز والتصفية والتقارير.
+How much of the date is actually known. 'approximate' keeps c. 1850; 'year' keeps 1850; 'decade' keeps '1850s'; 'minute' keeps a time of day.,مستوى دقة التاريخ المعروف فعلياً (تقريبي، سنة، عقد، دقيقة، إلخ).
+Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.,التاريخ كما ورد في المصدر تماماً؛ وهو القيمة المعتمدة.
+Date of death (comparable),تاريخ الوفاة (للمقارنة)
+Native `Country` master (ISO 3166). Remembers the last value picked: a recorder entering people from one country picks it once.,قائمة الدول القياسية (ISO 3166). يتذكر آخر قيمة تم اختيارها لتسريع الإدخال.
+Association only — it never assigns that place's coordinates to this person.,ربط مرجعي فقط — لا ينسخ إحداثيات المكان إلى هذا الشخص.
+"What the source says, kept verbatim even when the place cannot be linked to a Place record. Mandatory while no Place is linked: an unlinked place must still be recorded.",ما ورد في المصدر حرفياً حتى عند تعذر ربطه بسجل مكان.
+Current status,الحالة الحالية
+"Living, deceased, whereabouts unknown …",حي، متوفى، مكان الإقامة غير معروف …
+"Military / Civilian / Other. The category decides which attributes apply: a military person shows rank, branch, commission date, service status and military biography; a civilian shows the career fields. This is the 2026 update that folded the separate `commander` (Leader) table into Person (migration 020).",عسكري / مدني / أخرى. تحدد الفئة الحقول الظاهرة (عسكرية أو مدنية).
+"Free text as the source gives it. The structured, dated post is a row in Positions below.",نص حر كما ورد في المصدر. أما المنصب المؤرخ فيُسجل في جدول المناصب أدناه.
+An affiliation the person (or a source) asserts but that is not corroborated. Corroborated posts go in Positions with 'Verified' ticked.,انتماء يُصرح به الشخص أو المصدر دون توثيق مؤكد.
+Military service,الخدمة العسكرية
+Service attributes that apply to a person of the military category. The row of a source's `commander` table is this section plus a Person record.,بيانات الخدمة الخاصة بالفئة العسكرية.
+"The rank held. Free text on purpose: a historical rank (Ottoman, mandate-era, foreign) must not be forced into a modern list.",الرتبة العسكرية (نص حر لاستيعاب الرتب التاريخية).
+Service branch,فرع الخدمة
+"Army, Navy, Air Force, Joint, Gendarmerie, Coast Guard — a governed vocabulary (migration 020 domain `military_branch`), extendable without a code change.",الجيش، البحرية، القوة الجوية، الدرك، خفر السواحل — مفردة مقننة.
+"When the person was commissioned. A year alone is acceptable, which is why this is a plain Date and not the three-field historical-date trio: military commission records are day-precise in this dataset.",تاريخ التكليف أو التخرج العسكري.
+Service status,حالة الخدمة
+"Active → Reserve → Retired, and Retired is terminal (source `SERVICE_STATUS_TRANSITIONS`). The transition is enforced in the controller; see Del. 12 §4.",في الخدمة ← احتياط ← متقاعد.
+Military biography,السيرة العسكرية
+"Service history, commands and campaigns — the military record behind the rank.",سجل الخدمة والقيادات والحملات العسكرية.
+Leadership qualities,الصفات القيادية
+"Judgements about a leader, one row per quality, and each row must carry its basis (who assessed it, when, on what evidence). The source keeps these in a separate `commander_trait`/`person_trait` table; a judgement about a person is owned by that person, so it is a child table here.",تقييمات الصفات القيادية، صف لكل صفة مع بيان المُقيّم والدليل.
+"One row per post, with its own dates, institution, place and verification state. This is the single home of a person's affiliations — there is deliberately no second 'current institution' field to fall out of step with it. Not copied with the record: a duplicate person is a new person, not a second copy of someone's career.",صف لكل منصب مع تواريخه والمؤسسة والمكان وحالة التوثيق.
+Governed vocabulary (Table MultiSelect). Free keywords are added with Frappe's native tags instead.,مفردة مقننة؛ وتُضاف الكلمات المفتاحية الحرة عبر الوسوم.
+How close the point is to the true position.,مدى قرب النقطة من الموقع الفعلي.
+How the point was obtained,طريقة تحديد النقطة
+A city centroid is not a street address; recording the method stops a centroid from being read as a verified location.,تحديد طريقة الحصول على الإحداثيات (مركز مدينة، عنوان، مسح ميداني).
+Uncertainty radius (m),نطاق عدم اليقين (متر)
+The radius the true position could lie within.,نصف القطر الذي قد يقع ضمنه الموقع الفعلي.
+Point source,مصدر النقطة
+"The map, survey or gazetteer the coordinates came from.",الخريطة أو المسح أو المعجم الجغرافي المأخوذة منه الإحداثيات.
+"The source the record rests on. Additional claims from other sources are recorded in the Evidence table, one claim per row.",المصدر الرئيسي الذي يستند إليه السجل.
+"Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected).",الحالة التحريرية وفق سير عمل مراجعة سِراج.
+"Internal working notes. At permission level 1, so visible to reviewers and administrators only; discussion belongs in the document's comment thread instead.",ملاحظات عمل داخلية مرئية للمراجعين والمدراء فقط.
+"One row per claim: which source says what, where in the source, whether it supports or contradicts, and who verified it. Not copied with the record: a claim is evidence about one specific record.",صف لكل ادعاء يوضح المصدر والموضع وما إذا كان يؤيد أو يعارض.
+"VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record.",معرفات خارجية مثل VIAF أو Wikidata أو أرقام الأرشيف.
+Quality,الجودة
+"Share of the record's critical fields that are filled in. Computed on save; used by the quality report and by the 'minimum completeness to publish' rule. Completeness, not truth.",نسبة اكتمال الحقول الأساسية في السجل؛ تُحسب عند الحفظ.
