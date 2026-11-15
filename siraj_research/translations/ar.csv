@@ -641,3 +641,4 @@ Find in structure,البحث في الهيكل
 Find,بحث
 Legend,المفتاح
 No matching group or record in the loaded structure.,لا توجد مجموعة أو سجل مطابق في الهيكل المحمّل.
+Unable to export: some node positions are unavailable. Try again after the layout settles.,تعذر التصدير: بعض مواقع العقد غير متاحة. حاول مجدداً بعد استقرار التخطيط.

@@ -300,7 +300,7 @@ class SirajExplorer {
 		const edgeLookup = new Map(data.edges.map(e => [e.name, e]));
 		const nodeSet = new vis.DataSet();
 		const edgeSet = new vis.DataSet();
-		let currentEdges = [], history = [], trail = [], currentId = null, centerId = null;
+		let currentEdges = [], currentNodes = [], history = [], trail = [], currentId = null, centerId = null;
 		let searchTerm = '', selectedType = '', edgeType = '', hideEnded = false, evidenceOnly = false, evidenceLoaded = false, layout = 'force', maxDistance = 1;
 		let centerButton, resetButton;
 		const graphHost = $('<div class="sx-graph-host"></div>').appendTo(this.canvas);
@@ -413,6 +413,7 @@ class SirajExplorer {
 				ids = new Set(distance.keys());
 			} else { centerId = null; }
 			currentEdges = eligibleEdges.filter(e => ids.has(JSON.stringify(e.source)) && ids.has(JSON.stringify(e.target)));
+			currentNodes = nodes;
 			edgeSet.clear(); nodeSet.clear(); history = []; currentId = null;
 			if (centerButton) centerButton.prop('disabled', true);
 			if (resetButton) resetButton.prop('disabled', !centerId);
@@ -511,6 +512,78 @@ class SirajExplorer {
 		this.button(__('Back'), () => {
 			while (history.length) { const id = history.pop(); if (nodeSet.get(id)) { showNode(id, false); return; } }
 			if (trail.length) { centerId = trail.pop(); centerSelect.val(centerId); update(); if (centerId) { showNode(centerId, false); if (layout !== 'matrix') this.network.fit({animation: true}); } }
+		}).appendTo(this.tools);
+		this.button(__('Export SVG'), () => {
+			const ns = 'http://www.w3.org/2000/svg';
+			const make = (tag, attrs, text) => {
+				const el = document.createElementNS(ns, tag);
+				Object.entries(attrs || {}).forEach(([key, value]) => el.setAttribute(key, value));
+				if (text != null) el.textContent = text;
+				return el;
+			};
+			let svg;
+			if (layout === 'matrix') {
+				svg = matrixHost.find('svg')[0].cloneNode(true);
+				svg.querySelectorAll('text').forEach(el => { el.setAttribute('font-family', 'sans-serif'); el.setAttribute('font-size', '11'); el.setAttribute('fill', '#233b37'); });
+				svg.querySelectorAll('rect').forEach(el => { el.setAttribute('stroke', '#fff'); el.setAttribute('stroke-width', '1'); });
+			} else {
+				// vis-network is canvas-based. Export a standalone vector rendering
+				// of the current nodes/edges at their current network positions.
+				const positions = this.network.getPositions(currentNodes.map(n => this.id(n)));
+				const placed = currentNodes.filter(n => positions[this.id(n)] && Number.isFinite(positions[this.id(n)].x) && Number.isFinite(positions[this.id(n)].y));
+				if (placed.length !== currentNodes.length) {
+					this.note.text(__('Unable to export: some node positions are unavailable. Try again after the layout settles.')).addClass('sx-warning');
+					return;
+				}
+				let minX = 0, maxX = 0, minY = 0, maxY = 0;
+				if (placed.length) {
+					minX = maxX = positions[this.id(placed[0])].x; minY = maxY = positions[this.id(placed[0])].y;
+					placed.forEach(n => { const p = positions[this.id(n)]; minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
+				}
+				const pairKey = edge => JSON.stringify([JSON.stringify(edge.source), JSON.stringify(edge.target)].sort());
+				const pairTotals = new Map();
+				currentEdges.forEach(edge => { const key = pairKey(edge); pairTotals.set(key, (pairTotals.get(key) || 0) + 1); });
+				let padding = 180;
+				pairTotals.forEach(total => { padding = Math.max(padding, 70 + total * 25); });
+				placed.forEach(node => { padding = Math.max(padding, String(node.label).length * 8); });
+				currentEdges.forEach(edge => { padding = Math.max(padding, String(edge.type || '').length * 7); });
+				svg = make('svg', {xmlns: ns, viewBox: `${minX - padding} ${minY - padding} ${Math.max(2 * padding, maxX - minX + 2 * padding)} ${Math.max(2 * padding, maxY - minY + 2 * padding)}`, role: 'img', 'aria-label': __('Relationship map')});
+				const defs = make('defs');
+				const arrow = make('marker', {id: 'sx-arrow', viewBox: '0 0 10 10', refX: '9', refY: '5', markerWidth: '6', markerHeight: '6', orient: 'auto-start-reverse'});
+				arrow.appendChild(make('path', {d: 'M 0 0 L 10 5 L 0 10 z', fill: '#64777d'})); defs.appendChild(arrow); svg.appendChild(defs);
+				const multiplicity = new Map();
+				currentEdges.forEach(edge => {
+					const a = positions[JSON.stringify(edge.source)], b = positions[JSON.stringify(edge.target)];
+					if (!a || !b || ![a.x, a.y, b.x, b.y].every(Number.isFinite)) return;
+					const pair = pairKey(edge);
+					const index = multiplicity.get(pair) || 0; multiplicity.set(pair, index + 1);
+					let path, labelX, labelY;
+					if (a.x === b.x && a.y === b.y) {
+						const r = 35 + index * 12;
+						path = `M ${a.x - 10} ${a.y - 10} C ${a.x - r} ${a.y - r * 2}, ${a.x + r} ${a.y - r * 2}, ${a.x + 10} ${a.y - 10}`;
+						labelX = a.x; labelY = a.y - r * 1.5;
+					} else {
+						const dx = b.x - a.x, dy = b.y - a.y, length = Math.hypot(dx, dy), offset = index ? (Math.ceil(index / 2) * 25 * (index % 2 ? 1 : -1)) : 0;
+						const x1 = a.x + dx / length * 14, y1 = a.y + dy / length * 14, x2 = b.x - dx / length * 18, y2 = b.y - dy / length * 18;
+						const cx = (a.x + b.x) / 2 - dy / length * offset, cy = (a.y + b.y) / 2 + dx / length * offset;
+						path = `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
+						labelX = (x1 + 2 * cx + x2) / 4; labelY = (y1 + 2 * cy + y2) / 4;
+					}
+					const line = make('path', {d: path, fill: 'none', stroke: '#64777d', 'stroke-width': 2});
+					if (/^(directed|one.way)$/i.test(edge.direction)) line.setAttribute('marker-end', 'url(#sx-arrow)');
+					line.appendChild(make('title', {}, edge.type || __('Relationship'))); svg.appendChild(line);
+					if (edge.type) svg.appendChild(make('text', {x: labelX, y: labelY - 4, 'text-anchor': 'middle', 'font-family': 'sans-serif', 'font-size': 11, fill: '#344c4c'}, edge.type));
+				});
+				placed.forEach(node => {
+					const p = positions[this.id(node)], group = make('g', {});
+					group.appendChild(make('circle', {cx: p.x, cy: p.y, r: 13, fill: this.colors[node.doctype] || '#64777d', stroke: '#344c4c', 'stroke-width': 2}));
+					group.appendChild(make('text', {x: p.x, y: p.y + 31, 'text-anchor': 'middle', 'font-family': 'sans-serif', 'font-size': 13, fill: '#233b37'}, node.label));
+					group.appendChild(make('title', {}, __(node.doctype) + ' · ' + node.name)); svg.appendChild(group);
+				});
+			}
+			svg.setAttribute('xmlns', ns);
+			const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)], {type: 'image/svg+xml'}));
+			const a = document.createElement('a'); a.href = url; a.download = 'siraj-relationships.svg'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 		}).appendTo(this.tools);
 		this.button(__('Fit network'), () => this.network.fit({ animation: true })).appendTo(this.tools);
 		this.button(__('Stabilize layout'), () => this.network.stabilize()).appendTo(this.tools);
