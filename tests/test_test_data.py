@@ -83,7 +83,13 @@ class FakeFrappe(types.ModuleType):
         self.db = types.SimpleNamespace(exists=self.exists, rollback=self.rollback)
     def exists(self, doctype, name):
         records = self.records.get(doctype, {})
-        return next(iter(records), None) if name == {} else name if name in records else None
+        if isinstance(name, dict):
+            for record_name, record in records.items():
+                values = record.values if isinstance(record, FakeDoc) else record if isinstance(record, dict) else {}
+                if all(values.get(key) == value for key, value in name.items()):
+                    return record_name
+            return None
+        return name if name in records else None
     def get_doc(self, values):
         return FakeDoc(self, values)
     def rollback(self):
@@ -110,17 +116,48 @@ class FixtureTest(unittest.TestCase):
         self.assertEqual(result['created']['Relationship'], 5)
         self.assertEqual(result['created']['Military Unit'], 2)
         self.assertTrue(all(result['created'][name] for name in self.module.CHILD_TYPES))
-        with self.assertRaisesRegex(RuntimeError, 'empty operational registry'):
+        with self.assertRaisesRegex(RuntimeError, 'Sample identifier already exists'):
             self.module.seed_test_data()
 
-    def test_refuses_wrong_site_or_config_before_any_writes(self):
-        for site, config in [('frappe.com', 'frappe.com'), ('siraj.test.localhost', None), ('siraj.test.localhost', 'other.test.localhost')]:
-            with self.subTest(site=site, config=config):
-                self.frappe.local.site = site
-                self.frappe.conf['siraj_test_fixture_site'] = config
-                with self.assertRaisesRegex(RuntimeError, 'separate'):
-                    self.module.seed_test_data()
-                self.assertEqual(set(self.frappe.records), {'Country', 'Person Category', 'Workflow State', 'DocType'})
+    def test_existing_operational_data_is_preserved_and_samples_are_marked(self):
+        self.frappe.local.site = 'frappe.com'
+        original = {'name_en': 'A real record'}
+        self.frappe.records['Person'] = {'PER-REAL': original}
+        result = self.module.seed_test_data()
+        self.assertIs(self.frappe.records['Person']['PER-REAL'], original)
+        self.assertEqual(original, {'name_en': 'A real record'})
+        for doctype in self.module.OPERATIONAL_TYPES:
+            for name in result['created_names'][doctype]:
+                doc = self.frappe.records[doctype][name]
+                self.assertIn('TEST SAMPLE', doc.values['researcher_notes'])
+        self.assertEqual(result['site'], 'frappe.com')
+        self.assertNotIn('PER-REAL', result['created_names']['Person'])
+
+    def test_collision_or_missing_prerequisite_rejected_before_writes(self):
+        self.frappe.records['Person Status'] = {'custom': {'code': 'TEST_PERSON_STATUS'}}
+        before = set(self.frappe.records)
+        with self.assertRaisesRegex(RuntimeError, 'Sample identifier already exists in Person Status'):
+            self.module.seed_test_data()
+        self.assertEqual(set(self.frappe.records), before)
+        del self.frappe.records['Person Status']
+        del self.frappe.records['Country']['Iraq']
+        with self.assertRaisesRegex(RuntimeError, 'Missing fixture prerequisite'):
+            self.module.seed_test_data()
+        self.assertEqual(set(self.frappe.records), before - {'Person Status'})
+
+    def test_late_name_collision_is_checked_before_any_insertion(self):
+        self.frappe.records['Unit Classification'] = {'TEST Unit Classification': {'classification_name': 'TEST Unit Classification'}}
+        before = copy.deepcopy(self.frappe.records)
+        with self.assertRaisesRegex(RuntimeError, 'Unit Classification'):
+            self.module.seed_test_data()
+        self.assertEqual(self.frappe.records['Unit Classification'], before['Unit Classification'])
+        self.assertFalse(self.frappe.rolled_back)
+        self.assertNotIn('Authentication Level', self.frappe.records)
+
+    def test_missing_app_is_rejected(self):
+        self.frappe.records['DocType'].clear()
+        with self.assertRaisesRegex(RuntimeError, 'Install siraj_research'):
+            self.module.seed_test_data()
 
     def test_fixture_is_not_a_hook_or_whitelisted_endpoint(self):
         root = ROOT / 'siraj_research'
@@ -132,11 +169,14 @@ class FixtureTest(unittest.TestCase):
         self.assertEqual(target.decorator_list, [])
 
     def test_failure_rolls_back(self):
+        self.frappe.records['Person'] = {'PER-REAL': {'name_en': 'A real record'}}
+        self.frappe.initial = copy.deepcopy(self.frappe.records)
         self.frappe.fail_on = 'Mission'
         with self.assertRaisesRegex(ValueError, 'simulated'):
             self.module.seed_test_data()
         self.assertTrue(self.frappe.rolled_back)
-        self.assertEqual(set(self.frappe.records), {'Country', 'Person Category', 'Workflow State', 'DocType'})
+        self.assertEqual(set(self.frappe.records), {'Country', 'Person Category', 'Workflow State', 'DocType', 'Person'})
+        self.assertEqual(self.frappe.records['Person']['PER-REAL']['name_en'], 'A real record')
 
 
 if __name__ == '__main__':

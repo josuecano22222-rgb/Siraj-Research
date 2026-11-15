@@ -1,7 +1,7 @@
-"""Opt-in synthetic records for an isolated, disposable Frappe test site.
+"""Explicitly requested synthetic records; never inserted during installation.
 
-Not a web endpoint and never called by install or migrate hooks. This fixture
-must not run against production or a production clone. See docs/test-data.md.
+This is a bench-execute helper, not a web endpoint. If run on a production
+site, samples share its database and are not isolated. See docs/test-data.md.
 """
 from __future__ import annotations
 
@@ -31,36 +31,44 @@ CHILD_TYPES = (
 
 
 def _guard():
-    site = frappe.local.site
-    enabled_for = frappe.conf.get("siraj_test_fixture_site")
-    if not site or not site.endswith(".test.localhost") or enabled_for != site:
-        raise RuntimeError("Test fixture requires a separate *.test.localhost site and a matching siraj_test_fixture_site setting. Never use a production database or clone.")
-    if not frappe.db.exists("DocType", "SIRAJ Settings"):
-        raise RuntimeError("Install siraj_research on the isolated test site first.")
-    occupied = [doctype for doctype in OPERATIONAL_TYPES if frappe.db.exists(doctype, {})]
-    if occupied:
-        raise RuntimeError("Test fixture requires an empty operational registry; found records in: " + ", ".join(occupied))
-    # Do not implicitly pick or create a Country on the site.
-    if not frappe.db.exists("Country", "Iraq"):
-        raise RuntimeError("The test site needs Frappe's standard Iraq Country record.")
-    if not frappe.db.exists("Person Category", "Military"):
-        raise RuntimeError("The test site needs the installed Military person category.")
-    if not frappe.db.exists("Workflow State", "Draft"):
-        raise RuntimeError("The test site needs the installed Draft workflow state.")
+    if not frappe.local.site or not frappe.db.exists("DocType", "SIRAJ Settings"):
+        raise RuntimeError("Install siraj_research on the selected site first.")
+    for doctype, name in (("Country", "Iraq"), ("Person Category", "Military"), ("Workflow State", "Draft")):
+        if not frappe.db.exists(doctype, name):
+            raise RuntimeError("Missing fixture prerequisite: " + doctype + " / " + name)
+
+    # Fixed identifiers provide a conservative one-run guard, not ownership
+    # proof. Never overwrite an existing matching name OR unique code.
+    fixed = [(doctype, "TEST " + doctype, "TEST_" + doctype.upper().replace(" ", "_")) for doctype in LOOKUPS]
+    fixed += [("Relationship Type", "TEST Symmetric Relationship", "TEST_RELATIONSHIP_SYMMETRIC")]
+    for doctype, name, code in fixed:
+        if frappe.db.exists(doctype, name) or frappe.db.exists(doctype, {"code": code}):
+            raise RuntimeError("Sample identifier already exists in " + doctype + "; no records were inserted.")
+    for doctype, code in (("External ID Scheme", "TEST_SCHEME"), ("Social Platform", "TEST_PLATFORM"),
+                          ("Governorate", "TEST_GOV"), ("District", "TEST_DIST"),
+                          ("Municipality", "TEST_MUNI"), ("Village", "TEST_VIL"), ("Community", "TEST_COMM")):
+        if frappe.db.exists(doctype, code) or frappe.db.exists(doctype, {"code": code}):
+            raise RuntimeError("Sample identifier already exists in " + doctype + "; no records were inserted.")
+    if frappe.db.exists("Unit Classification", "TEST Unit Classification"):
+        raise RuntimeError("Sample identifier already exists in Unit Classification; no records were inserted.")
 
 
 def seed_test_data():
     """Insert one connected, fictional dataset; return counts, never commit here.
 
     A second run is deliberately rejected. On failure, roll back the entire
-    transaction. This function is for bench execute on a disposable test site.
+    transaction. Running on production deliberately mixes samples into its data.
     """
     _guard()
     created = Counter()
+    created_names = {}
     def add(doctype, **values):
+        if doctype in OPERATIONAL_TYPES:
+            values["researcher_notes"] = "TEST SAMPLE — fictional data, not a real record."
         doc = frappe.get_doc({"doctype": doctype, **deepcopy(values)})
         doc.insert(ignore_permissions=True)
         created[doctype] += 1
+        created_names.setdefault(doctype, []).append(doc.name)
         for field in doc.meta.get_table_fields():
             for row in doc.get(field.fieldname) or []:
                 created[row.doctype] += 1
@@ -104,7 +112,8 @@ def seed_test_data():
         missing = [doctype for doctype in (*LOOKUPS, *OPERATIONAL_TYPES, *CHILD_TYPES, "Governorate", "District", "Municipality", "Village", "Community", "External ID Scheme", "Social Platform") if not created[doctype]]
         if missing:
             raise RuntimeError("Fixture is incomplete: " + ", ".join(missing))
-        return {"site": frappe.local.site, "created": dict(sorted(created.items())), "existing_singleton": "SIRAJ Settings", "message": "Synthetic test data only; SIRAJ Settings was not modified."}
+        return {"site": frappe.local.site, "created": dict(sorted(created.items())), "created_names": created_names,
+                "existing_singleton": "SIRAJ Settings", "message": "Fictional samples share this site's database; SIRAJ Settings was not modified."}
     except Exception:
         frappe.db.rollback()
         raise
