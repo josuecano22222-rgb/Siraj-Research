@@ -25,9 +25,14 @@ def get_children(doctype, parent="", **kwargs):
         frappe.throw(_("Not permitted to read this tree node"), frappe.PermissionError)
     parent_field, title_field = TREE_FIELDS[doctype]
     filters = {parent_field: parent if parent else ["is", "not set"], "docstatus": ["<", 2]}
-    rows = readable_rows(doctype, [title_field, "is_group"], filters)
-    return [
-        {"value": row["name"], "title": row.get(title_field) or row["name"],
-         "expandable": bool(row.get("is_group"))}
-        for row in rows
-    ]
+    details = ("unit_code", "echelon", "status", "direct_personnel") if doctype == "Military Unit" else ()
+    rows = readable_rows(doctype, [title_field, "is_group", *details], filters)
+    result = []
+    for row in rows:
+        node = {"value": row["name"], "title": row.get(title_field) or row["name"],
+                "expandable": bool(row.get("is_group"))}
+        # get_list strips fields the current user cannot read. Never fill them
+        # via get_all or fetch linked documents here.
+        node.update({field: row[field] for field in details if field in row})
+        result.append(node)
+    return result

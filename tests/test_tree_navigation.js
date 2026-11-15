@@ -11,6 +11,7 @@ for (const [slug, type] of doctypes) {
         frappe: {
             treeview_settings: {},
             provide() {},
+            utils: { escape_html: value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c])) },
             model: { can_read: () => true, can_create: () => true },
             set_route: (...args) => route.push(args),
         },
@@ -33,6 +34,21 @@ for (const [slug, type] of doctypes) {
     settings.toolbar[0].click({ data: { value: 'record-id' } });
     assert.deepStrictEqual(route.pop(), ['Form', type, 'record-id']);
     if (type === 'Military Unit') {
+        assert.strictEqual(settings.get_label({is_root: true, label: 'Military Unit'}), 'Military Unit');
+        const nodeLabel = settings.get_label({is_root: false, label: 'MIL-001', data: {
+            value: 'MIL-001', title: 'Alpha <unit>', echelon: 'Brigade', status: 'Active',
+            unit_code: '<img src=x onerror=alert(1)>', direct_personnel: 0,
+        }});
+        assert(nodeLabel.startsWith('<strong dir="auto">Alpha &lt;unit&gt;</strong>'));
+        assert(nodeLabel.includes('Echelon: Brigade'));
+        assert(nodeLabel.includes('Status: Active'));
+        assert(nodeLabel.includes('Business code: &lt;img src=x onerror=alert(1)&gt;'));
+        assert(nodeLabel.includes('Direct personnel: 0'));
+        assert(nodeLabel.includes('ID: MIL-001'));
+        assert(!nodeLabel.includes('<img'));
+        const fallback = settings.get_label({data: {value: 'MIL-002'}});
+        assert(fallback.includes('MIL-002'));
+        assert(!fallback.includes('undefined') && !fallback.includes('null'));
         assert.strictEqual(view.page.label, 'New Military Unit');
         assert.strictEqual(view.page.icon, 'add');
         view.page.action();

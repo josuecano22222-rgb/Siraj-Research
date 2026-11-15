@@ -550,3 +550,20 @@ Add child,إضافة وحدة فرعية
 Unsupported military hierarchy type,نوع التسلسل العسكري غير مدعوم
 The military unit hierarchy contains a cycle.,يحتوي التسلسل الهرمي للوحدات العسكرية على حلقة.
 A military unit cannot be its own ancestor.,لا يمكن أن تكون الوحدة العسكرية أصلاً لنفسها.
+Echelon,المستوى التنظيمي
+Direct personnel,الأفراد المباشرون
+ID,المعرّف
+Brigade,لواء
+Regiment,فوج
+Battalion,كتيبة
+Company,سرية
+Platoon,فصيلة
+Squadron,سرب
+Detachment,مفرزة
+Standby,في حالة استعداد
+Mobilized,معبّأة
+Attached,ملحقة
+Reserve,احتياط
+Reorganizing,إعادة التنظيم
+Stand-down,إيقاف النشاط
+Disbanded,محلولة

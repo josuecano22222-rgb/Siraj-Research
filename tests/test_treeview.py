@@ -25,6 +25,7 @@ class FrappeStub(types.SimpleNamespace):
         self.ValidationError = ValueError
         self.rows = {}
         self.denied = set()
+        self.hidden_fields = set()
         self.db = types.SimpleNamespace(exists=lambda dt, name: any(row['name'] == name for row in self.rows.get(dt, [])))
 
     def whitelist(self):
@@ -47,7 +48,7 @@ class FrappeStub(types.SimpleNamespace):
                 elif actual != val: return False
             return True
         rows = sorted(filter(matches, self.rows.get(doctype, [])), key=lambda row: row['name'])
-        return [{f: row.get(f) for f in fields} for row in rows[limit_start:limit_start + limit_page_length]]
+        return [{f: row.get(f) for f in fields if f not in self.hidden_fields} for row in rows[limit_start:limit_start + limit_page_length]]
 
 
 class TreeTest(unittest.TestCase):
@@ -65,6 +66,26 @@ class TreeTest(unittest.TestCase):
         ]
         self.assertEqual([r['value'] for r in self.tree.get_children('Military Unit')], ['A', 'B'])
         self.assertEqual([r['value'] for r in self.tree.get_children('Military Unit', 'A')], ['C'])
+
+    def test_unit_details_use_permitted_fields_and_preserve_record_id(self):
+        self.frappe.rows['Military Unit'] = [
+            {'name': 'MIL-1', 'unit_name': 'Alpha', 'unit_code': '<b>code</b>',
+             'echelon': 'Brigade', 'status': 'Active', 'direct_personnel': 0},
+            {'name': 'MIL-2', 'unit_name': 'Private', 'status': 'Active'},
+            {'name': 'MIL-3', 'unit_name': '', 'status': 'Training'},
+        ]
+        self.frappe.denied.add(('Military Unit', 'MIL-2'))
+        self.frappe.hidden_fields.add('direct_personnel')
+        rows = self.tree.get_children('Military Unit')
+        self.assertEqual([row['value'] for row in rows], ['MIL-1', 'MIL-3'])
+        self.assertEqual(rows[0]['title'], 'Alpha')
+        self.assertEqual(rows[0]['unit_code'], '<b>code</b>')
+        self.assertEqual(rows[0]['echelon'], 'Brigade')
+        self.assertEqual(rows[0]['status'], 'Active')
+        self.assertNotIn('direct_personnel', rows[0])
+        self.assertEqual(rows[1]['title'], 'MIL-3')
+        self.frappe.hidden_fields.clear()
+        self.assertEqual(self.tree.get_children('Military Unit')[0]['direct_personnel'], 0)
 
     def test_denied_and_other_doctypes_are_not_exposed(self):
         self.frappe.rows['Place'] = [{'name': 'P', 'is_group': 1}, {'name': 'C', 'parent_place': 'P'}]
