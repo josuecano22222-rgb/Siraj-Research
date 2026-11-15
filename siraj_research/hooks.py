@@ -26,15 +26,14 @@ fixtures = [
 ]
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "siraj_research",
-# 		"logo": "/assets/siraj_research/logo.png",
-# 		"title": "Siraj Research",
-# 		"route": "/siraj_research",
-# 		"has_permission": "siraj_research.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "siraj_research",
+		"logo": "/assets/frappe/images/frappe-framework-logo.svg",
+		"title": "Siraj Research",
+		"route": "/app/siraj-research",
+	}
+]
 
 # Includes in <head>
 # ------------------
