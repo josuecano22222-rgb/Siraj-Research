@@ -1,0 +1,31 @@
+# Production clean-start plan — not yet approved for execution
+
+The intended future operation is to reinstall the `frappe.com` Frappe site **only after** implementation, test-site validation, acceptance, a verified backup/restore rehearsal and explicit operator approval. Nothing in the repository automatically performs that operation. The current implementation is not yet fully verified or an identical port; see [original-feature-parity.md](original-feature-parity.md). This is a checklist, not permission to reset a site.
+
+## What reinstall means
+
+In Frappe v15, `bench --site frappe.com reinstall` warns that it will wipe the database, then recreates it and attempts to reinstall the apps it found on that site. The wipe affects **all apps' data** in that database: users, role assignments, customizations, settings, workflows, records, background jobs and database File records, not just SIRAJ records. If app discovery fails, the Frappe code can continue with an empty list of previously installed apps; save an independent app inventory. A reinstall may fail partway through and is not a rollback mechanism. Do not use `--yes` to bypass the confirmation.
+
+It is a database reset, **not proof of a complete filesystem or external-system wipe**. Frappe's site setup creates the existing public/private file directories if necessary; it does not in itself establish that old attachments, backups, logs, site configuration, encryption keys, queued external work, object storage or integrations have been erased or recreated. Old files may persist without database references. Handle retention, access, and any separate cleanup under an explicit policy after backups and review; never run blanket deletion commands from this checklist. Verify exact behavior against the installed Frappe/Bench version and deployment.
+
+On a normal fresh SIRAJ install, `after_install` creates the SIRAJ roles, Draft state and bundled reference data. The geographic reference seed can take several minutes and may report skipped items; inspect its report. The separate fictional test fixture is **not** an install or migration hook and must never be run against production. Fresh installs can mark the four absent historical patches as completed without executing their transformations. Reinstalling an empty database does not reconstruct or validate historical data transformations; do not assume it resolves migration requirements for other sites or backups.
+
+## Release gates before considering a reset
+
+1. Finish the agreed functionality and compare the original and Frappe app, including English/Arabic and target screen sizes. Resolve the documented missing features and decide explicitly on any accepted differences. Review any uncommitted work before release.
+2. On a **separate, new test site with a separate database**, install the intended exact app and Frappe versions, run the synthetic fixture described in [test-data.md](test-data.md), and verify every bundled DocType, child table and the settings singleton. Record failures and do not proceed until resolved.
+3. Exercise normal create/edit/save/delete flows; hierarchy validation and totals; permissions and field restrictions for each role; graph nodes, links, centering and evidence; geographic points and filters; and all six Structures modes, counts, drill-down and exports. Include RTL/Arabic, mobile, normal/error paths and representative load. The mocked and synthetic-browser checks do not replace these real-site tests.
+4. Rehearse the complete clean install/reset **only on a disposable site**, with the same app inventory and relevant configuration. Verify installations, seed report, workflows, role access, scheduler/realtime, files and integrations; independently verify the production database is not the one targeted. The test fixture and its data stay on the test site.
+5. Inventory installed apps, versions, dependencies, users/roles, customizations, workflows, print formats, scheduled jobs, integrations, DNS/proxy settings, files and configuration that will need to be recreated or intentionally discarded. Verify licensing and operational policies for bundled data and online map providers. Set an authorized maintenance window and stop writes/jobs/integrations through deployment-specific procedures.
+6. Take a **complete, secure backup** immediately before any approved reset; include database, public and private files, site configuration and necessary external-system data. For Frappe v15, the following is a backup command, **not a reset**:
+
+   ```bash
+   bench --site frappe.com backup --with-files --ignore-backup-conf
+   ```
+
+   Confirm successful, complete output; safeguard backup files, configuration and encryption keys as secrets in independent storage. Rehearse a restore to an isolated site/database and verify both records and attachments. Do not paste credentials, site configuration, session cookies, backup contents or private records into chat. A backup that has not been restore-tested is not a verified recovery plan.
+7. Confirm the exact target database and app inventory, expected downtime, backup/restore owner, rollback procedure and written approval. Only the authorized operator should then decide whether to run the requested destructive command.
+
+## After any approved reset
+
+Confirm the expected apps actually installed, inspect install/seed output for errors and skipped records, and verify that **only reference data, not the synthetic test dataset**, is present. Reconfigure authorized users, roles, workflows, settings and integrations; reconcile attachment retention and scheduled jobs according to the approved plan. Run the acceptance checks again before reopening production. If installation or verification fails, keep the site closed and follow the tested recovery plan; do not improvise by skipping patches or deleting files.

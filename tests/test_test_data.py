@@ -1,4 +1,5 @@
 """Schema and isolation tests for synthetic fixture (not a live Frappe test)."""
+import ast
 import copy
 import importlib.util
 import json
@@ -120,6 +121,15 @@ class FixtureTest(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, 'separate'):
                     self.module.seed_test_data()
                 self.assertEqual(set(self.frappe.records), {'Country', 'Person Category', 'Workflow State', 'DocType'})
+
+    def test_fixture_is_not_a_hook_or_whitelisted_endpoint(self):
+        root = ROOT / 'siraj_research'
+        for path in (root / 'hooks.py', root / 'setup/install.py', root / 'setup/master_data.py'):
+            with self.subTest(path=str(path)):
+                self.assertNotIn('seed_test_data', path.read_text(encoding='utf8'))
+        tree = ast.parse((root / 'setup/test_data.py').read_text(encoding='utf8'))
+        target = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'seed_test_data')
+        self.assertEqual(target.decorator_list, [])
 
     def test_failure_rolls_back(self):
         self.frappe.fail_on = 'Mission'
