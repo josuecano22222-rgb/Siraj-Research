@@ -6,11 +6,11 @@ Reference: `researchers-db` branch `arena/d114ff02-researchers-db`, including `a
 | --- | --- | --- |
 | Geography | MapLibre, offline detailed Natural Earth pack, configurable online providers, three-zone workspace, filters, measurement and coordinate tools | Leaflet, local low-detail Natural Earth countries, opt-in OpenStreetMap, type icons, clustering, search, inspector, distance measurement, GeoJSON export |
 | Offline | Local world pack, local vector/street packs and map-library features | No external internet needed for the local basemap; the Frappe server must be reachable. No offline street pack, persistent data cache or full offline client |
-| Relationship atlas | Inspector and drill-in trail, orbit, force and matrix layouts, type/evidence/date filters | Force or large-graph grid, inspector, neighbor traversal and back, type/search filters; permissions enforced on server |
-| Structures | Treemap, sunburst, sankey, matrix, circles and tree, fold-aware accounting and accessible table | Expandable tree and distribution bars over the loaded permission-filtered subset; no equivalent folded-tail rendering |
+| Relationship atlas | Inspector and drill-in trail, orbit, force and matrix layouts, type/evidence/date filters | Force or large-graph grid, inspector, neighbor traversal, one-hop centered view and back, type/search filters; permissions enforced on server |
+| Structures | Treemap, sunburst, sankey, matrix, circles and tree, fold-aware accounting and accessible table | Expandable tree and distribution bars with permission-visible counts and folded tails; the six original renderers and full controls are not yet implemented |
 | Registry/military workflows | Source app's forms, imports, exports, workflows, maps and military modules | Native Frappe records, roles, reports and partial controllers; many source features remain to be implemented and validated |
 
-Map/query results currently cap at 1,500 list-visible records per type. A truncation warning indicates that counts and diagrams do not describe the whole registry. Data and user permissions must be honored before adding any richer layout or export.
+Geographic and relationship results currently cap at 1,500 list-visible records per type. A truncation warning indicates that those diagrams do not describe the whole registry. Structure counts scan all permitted rows and fold wide tails without discarding their counts, but the synchronous scan can be slow on large datasets and is not a cross-request snapshot. All counts and diagrams are limited to what the current user may read.
 
 ## Tree navigation repair
 

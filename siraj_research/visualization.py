@@ -10,6 +10,8 @@ import math
 import frappe
 from frappe import _
 
+from siraj_research.report_access import readable_rows
+
 # Labels use the actual title fields, not the series identifier, where available.
 ENTITIES = {
     "Person": "display_name",
@@ -98,29 +100,61 @@ def relationship_data():
     return {"nodes": nodes, "edges": edges, "truncated": truncated, "limit": MAX_RECORDS}
 
 
-def _group(rows, dimensions, depth=0):
+# The original structure view folds wide branches instead of dropping them.
+STRUCTURE_MAX_CHILDREN = 24
+
+
+def _structure_counts(rows, dimensions):
+    """Count all permitted rows in one streaming pass, without a record cutoff."""
+    root = {"count": 0, "groups": {}}
+    for row in rows:
+        # get_list removes fields hidden by Frappe field-level permissions.
+        # Never misreport restricted values as "not recorded".
+        if any(field not in row for field in dimensions):
+            frappe.throw(_("A structure grouping field is not readable."), frappe.PermissionError)
+        node = root
+        node["count"] += 1
+        for field in dimensions:
+            value = row.get(field)
+            key = str(value) if value not in (None, "") else None
+            node = node["groups"].setdefault(key, {"count": 0, "groups": {}})
+            node["count"] += 1
+    return root
+
+
+def _structure_children(node, dimensions, depth=0):
     if depth >= len(dimensions):
         return []
-    field = dimensions[depth]
-    groups = {}
-    for row in rows:
-        value = row.get(field)
-        key = str(value) if value not in (None, "") else None
-        groups.setdefault(key, []).append(row)
-    return [{"label": key if key is not None else _("Not recorded"), "field": field, "count": len(members),
-             "children": _group(members, dimensions, depth + 1)}
-            for key, members in sorted(groups.items(), key=lambda item: (-len(item[1]), (item[0] or "").casefold()))]
+    grouped = sorted(node["groups"].items(), key=lambda item: (-item[1]["count"], (item[0] or "").casefold()))
+    budget = min(60, STRUCTURE_MAX_CHILDREN * 2) if depth == 0 else max(5, STRUCTURE_MAX_CHILDREN // (depth + 1))
+    children = []
+    for key, child in grouped[:budget]:
+        children.append({"label": key if key is not None else _("Not recorded"),
+                         "field": dimensions[depth], "count": child["count"],
+                         "group_count": len(child["groups"]),
+                         "children": _structure_children(child, dimensions, depth + 1)})
+    tail = grouped[budget:]
+    if tail:
+        children.append({"label": _("{0} smaller groups").format(len(tail)),
+                         "field": dimensions[depth], "count": sum(child["count"] for _, child in tail),
+                         "folded_groups": len(tail), "group_count": 0, "children": []})
+    return children
 
 
 @frappe.whitelist()
 def structure_data(source="people"):
+    """Count every readable record; fold wide branches without losing counts.
+
+    This synchronous scan can be expensive for large sites or custom permission
+    hooks. Counts represent the current user's visible records, not global totals.
+    """
     if source not in STRUCTURES:
         frappe.throw(_("Unknown structure source"), frappe.ValidationError)
     doctype, dimensions = STRUCTURES[source]
     if not frappe.has_permission(doctype, "read"):
         frappe.throw(_("Not permitted to read {0}").format(_(doctype)), frappe.PermissionError)
-    rows, truncated = _records(doctype, dimensions)
+    root = _structure_counts(readable_rows(doctype, dimensions), dimensions)
     meta = frappe.get_meta(doctype)
     labels = [meta.get_field(field).label or field for field in dimensions]
-    return {"doctype": doctype, "dimensions": labels, "count": len(rows), "truncated": truncated,
-            "limit": MAX_RECORDS, "children": _group(rows, dimensions)}
+    return {"doctype": doctype, "dimensions": labels, "count": root["count"], "truncated": False,
+            "group_count": len(root["groups"]), "children": _structure_children(root, dimensions)}

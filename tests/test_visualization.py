@@ -11,10 +11,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_visualization(frappe):
+    access_spec = importlib.util.spec_from_file_location("siraj_visualization_access_test", ROOT / "siraj_research/report_access.py")
+    access = importlib.util.module_from_spec(access_spec)
     spec = importlib.util.spec_from_file_location("siraj_visualization_test", ROOT / "siraj_research/visualization.py")
     module = importlib.util.module_from_spec(spec)
     with patch.dict(sys.modules, {"frappe": frappe}):
-        spec.loader.exec_module(module)
+        access_spec.loader.exec_module(access)
+        with patch.dict(sys.modules, {"siraj_research.report_access": access}):
+            spec.loader.exec_module(module)
     return module
 
 
@@ -26,6 +30,7 @@ class FakeFrappe(types.SimpleNamespace):
         self._ = lambda text: text
         self.ValidationError = ValueError
         self.PermissionError = PermissionError
+        self.hidden_fields = set()
 
     def whitelist(self):
         return lambda fn: fn
@@ -34,7 +39,14 @@ class FakeFrappe(types.SimpleNamespace):
         return doctype not in self.denied and (doctype, doc) not in self.denied
 
     def get_list(self, doctype, fields, **kwargs):
-        return [{field: row.get(field) for field in fields} for row in self.rows.get(doctype, [])][:kwargs['page_length']]
+        start = kwargs.get('limit_start', 0)
+        size = kwargs.get('page_length', kwargs.get('limit_page_length', 20))
+        rows = sorted(self.rows.get(doctype, []), key=lambda row: row['name'])
+        return [{field: row.get(field) for field in fields if field not in self.hidden_fields}
+                for row in rows[start:start + size]]
+
+    def get_meta(self, doctype):
+        return types.SimpleNamespace(get_field=lambda field: types.SimpleNamespace(label=field))
 
     def throw(self, message, exception):
         raise exception(message)
@@ -72,11 +84,51 @@ class VisualizationTest(unittest.TestCase):
     def test_structure_counts_sum_at_every_level(self):
         v = load_visualization(FakeFrappe())
         rows = [{'a': 'A', 'b': 'B'}, {'a': 'A', 'b': 'C'}, {'a': None, 'b': 'B'}]
-        groups = v._group(rows, ('a', 'b'))
+        root = v._structure_counts(iter(rows), ('a', 'b'))
+        groups = v._structure_children(root, ('a', 'b'))
+        self.assertEqual(root['count'], len(rows))
         self.assertEqual(sum(x['count'] for x in groups), len(rows))
         for group in groups:
             self.assertEqual(sum(x['count'] for x in group['children']), group['count'])
         self.assertEqual(groups[0]['count'], 2)
+
+    def test_structures_count_all_visible_records_and_fold_without_losing_totals(self):
+        people = [{'name': str(i).zfill(5), 'nationality': f'Country-{i % 60:02}',
+                   'classification': f'Class-{i % 17:02}', 'workflow_state': 'Draft'} for i in range(2600)]
+        f = FakeFrappe({'Person': people}, denied={('Person', '00000'), ('Person', '02599')})
+        v = load_visualization(f)
+        result = v.structure_data('people')
+        self.assertEqual(result['count'], 2598)
+        self.assertFalse(result['truncated'])
+        self.assertEqual(result['group_count'], 60)
+        self.assertEqual(sum(child['count'] for child in result['children']), result['count'])
+        self.assertEqual(len(result['children']), 49)
+        folded = result['children'][-1]
+        self.assertEqual(folded['folded_groups'], 12)
+        self.assertEqual(folded['label'], '12 smaller groups')
+        self.assertGreater(folded['count'], 0)
+        for child in result['children'][:-1]:
+            self.assertEqual(sum(item['count'] for item in child['children']), child['count'])
+
+    def test_structure_deep_folding_counts_and_denied_source(self):
+        f = FakeFrappe({'Person': [{'name': str(i).zfill(3), 'nationality': 'Iraq',
+                                     'classification': f'Class-{i:02}', 'workflow_state': 'Draft'}
+                                    for i in range(20)]})
+        v = load_visualization(f)
+        root = v.structure_data('people')
+        branch = root['children'][0]
+        self.assertEqual(branch['group_count'], 20)
+        self.assertEqual(len(branch['children']), 13)
+        self.assertEqual(branch['children'][-1]['folded_groups'], 8)
+        self.assertEqual(sum(child['count'] for child in branch['children']), 20)
+        f.denied.add('Person')
+        with self.assertRaises(PermissionError): v.structure_data('people')
+        with self.assertRaises(ValueError): v.structure_data('not-a-source')
+
+    def test_structure_refuses_unreadable_dimension_instead_of_false_missing_data(self):
+        f = FakeFrappe({'Person': [{'name': 'p1', 'nationality': 'Iraq'}]})
+        f.hidden_fields.add('nationality')
+        with self.assertRaises(PermissionError): load_visualization(f).structure_data('people')
 
     def test_cutoff_and_denied_doctype(self):
         f = FakeFrappe({'Person': [{'name': str(i)} for i in range(4)]}, denied={'Event'})

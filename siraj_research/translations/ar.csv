@@ -567,3 +567,7 @@ Reserve,احتياط
 Reorganizing,إعادة التنظيم
 Stand-down,إيقاف النشاط
 Disbanded,محلولة
+{0} smaller groups,{0} مجموعة أصغر
+A structure grouping field is not readable.,لا يمكن قراءة أحد حقول تجميع البنية.
+Center on selected record,التمركز حول السجل المحدد
+Show all records,إظهار جميع السجلات

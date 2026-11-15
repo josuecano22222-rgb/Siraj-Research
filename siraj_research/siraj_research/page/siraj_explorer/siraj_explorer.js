@@ -225,7 +225,9 @@ class SirajExplorer {
 		const edgeLookup = new Map(data.edges.map(e => [e.name, e]));
 		const nodeSet = new vis.DataSet();
 		const edgeSet = new vis.DataSet();
-		let currentEdges = [], history = [], currentId = null;
+		let currentEdges = [], history = [], currentId = null, centerId = null;
+		let searchTerm = '', selectedType = '';
+		let centerButton, resetButton;
 		this.network = new vis.Network(this.canvas[0], { nodes: nodeSet, edges: edgeSet }, {
 			interaction: { hover: true, navigationButtons: true, keyboard: true },
 			physics: { stabilization: { iterations: 100 }, barnesHut: { gravitationalConstant: -5000, springLength: 150 } },
@@ -237,6 +239,7 @@ class SirajExplorer {
 			if (!node || !nodeSet.get(id)) return;
 			if (remember && currentId && currentId !== id) history.push(currentId);
 			currentId = id;
+			if (centerButton) centerButton.prop('disabled', false);
 			this.network.selectNodes([id]);
 			this.network.focus(id, { scale: 1, animation: { duration: 400 } });
 			this.showDetails(node.label, [[__('Type'), __(node.doctype)], [__('ID'), node.name]], node);
@@ -254,6 +257,8 @@ class SirajExplorer {
 		};
 		const showEdge = edge => {
 			if (!edge) return;
+			currentId = null;
+			if (centerButton) centerButton.prop('disabled', true);
 			this.showDetails(edge.type || __('Relationship'), [[__('ID'), edge.name], [__('Direction'), edge.direction], [__('Description'), edge.description], [__('Record status'), edge.state]], { doctype: 'Relationship', name: edge.name });
 			[edge.source, edge.target].forEach((key, index) => {
 				const id = JSON.stringify(key), node = all.get(id);
@@ -263,12 +268,24 @@ class SirajExplorer {
 				this.button(node.label, () => showNode(id)).addClass('sx-neighbor-link').appendTo(row);
 			});
 		};
-		const update = (search = '', type = '') => {
-			const term = search.toLocaleLowerCase();
-			const nodes = data.nodes.filter(n => (!type || n.doctype === type) && (n.label + ' ' + n.name).toLocaleLowerCase().includes(term));
-			const ids = new Set(nodes.map(n => this.id(n)));
+		const update = () => {
+			const term = searchTerm.toLocaleLowerCase();
+			let nodes = data.nodes.filter(n => (!selectedType || n.doctype === selectedType) && (n.label + ' ' + n.name).toLocaleLowerCase().includes(term));
+			let ids = new Set(nodes.map(n => this.id(n)));
+			if (centerId && ids.has(centerId)) {
+				const neighborhood = new Set([centerId]);
+				data.edges.forEach(e => {
+					const source = JSON.stringify(e.source), target = JSON.stringify(e.target);
+					if (source === centerId && ids.has(target)) neighborhood.add(target);
+					if (target === centerId && ids.has(source)) neighborhood.add(source);
+				});
+				nodes = nodes.filter(n => neighborhood.has(this.id(n)));
+				ids = neighborhood;
+			} else { centerId = null; }
 			currentEdges = data.edges.filter(e => ids.has(JSON.stringify(e.source)) && ids.has(JSON.stringify(e.target)));
 			edgeSet.clear(); nodeSet.clear(); history = []; currentId = null;
+			if (centerButton) centerButton.prop('disabled', true);
+			if (resetButton) resetButton.prop('disabled', !centerId);
 			const large = nodes.length > 500;
 			this.network.setOptions({ physics: { enabled: !large } });
 			const columns = Math.ceil(Math.sqrt(nodes.length || 1));
@@ -280,7 +297,14 @@ class SirajExplorer {
 		};
 		this.network.on('selectNode', event => showNode(event.nodes[0]));
 		this.network.on('selectEdge', event => showEdge(edgeLookup.get(event.edges[0])));
-		this.filterControls(types, update);
+		this.filterControls(types, (search, type) => { searchTerm = search; selectedType = type; centerId = null; update(); });
+		centerButton = this.button(__('Center on selected record'), () => {
+			if (!currentId) return;
+			centerId = currentId;
+			update();
+			showNode(centerId, false);
+		}).prop('disabled', true).appendTo(this.tools);
+		resetButton = this.button(__('Show all records'), () => { centerId = null; update(); }).prop('disabled', true).appendTo(this.tools);
 		this.button(__('Back'), () => { while (history.length) { const id = history.pop(); if (nodeSet.get(id)) { showNode(id, false); break; } } }).appendTo(this.tools);
 		this.button(__('Fit network'), () => this.network.fit({ animation: true })).appendTo(this.tools);
 		this.button(__('Stabilize layout'), () => this.network.stabilize()).appendTo(this.tools);
@@ -297,41 +321,46 @@ class SirajExplorer {
 		const mode = $('<select class="form-control input-sm"></select>').appendTo(this.tools);
 		$('<option value="tree"></option>').text(__('Expandable tree')).appendTo(mode);
 		$('<option value="bars"></option>').text(__('Distribution bars')).appendTo(mode);
-		let request = 0;
+		let request = 0, cachedData = null;
 		const load = async () => {
+			cachedData = null;
+			this.canvas.empty(); this.aside.empty(); this.note.removeClass('sx-warning').text(__('Loading…'));
 			const current = ++request;
 			try {
 				const result = await frappe.call({ method: 'siraj_research.visualization.structure_data', args: { source: select.val() } });
 				if (renderId !== this.renderId || current !== request) return;
-				const data = result.message;
-				this.note.text(__('Counting {0} visible records.', [data.count]) + ' ' + this.warning(data));
-				this.showDetails(__('Structures'), [[__('Source'), __(data.doctype)], [__('Grouping'), data.dimensions.map(x => __(x)).join(' → ')], [__('Records'), data.count], [__('About this view'), __('Counts reflect visible records only. Expand a branch to inspect its groups.')]]);
-				this.canvas.empty();
-				if (!data.count) { this.canvas.text(__('No records to display.')); return; }
-				if (mode.val() === 'bars') {
-					data.children.forEach(group => {
-						const row = $('<div class="sx-bar-row"></div>').appendTo(this.canvas);
-						$('<span></span>').text(group.label).appendTo(row);
-						$('<span class="sx-count"></span>').text(group.count).appendTo(row);
-						$('<div class="sx-bar"></div>').css('width', (100 * group.count / data.count) + '%').appendTo(row);
-					});
-				} else {
-					const appendGroups = (parent, groups) => groups.forEach(group => {
-						const details = $('<details></details>').appendTo(parent);
-						const summary = $('<summary></summary>').appendTo(details);
-						$('<span></span>').text(group.label).appendTo(summary);
-						if (group.children.length) $('<span class="sx-group-count"></span>').text(__('Groups: {0}', [group.children.length])).appendTo(summary);
-						$('<span class="sx-count"></span>').text(group.count).appendTo(summary);
-						if (group.children.length) appendGroups(details, group.children);
-					});
-					appendGroups(this.canvas, data.children);
-				}
+				const data = cachedData = result.message;
+				draw(data);
 			} catch (error) {
 				if (renderId !== this.renderId || current !== request) return;
 				this.canvas.empty(); this.aside.empty(); this.note.text(__('Unable to load this structure. Check permissions.')).addClass('sx-warning');
 			}
 		};
-		select.on('change', load); mode.on('change', load);
+		const draw = data => {
+			this.note.removeClass('sx-warning').text(__('Counting {0} visible records.', [data.count]) + ' ' + this.warning(data));
+			this.showDetails(__('Structures'), [[__('Source'), __(data.doctype)], [__('Grouping'), data.dimensions.map(x => __(x)).join(' → ')], [__('Records'), data.count], [__('About this view'), __('Counts reflect visible records only. Expand a branch to inspect its groups.')]]);
+			this.canvas.empty();
+			if (!data.count) { this.canvas.text(__('No records to display.')); return; }
+			if (mode.val() === 'bars') {
+				data.children.forEach(group => {
+					const row = $('<div class="sx-bar-row"></div>').appendTo(this.canvas);
+					$('<span></span>').text(group.label).appendTo(row);
+					$('<span class="sx-count"></span>').text(group.count).appendTo(row);
+					$('<div class="sx-bar"></div>').css('width', (100 * group.count / data.count) + '%').appendTo(row);
+				});
+			} else {
+				const appendGroups = (parent, groups) => groups.forEach(group => {
+					const details = $('<details></details>').appendTo(parent);
+					const summary = $('<summary></summary>').appendTo(details);
+					$('<span></span>').text(group.label).appendTo(summary);
+					if (group.group_count) $('<span class="sx-group-count"></span>').text(__('Groups: {0}', [group.group_count])).appendTo(summary);
+					$('<span class="sx-count"></span>').text(group.count).appendTo(summary);
+					if (group.children.length) appendGroups(details, group.children);
+				});
+				appendGroups(this.canvas, data.children);
+			}
+		};
+		select.on('change', load); mode.on('change', () => { if (cachedData) draw(cachedData); });
 		await load();
 	}
 }
