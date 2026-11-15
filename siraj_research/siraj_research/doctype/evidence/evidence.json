@@ -117,7 +117,7 @@
  "autoname": "hash",
  "istable": 1,
  "editable_grid": 1,
- "in_create": 1,
+ "in_create": 0,
  "grid_page_length": 30,
  "rows_threshold_for_grid_search": 30,
  "description": "One claim a source makes about the parent record (or about one field of it). The original `evidence` table, owned by the record it supports."

@@ -223,7 +223,7 @@
  "quick_entry": 1,
  "allow_import": 1,
  "show_title_field_in_link": 1,
- "in_create": 1,
+ "in_create": 0,
  "title_field": "label_en",
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",

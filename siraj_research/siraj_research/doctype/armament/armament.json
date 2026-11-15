@@ -291,7 +291,7 @@
  "quick_entry": 1,
  "allow_import": 1,
  "show_title_field_in_link": 1,
- "in_create": 1,
+ "in_create": 0,
  "title_field": "armament_name",
  "search_fields": "armament_name,category",
  "icon": "target",

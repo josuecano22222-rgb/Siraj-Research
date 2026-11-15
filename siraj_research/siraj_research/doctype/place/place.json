@@ -599,7 +599,7 @@
  "show_preview_popup": 1,
  "allow_copy": 1,
  "allow_events_in_timeline": 1,
- "in_create": 1,
+ "in_create": 0,
  "nsm_parent_field": "parent_place",
  "title_field": "display_name",
  "image_field": "image",
