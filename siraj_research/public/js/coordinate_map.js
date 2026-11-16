@@ -1,4 +1,7 @@
-/* Generic Desk form coordinate picker. No server calls or automatic external tiles. */
+/* Generic Desk form coordinate picker. All controls live inside the map itself
+   via L.Control.SirajToolbar, and pins use the shared SIRAJ icon set so a
+   Place/Institution/Person preview on a form looks exactly like it does on the
+   Explorer. */
 (() => {
 	'use strict';
 	const states = new WeakMap();
@@ -12,6 +15,9 @@
 				'/assets/siraj_research/vendor/leaflet/leaflet.css',
 				'/assets/siraj_research/vendor/leaflet/leaflet.js',
 				'/assets/siraj_research/vendor/topojson/topojson-client.min.js',
+				'/assets/siraj_research/js/siraj-icons.js',
+				'/assets/siraj_research/js/siraj-map-toolbar.js',
+				'/assets/siraj_research/css/siraj-map-toolbar.css',
 			])).catch(error => { assetsPromise = null; throw error; });
 		}
 		return assetsPromise;
@@ -122,17 +128,15 @@
 		if (frm.docname !== docname || !current || current.lat !== fields.lat || current.lon !== fields.lon || states.has(frm)) return;
 		const box = $('<div class="siraj-coordinate-map"></div>').css({margin: '12px 0', clear: 'both'});
 		const heading = $('<div></div>').css({fontWeight: '600', marginBottom: '6px'}).text(t('Coordinate map')).appendTo(box);
-		const help = $('<div></div>').css({marginBottom: '6px'}).text(t('Click the map to select a point, or type latitude and longitude above.')).appendTo(box);
-		const toolbar = $('<div></div>').css({display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px'}).appendTo(box);
-		const clear = $('<button type="button" class="btn btn-default btn-xs"></button>').text(t('Clear coordinates')).appendTo(toolbar);
-		const tiles = $('<button type="button" class="btn btn-default btn-xs"></button>').text(t('Enable online street map')).appendTo(toolbar);
-		const notice = $('<div></div>').css({fontSize: '12px', marginBottom: '6px'}).text(t('Online map tiles are optional; enabling them shares your IP address and viewed area with OpenStreetMap.')).appendTo(box);
-		const canvas = $('<div role="region"></div>').attr('aria-label', t('Coordinate map')).css({height: '320px', width: '100%', background: '#dce8ed'}).appendTo(box);
-		const status = $('<div role="status" aria-live="polite"></div>').css({marginTop: '6px'}).appendTo(box);
+		const help = $('<div></div>').css({marginBottom: '6px', fontSize: '12px', color: 'var(--text-muted)'}).text(t('Click the map to select a point, or type latitude and longitude above. Tools are docked on the right edge of the map.')).appendTo(box);
+		const canvas = $('<div role="region"></div>').attr('aria-label', t('Coordinate map')).css({height: '360px', width: '100%', background: '#dce8ed', borderRadius: '8px', border: '1px solid var(--border-color,#d9e2e7)', position: 'relative'}).appendTo(box);
+		const status = $('<div role="status" aria-live="polite" style="margin-top:6px;font-size:12px;color:var(--text-muted)"></div>').appendTo(box);
 		fields.lon.$wrapper.after(box);
-		const map = L.map(canvas[0], {maxZoom: 22, scrollWheelZoom: false}).setView([33.3152, 44.3661], 4);
+		// Leaflet zoom control is disabled in favor of the in-map Siraj toolbar.
+		const map = L.map(canvas[0], {maxZoom: 22, scrollWheelZoom: false, zoomControl: false}).setView([33.3152, 44.3661], 4);
+		L.control.scale({imperial:false, position:'bottomleft'}).addTo(map);
 		if (map.attributionControl) map.attributionControl.addAttribution('Natural Earth');
-		const state = {lat: fields.lat, lon: fields.lon, docname, box, map, status, clear, marker: null, tileLayer: null, editable: fields.editable, offlineLayer: null, packLayer: null};
+		const state = {lat: fields.lat, lon: fields.lon, docname, box, map, status, marker: null, tileLayer: null, editable: fields.editable, offlineLayer: null, packLayer: null};
 		states.set(frm, state);
 		if (window.ResizeObserver) {
 			state.resizeObserver = new window.ResizeObserver(() => {
@@ -140,51 +144,86 @@
 			});
 			state.resizeObserver.observe(canvas[0]);
 		}
-		map.on('click', e => writePoint(frm, e.latlng));
-		clear.on('click', async () => {
-			if (!controls(frm)?.editable || frm.docname !== state.docname) return;
-			try { await frm.set_value({latitude: '', longitude: ''}); update(frm, false); }
-			catch (_) { status.text(t('Could not update the coordinate fields.')); }
-		});
-		const packSelect = $('<select class="form-control input-sm"></select>').attr('aria-label', t('Local basemap')).hide().appendTo(toolbar);
-		$('<option value=""></option>').text(t('Local overview')).appendTo(packSelect);
+		map.on('click', e => { if (fields.editable) writePoint(frm, e.latlng); });
+
+		// --- In-map toolbar (SIRAJ shared) ---
+		const toolbar = L.control.sirajToolbar({ position: 'topright' }).addTo(map);
 		const localPacks = new Map();
-		frappe.call({method: 'siraj_research.local_maps.available_packs', type: 'GET', silent: true, error_handlers: {403: () => {}}}).then(res => {
-			if (states.get(frm) !== state || !Array.isArray(res.message)) return;
-			res.message.forEach(pack => {
-				if (pack.unavailable || !['standard', 'aerial'].includes(pack.kind)) return;
-				localPacks.set(pack.kind, pack);
-				$('<option></option>').val(pack.kind).text(pack.kind === 'aerial' ? t('Local aerial') : t('Local standard')).appendTo(packSelect);
-			});
-			if (localPacks.size) packSelect.show();
-		}).catch(() => {});
-		packSelect.on('change', () => {
-			if (state.tileLayer) { map.removeLayer(state.tileLayer); state.tileLayer = null; tiles.text(t('Enable online street map')); }
+		// Navigate
+		toolbar.group(t('Navigate'))
+			.add({ icon: 'zoom_in', label: t('In'), action: () => map.zoomIn() })
+			.add({ icon: 'zoom_out', label: t('Out'), action: () => map.zoomOut() })
+			.add({ icon: 'home', label: t('Home'), action: () => map.setView([33.3152, 44.3661], 4) })
+			.add({ icon: 'locate', label: t('Coords'), menuTitle: t('Go to coordinates'), menu: pop => {
+				const w = $('<div></div>').appendTo(pop);
+				const row = $('<div style="display:flex;gap:4px"></div>').appendTo(w);
+				const lat = $('<input type="number" step="any" min="-90" max="90" class="form-control input-sm" placeholder="' + t('Lat') + '">').appendTo(row);
+				const lon = $('<input type="number" step="any" min="-180" max="180" class="form-control input-sm" placeholder="' + t('Lon') + '">').appendTo(row);
+				const stat = $('<div style="font-size:11px;color:var(--text-muted);margin-top:4px"></div>').appendTo(w);
+				$('<button type="button" class="btn btn-sm btn-primary" style="margin-top:4px">' + t('Go') + '</button>').appendTo(w).on('click', () => {
+					const la = Number(lat.val()), lo = Number(lon.val());
+					if (![la,lo].every(Number.isFinite) || Math.abs(la)>90 || Math.abs(lo)>180) { stat.text(t('Enter valid decimal coordinates.')); return; }
+					map.setView([la,lo], 8);
+				});
+			}});
+		// Basemap
+		const selectBasemap = val => {
+			if (state.tileLayer) { map.removeLayer(state.tileLayer); state.tileLayer = null; }
 			if (state.packLayer) { map.removeLayer(state.packLayer); state.packLayer = null; }
 			map.setMinZoom(0);
-			const pack = localPacks.get(packSelect.val());
-			if (!pack) { if (state.offlineLayer) state.offlineLayer.addTo(map); return; }
-			if (state.offlineLayer) map.removeLayer(state.offlineLayer);
-			map.setMinZoom(pack.minzoom);
-			const url = '/api/method/siraj_research.local_maps.tile?kind=' + encodeURIComponent(pack.kind) + '&z={z}&x={x}&y={y}';
-			state.packLayer = L.tileLayer(url, {minZoom: pack.minzoom, maxZoom: 22, maxNativeZoom: pack.maxzoom,
-				attribution: $('<div></div>').text(pack.attribution || '').html()}).addTo(map);
-			state.packLayer.on('tileerror', () => status.text(t('Some local tiles are unavailable at this location or zoom.')));
-		});
-		tiles.on('click', () => {
-			if (state.tileLayer) {
-				map.removeLayer(state.tileLayer); state.tileLayer = null;
-				if (state.offlineLayer) state.offlineLayer.addTo(map);
-				tiles.text(t('Enable online street map'));
-			} else {
+			const pack = localPacks.get(String(val).replace(/^pack-/, ''));
+			if (pack) {
 				if (state.offlineLayer) map.removeLayer(state.offlineLayer);
-				if (state.packLayer) { map.removeLayer(state.packLayer); state.packLayer = null; packSelect.val(''); map.setMinZoom(0); }
+				map.setMinZoom(pack.minzoom);
+				const url = '/api/method/siraj_research.local_maps.tile?kind=' + encodeURIComponent(pack.kind) + '&z={z}&x={x}&y={y}';
+				state.packLayer = L.tileLayer(url, {minZoom: pack.minzoom, maxZoom: 22, maxNativeZoom: pack.maxzoom,
+					attribution: $('<div></div>').text(pack.attribution || '').html()}).addTo(map);
+				state.packLayer.on('tileerror', () => status.text(t('Some local tiles are unavailable at this location or zoom.')));
+				status.text(t('Local map pack: coverage depends on supplied data.'));
+			} else if (val === 'online') {
+				if (state.offlineLayer) map.removeLayer(state.offlineLayer);
 				state.tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 					maxZoom: 22, maxNativeZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 				}).addTo(map);
-				tiles.text(t('Disable online street map'));
+				status.text(t('Online tiles disclose your IP address and viewed area to OpenStreetMap.'));
+			} else {
+				if (state.offlineLayer) state.offlineLayer.addTo(map).bringToBack();
+				status.text(t('Offline basemap: Natural Earth, low detail.'));
 			}
-		});
+		};
+		const basemapMenu = pop => {
+			const w = $('<div></div>').appendTo(pop);
+			const opt = (val, icon, label, active) => {
+				const b = $('<button type="button" class="siraj-toolbar-opt"></button>')
+					.html((window.sirajIcons ? window.sirajIcons.svg(icon,{size:16}) : '') + '<span>' + label + '</span>');
+				if (active) b.addClass('is-active');
+				b.on('click', () => { w.find('.is-active').removeClass('is-active'); b.addClass('is-active'); selectBasemap(val); });
+				b.appendTo(w); return b;
+			};
+			opt('local','offline',t('Offline basemap'),true);
+			opt('online','online',t('Online: OpenStreetMap'),false);
+			$('<hr>').appendTo(w);
+			const note = $('<div style="font-size:11px;color:var(--text-muted);padding:4px"></div>').text(t('Downloaded local packs appear here.')).appendTo(w);
+			frappe.call({method:'siraj_research.local_maps.available_packs', type:'GET', silent:true, error_handlers:{403:()=>{}}}).then(res => {
+				if (states.get(frm) !== state || !Array.isArray(res.message)) return;
+				res.message.forEach(pack => {
+					if (pack.unavailable || !['standard','aerial'].includes(pack.kind)) return;
+					localPacks.set(pack.kind, pack);
+					opt('pack-'+pack.kind,'layers', pack.kind==='aerial'?t('Local aerial'):t('Local standard'), false);
+				});
+				if (localPacks.size) note.remove();
+			}).catch(()=>{});
+		};
+		toolbar.group(t('Basemap'))
+			.add({ icon: 'layers', label: t('Basemap'), menuTitle: t('Basemap'), menu: basemapMenu });
+		toolbar.separator();
+		// Actions
+		toolbar.group(t('Point'))
+			.add({ icon: 'clear', label: t('Clear'), action: async () => {
+				if (!fields.editable || frm.docname !== state.docname) return;
+				try { await frm.set_value({latitude: '', longitude: ''}); update(frm, false); }
+				catch (_) { status.text(t('Could not update the coordinate fields.')); }
+			}});
 		for (const field of [fields.lat, fields.lon]) field.$input?.off('.sirajCoordinates').on('input.sirajCoordinates change.sirajCoordinates', () => update(frm));
 		update(frm);
 		setTimeout(() => { if (states.get(frm) === state) map.invalidateSize(); }, 0);

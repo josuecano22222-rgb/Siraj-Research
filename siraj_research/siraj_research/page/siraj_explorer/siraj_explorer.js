@@ -106,15 +106,20 @@ class SirajExplorer {
 			'/assets/siraj_research/vendor/leaflet/leaflet.js',
 			'/assets/siraj_research/vendor/leaflet-markercluster/leaflet.markercluster.js',
 			'/assets/siraj_research/vendor/topojson/topojson-client.min.js',
-			'/assets/siraj_research/css/siraj_explorer.css'
+			'/assets/siraj_research/js/siraj-icons.js',
+			'/assets/siraj_research/js/siraj-map-toolbar.js',
+			'/assets/siraj_research/css/siraj_explorer.css',
+			'/assets/siraj_research/css/siraj-map-toolbar.css',
 		]);
 		if (renderId !== this.renderId) return;
-		const map = this.map = L.map(this.canvas[0], { worldCopyJump: true, preferCanvas: true, minZoom: 0, maxZoom: 22, zoomAnimation: false }).setView([33.3152, 44.3661], 4);
-		L.control.scale({ imperial: false }).addTo(map);
-		// All basemap geometry is served by this site; no external request is
-		// made until the user explicitly selects OpenStreetMap.
+		// Suppress Leaflet's default zoom control: our in-map toolbar provides it.
+		const map = this.map = L.map(this.canvas[0], { worldCopyJump: true, preferCanvas: true, minZoom: 0, maxZoom: 22, zoomAnimation: false, zoomControl: false }).setView([33.3152, 44.3661], 4);
+		L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 		let offlineLayer = null, onlineLayer = null, localPackLayer = null, selectedCircle = null;
-		const mapStatus = $('<div class="sx-map-status" role="status"></div>').appendTo(this.root);
+		const mapStatus = (text, warn) => {
+			if (this.toolbar) this.toolbar.status(text, warn ? 'warning' : null);
+			if (this.note) this.note.text(text).toggleClass('sx-warning', !!warn);
+		};
 		try {
 			const response = await fetch('/assets/siraj_research/vendor/world-atlas/countries-110m.json');
 			if (!response.ok) throw new Error('Offline basemap HTTP ' + response.status);
@@ -124,22 +129,21 @@ class SirajExplorer {
 				interactive: false, style: { color: '#a4b4a8', weight: 0.7, fillColor: '#e8e4cf', fillOpacity: 1 }
 			}).addTo(map);
 			map.attributionControl.addAttribution('Natural Earth / world-atlas');
-			mapStatus.text(__('Offline basemap: Natural Earth, low detail.'));
+			mapStatus(__('Offline basemap: Natural Earth, low detail.'));
 		} catch (error) {
 			console.error(error);
 			if (renderId !== this.renderId) return;
-			mapStatus.text(__('Local basemap could not be loaded. You can still use the markers or enable online tiles.')).addClass('sx-warning');
+			mapStatus(__('Local basemap could not be loaded. You can still use the markers or enable online tiles.'), true);
 		}
-		const icons = {
-			'Person': '<circle cx="12" cy="8" r="3"/><path d="M5 19c0-4 3-6 7-6s7 2 7 6"/>',
-			'Institution': '<path d="M3 9h18L12 3 3 9Zm2 1v8m5-8v8m4-8v8m5-8v8M3 20h18"/>',
-			'Place': '<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11Z"/><circle cx="12" cy="10" r="2"/>',
-			'Research Event': '<path d="M12 2l2.5 6 6.5.5-5 4 1.5 6.5-5.5-3.5L6.5 19 8 12.5l-5-4L9.5 8Z"/>',
-			'Military Unit': '<path d="M12 2 20 5v6c0 5-3 8-8 11-5-3-8-6-8-11V5Z"/><path d="M12 7v10M7 12h10"/>',
-			'Operational Deployment': '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>'
-		};
+		// Shared SIRAJ icons for pins.
+		const pointIcon = p => L.divIcon({
+			className: 'sx-pin-wrapper', iconSize: [36, 36], iconAnchor: [18, 18],
+			html: window.sirajIcons.pin(p.doctype, this.colors[p.doctype], 36)
+		});
+		const pinIcons = {};
 		const types = [...new Set(data.points.map(p => p.doctype))];
-		this.showLegend(types, icons);
+		types.forEach(t => { if (window.sirajIcons.types[t]) pinIcons[t] = window.sirajIcons.types[t]; });
+		this.showLegend(types, pinIcons);
 		let clustered = true, currentPoints = [], searchTerm = '', selectedType = '', listLimit = 100;
 		const recordHeading = $('<h4></h4>').text(__('Mapped records')).appendTo(this.records);
 		const recordList = $('<div class="sx-record-list"></div>').appendTo(this.records);
@@ -183,10 +187,6 @@ class SirajExplorer {
 			maxClusterRadius: 45, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
 			iconCreateFunction: cluster => L.divIcon({ className: 'sx-cluster', html: '<span>' + cluster.getChildCount() + '</span>', iconSize: [40, 40] })
 		}).addTo(map);
-		const pointIcon = p => L.divIcon({
-			className: 'sx-pin-wrapper', iconSize: [36, 36], iconAnchor: [18, 18],
-			html: '<span class="sx-map-pin" style="background:' + this.colors[p.doctype] + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + icons[p.doctype] + '</svg></span>'
-		});
 		const draw = () => {
 			if (selectedCircle) { map.removeLayer(selectedCircle); selectedCircle = null; }
 			markers.clearLayers();
@@ -203,166 +203,188 @@ class SirajExplorer {
 			renderList();
 			drawOverlay();
 		};
-		this.filterControls(types, (search, type) => { searchTerm = search; selectedType = type; listLimit = 100; draw(); });
-		this.button(__('Records panel'), () => { this.records.toggle(); this.records.parent().toggleClass('sx-no-records', this.records.css('display') === 'none'); setTimeout(() => { if (renderId === this.renderId) map.invalidateSize(); }, 0); }).appendTo(this.tools);
-		this.button(__('Details panel'), () => { this.aside.toggle(); this.aside.parent().toggleClass('sx-no-details', this.aside.css('display') === 'none'); setTimeout(() => { if (renderId === this.renderId) map.invalidateSize(); }, 0); }).appendTo(this.tools);
-		const coordinates = $('<details class="sx-coordinate-entry"></details>').appendTo(this.tools);
-		$('<summary></summary>').text(__('Coordinates')).appendTo(coordinates);
-		const fields = $('<div class="sx-coordinate-fields"></div>').appendTo(coordinates);
-		const lat = $('<input type="number" step="any" min="-90" max="90" class="form-control input-sm">').attr({placeholder: __('Latitude'), 'aria-label': __('Latitude')}).appendTo(fields);
-		const lon = $('<input type="number" step="any" min="-180" max="180" class="form-control input-sm">').attr({placeholder: __('Longitude'), 'aria-label': __('Longitude')}).appendTo(fields);
-		const coordinateStatus = $('<span role="status"></span>').appendTo(fields);
-		this.button(__('Go'), () => {
-			const latitude = Number(lat.val()), longitude = Number(lon.val());
-			if (lat.val() === '' || lon.val() === '' || !Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
-				coordinateStatus.text(__('Enter a valid latitude and longitude.')); return;
-			}
-			coordinateStatus.text(dms(latitude, true) + ' / ' + dms(longitude, false));
-			map.setView([latitude, longitude], 8);
-		}).appendTo(fields);
-		this.button(__('Fit points'), () => { if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p => [Number(p.latitude), Number(p.longitude)])).pad(0.15), { maxZoom: 12 }); }).appendTo(this.tools);
-		const clusterButton = this.button(__('Clusters: on'), () => {
-			clustered = !clustered;
-			map.removeLayer(markers);
-			markers = clustered ? L.markerClusterGroup({ maxClusterRadius: 45, showCoverageOnHover: false, spiderfyOnMaxZoom: true, iconCreateFunction: cluster => L.divIcon({ className: 'sx-cluster', html: '<span>' + cluster.getChildCount() + '</span>', iconSize: [40, 40] }) }) : L.featureGroup();
-			markers.addTo(map); clusterButton.text(clustered ? __('Clusters: on') : __('Clusters: off')); draw();
-		}).appendTo(this.tools);
-		const overlayButton = this.button(__('Show relationship lines'), async () => {
-			if (overlayEnabled) { overlayEnabled = false; drawOverlay(); overlayButton.text(__('Show relationship lines')); return; }
-			overlayButton.prop('disabled', true);
-			try {
-				if (!overlayData) overlayData = (await frappe.call({method: 'siraj_research.visualization.relationship_data'})).message;
-				if (renderId !== this.renderId) return;
-				overlayEnabled = true; drawOverlay(); overlayButton.text(__('Hide relationship lines'));
-			} catch (error) {
-				if (renderId === this.renderId) mapStatus.text(__('Unable to load relationship lines.')).addClass('sx-warning');
-			} finally { overlayButton.prop('disabled', false); }
-		}).appendTo(this.tools);
-		const base = $('<select class="form-control input-sm" aria-label="Basemap"></select>').appendTo(this.tools);
-		$('<option value="local"></option>').text(__('Offline basemap')).appendTo(base);
-		$('<option value="online"></option>').text(__('Online: OpenStreetMap')).appendTo(base);
+
+		// ========== EMBEDDED TOOLBAR (in-canvas) ==========
+		this.toolbar = L.control.sirajToolbar({ position: 'topright' }).addTo(map);
 		const localPacks = new Map();
-		const downloadPanel = $('<details class="sx-coordinate-entry"></details>').hide().appendTo(this.tools);
-		$('<summary></summary>').text(__('Download local area')).appendTo(downloadPanel);
-		const downloadFields = $('<div class="sx-area-fields"></div>').appendTo(downloadPanel);
-		const makeInput = (name, label) => $('<input type="number" step="any" class="form-control input-sm">').attr({placeholder:label, 'aria-label':label, 'data-area-field':name}).appendTo(downloadFields);
-		const west = makeInput('west', __('West')), south = makeInput('south', __('South')), east = makeInput('east', __('East')), north = makeInput('north', __('North'));
-		const minZoom = makeInput('minzoom', __('Minimum zoom')), maxZoom = makeInput('maxzoom', __('Maximum zoom'));
-		const downloadStatus = $('<span role="status" aria-live="polite"></span>').appendTo(downloadFields);
-		const currentPack = () => localPacks.get(String(base.val()).replace(/^pack-/, ''));
-		this.button(__('Use current map area'), () => {
-			const bounds = map.getBounds(), left = bounds.getWest(), right = bounds.getEast();
-			const norm = value => ((value + 180) % 360 + 360) % 360 - 180;
-			west.val(right - left >= 360 ? -180 : norm(left)); east.val(right - left >= 360 ? 180 : norm(right));
-			south.val(Math.max(-85.0511287798066, bounds.getSouth())); north.val(Math.min(85.0511287798066, bounds.getNorth()));
-			const pack = currentPack();
-			if (pack) { const zoom = Math.max(pack.minzoom, Math.min(pack.maxzoom, Math.round(map.getZoom()))); minZoom.val(Math.max(pack.minzoom, zoom - 2)); maxZoom.val(zoom); }
-			downloadStatus.text(__('Area selected. Review bounds and zooms before downloading.'));
-		}).appendTo(downloadFields);
-		this.button(__('Estimate tiles'), async () => {
-			const pack = currentPack(), inputs = [west,south,east,north,minZoom,maxZoom];
-			if (!pack?.download_allowed || inputs.some(input => input.val() === '')) { downloadStatus.text(__('Select a local pack and enter valid bounds and zooms.')); return; }
-			const values = inputs.map(input => Number(input.val()));
-			try {
-				await frappe.require(['/assets/siraj_research/vendor/jszip/jszip.min.js', '/assets/siraj_research/js/offline_map_download.js']);
-				if (values[4] < pack.minzoom || values[5] > pack.maxzoom) throw Error('zoom');
-				const result = window.sirajOfflineDownload.plan(values.slice(0,4), values[4], values[5]);
-				if (renderId === this.renderId) downloadStatus.text(__('Up to {0} tiles; actual coverage and size may be smaller.', [result.count]));
-			} catch (_) { if (renderId === this.renderId) downloadStatus.text(__('Invalid bounds, zooms, or more than 512 possible tiles.')); }
-		}).appendTo(downloadFields);
-		const cancelDownload = this.button(__('Cancel download'), () => this.downloadController?.abort()).hide().appendTo(downloadFields);
-		const startDownload = this.button(__('Download ZIP'), async () => {
-			const pack = currentPack(), inputs = [west,south,east,north,minZoom,maxZoom];
-			if (!pack?.download_allowed || inputs.some(input => input.val() === '')) { downloadStatus.text(__('Select a local pack and enter valid bounds and zooms.')); return; }
-			const values = inputs.map(input => Number(input.val())), controller = new AbortController();
-			this.downloadController = controller; startDownload.prop('disabled', true); cancelDownload.show();
-			try {
-				await frappe.require(['/assets/siraj_research/vendor/jszip/jszip.min.js', '/assets/siraj_research/js/offline_map_download.js']);
-				if (controller.signal.aborted) return;
-				const result = await window.sirajOfflineDownload.build(pack, values.slice(0,4), values[4], values[5], controller.signal,
-					(done,total,stored) => downloadStatus.text(__('Tiles checked: {0} of {1}; available: {2}.', [done,total,stored])));
-				if (renderId !== this.renderId || controller.signal.aborted) return;
-				const url = URL.createObjectURL(result.blob), a = document.createElement('a');
-				a.href = url; a.download = 'siraj-offline-' + pack.kind + '.zip'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-				downloadStatus.text(__('Downloaded {0} of {1} possible tiles. Missing tiles will be blank.', [result.stored,result.requested]));
-			} catch (error) {
-				if (renderId === this.renderId) downloadStatus.text(error.name === 'AbortError' ? __('Download cancelled.') : __('Download failed. Check bounds, zooms, tile limit, size, permissions and connection.'));
-			} finally { if (this.downloadController === controller) this.downloadController = null; startDownload.prop('disabled', false); cancelDownload.hide(); }
-		}).appendTo(downloadFields);
-		$('<span></span>').text(__('Basemap only, unencrypted. Maximum 512 possible tiles and 16 MiB of imagery. Use only on authorized devices.')).appendTo(downloadFields);
-		// This endpoint exposes only licensed packs placed in this site's private
-		// map directory. Permission denial leaves the built-in basemap available.
-		frappe.call({method: 'siraj_research.local_maps.available_packs', type: 'GET', silent: true, error_handlers: {403: () => {}}}).then(res => {
-			if (renderId !== this.renderId || !Array.isArray(res.message)) return;
-			res.message.forEach(pack => {
-				if (pack.unavailable || !['standard', 'aerial'].includes(pack.kind)) return;
-				localPacks.set(pack.kind, pack);
-				$('<option></option>').val('pack-' + pack.kind).text(pack.kind === 'aerial' ? __('Local aerial') : __('Local standard')).appendTo(base);
-			});
-		}).catch(() => {});
-		base.on('change', () => {
-			if (this.downloadController) this.downloadController.abort();
-			downloadPanel.toggle(!!currentPack()?.download_allowed);
+		const panels = { records: true, details: true };
+		// Always-visible search at the top of the dock.
+		const searchBox = $('<div class="siraj-toolbar-search"><input type="search" class="form-control input-sm" placeholder="' + __('Search records') + '" aria-label="' + __('Search records') + '"></div>');
+		searchBox.find('input').on('input', e => { searchTerm = e.target.value; listLimit = 100; draw(); });
+		this.toolbar.attachNode(searchBox);
+
+		// Type filter (popover)
+		const typeFilterMenu = pop => {
+			const w = $('<div></div>').appendTo(pop);
+			const opt = (val, label, active) => {
+				const b = $('<button type="button" class="siraj-toolbar-opt"></button>').html('<span>' + label + '</span>');
+				if (active) b.addClass('is-active');
+				b.on('click', () => {
+					selectedType = val;
+					w.find('.is-active').removeClass('is-active');
+					b.addClass('is-active');
+					listLimit = 100; draw();
+				});
+				b.appendTo(w);
+			};
+			opt('', __('All types'), true);
+			types.forEach(t => opt(t, __(t), false));
+		};
+		this.toolbar.group(__('Filter'))
+			.add({ icon: 'search', label: __('Type'), menuTitle: __('Record type'), menu: typeFilterMenu });
+
+		// Navigate group
+		this.toolbar.group(__('Navigate'))
+			.add({ icon: 'zoom_in', label: __('In'), action: () => map.zoomIn() })
+			.add({ icon: 'zoom_out', label: __('Out'), action: () => map.zoomOut() })
+			.add({ icon: 'home', label: __('Home'), action: () => map.setView([33.3152, 44.3661], 4) })
+			.add({ icon: 'fit', label: __('Fit'), action: () => {
+				if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p => [Number(p.latitude), Number(p.longitude)])).pad(0.15), { maxZoom: 12 });
+			}})
+			.add({ icon: 'locate', label: __('Coords'), menuTitle: __('Go to coordinates'), menu: pop => {
+				const w = $('<div></div>').appendTo(pop);
+				const row = $('<div style="display:flex;gap:4px"></div>').appendTo(w);
+				const lat = $('<input type="number" step="any" min="-90" max="90" class="form-control input-sm" placeholder="' + __('Lat') + '">').appendTo(row);
+				const lon = $('<input type="number" step="any" min="-180" max="180" class="form-control input-sm" placeholder="' + __('Lon') + '">').appendTo(row);
+				const stat = $('<div style="font-size:11px;color:var(--text-muted);margin-top:4px"></div>').appendTo(w);
+				$('<button type="button" class="btn btn-sm btn-primary" style="margin-top:4px">' + __('Go') + '</button>').appendTo(w).on('click', () => {
+					const la = Number(lat.val()), lo = Number(lon.val());
+					if (![la,lo].every(Number.isFinite) || Math.abs(la)>90 || Math.abs(lo)>180) { stat.text(__('Enter valid decimal coordinates.')); return; }
+					stat.text(dms(la,true) + ' / ' + dms(lo,false));
+					map.setView([la,lo], 8);
+				});
+			}});
+
+		// Basemap group
+		const selectBasemap = val => {
 			if (onlineLayer) { map.removeLayer(onlineLayer); onlineLayer = null; }
 			if (localPackLayer) { map.removeLayer(localPackLayer); localPackLayer = null; }
 			map.setMinZoom(0);
-			const selectedPack = localPacks.get(String(base.val()).replace(/^pack-/, ''));
+			const selectedPack = localPacks.get(String(val).replace(/^pack-/, ''));
 			if (selectedPack) {
 				if (offlineLayer) map.removeLayer(offlineLayer);
 				const url = '/api/method/siraj_research.local_maps.tile?kind=' + encodeURIComponent(selectedPack.kind) + '&z={z}&x={x}&y={y}';
 				map.setMinZoom(selectedPack.minzoom);
-				localPackLayer = L.tileLayer(url, {minZoom: selectedPack.minzoom, maxZoom: 22, maxNativeZoom: selectedPack.maxzoom,
+				localPackLayer = L.tileLayer(url, {minZoom: selectedPack.minzoom, maxZoom:22, maxNativeZoom: selectedPack.maxzoom,
 					attribution: this.escape(selectedPack.attribution || '')}).addTo(map);
-				localPackLayer.on('tileerror', () => mapStatus.text(__('Some local tiles are unavailable at this location or zoom.')).addClass('sx-warning'));
-				mapStatus.text(__('Local map pack: coverage depends on supplied data.')).removeClass('sx-warning');
-			} else if (base.val() === 'online') {
+				localPackLayer.on('tileerror', () => mapStatus(__('Some local tiles are unavailable at this location or zoom.'), true));
+				mapStatus(__('Local map pack: coverage depends on supplied data.'));
+			} else if (val === 'online') {
 				if (offlineLayer) map.removeLayer(offlineLayer);
-				onlineLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22, maxNativeZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
-				onlineLayer.on('tileerror', () => mapStatus.text(__('Some online tiles failed to load. Choose the offline basemap to continue.')).addClass('sx-warning'));
-				mapStatus.text(__('Online tiles disclose your IP address and viewed area to OpenStreetMap.')).removeClass('sx-warning');
+				onlineLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:22, maxNativeZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+				onlineLayer.on('tileerror', () => mapStatus(__('Some online tiles failed to load. Choose the offline basemap to continue.'), true));
+				mapStatus(__('Online tiles disclose your IP address and viewed area to OpenStreetMap.'));
 			} else {
 				if (offlineLayer) offlineLayer.addTo(map).bringToBack();
-				mapStatus.text(offlineLayer ? __('Offline basemap: Natural Earth, low detail.') : __('Local basemap could not be loaded. You can still use the markers or enable online tiles.')).toggleClass('sx-warning', !offlineLayer);
+				mapStatus(offlineLayer ? __('Offline basemap: Natural Earth, low detail.') : __('Local basemap could not be loaded.'), !offlineLayer);
 			}
-		});
-		this.button(__('Export visible points'), () => {
-			const geojson = { type: 'FeatureCollection', features: currentPoints.map(p => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [Number(p.longitude), Number(p.latitude)] }, properties: { doctype: p.doctype, name: p.name, label: p.label, precision: p.geo_precision, method: p.geocoding_method, uncertainty_m: p.geo_uncertainty_m, source: p.geometry_source } })) };
-			const url = URL.createObjectURL(new Blob([JSON.stringify(geojson)], { type: 'application/geo+json' }));
-			const a = document.createElement('a'); a.href = url; a.download = 'siraj-visible-points.geojson'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-		}).appendTo(this.tools);
+		};
+		const basemapMenu = pop => {
+			const w = $('<div></div>').appendTo(pop);
+			const opt = (val, icon, label, active) => {
+				const b = $('<button type="button" class="siraj-toolbar-opt"></button>')
+					.html(window.sirajIcons.svg(icon,{size:16}) + '<span>' + label + '</span>');
+				if (active) b.addClass('is-active');
+				b.on('click', () => { w.find('.is-active').removeClass('is-active'); b.addClass('is-active'); selectBasemap(val); });
+				b.appendTo(w); return b;
+			};
+			opt('local','offline',__('Offline basemap'), true);
+			opt('online','online',__('Online: OpenStreetMap'), false);
+			$('<hr>').appendTo(w);
+			const note = $('<div style="font-size:11px;color:var(--text-muted);padding:4px"></div>').text(__('Downloaded local packs appear here.')).appendTo(w);
+			frappe.call({method:'siraj_research.local_maps.available_packs', type:'GET', silent:true, error_handlers:{403:()=>{}}}).then(res => {
+				if (!Array.isArray(res.message)) return;
+				res.message.forEach(pack => {
+					if (pack.unavailable || !['standard','aerial'].includes(pack.kind)) return;
+					localPacks.set(pack.kind, pack);
+					opt('pack-'+pack.kind,'layers',pack.kind==='aerial'?__('Local aerial'):__('Local standard'),false);
+				});
+				if (localPacks.size) note.remove();
+			}).catch(()=>{});
+		};
+		this.toolbar.group(__('Basemap'))
+			.add({ icon: 'layers', label: __('Basemap'), menuTitle: __('Basemap'), menu: basemapMenu });
+
+		this.toolbar.separator();
+
+		// Display group
+		let clusterBtn, relBtn, recsBtn, detailsBtn;
+		this.toolbar.group(__('Display'))
+			.add({ icon: 'cluster', label: __('Clusters'), active: true, key: 'clusters', action: function() {
+				clustered = !clustered;
+				map.removeLayer(markers);
+				markers = clustered
+					? L.markerClusterGroup({ maxClusterRadius:45, showCoverageOnHover:false, spiderfyOnMaxZoom:true, iconCreateFunction: c => L.divIcon({ className:'sx-cluster', html:'<span>'+c.getChildCount()+'</span>', iconSize:[40,40] }) })
+					: L.featureGroup();
+				markers.addTo(map); draw();
+			}})
+			.add({ icon: 'lines', label: __('Rel lines'), key: 'rel_lines', action: async function() {
+				const btn = $(this);
+				if (overlayEnabled) { overlayEnabled=false; drawOverlay(); btn.removeClass('is-active'); return; }
+				btn.prop('disabled', true);
+				try {
+					if (!overlayData) overlayData = (await frappe.call({method:'siraj_research.visualization.relationship_data'})).message;
+					if (renderId !== this.renderId) return;
+					overlayEnabled = true; drawOverlay(); btn.addClass('is-active');
+				} catch { mapStatus(__('Unable to load relationship lines.'), true); }
+				finally { btn.prop('disabled', false); }
+			}})
+			.add({ icon: 'panel_left', label: __('Records'), active: true, key: 'records', action: function() {
+				panels.records = !panels.records;
+				$('.sx-layout').toggleClass('sx-no-records', !panels.records);
+				this.records.toggle(panels.records);
+				setTimeout(()=>map.invalidateSize(),0);
+			}.bind(this)})
+			.add({ icon: 'panel_right', label: __('Details'), active: true, key: 'details', action: function() {
+				panels.details = !panels.details;
+				$('.sx-layout').toggleClass('sx-no-details', !panels.details);
+				this.aside.toggle(panels.details);
+				setTimeout(()=>map.invalidateSize(),0);
+			}.bind(this)});
+
+		this.toolbar.separator();
+
+		// Tools group
 		let measuring = '', measurePoints = [], measureLine = null;
-		const measureStatus = $('<div class="sx-map-status" role="status"></div>').appendTo(this.root);
-		const clearMeasure = () => { measurePoints = []; if (measureLine) map.removeLayer(measureLine); measureLine = null; };
-		this.button(__('Measure distance'), () => { measuring = 'distance'; clearMeasure(); measureStatus.text(__('Click two points on the map to measure distance.')); }).appendTo(this.tools);
-		this.button(__('Measure area'), () => { measuring = 'area'; clearMeasure(); measureStatus.text(__('Click at least three points to measure area.')); }).appendTo(this.tools);
-		this.button(__('Clear measurement'), () => { measuring = ''; clearMeasure(); measureStatus.empty(); }).appendTo(this.tools);
+		const clearMeasure = () => { measurePoints=[]; if (measureLine){map.removeLayer(measureLine); measureLine=null;} };
+		this.toolbar.group(__('Tools'))
+			.add({ icon: 'ruler', label: __('Distance'), action: () => { measuring='distance'; clearMeasure(); mapStatus(__('Click two points to measure distance.')); }})
+			.add({ icon: 'area', label: __('Area'), action: () => { measuring='area'; clearMeasure(); mapStatus(__('Click at least three points to measure area.')); }})
+			.add({ icon: 'clear', label: __('Clear'), action: () => { measuring=''; clearMeasure(); mapStatus(''); }})
+			.add({ icon: 'export', label: __('GeoJSON'), action: () => {
+				const geojson = { type:'FeatureCollection', features: currentPoints.map(p => ({ type:'Feature', geometry:{ type:'Point', coordinates:[Number(p.longitude),Number(p.latitude)] }, properties:{ doctype:p.doctype, name:p.name, label:p.label, precision:p.geo_precision, method:p.geocoding_method, uncertainty_m:p.geo_uncertainty_m, source:p.geometry_source }})) };
+				const url=URL.createObjectURL(new Blob([JSON.stringify(geojson)],{type:'application/geo+json'}));
+				const a=document.createElement('a'); a.href=url; a.download='siraj-visible-points.geojson'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+			}})
+			.add({ icon: 'info', label: __('About'), menuTitle: __('About this map'), menu: pop => {
+				$('<div style="font-size:12px;line-height:1.5;color:#3c5054"></div>')
+					.text(__('Select a marker to inspect its record. Clusters group nearby points; tools live in the dock at the right edge of the map. Online tiles are opt-in.'))
+					.appendTo(pop);
+			}});
+
 		map.on('click', event => {
 			if (!measuring) return;
 			if (measuring === 'distance' && measurePoints.length === 2) clearMeasure();
 			measurePoints.push(event.latlng);
 			if (measureLine) map.removeLayer(measureLine);
-			if (measurePoints.length >= 2) measureLine = (measuring === 'area' && measurePoints.length >= 3 ? L.polygon : L.polyline)(measurePoints, { color: '#1a6670', weight: 3, dashArray: '6 5', fillOpacity: 0.1, interactive: false }).addTo(map);
-			if (measuring === 'distance' && measurePoints.length === 2) measureStatus.text(__('Distance: {0} km', [(map.distance(measurePoints[0], measurePoints[1]) / 1000).toFixed(2)]));
+			if (measurePoints.length >= 2) measureLine = (measuring === 'area' && measurePoints.length >= 3 ? L.polygon : L.polyline)(measurePoints, {color:'#1a6670',weight:3,dashArray:'6 5',fillOpacity:0.1,interactive:false}).addTo(map);
+			if (measuring === 'distance' && measurePoints.length === 2) mapStatus(__('Distance: {0} km', [(map.distance(measurePoints[0], measurePoints[1])/1000).toFixed(2)]));
 			if (measuring === 'area' && measurePoints.length >= 3) {
-				const radians = Math.PI / 180, radius = 6371008.8;
-				let sum = 0;
-				measurePoints.forEach((p, i) => {
-					const next = measurePoints[(i + 1) % measurePoints.length];
-					let delta = (next.lng - p.lng) * radians;
-					while (delta > Math.PI) delta -= 2 * Math.PI;
-					while (delta < -Math.PI) delta += 2 * Math.PI;
-					sum += delta * (2 + Math.sin(p.lat * radians) + Math.sin(next.lat * radians));
-				});
-				const sphere = 4 * Math.PI * radius * radius;
-				const raw = Math.abs(sum * radius * radius / 2) % sphere;
-				measureStatus.text(__('Approximate area: {0} km²', [(Math.min(raw, sphere - raw) / 1000000).toFixed(2)]));
+				const R=6371008.8, pts=measurePoints; let sum=0;
+				pts.forEach((p,i)=>{ const n=pts[(i+1)%pts.length]; let d=(n.lng-p.lng)*Math.PI/180; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; sum+=d*(2+Math.sin(p.lat*Math.PI/180)+Math.sin(n.lat*Math.PI/180)); });
+				const sph=4*Math.PI*R*R, raw=Math.abs(sum*R*R/2)%sph;
+				mapStatus(__('Approximate area: {0} km²', [(Math.min(raw,sph-raw)/1e6).toFixed(2)]));
 			}
 		});
-		this.showDetails(__('Geographic map'), [[__('About this view'), __('Select a marker to inspect its record. Clusters show the number of nearby points. Online tiles are optional.')]]);
-		draw();
-		if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p => [Number(p.latitude), Number(p.longitude)])).pad(0.15), { maxZoom: 12 });
-	}
 
+		// Clear the legacy horizontal tool strip now that everything is in the map dock.
+		this.tools.empty();
+
+		draw();
+		this.showDetails(__('Geographic map'), [[__('About this view'), __('Select a marker to inspect its record. Clusters show the number of nearby points. Map tools live in the dock on the right edge of the map.')]]);
+		if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p => [Number(p.latitude), Number(p.longitude)])).pad(0.15), { maxZoom: 12 });
+		setTimeout(()=>map.invalidateSize(), 0);
+	}
 	async relationships(data, renderId) {
 		await frappe.require(['/assets/siraj_research/vendor/vis-network/vis-network.min.js', '/assets/siraj_research/css/siraj_explorer.css']);
 		if (renderId !== this.renderId) return;

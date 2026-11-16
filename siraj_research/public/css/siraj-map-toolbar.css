@@ -1,0 +1,145 @@
+/* SIRAJ map toolbar — styles. The toolbar is a thin vertical strip docked
+   inside the Leaflet control container, so it moves with the map, doesn't
+   scroll away, and works on touch devices.
+   Companion JS: siraj-map-toolbar.js, siraj-icons.js */
+
+.leaflet-top .siraj-toolbar,
+.leaflet-bottom .siraj-toolbar {
+	background: rgba(255,255,255,0.96);
+	border: 1px solid var(--border-color, #d9e2e7);
+	border-radius: 8px;
+	box-shadow: 0 2px 10px rgba(32,55,60,0.18);
+	padding: 4px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	z-index: 800;
+	min-width: 42px;
+}
+.leaflet-right .siraj-toolbar { margin-inline-end: 10px; }
+.leaflet-left .siraj-toolbar  { margin-inline-start: 10px; }
+.siraj-toolbar * { box-sizing: border-box; }
+
+/* Buttons */
+.siraj-toolbar-btn {
+	appearance: none;
+	background: transparent;
+	border: 0;
+	border-radius: 6px;
+	padding: 6px;
+	min-width: 34px;
+	min-height: 34px;
+	color: #2f4a49;
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1px;
+	cursor: pointer;
+	transition: background .15s, color .15s;
+	font-size: 10px;
+	line-height: 1;
+}
+.siraj-toolbar-btn:hover { background: #e5efec; color: #0c5e5b; }
+.siraj-toolbar-btn:focus-visible { outline: 2px solid #c69a21; outline-offset: -2px; }
+.siraj-toolbar-btn.is-active,
+.siraj-toolbar-btn.is-open { background: #0c5e5b; color: #fff; }
+.siraj-toolbar-btn.is-open { border-bottom-right-radius: 0; border-top-right-radius: 0; }
+.siraj-toolbar-btn svg { display: block; }
+.siraj-toolbar-label {
+	font-size: 9px;
+	font-weight: 600;
+	letter-spacing: .01em;
+	opacity: .75;
+	max-width: 48px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.siraj-toolbar-btn.is-active .siraj-toolbar-label,
+.siraj-toolbar-btn.is-open .siraj-toolbar-label { opacity: 1; }
+
+.siraj-toolbar-sep {
+	height: 1px;
+	background: var(--border-color, #d9e2e7);
+	margin: 4px 3px;
+}
+.siraj-toolbar-custom .btn {
+	min-width: 34px; padding: 6px 4px; font-size: 10px; line-height: 1.1;
+	white-space: normal;
+}
+
+/* Popover panel shown next to an "open" button */
+.siraj-toolbar-pop {
+	position: absolute;
+	right: calc(100% + 8px);
+	min-width: 220px;
+	max-width: 300px;
+	background: #fff;
+	border: 1px solid var(--border-color, #d9e2e7);
+	border-radius: 8px;
+	box-shadow: 0 6px 22px rgba(32,55,60,0.18);
+	padding: 8px;
+	z-index: 810;
+	max-height: 70vh;
+	overflow: auto;
+}
+.siraj-toolbar-pop-title {
+	font-weight: 600;
+	font-size: 12px;
+	color: var(--text-muted, #6a7a7e);
+	text-transform: uppercase;
+	letter-spacing: .04em;
+	margin-bottom: 6px;
+	padding-inline-start: 4px;
+}
+.siraj-toolbar-pop hr {
+	border: 0;
+	border-top: 1px solid var(--border-color, #d9e2e7);
+	margin: 6px 0;
+}
+.siraj-toolbar-opt {
+	appearance: none;
+	width: 100%;
+	background: transparent;
+	border: 0;
+	border-radius: 5px;
+	padding: 7px 8px;
+	color: #2f4a49;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	text-align: start;
+	font-size: 13px;
+}
+.siraj-toolbar-opt:hover { background: #edf4f2; }
+.siraj-toolbar-opt:focus-visible { outline: 2px solid #c69a21; }
+.siraj-toolbar-opt.is-active { background: #0c5e5b; color: #fff; }
+.siraj-toolbar-opt svg { flex: 0 0 18px; }
+.siraj-toolbar-pop .form-control { margin-bottom: 6px; }
+.siraj-toolbar-pop label { font-size: 12px; color: var(--text-muted); display: block; margin: 4px 0 2px; }
+.siraj-toolbar-pop .sx-check,
+.siraj-toolbar-pop .form-check { display: flex; align-items: center; gap: 6px; font-size: 12px; margin: 4px 0; }
+.siraj-toolbar-pop .btn { margin-top: 4px; }
+
+.siraj-toolbar-status {
+	font-size: 11px;
+	padding: 4px 6px;
+	color: var(--text-muted, #6a7a7e);
+	border-top: 1px solid var(--border-color, #d9e2e7);
+	margin-top: 2px;
+}
+.siraj-toolbar-status.siraj-toolbar-warning { color: #a04c13; }
+
+/* Smaller pins on form maps; reuses the .sx-map-pin shape defined in siraj_explorer.css */
+.siraj-coordinate-map .sx-map-pin {
+	width: 28px; height: 28px; border-width: 2px;
+}
+.siraj-coordinate-map .sx-map-pin svg { width: 16px; height: 16px; }
+
+/* Override the coordinate_map toolbar so its buttons also use SIRAJ icons. */
+.siraj-coordinate-map .siraj-toolbar-host ~ .btn,
+.siraj-coordinate-map .btn {
+	/* buttons that appear before the toolbar is mounted are restyled below */
+}
