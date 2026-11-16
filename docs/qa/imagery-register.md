@@ -34,3 +34,16 @@ These are libraries rather than photographs, but their licenses matter for rende
 ## Owner-supplied pack intake gate
 
 Before enabling either pack, record provider/creator, source dataset and acquisition date, geographic coverage and zoom levels, artifact SHA-256, license version and proof of authority, commercial and offline/device redistribution rights, attribution text, expiry/limits and owner approval. Confirm rights for underlying sources as well as tile rendering; public OSM tile service permission does not authorize bulk offline capture. Store sensitive contracts and packs outside Git. On an approved isolated copy validate the exact raster MBTiles format, unique tile index, attribution, representative coverage/missing tiles, size and supported devices, and verify exported ZIP attribution. A pack's mere existence or a successful download does not establish rights. No owner pack or license evidence has yet been received.
+
+## Offline redistribution decisions by asset class
+
+| Asset class | Offline bundling / attribution | Evidence and unresolved action |
+| --- | --- | --- |
+| Leaflet PNGs and Leaflet software | BSD-2-Clause permits redistribution subject to retention of copyright, conditions and disclaimer. Offline ZIP includes `leaflet/LICENSE`. | Exact PNG hashes and notice checked by `test_imagery_assets.py`; review full package and dependency notices before distribution. |
+| Natural Earth/world-atlas overview | Natural Earth states public-domain use; world-atlas ISC requires its copyright/permission notice. Check the actual distribution retains applicable notices. | Overview bytes and notice regression checked; this is not a license for other imagery or a completed distribution audit. |
+| Public OpenStreetMap tile server | **No bulk/offline prefetch** under its tile usage policy; interactive use requires policy and attribution compliance. | Never use it as an offline pack source. Obtain permitted offline imagery from an appropriate provider. |
+| Owner standard/aerial MBTiles | **UNKNOWN; do not bundle or enable** until underlying imagery and rendering redistribution/offline rights, attribution and limits are evidenced and approved per pack. | Owner-supplied pack and contract absent; do not infer rights from MBTiles metadata or a UI checkbox. |
+| Site File records and external image URLs | **UNKNOWN** per image; permission to view a record is not a copyright, privacy or offline redistribution license. | Inventory and secure the evidence and consent; replace or exclude unverified assets. |
+| Inline Explorer icons, Frappe logo, branding and third-party themes | **UNKNOWN** until authorship, app/reference-code rights and any trademark permissions are established. | Replace independently if provenance cannot be substantiated. Existing root license has placeholder copyright. |
+
+`test_imagery_assets.py` checks the recorded Leaflet/world-atlas SHA-256 bytes and notices and fails if a new standalone image appears under app public assets without updating the baseline. It does not find every embedded image, external URL, CSS asset or site content and does not prove ownership or legal compliance. Ongoing external/script/inline asset review remains necessary.
