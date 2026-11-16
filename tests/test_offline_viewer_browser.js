@@ -61,6 +61,22 @@ with zipfile.ZipFile(p / 'map.zip') as z: z.extractall(p / 'map')
     assert.match(await page.$eval('#status', e => e.textContent), /خط العرض/);
     await page.click('#fit');
     assert.equal(await page.$eval('.leaflet-control-attribution', e => e.querySelectorAll('img').length), 0);
+    // Only synthetic local JSON in a temporary directory, never a Frappe site.
+    const node = (doctype, name) => ({doctype, name});
+    const snapshotPath = path.join(tmp, 'fixture.json');
+    fs.writeFileSync(snapshotPath, JSON.stringify({version:1, created_at:'fixture', nodes:[node('Person','a'),node('Place','b')],
+      edges:[{source:node('Person','a'),target:node('Place','b'),type:'test'}]}));
+    await page.click('#records summary');
+    const input = await page.$('#record-file'); await input.uploadFile(snapshotPath);
+    await page.waitForFunction(() => document.querySelector('#record-state').textContent.includes('2 matching records'));
+    await page.click('#record-results button');
+    assert.match(await page.$eval('#record-info', e => e.textContent), /Place: b/);
+    await page.click('#record-info button');
+    assert.match(await page.$eval('#record-info strong', e => e.textContent), /Place: b/);
+    await page.type('#record-search', 'Person');
+    assert.match(await page.$eval('#record-state', e => e.textContent), /1 matching records/);
+    await page.click('#record-close');
+    assert.match(await page.$eval('#record-state', e => e.textContent), /closed/);
     assert.deepStrictEqual(external, []);
     assert.deepStrictEqual(errors, []);
     console.log('Offline viewer: file:// rendering, coordinates, escaped attribution and no external requests passed');

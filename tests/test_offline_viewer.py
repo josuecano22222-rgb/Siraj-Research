@@ -29,7 +29,7 @@ class OfflineViewerTest(unittest.TestCase):
         self.assertEqual(self.output.stat().st_mode & 0o777, 0o600)
         with ZipFile(self.output) as z:
             names = set(z.namelist())
-            self.assertTrue({'index.html', 'viewer.js', 'leaflet/leaflet.js', 'leaflet/leaflet.css',
+            self.assertTrue({'index.html', 'viewer.js', 'records.js', 'leaflet/leaflet.js', 'leaflet/leaflet.css',
                              'leaflet/LICENSE', 'tiles/0/0/0.png', 'tiles/1/0/0.png', 'tiles/1/1/1.png'} <= names)
             self.assertEqual(z.read('tiles/1/0/0.png'), PNG)
             config = json.loads(z.read('config.js').decode().removeprefix('window.SIRAJ_OFFLINE_MAP = ').strip().removesuffix(';'))

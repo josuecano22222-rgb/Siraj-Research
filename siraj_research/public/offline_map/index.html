@@ -10,6 +10,8 @@ html,body {height:100%;margin:0;font:15px sans-serif} body {display:flex;flex-di
 header {padding:.5rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
 input {width:8rem} button,select,input {font:inherit;padding:.25rem} #map {flex:1;min-height:200px;background:#dce8ed} #status {padding:.5rem}
 .hint {font-size:.9em} .leaflet-container {font:inherit}
+#records {padding:.5rem;max-height:35vh;overflow:auto;border-top:1px solid #aaa} #records input[type=file] {width:auto;max-width:100%}
+#records ul {padding-inline-start:1.4rem} #records button {margin:.15rem} #record-info {white-space:pre-wrap}
 </style>
 </head>
 <body>
@@ -25,8 +27,20 @@ input {width:8rem} button,select,input {font:inherit;padding:.25rem} #map {flex:
 </header>
 <div id="map" role="region" aria-label="Offline map"></div>
 <div id="status" role="status" aria-live="polite">Tiles are available only where included in this package.</div>
+<details id="records">
+<summary>Offline records (experimental, read-only)</summary>
+<p id="record-warning">This viewer is disconnected and cannot verify permissions or revoke copies. Only open a locally stored snapshot you are authorized to access. Snapshots may be sensitive and unencrypted. No export or synchronization is provided.</p>
+<label>Open local record snapshot <input id="record-file" type="file" accept="application/json,.json"></label>
+<button id="record-close" type="button">Close snapshot</button>
+<div id="record-state" role="status" aria-live="polite">No snapshot loaded. This viewer does not connect to a server.</div>
+<label>Search identifiers <input id="record-search" type="search" autocomplete="off"></label>
+<label>Record type <select id="record-type"><option value="">All types</option></select></label>
+<ul id="record-results"></ul>
+<div id="record-info"></div>
+</details>
 <script src="leaflet/leaflet.js"></script>
 <script src="config.js"></script>
 <script src="viewer.js"></script>
+<script src="records.js"></script>
 </body>
 </html>

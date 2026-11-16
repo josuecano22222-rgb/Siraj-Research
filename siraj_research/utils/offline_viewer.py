@@ -44,7 +44,7 @@ def create_package(source, destination, bounds, minzoom, maxzoom, *, redistribut
                           "extension": extension, "bounds": list(bounds), "attribution": meta.get("attribution", "")}
                 # JSON in a separate script, not an inline HTML context.
                 archive.writestr("config.js", "window.SIRAJ_OFFLINE_MAP = " + json.dumps(config, ensure_ascii=True) + ";\n", compress_type=ZIP_DEFLATED)
-                for name in ("index.html", "viewer.js"):
+                for name in ("index.html", "viewer.js", "records.js"):
                     archive.write(ASSETS / "offline_map" / name, name, compress_type=ZIP_DEFLATED)
                 for name in ("leaflet.js", "leaflet.css", "LICENSE"):
                     archive.write(ASSETS / "vendor" / "leaflet" / name, "leaflet/" + name, compress_type=ZIP_DEFLATED)
