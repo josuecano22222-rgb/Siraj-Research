@@ -90,7 +90,7 @@ def _coordinate(value, limit):
         return None
     try:
         number = Decimal(text)
-        if not number.is_finite() or abs(number) > limit:
+        if not number.is_finite() or number.copy_abs() > limit:
             return None
         return float(number)
     except (InvalidOperation, ValueError, OverflowError):

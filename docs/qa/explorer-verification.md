@@ -1,0 +1,15 @@
+# Explorer integration verification
+
+**Status: IN PROGRESS.** The online implementation has not been verified against actual Frappe records, and the requested disconnected record Explorer is not implemented. The online Explorer is connected in code; the separate disconnected viewer intentionally has no record database or synchronization. The word “disconnected” in the earlier status referred to operating without the server, not evidence that the online Explorer has no API connection.
+
+## Trace
+
+`/app/siraj-explorer` Page loads `siraj_explorer.js`. Geography calls `visualization.geographic_data`, relationship graph calls `relationship_data` and optional evidence, Structures calls `structure_data`, and dossier leaves call `record_detail`. These use DocType/field allowlists and `report_access.readable_rows`, which calls Frappe's permission-filtered `get_list` and checks each document. Geographic markers require the record's own valid latitude/longitude; linked Place coordinates are not copied. Existing historical `(0,0)` pairs are intentionally excluded because they may represent Float defaults. The graph returns edges only for readable relationships whose two endpoint records are both visible. Structures counts and grouping depend on visible records and readable fields. See `../siraj-explorer.md` and `../original-feature-parity.md` for behavior, pagination and current limitations.
+
+No actual site data, linked-record completeness, Page routing, permissions or network/API failures were inspected in this environment. Earlier operator diagnostics found zero Events in a limited point-in-time check; they do not describe the rest of the registry. Do not insert samples to populate a display. Legitimate records must be created through normal authorized Frappe forms/import processes, respecting required fields, link targets, workflow and permissions; obtain the precise effective metadata on the actual site before giving field-specific import instructions.
+
+## Verification required
+
+Using authorized accounts and existing legitimate records, compare list/document counts and readable fields with every Explorer API and visual view; test private/owned/shared/user-permission records, inaccessible relationship endpoints and linked fields, search, filters, centering, navigation, dossiers, empty/missing data, non-existent/deleted links, field restrictions, failed APIs and localized UI. Capture sanitized requests, assertions, actual results and revision. Include a deliberate negative test via direct API, not only hidden UI controls. Where data is missing, report types and approved ingestion procedure; never fabricate it.
+
+Offline record snapshots require a separate design for field/document permissions at export, minimum scope, sensitive data encryption and device access, consent, lifecycle/expiry, revocation limitations, conflict resolution and reconciliation. The current basemap ZIP contains no records; it is not a disconnected record Explorer and cannot meet that requirement.

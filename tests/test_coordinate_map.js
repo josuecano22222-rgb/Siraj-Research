@@ -6,7 +6,7 @@ const {JSDOM} = require('jsdom');
 const dom = new JSDOM('<main id="form"></main>', {runScripts:'dangerously', url:'http://example.test/app'});
 const w = dom.window, $ = require('jquery')(w);
 w.$ = $; w.__ = s => s;
-let network = 0, maps = [], registrations = {};
+let network = 0, maps = [], registrations = {}, tileCalls = [];
 class Map {
   constructor() { this.events = {}; this.layers = []; this.zoom = 4; this.views = []; maps.push(this); }
   setView(point, zoom) { this.views.push(point); this.zoom = zoom; return this; }
@@ -25,7 +25,7 @@ class Layer {
   bringToFront() {}
 }
 w.L = {map: () => new Map(), marker: point => new Layer(point), geoJSON: () => new Layer(),
-       tileLayer: () => { network++; return new Layer(); }};
+       tileLayer: (url, options) => { network++; tileCalls.push({url, options}); return new Layer(); }};
 w.topojson = {feature: () => ({})};
 w.fetch = async () => ({ok:true, json:async () => ({objects:{countries:{}}})});
 w.frappe = {call: async () => ({message:[{kind:'aerial',minzoom:0,maxzoom:16,attribution:'<script>bad</script>'}]}), require: async () => {}, ui:{form:{on: (doctype, events) => {registrations[doctype] = events;}}}};
@@ -58,7 +58,10 @@ const wait = () => new Promise(resolve => setTimeout(resolve, 20));
   local.val('aerial').trigger('change'); assert.equal(network,1);
   local.val('').trigger('change');
   const toggle = x.container.find('button').filter((i,e)=>$(e).text()==='Enable online street map');
-  toggle.trigger('click'); assert.equal(network,2); toggle.trigger('click');
+  toggle.trigger('click'); assert.equal(network,2);
+  assert.equal(tileCalls[1].url, 'https://tile.openstreetmap.org/{z}/{x}/{y}.png');
+  assert(tileCalls[1].options.attribution.includes('https://www.openstreetmap.org/copyright'));
+  toggle.trigger('click');
   $(w.document).trigger('form-refresh',[x.frm]); await wait(); assert.equal(maps.length,1);
   x.lat.status = 'Read'; x.lon.status = 'Read'; $(w.document).trigger('form-refresh',[x.frm]); await wait();
   const before = x.frm.calls.length; maps[0].events.click({latlng:{lat:1,lng:2}}); await wait(); assert.equal(x.frm.calls.length,before);

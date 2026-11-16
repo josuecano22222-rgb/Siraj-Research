@@ -177,8 +177,8 @@
 			} else {
 				if (state.offlineLayer) map.removeLayer(state.offlineLayer);
 				if (state.packLayer) { map.removeLayer(state.packLayer); state.packLayer = null; packSelect.val(''); map.setMinZoom(0); }
-				state.tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-					maxZoom: 22, maxNativeZoom: 19, attribution: '&copy; OpenStreetMap contributors',
+				state.tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+					maxZoom: 22, maxNativeZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 				}).addTo(map);
 				tiles.text(t('Disable online street map'));
 			}

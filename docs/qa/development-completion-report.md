@@ -1,0 +1,27 @@
+# Development completion report — audit in progress
+
+This is a living report, not a production readiness certificate. Definition of done is **not met**. The current workspace has no running bench/database, actual test accounts, installed-site records, representative load environment, or supplied imagery licenses. No production deployment, migration, reinstall, sample insertion, destructive operation or production load test was performed in this audit.
+
+| Work item | Status | Evidence this audit | Remaining blocker / risk |
+| --- | --- | --- | --- |
+| Permissions | BLOCKED | Static metadata and API review; mock tests only. `permission-test-report.md`. | Effective permissions and real direct API behavior need authorized Frappe accounts/environment and controlled operations. Link fields, derived titles and custom rules need particular review. |
+| Load/performance | BLOCKED | Candidate scan/N+1/tile paths identified; no measured numbers. `load-test-report.md`. | Authorized representative environment, realistic workload, metrics and post-fix comparison. |
+| Imagery | IN PROGRESS | `imagery-register.md`: all five bundled Leaflet PNG hashes match `leaflet@1.9.4`; world atlas hash matches `world-atlas@2.0.2`. Corrected optional coordinate picker OSM tile hostname and attribution link, with mocked regression. | Owner-provided packs, site uploads/URLs, logo/trademark and inline SVG provenance, service policy and full attribution review remain. |
+| Explorer | IN PROGRESS | Code trace and synthetic browser/unit tests; see `explorer-verification.md`. | No real record, link or role tests. Offline basemap viewer is not an offline record Explorer. |
+| Event | IN PROGRESS | Documented actual past collision and upstream core field/hook comparison; local rename and guard are incomplete prototypes. `../event-collision-remediation.md`. | Reviewed data migration, core metadata restoration, site dependency inventory, real Frappe regression and recovery rehearsal. |
+| Coordinates | IN PROGRESS | Found and corrected a Decimal-context rounding bug: very long just-out-of-range values could pass Python bounds checks. Added exact-boundary regression and a read-only aggregate inventory prototype. `coordinate-migration.md`. | No migration patch, physical schema inspection, real site values, Frappe migration/rollback or end-to-end verification. |
+
+## Changes in this audit
+
+- `siraj_research/visualization.py`: exact Decimal bound comparison via context-independent `copy_abs`; does not change stored values or the schema. Regression `tests/test_coordinate_decimal_bounds.py` uses a Frappe stub, not a live site.
+- `siraj_research/public/js/coordinate_map.js` and `tests/test_coordinate_map.js`: optional OSM layer uses the policy's canonical hostname and a copyright link. This change alone does not establish complete tile-policy compliance.
+- `siraj_research/setup/coordinate_audit.py` and `tests/test_coordinate_audit.py`: non-whitelisted read-only, aggregate-only, fixed-DocType preflight prototype and fake database tests. It has not been run on an actual site and is not a migration.
+- `docs/qa/`: outstanding work, permission/load reports, Explorer trace, asset licensing register, this report and coordinate plan. The separate existing worktree Event, coordinate metadata, hooks and form prototypes were not treated as completed or deployed.
+
+## Tests and limitations
+
+In the current **dirty worktree**, `python3 -m unittest discover -s tests -v`: 88 tests passed. JavaScript mock tests passed for coordinate forms, Explorer UI, offline downloader/viewer, list/tree navigation and current prototype form scripts; synthetic Chromium Explorer and `file://` offline viewer smoke tests passed; asset test passed. An isolated archive of the staged changes passed 80 Python tests, coordinate mock, synthetic Chromium Explorer and asset smoke tests; this archive excludes the unrelated worktree prototypes. `compileall`, selected `node --check` and `git diff --check` passed. These do not test real Frappe authorization, production records, database migrations, multi-user load, mobile devices or actual imagery.
+
+## Release and recovery
+
+Do not deploy this audit's changes or run migration/reinstall/seeding as a consequence of this report. Follow the sequencing and gates in `outstanding-work.md`, and the backup/data recovery constraints in `coordinate-migration.md` and `../event-collision-remediation.md`. Any future production deployment or data-changing operation needs a separate explicit authorization, current verified backups, a rehearsed recovery plan and a site-specific maintenance runbook. No test report currently establishes that all critical errors or information leaks are absent.
