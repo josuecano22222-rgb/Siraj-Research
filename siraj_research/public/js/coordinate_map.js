@@ -17,7 +17,9 @@
 		return assetsPromise;
 	};
 	function parseCoordinate(value, max) {
-		if (value === undefined || value === null) return null;
+		if (value === undefined || value === null || typeof value === 'boolean') return null;
+		// Float-backed legacy fields can be displayed in scientific notation.
+		if (typeof value === 'number') return Number.isFinite(value) && Math.abs(value) <= max ? value : null;
 		const normalized = String(value).trim()
 			.replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 0x660))
 			.replace(/[۰-۹]/g, c => String(c.charCodeAt(0) - 0x6f0))
@@ -88,7 +90,7 @@
 			if (!state.marker) state.marker = L.marker([lat, lon]).addTo(state.map);
 			else state.marker.setLatLng([lat, lon]);
 			if (center) state.map.setView([lat, lon], Math.max(state.map.getZoom(), 6));
-			state.status.text(t('Location shown. Typed coordinate text is not rounded by the map.'));
+			state.status.text(lat === 0 && lon === 0 ? t('Zero pair shown; legacy zero may also mean unknown. Confirm before interpreting it.') : t('Location shown. Typed coordinate text is not rounded by the map.'));
 		}
 		if (!fields.textFields) state.status.text(t('Preview only: both coordinate fields must be text fields to select a point.'));
 		else if (!fields.editable) state.status.text(t('Location preview (read-only).'));

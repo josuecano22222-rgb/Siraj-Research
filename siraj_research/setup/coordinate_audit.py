@@ -4,32 +4,14 @@ Not whitelisted; do not call on a production site without operational approval.
 This does not change data or establish a transactionally consistent snapshot.
 """
 from collections import Counter
-from decimal import Decimal, InvalidOperation
-import re
+from siraj_research.utils.coordinates import bounded_coordinate
 
 import frappe
 
 # Fixed committed legacy names. The unreleased Event split needs separate review.
 TYPES = ("Person", "Institution", "Place", "Event", "Military Unit", "Operational Deployment")
-_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹٫", "01234567890123456789.")
-_DECIMAL = re.compile(r"^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$")
-
-
 def _classify(value, maximum):
-    if value is None or (isinstance(value, str) and not value.strip()):
-        return "blank", None
-    if isinstance(value, bool):
-        return "invalid", None
-    text = str(value).strip().translate(_DIGITS)
-    if isinstance(value, str) and not _DECIMAL.fullmatch(text):
-        return "invalid", None
-    try:
-        number = Decimal(text)
-        if not number.is_finite() or number.copy_abs() > maximum:
-            return "invalid", None
-        return "valid", number
-    except (InvalidOperation, TypeError, ValueError):
-        return "invalid", None
+    return bounded_coordinate(value, maximum)
 
 
 def summarize(rows):

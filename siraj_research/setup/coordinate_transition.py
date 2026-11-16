@@ -5,36 +5,17 @@ This is a rehearsal, not a migration executor or proof of physical rollback.
 """
 import copy
 from collections import Counter
-from decimal import Decimal, InvalidOperation
-import math
-import re
 
 from siraj_research.setup.event_snapshot_projection import _index, _same
 from siraj_research.setup.event_transition_plan import PlanError
+from siraj_research.utils.coordinates import parse_coordinate
 
 TYPES = ('Person','Institution','Place','Event','Military Unit','Operational Deployment')
-DIGITS = str.maketrans('٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹٫','01234567890123456789.')
-DECIMAL = re.compile(r'^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$')
 MAX_LENGTH = 140
 
 
 def _parse(value):
-    if value is None or isinstance(value,str) and not value.strip():
-        return 'blank', None
-    if isinstance(value,bool) or not isinstance(value,(str,int,float)):
-        return 'invalid', None
-    if isinstance(value,float) and not math.isfinite(value):
-        return 'invalid', None
-    text = str(value).strip().translate(DIGITS)
-    # Scientific notation is accepted only for numeric legacy values, not text.
-    if len(text) > MAX_LENGTH or isinstance(value,str) and not DECIMAL.fullmatch(text):
-        return 'invalid', None
-    try:
-        number = Decimal(text)
-        if not number.is_finite(): return 'invalid', None
-        return 'valid', number
-    except (InvalidOperation, ValueError):
-        return 'invalid', None
+    return parse_coordinate(value, max_length=MAX_LENGTH)
 
 
 def _canonical(n):
