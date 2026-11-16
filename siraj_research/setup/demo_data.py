@@ -847,7 +847,7 @@ def seed_demo_data():
             if code in schemes:
                 pdoc.append("external_identifiers", {
                     "scheme": schemes[code],
-                    "identifier_value": val,
+                    "value": val,
                 })
             elif code in plats:
                 url_tpl = {"twitter":"https://x.com/","facebook":"https://facebook.com/",
@@ -939,9 +939,10 @@ def seed_demo_data():
             pdoc.append("leadership_assessments", {
                 "quality": LQUAL[q],
                 "level": LLEVEL[lvl],
-                "assessor": persons.get("dr_mahmud"),
-                "assessed_on": today - _dt.timedelta(days=30),
-                "basis": f"Demo assessment based on {q}; data from open sources.",
+                "assessed_by": f"Dr Mahmud (DEMO)",
+                "assessed_at": today - _dt.timedelta(days=30),
+                "evidence_note": f"Demo assessment based on {q}; data from open sources.",
+                "source": sources.get("iiss_mb") or sources.get("mod_press"),
             })
         pdoc.save(ignore_permissions=True)
 
