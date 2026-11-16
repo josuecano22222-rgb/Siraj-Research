@@ -28,3 +28,17 @@ It has only fake-Frappe tests and must first be validated in an authorized isola
 The Event metadata inventory delivery does not change any coordinate schema, values, picker behavior or migration hooks. Keep the six Float-to-Data worktree edits out of deployment until the independent typed-value backup, null/default handling, conversion, reverse recovery and Event/patch dependencies above have been implemented and rehearsed. No coordinate migration or real coordinate audit has been run.
 
 No coordinate record-level preview or reversible migration is added by the snapshot/security milestone. The aggregate audit remains read-only and mock-tested; a safe record-level exception mechanism and its sensitive-output handling are still required before migration can be prepared.
+
+## Fixture-only transition model
+
+`coordinate_transition.py` implements a pure candidate conversion and reversible whole-snapshot rehearsal for the six **legacy** DocTypes. It assumes WGS84 decimal degrees, latitude first, longitude second; GeoJSON consumers conventionally reverse the order. Canonical output is ASCII fixed-point decimal text, at most 140 characters, without rounding; leading/trailing zero formatting is normalized. Numeric legacy floats use Python's shortest round-trip representation: this preserves the observed Python float value, not precision previously lost by the database. Original typed values and all supplied other fields, including provenance, are retained in the protected before-state. No CRS can be deduced from a pair; its source must be reviewed separately. Field length and format are proposed and not deployed.
+
+The audit reports invalid, partial, missing, out-of-range and unreviewed-orientation cases. Even apparently valid pairs require explicit `lat_lon` or `swap`; `(0,0)` additionally requires an explicit preserve decision. Both blank values stay unchanged. No swap is inferred, no invalid input silently discarded, and proposals never change the input. The in-memory manifest supports idempotent repeat projection/reversal for exact before/after snapshots, rejecting partial operations, concurrent modifications, additional/missing records and mismatched journals. A manifest must be confidential and trusted; no cryptographic integrity or actual database executor exists. This model does not address shadow columns, physical schema, Event ownership, installed customizations, DDL, concurrent writers or whole-site restore. `execution_ready` remains false.
+
+For an **explicitly authorized isolated copy only**, the existing aggregate audit can be invoked after verifying the correct site, impact and hook behavior (replace the site placeholder with its real isolated-site name):
+
+```bash
+bench --site <isolated-site> execute siraj_research.setup.coordinate_audit.inspect_coordinate_migration
+```
+
+This diagnostic is non-whitelisted and only requests aggregate/schema output, but is privileged and may scan every row. `bench execute` can commit effects from custom hooks and output may be sensitive; it is not a transactionally consistent snapshot or a guarantee of no side effects. Do not run against the working/production site or share output without review. It has not been tested against the owner's Frappe site. No command for actual conversion is implemented or authorized.
