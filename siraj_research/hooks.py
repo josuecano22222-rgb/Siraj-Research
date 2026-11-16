@@ -50,7 +50,20 @@ add_to_apps_screen = [
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/siraj_research/css/siraj_research.css"
-app_include_js = "/assets/siraj_research/js/coordinate_map.js"
+app_include_js = [
+	"/assets/siraj_research/js/siraj-record-meta.js",
+	"/assets/siraj_research/js/siraj-map-toolbar.js",
+	"/assets/siraj_research/js/siraj-list-icons.js",
+	"/assets/siraj_research/js/coordinate_map.js",
+]
+app_include_css = [
+	"/assets/siraj_research/css/siraj-map-toolbar.css",
+	"/assets/siraj_research/css/siraj-icons.css",
+]
+
+# Inject per-doctype metadata on every page load so the client has the same
+# colour/glyph catalogue the server uses.
+boot_session = "siraj_research.record_icons.boot_session"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/siraj_research/css/siraj_research.css"
@@ -98,10 +111,9 @@ app_include_js = "/assets/siraj_research/js/coordinate_map.js"
 # ----------
 
 # add methods and filters to jinja environment
-# jinja = {
-# 	"methods": "siraj_research.utils.jinja_methods",
-# 	"filters": "siraj_research.utils.jinja_filters"
-# }
+jinja = {
+	"methods": "siraj_research.jinja_utils",
+}
 
 # Installation
 # ------------

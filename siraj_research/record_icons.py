@@ -1,0 +1,151 @@
+# -*- coding: utf-8 -*-
+"""Universal SIRAJ record-metadata registry.
+
+Every DocType that can appear as a marker, graph node, list-row avatar, form
+sidebar indicator, dashboard card, map tooltip, link-result glyph or Jinja
+reference resolves through :data:`RECORDS`. Each entry holds the stable display
+metadata (label, colour, icon glyph, category) so consumers never duplicate
+colours or SVGs.
+
+Keep this module free of Frappe imports at import-time; functions that touch
+the database should take a ``frappe``-like argument or be called from request
+context.
+"""
+from __future__ import annotations
+
+from typing import Dict
+
+#: Canonical palette. Keys match the SVG/JS colour dictionary and CSS custom
+#: properties. All glyphs are drawn on white so colours must meet 4.5:1 contrast.
+COLOURS: Dict[str, str] = {
+	"Person":              "#3577c0",  # steel-blue — biography
+	"Institution":         "#8262b0",  # purple — organisations
+	"Place":               "#188c7e",  # teal — geography
+	"Research Event":      "#d08733",  # ochre — events
+	"Source":              "#aa6b85",  # plum — sources
+	"Military Unit":       "#c3564b",  # brick-red — combat units
+	"Military Division":   "#923d39",  # darker brick — division echelon
+	"Operational Deployment": "#867e45",  # olive — active ops
+	"Training Exercise":   "#4f8a65",  # forest-green — training
+	"Mission":             "#b56d2c",  # burnt-orange — named missions
+	"Command Region":      "#3e6d8e",  # slate-blue — geographic command
+	"Unit Classification": "#6f6a8a",  # muted violet — organisational taxonomy
+	"Armament":            "#5b6c46",  # moss-green — equipment
+	"Command Appointment": "#7b4c79",  # mauve — billets/appointments
+	"Relationship":        "#53706b",  # slate — connections
+	"Country":             "#2f6f83",  # blue-teal — polity
+	"Governorate":         "#5c8699",  # soft blue — province
+	"District":            "#82a2b0",  # powder — sub-province
+	"Municipality":        "#a4bcc6",  # very pale blue — local
+	"Village":             "#c4d6dd",  # paleest blue — settlement
+	"Community":           "#dde8ec",  # near-white (use with outline)
+}
+
+#: 24x24 stroke-only SVG paths (no <svg> wrapper). Same as siraj-icons.js on
+#: the client. Keep the two in lockstep; tests/test_form_integrity.py enforces
+# that every doctype listed here has a matching JS entry.
+GLYPHS: Dict[str, str] = {
+	"Person":              '<circle cx="12" cy="8" r="3"/><path d="M5 19c0-4 3-6 7-6s7 2 7 6"/>',
+	"Institution":         '<path d="M3 9h18L12 3 3 9Zm2 1v8m5-8v8m4-8v8m5-8v8M3 20h18"/>',
+	"Place":               '<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11Z"/><circle cx="12" cy="10" r="2"/>',
+	"Research Event":      '<path d="M12 2l2.5 6 6.5.5-5 4 1.5 6.5-5.5-3.5L6.5 19 8 12.5l-5-4L9.5 8Z"/>',
+	"Source":              '<path d="M6 3h9l3 3v15H6Z"/><path d="M15 3v4h3"/><path d="M9 10h6M9 14h6M9 18h4"/>',
+	"Military Unit":       '<path d="M12 2 20 5v6c0 5-3 8-8 11-5-3-8-6-8-11V5Z"/><path d="M12 7v10M7 12h10"/>',
+	"Military Division":   '<path d="M4 20V4l8 3 8-3v16"/><path d="M4 20h16"/><path d="M8 8h8M8 12h8"/>',
+	"Operational Deployment": '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>',
+	"Training Exercise":   '<path d="M12 3l9 4-9 4-9-4Z"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4"/>',
+	"Mission":             '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+	"Command Region":      '<path d="M12 2 3 7v5c0 5 4 8 9 10 5-2 9-5 9-10V7Z"/><circle cx="12" cy="12" r="2"/>',
+	"Unit Classification":'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+	"Armament":            '<path d="M3 14h6l3-3 7 1v3l-7-1-3 3H5Z"/><path d="M14 7l3-3 3 3-3 3"/>',
+	"Command Appointment": '<path d="M6 8h12v3l-6 4-6-4Z"/><path d="M8 11v8h8v-8"/>',
+	"Relationship":        '<path d="M4 12a4 4 0 0 1 4-4h3"/><circle cx="7" cy="12" r="1.5"/><path d="M20 12a4 4 0 0 0-4-4"/><path d="M13 12h4"/><circle cx="17" cy="12" r="1.5"/>',
+	"Country":             '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+	"Governorate":         '<path d="M3 5l4-2 4 3 4-2 6 4v11l-5 3-5-2-4 2-4-3Z"/>',
+	"District":            '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16M15 4v16M4 9h16M4 15h16"/>',
+	"Municipality":        '<path d="M3 21V10l9-6 9 6v11"/><path d="M9 21v-6h6v6"/>',
+	"Village":             '<path d="M4 20 12 6l8 14"/><path d="M8 20v-5h8v5"/>',
+	"Community":           '<circle cx="9" cy="10" r="2"/><circle cx="15" cy="10" r="2"/><circle cx="12" cy="15" r="2"/><path d="M9 12v2M15 12v2M10.5 14.5l1 1M13.5 14.5l-1 1"/>',
+}
+
+
+def record_meta(doctype: str) -> dict:
+	"""Return display metadata for ``doctype``.
+
+	Always returns *a* dict (defaulting to "Other" grey + generic-document
+	glyph) so call sites never have to KeyError-check.
+	"""
+	spec = RECORDS.get(doctype)
+	if spec:
+		return {**spec, "doctype": doctype}
+	return {
+		"doctype": doctype,
+		"colour": "#6a7a7e",
+		"glyph": '<path d="M6 3h9l3 3v15H6Z"/><path d="M9 10h6M9 14h6"/>',
+		"category": "other",
+	}
+
+
+def svg(doctype: str, *, size: int = 16, colour: str | None = None) -> str:
+	"""Render a standalone SVG for ``doctype`` suitable for inline HTML."""
+	meta = record_meta(doctype)
+	c = colour or meta["colour"]
+	return (
+		f'<svg class="siraj-doctype-glyph" viewBox="0 0 24 24" width="{size}" height="{size}"'
+		f' aria-hidden="true" fill="none" stroke="{c}" stroke-width="1.8"'
+		f' stroke-linecap="round" stroke-linejoin="round">{meta["glyph"]}</svg>'
+	)
+
+
+#: Per-doctype metadata. ``category`` drives grouping on dashboards.
+RECORDS: Dict[str, dict] = {
+	"Person":               {"colour": COLOURS["Person"],              "glyph": GLYPHS["Person"],              "category": "actor"},
+	"Institution":          {"colour": COLOURS["Institution"],         "glyph": GLYPHS["Institution"],         "category": "actor"},
+	"Place":                {"colour": COLOURS["Place"],               "glyph": GLYPHS["Place"],               "category": "geo"},
+	"Research Event":       {"colour": COLOURS["Research Event"],      "glyph": GLYPHS["Research Event"],      "category": "event"},
+	"Source":               {"colour": COLOURS["Source"],              "glyph": GLYPHS["Source"],              "category": "evidence"},
+	"Military Unit":        {"colour": COLOURS["Military Unit"],       "glyph": GLYPHS["Military Unit"],       "category": "unit"},
+	"Military Division":    {"colour": COLOURS["Military Division"],   "glyph": GLYPHS["Military Division"],   "category": "unit"},
+	"Operational Deployment": {"colour": COLOURS["Operational Deployment"], "glyph": GLYPHS["Operational Deployment"], "category": "operation"},
+	"Training Exercise":    {"colour": COLOURS["Training Exercise"],   "glyph": GLYPHS["Training Exercise"],   "category": "operation"},
+	"Mission":              {"colour": COLOURS["Mission"],             "glyph": GLYPHS["Mission"],             "category": "operation"},
+	"Command Region":       {"colour": COLOURS["Command Region"],      "glyph": GLYPHS["Command Region"],      "category": "geo"},
+	"Unit Classification":  {"colour": COLOURS["Unit Classification"], "glyph": GLYPHS["Unit Classification"],"category": "taxonomy"},
+	"Armament":             {"colour": COLOURS["Armament"],            "glyph": GLYPHS["Armament"],            "category": "equipment"},
+	"Command Appointment":  {"colour": COLOURS["Command Appointment"], "glyph": GLYPHS["Command Appointment"], "category": "billet"},
+	"Relationship":         {"colour": COLOURS["Relationship"],        "glyph": GLYPHS["Relationship"],        "category": "connection"},
+	"Country":              {"colour": COLOURS["Country"],             "glyph": GLYPHS["Country"],             "category": "geo"},
+	"Governorate":          {"colour": COLOURS["Governorate"],         "glyph": GLYPHS["Governorate"],         "category": "geo"},
+	"District":             {"colour": COLOURS["District"],            "glyph": GLYPHS["District"],            "category": "geo"},
+	"Municipality":         {"colour": COLOURS["Municipality"],        "glyph": GLYPHS["Municipality"],        "category": "geo"},
+	"Village":              {"colour": COLOURS["Village"],             "glyph": GLYPHS["Village"],             "category": "geo"},
+	"Community":            {"colour": COLOURS["Community"],           "glyph": GLYPHS["Community"],           "category": "geo"},
+}
+
+
+# DocTypes that are *internal* (lookups, child tables, settings). They don't
+# appear as first-class search results or pins, but still get a glyph so any
+# link autocomplete or breadcrumb stays consistent.
+INTERNAL = {
+	"Person Classification",  "Person Status",          "Person Category",
+	"Place Type",              "Institution Type",       "Institution Subcategory",
+	"Source Type",             "Source Reliability",     "Event Type",
+	"Relationship Type",       "Leadership Quality",     "Leadership Level",
+	"Military Branch",         "Military Service Status","Governance System",
+	"Language",                "Documentation Level",    "Authentication Level",
+	"Social Platform",         "External ID Scheme",     "Expertise Area",
+	"Specialization",          "SIRAJ Settings",
+}
+
+
+def boot_session():
+	"""Return the JS-ready record-metadata dict, exposed via ``frappe.boot``.
+
+	Hooks calls this at ``on_session_creation`` so every page (Desk, Explorer,
+	print views) can rely on ``window.sirajRecordMeta`` existing.
+	"""
+	return {
+		"colours": COLOURS,
+		"glyphs": GLYPHS,
+		"records": {dt: {"colour": v["colour"], "category": v["category"]} for dt, v in RECORDS.items()},
+	}

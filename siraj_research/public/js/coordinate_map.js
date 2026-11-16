@@ -15,9 +15,6 @@
 				'/assets/siraj_research/vendor/leaflet/leaflet.css',
 				'/assets/siraj_research/vendor/leaflet/leaflet.js',
 				'/assets/siraj_research/vendor/topojson/topojson-client.min.js',
-				'/assets/siraj_research/js/siraj-icons.js',
-				'/assets/siraj_research/js/siraj-map-toolbar.js',
-				'/assets/siraj_research/css/siraj-map-toolbar.css',
 			])).catch(error => { assetsPromise = null; throw error; });
 		}
 		return assetsPromise;
@@ -93,7 +90,15 @@
 				? t('Enter valid decimal coordinates: latitude −90 to 90, longitude −180 to 180.')
 				: t('Enter coordinates or select a point on the map.'));
 		} else {
-			if (!state.marker) state.marker = L.marker([lat, lon]).addTo(state.map);
+			if (!state.marker) {
+				// Use the Place pin for the coordinate-picker marker so it matches
+				// the Explorer and other surfaces.
+				const pinIcon = L.divIcon({
+					className: 'sx-pin-wrapper', iconSize: [32, 32], iconAnchor: [16, 16],
+					html: window.sirajIcons ? window.sirajIcons.pin('Place', null, 32) : ''
+				});
+				state.marker = L.marker([lat, lon], {icon: pinIcon}).addTo(state.map);
+			}
 			else state.marker.setLatLng([lat, lon]);
 			if (center) state.map.setView([lat, lon], Math.max(state.map.getZoom(), 6));
 			state.status.text(lat === 0 && lon === 0 ? t('Zero pair shown; legacy zero may also mean unknown. Confirm before interpreting it.') : t('Location shown. Typed coordinate text is not rounded by the map.'));

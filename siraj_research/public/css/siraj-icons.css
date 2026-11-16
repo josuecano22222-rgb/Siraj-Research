@@ -1,0 +1,111 @@
+/* Universal SIRAJ icon & colour primitives.
+ *
+ * These classes make the record-type glyphs look identical everywhere the
+ * palette is used: the map canvas, the network graph, list-view avatars, form
+ * sidebar indicators, autocomplete results, dashboard cards and printed PDFs.
+ *
+ * Each element that carries data-doctype="<Doctype>" gets a CSS custom
+ * property --siraj-colour set by the JS bootstrap, so backgrounds, strokes
+ * and borders stay in lockstep without inline styles.
+ */
+
+:root {
+	--siraj-pin-size: 36px;
+}
+
+/* --- Pin (map marker / node avatar) --- */
+.sx-pin-wrapper { border: 0; background: transparent; }
+.siraj-pin.sx-map-pin {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: 3px solid #fff;
+	border-radius: 50%;
+	color: #fff;
+	box-shadow: 0 2px 7px #263c4055;
+	flex: 0 0 auto;
+}
+.siraj-pin svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* --- Small swatch for lists, breadcrumbs, autocomplete --- */
+.siraj-swatch {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 3px;
+	color: #fff;
+	flex: 0 0 auto;
+}
+.siraj-swatch svg { display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* --- List row avatar (like Frappe's list-avatar but with our glyph) --- */
+.siraj-list-avatar {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	color: #fff;
+	margin-inline-end: 8px;
+	vertical-align: middle;
+	flex: 0 0 auto;
+}
+.siraj-list-avatar svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* --- Form sidebar indicator --- */
+.siraj-form-indicator {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 8px;
+	border-radius: 999px;
+	color: #fff;
+	font-size: 11px;
+	font-weight: 600;
+}
+.siraj-form-indicator svg { width: 12px; height: 12px; fill: none; stroke: #fff; stroke-width: 2; }
+
+/* --- Cluster badges --- */
+.sx-cluster {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	color: #fff;
+	background: #1a6670;
+	border: 4px solid #c4e5de;
+	box-shadow: 0 2px 7px #263c4066;
+	font-weight: 700;
+}
+
+/* --- Graph nodes (vis-network) get the pin style via HTML overlay --- */
+.sx-network-node {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	color: #fff;
+	border: 3px solid #fff;
+	box-shadow: 0 2px 8px #263c4055;
+}
+.sx-network-node svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 1.8; }
+
+/* --- Dashboard/structure deck swatches already use .sd-swatch; upgrade it --- */
+.sd-swatch {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 14px;
+	height: 14px;
+	border-radius: 3px;
+	color: #fff;
+	margin-inline-end: 5px;
+}
+.sd-swatch svg { display: none; }
+.sd-swatch.siraj-swatch svg { display: block; width: 10px; height: 10px; }
+
+/* --- Toolbar (map canvas) shared icon sizing --- */
+.siraj-toolbar-btn svg { display: block; }

@@ -10,7 +10,9 @@ class SirajExplorer {
 		this.kind = 'geography';
 		this.map = null;
 		this.network = null;
-		this.colors = { 'Person': '#3577c0', 'Institution': '#8262b0', 'Place': '#188c7e', 'Research Event': '#d08733', 'Source': '#aa6b85', 'Military Unit': '#c3564b', 'Operational Deployment': '#867e45' };
+		// All type colours/glyphs come from the global registry so every
+		// surface (map, graph, deck, lists) stays consistent.
+		this.colors = window.sirajColours || {};
 		this.render();
 	}
 
@@ -135,7 +137,7 @@ class SirajExplorer {
 			if (renderId !== this.renderId) return;
 			mapStatus(__('Local basemap could not be loaded. You can still use the markers or enable online tiles.'), true);
 		}
-		// Shared SIRAJ icons for pins.
+		// Shared SIRAJ icons for pins — pulled from the global registry.
 		const pointIcon = p => L.divIcon({
 			className: 'sx-pin-wrapper', iconSize: [36, 36], iconAnchor: [18, 18],
 			html: window.sirajIcons.pin(p.doctype, this.colors[p.doctype], 36)
