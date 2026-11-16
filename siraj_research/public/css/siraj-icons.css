@@ -15,6 +15,7 @@
 
 /* --- Pin (map marker / node avatar) --- */
 .sx-pin-wrapper { border: 0; background: transparent; }
+.sx-pin-wrapper .siraj-pin.sx-map-pin { box-sizing: border-box; }
 .siraj-pin.sx-map-pin {
 	display: inline-flex;
 	align-items: center;
@@ -22,6 +23,7 @@
 	border: 3px solid #fff;
 	border-radius: 50%;
 	color: #fff;
+	background: #6a7a7e;
 	box-shadow: 0 2px 7px #263c4055;
 	flex: 0 0 auto;
 }
@@ -109,3 +111,37 @@
 
 /* --- Toolbar (map canvas) shared icon sizing --- */
 .siraj-toolbar-btn svg { display: block; }
+
+/* --- Measurement overlay --- */
+.siraj-vertex { background: transparent; border:0; }
+.siraj-vertex > span { display:block; width:10px; height:10px; border-radius:50%; background:#fff; border:2px solid #1a6670; box-shadow:0 1px 3px #263c4088; box-sizing:border-box; }
+.siraj-measure-label { background: rgba(26,102,112,0.92); color:#fff; font-size:11px; padding:3px 6px; border-radius:4px; white-space:nowrap; pointer-events:none; line-height:1.3; box-shadow:0 1px 4px #263c4055; }
+.siraj-measure-label.is-total { background:#0f4b53; font-weight:600; }
+.siraj-edge-tooltip { background:#233b37 !important; color:#fff !important; border:0 !important; font-size:11px; padding:3px 6px; border-radius:3px; box-shadow:0 2px 6px #0006; }
+
+/* --- Application side panel (distinct from the in-canvas map-tool dock) --- */
+.sx-app-panel { position:absolute; top:10px; left:10px; z-index:500; background:#fff; border-radius:8px; box-shadow:0 2px 12px #263c4033; padding:8px; min-width:200px; max-width:320px; max-height:calc(100% - 20px); overflow:auto; font-size:12px; }
+.sx-app-panel h5 { margin:2px 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:#3c5054; }
+.sx-app-panel .sx-record-item { display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:4px; width:100%; text-align:left; background:transparent; border:0; cursor:pointer; font-size:12px; }
+.sx-app-panel .sx-record-item:hover { background:#eaf1f1; }
+.sx-record-item .sx-item-glyph { flex:0 0 auto; }
+.sx-app-section { padding:6px 0; border-top:1px solid #e6ecec; }
+.sx-app-section:first-child { border-top:0; }
+
+/* --- SIRAJ list glyph used in the records panel / autocomplete / breadcrumbs --- */
+.sx-item-glyph { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; color:#fff; flex:0 0 auto; border:2px solid #fff; box-shadow:0 1px 3px #263c4044; }
+.sx-item-glyph svg { width:12px; height:12px; display:block; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+/* --- Structure deck swatches should actually show their glyphs --- */
+.sd-swatch.siraj-swatch svg { display:block; width:10px; height:10px; fill:none; stroke:#fff; stroke-width:2; }
+
+/* --- Form coordinate map container lives INSIDE the field wrapper --- */
+.siraj-coordinate-map { position:relative; }
+.siraj-coordinate-map .siraj-toolbar { z-index: 600; }
+
+/* --- SIRAJ pin teardrop variant (used by form picker and MapView override) --- */
+.siraj-teardrop { position:relative; width:28px; height:36px; }
+.siraj-teardrop::before { content:''; position:absolute; inset:0; background:inherit; -webkit-mask: radial-gradient(circle at 50% 38%, #000 32%, transparent 33%), polygon(50% 100%, 12% 45%, 88% 45%); mask: radial-gradient(circle at 50% 38%, #000 32%, transparent 33%), polygon(50% 100%, 12% 45%, 88% 45%); }
+
+/* Ensure Leaflet default-marker broken images never appear when our CSS overrides fail */
+.leaflet-marker-icon.sx-pin-wrapper > img { display:none !important; }

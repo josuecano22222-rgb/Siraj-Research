@@ -69,6 +69,39 @@ GLYPHS: Dict[str, str] = {
 }
 
 
+#: Toolbar glyphs. Mirrors the JS TOOLS dict in siraj-record-meta.js.
+TOOLS: Dict[str, str] = {
+	"search":     '<circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/>',
+	"layers":     '<path d="M12 3 2 8l10 5 10-5Z"/><path d="m4 12 8 4 8-4M4 16l8 4 8-4"/>',
+	"zoom_in":    '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+	"zoom_out":   '<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
+	"fit":        '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><path d="m9 9 6 6"/>',
+	"locate":     '<circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>',
+	"ruler":      '<path d="m3 17 6-6 4 4 8-8"/><path d="m15 7h4v4"/>',
+	"area":       '<path d="m3 14 5-8 5 5 7-6 1 10H3Z"/>',
+	"clear":      '<path d="M6 6l12 12M18 6 6 18"/>',
+	"download":   '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>',
+	"export":     '<path d="M12 16V4"/><path d="m7 9 5-5 5 5"/>',
+	"cluster":    '<circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><circle cx="12" cy="16" r="3"/>',
+	"lines":      '<path d="m4 8 5-3 6 6 5-5"/><circle cx="4" cy="8" r="1.5" fill="currentColor"/><circle cx="9" cy="5" r="1.5" fill="currentColor"/><circle cx="15" cy="11" r="1.5" fill="currentColor"/><circle cx="20" cy="6" r="1.5" fill="currentColor"/>',
+	"panel_left": '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h5v11H4"/>',
+	"panel_right":'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M20 9h-5v11h5"/>',
+	"coordinates":'<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11Z"/><circle cx="12" cy="10" r="1.5" fill="currentColor"/>',
+	"info":       '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 8v.01"/>',
+	"home":       '<path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/>',
+	"menu":       '<path d="M4 6h16M4 12h16M4 18h16"/>',
+	"chevron":    '<path d="m9 6 6 6-6 6"/>',
+	"check":      '<path d="m5 12 5 5 9-11"/>',
+	"warning":    '<path d="M12 3 2 20h20Z"/><path d="M12 10v4M12 18v.01"/>',
+	"online":     '<circle cx="12" cy="12" r="3"/><path d="M2 12a10 10 0 0 1 20 0M5 12a7 7 0 0 1 14 0"/>',
+	"offline":    '<circle cx="12" cy="12" r="3"/><path d="M3 6l18 12"/>',
+	"locate_me":  '<circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><path d="M7 7l-3-4M17 7l3-4M7 17l-3 4M17 17l3 4"/>',
+	"radius":     '<circle cx="12" cy="12" r="9"/><path d="M12 12l6-3"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M18 9l-1.5-1M18 9l.5 1.8"/>',
+	"bearing":    '<path d="M4 20l14-8-14-2 5 2Z"/>',
+	"pick":       '<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11Z"/><path d="M12 10l2 2"/><path d="M8 14l-2 4 4-2"/>',
+}
+
+
 def record_meta(doctype: str) -> dict:
 	"""Return display metadata for ``doctype``.
 
@@ -148,5 +181,6 @@ def boot_session(bootinfo):
 	bootinfo.siraj_record_meta = {
 		"colours": COLOURS,
 		"glyphs": GLYPHS,
+		"tools": TOOLS,
 		"records": {dt: {"colour": v["colour"], "category": v["category"]} for dt, v in RECORDS.items()},
 	}

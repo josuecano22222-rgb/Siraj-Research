@@ -51,10 +51,20 @@ add_to_apps_screen = [
 # include js, css files in header of desk.html
 # app_include_css = "/assets/siraj_research/css/siraj_research.css"
 app_include_js = [
+	# 1) Registry must load first so everything else can read it.
 	"/assets/siraj_research/js/siraj-record-meta.js",
+	# 2) Measurement / relationship / geodesic primitives used by all maps.
+	"/assets/siraj_research/js/siraj-map-kit.js",
+	# 3) Shared in-map toolbar control.
 	"/assets/siraj_research/js/siraj-map-toolbar.js",
+	# 4) Global list/form/link/breadcrumb/dashboard decorators.
 	"/assets/siraj_research/js/siraj-list-icons.js",
+	# 5) Compatibility shims (L.control.locate polyfill, BaseChart ResizeObserver guard).
+	"/assets/siraj_research/js/siraj-compat.js",
+	# 6) Per-form coordinate picker (reads from the registry + toolbar + kit).
 	"/assets/siraj_research/js/coordinate_map.js",
+	# 7) Thin icon facade so legacy frappe.require('...siraj-icons.js') keeps working.
+	"/assets/siraj_research/js/siraj-icons.js",
 ]
 app_include_css = [
 	"/assets/siraj_research/css/siraj-map-toolbar.css",

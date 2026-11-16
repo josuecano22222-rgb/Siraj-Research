@@ -61,6 +61,10 @@
 		warning:    '<path d="M12 3 2 20h20Z"/><path d="M12 10v4M12 18v.01"/>',
 		online:     '<circle cx="12" cy="12" r="3"/><path d="M2 12a10 10 0 0 1 20 0M5 12a7 7 0 0 1 14 0"/>',
 		offline:    '<circle cx="12" cy="12" r="3"/><path d="M3 6l18 12"/>',
+		locate_me:  '<circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><path d="M7 7l-3-4M17 7l3-4M7 17l-3 4M17 17l3 4"/>',
+		radius:     '<circle cx="12" cy="12" r="9"/><path d="M12 12l6-3"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M18 9l-1.5-1M18 9l.5 1.8"/>',
+		bearing:    '<path d="M4 20l14-8-14-2 5 2Z"/>',
+		pick:       '<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11Z"/><path d="M12 10l2 2"/><path d="M8 14l-2 4 4-2"/>',
 	};
 
 	// Server may have overridden/extended at boot time (future-proofing).

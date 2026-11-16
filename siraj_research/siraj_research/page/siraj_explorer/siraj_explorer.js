@@ -103,289 +103,309 @@ class SirajExplorer {
 		return {search, select};
 	}
 	async geography(data, renderId) {
+		// Global assets (siraj-record-meta, siraj-map-kit, siraj-map-toolbar,
+		// siraj-icons.css) are loaded via app_include_js/css so we only pull in
+		// the page-specific Leaflet/TopoJSON/vendor bits here.
 		await frappe.require([
 			'/assets/siraj_research/vendor/leaflet/leaflet.css',
 			'/assets/siraj_research/vendor/leaflet/leaflet.js',
 			'/assets/siraj_research/vendor/leaflet-markercluster/leaflet.markercluster.js',
 			'/assets/siraj_research/vendor/topojson/topojson-client.min.js',
-			'/assets/siraj_research/js/siraj-icons.js',
-			'/assets/siraj_research/js/siraj-map-toolbar.js',
 			'/assets/siraj_research/css/siraj_explorer.css',
-			'/assets/siraj_research/css/siraj-map-toolbar.css',
 		]);
 		if (renderId !== this.renderId) return;
-		// Suppress Leaflet's default zoom control: our in-map toolbar provides it.
+		const Kit = window.SirajMapKit;
 		const map = this.map = L.map(this.canvas[0], { worldCopyJump: true, preferCanvas: true, minZoom: 0, maxZoom: 22, zoomAnimation: false, zoomControl: false }).setView([33.3152, 44.3661], 4);
 		L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
-		let offlineLayer = null, onlineLayer = null, localPackLayer = null, selectedCircle = null;
+		const dms = (value, latitude) => {
+			const n = Number(value), tenths = Math.round(Math.abs(n) * 36000);
+			const d = Math.floor(tenths/36000), m = Math.floor((tenths%36000)/600), s = ((tenths%600)/10).toFixed(1);
+			return d + '° ' + m + '′ ' + s + '″ ' + (latitude ? (n<0?'S':'N') : (n<0?'W':'E'));
+		};
 		const mapStatus = (text, warn) => {
 			if (this.toolbar) this.toolbar.status(text, warn ? 'warning' : null);
 			if (this.note) this.note.text(text).toggleClass('sx-warning', !!warn);
 		};
+		let offlineLayer = null, onlineLayer = null, localPackLayer = null, selectedCircle = null;
+		// Basemap
 		try {
 			const response = await fetch('/assets/siraj_research/vendor/world-atlas/countries-110m.json');
-			if (!response.ok) throw new Error('Offline basemap HTTP ' + response.status);
+			if (!response.ok) throw new Error('offline basemap HTTP ' + response.status);
 			const world = await response.json();
 			if (renderId !== this.renderId) return;
 			offlineLayer = L.geoJSON(topojson.feature(world, world.objects.countries), {
-				interactive: false, style: { color: '#a4b4a8', weight: 0.7, fillColor: '#e8e4cf', fillOpacity: 1 }
+				interactive: false, style: { color:'#a4b4a8', weight:0.7, fillColor:'#e8e4cf', fillOpacity:1 }
 			}).addTo(map);
 			map.attributionControl.addAttribution('Natural Earth / world-atlas');
 			mapStatus(__('Offline basemap: Natural Earth, low detail.'));
-		} catch (error) {
-			console.error(error);
+		} catch (err) {
+			console.error(err);
 			if (renderId !== this.renderId) return;
 			mapStatus(__('Local basemap could not be loaded. You can still use the markers or enable online tiles.'), true);
 		}
-		// Shared SIRAJ icons for pins — pulled from the global registry.
+		// Icons
 		const pointIcon = p => L.divIcon({
-			className: 'sx-pin-wrapper', iconSize: [36, 36], iconAnchor: [18, 18],
+			className: 'sx-pin-wrapper', iconSize:[36,36], iconAnchor:[18,18],
 			html: window.sirajIcons.pin(p.doctype, this.colors[p.doctype], 36)
 		});
-		const pinIcons = {};
-		const types = [...new Set(data.points.map(p => p.doctype))];
-		types.forEach(t => { if (window.sirajIcons.types[t]) pinIcons[t] = window.sirajIcons.types[t]; });
-		this.showLegend(types, pinIcons);
-		let clustered = true, currentPoints = [], searchTerm = '', selectedType = '', listLimit = 100;
-		const recordHeading = $('<h4></h4>').text(__('Mapped records')).appendTo(this.records);
-		const recordList = $('<div class="sx-record-list"></div>').appendTo(this.records);
-		const listMore = this.button(__('Show more'), () => { listLimit += 100; renderList(); }).appendTo(this.records);
-		const dms = (value, latitude) => {
-			const number = Number(value), tenths = Math.round(Math.abs(number) * 36000);
-			const degrees = Math.floor(tenths / 36000), minutes = Math.floor((tenths % 36000) / 600);
-			const seconds = ((tenths % 600) / 10).toFixed(1);
-			return degrees + '° ' + minutes + '′ ' + seconds + '″ ' + (latitude ? (number < 0 ? 'S' : 'N') : (number < 0 ? 'W' : 'E'));
+		const itemGlyph = doctype => {
+			const c = this.colors[doctype] || '#6a7a7e';
+			return `<span class="sx-item-glyph" style="background:${c}">${(window.sirajIcons ? window.sirajIcons.svg(doctype,{size:12}) : '')}</span>`;
 		};
+		const types = [...new Set(data.points.map(p => p.doctype))];
+		this.showLegend(types, window.sirajIcons ? window.sirajIcons.types : null);
+		let clustered = true, overlayEnabled = false, currentPoints = [], searchTerm = '', selectedType = '', listLimit = 100;
+		const pointsById = new Map();
+		data.points.forEach(p => pointsById.set(this.id(p), p));
+
+		// Hide the legacy sx-records aside; the in-map app panel replaces it so
+		// there is exactly one list of records (positioned over the map rather
+		// than splitting the viewport).
+		if (this.records) this.records.hide();
+		// ------ App panel (records + filters + export) — separate from the in-canvas dock ------
+		const appPanel = $('<div class="sx-app-panel"></div>');
+		const recSection = $('<div class="sx-app-section"></div>').appendTo(appPanel);
+		const recordHeading = $('<h5></h5>').text(__('Mapped records')).appendTo(recSection);
+		const searchBox = $('<input type="search" class="form-control input-sm" style="width:100%;box-sizing:border-box;margin-bottom:6px" placeholder="' + __('Search records') + '">').appendTo(recSection);
+		const typeSel = $('<select class="form-control input-sm" style="width:100%;box-sizing:border-box;margin-bottom:6px"><option value="">' + __('All types') + '</option></select>').appendTo(recSection);
+		types.forEach(t => $('<option></option>').val(t).text(__(t)).appendTo(typeSel));
+		const recordList = $('<div></div>').css({maxHeight:'40vh',overflow:'auto'}).appendTo(recSection);
+		const listMore = this.button(__('Show more'), () => { listLimit += 100; renderList(); }).appendTo(recSection);
+		const dataSection = $('<div class="sx-app-section"></div>').appendTo(appPanel);
+		$('<h5></h5>').text(__('Data')).appendTo(dataSection);
+		const exportBtn = this.button(__('Export GeoJSON'), () => {
+			const geojson = { type:'FeatureCollection', features: currentPoints.map(p => ({
+				type:'Feature', geometry:{ type:'Point', coordinates:[Number(p.longitude),Number(p.latitude)] },
+				properties:{ doctype:p.doctype, name:p.name, label:p.label, precision:p.geo_precision, method:p.geocoding_method, uncertainty_m:p.geo_uncertainty_m, source:p.geometry_source }
+			})) };
+			const url = URL.createObjectURL(new Blob([JSON.stringify(geojson)],{type:'application/geo+json'}));
+			const a = document.createElement('a'); a.href=url; a.download='siraj-visible-points.geojson'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+		}).appendTo(dataSection);
+		appPanel.appendTo(this.canvas);
+		// Close button so the panel can be dismissed.
+		$('<button type="button" class="close" style="position:absolute;top:6px;right:8px" aria-label="' + __('Close panel') + '">×</button>').prependTo(appPanel).on('click', () => appPanel.hide());
+
 		const selectPoint = p => {
-			if (selectedCircle) map.removeLayer(selectedCircle);
-			const radius = Number(p.geo_uncertainty_m);
-			if (Number.isFinite(radius) && radius > 0 && radius <= 1000000) selectedCircle = L.circle([p.latitude, p.longitude], { radius, color: this.colors[p.doctype], fillOpacity: 0.1, interactive: false }).addTo(map);
-			this.showDetails(p.label, [[__('Type'), __(p.doctype)], [__('ID'), p.name], [__('Latitude'), p.latitude], [__('Longitude'), p.longitude], [__('DMS coordinates'), dms(p.latitude, true) + ' / ' + dms(p.longitude, false)], [__('Coordinate precision'), p.geo_precision], [__('How the point was obtained'), p.geocoding_method], [__('Uncertainty radius (m)'), p.geo_uncertainty_m], [__('Point source'), p.geometry_source]], p);
+			if (selectedCircle) { map.removeLayer(selectedCircle); selectedCircle = null; }
+			const r = Number(p.geo_uncertainty_m);
+			if (Number.isFinite(r) && r>0 && r<=1000000) selectedCircle = L.circle([p.latitude,p.longitude],{radius:r,color:this.colors[p.doctype],fillOpacity:0.1,interactive:false}).addTo(map);
+			this.showDetails(p.label, [[__('Type'),__(p.doctype)],[__('ID'),p.name],[__('Latitude'),p.latitude],[__('Longitude'),p.longitude],[__('DMS'),dms(p.latitude,true)+' / '+dms(p.longitude,false)],[__('Coordinate precision'),p.geo_precision],[__('Method'),p.geocoding_method],[__('Uncertainty radius (m)'),p.geo_uncertainty_m],[__('Source'),p.geometry_source]],p);
+			if (this.relLayer && this.relLayer.setEgo) { this.relLayer.setEgo(this.id(p)); }
 		};
 		const renderList = () => {
-			recordHeading.text(__('Mapped records ({0})', [currentPoints.length]));
+			recordHeading.text(__('Mapped records ({0})',[currentPoints.length]));
 			recordList.empty();
 			currentPoints.slice(0, listLimit).forEach(p => {
-				const button = this.button(p.label, () => { selectPoint(p); map.panTo([Number(p.latitude), Number(p.longitude)]); }).appendTo(recordList);
-				button.addClass('sx-record-item').attr('title', __(p.doctype) + ' · ' + p.name);
+				const b = this.button('', () => { selectPoint(p); map.panTo([Number(p.latitude),Number(p.longitude)]); }).appendTo(recordList);
+				b.addClass('sx-record-item').attr('title',__(p.doctype)+' · '+p.name).html(itemGlyph(p.doctype) + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + this.escape(p.label) + '</span>');
 			});
 			listMore.toggle(currentPoints.length > listLimit);
 		};
-		let overlayData = null, overlayEnabled = false;
-		const overlay = L.featureGroup().addTo(map);
-		const drawOverlay = () => {
-			overlay.clearLayers();
-			if (!overlayEnabled || !overlayData) return;
-			const positioned = new Map(currentPoints.map(p => [this.id(p), p]));
-			overlayData.edges.forEach(edge => {
-				const a = positioned.get(JSON.stringify(edge.source)), b = positioned.get(JSON.stringify(edge.target));
-				if (!a || !b) return;
-				const line = L.polyline([[Number(a.latitude), Number(a.longitude)], [Number(b.latitude), Number(b.longitude)]], {color: '#536b78', weight: 2, opacity: 0.55});
-				line.on('click', () => this.showDetails(edge.type || __('Relationship'), [[__('Subject'), a.label], [__('Object'), b.label], [__('Direction'), edge.direction], [__('Description'), edge.description], [__('Record status'), edge.state]], {doctype: 'Relationship', name: edge.name}));
-				overlay.addLayer(line);
-			});
+
+		// Relationship overlay (shared RelLayer).
+		let relData = null;
+		this.relLayer = new Kit.RelLayer(map, { pointsById });
+		this.relLayer.onEdgeClick = edge => {
+			const a = pointsById.get(JSON.stringify(edge.source)), b = pointsById.get(JSON.stringify(edge.target));
+			this.showDetails(edge.type || __('Relationship'), [
+				[__('Subject'), a ? a.label : JSON.stringify(edge.source)],
+				[__('Object'),  b ? b.label : JSON.stringify(edge.target)],
+				[__('Direction'), edge.direction],[__('Description'), edge.description],[__('Status'), edge.state],
+			], {doctype:'Relationship', name:edge.name});
 		};
+		const ensureRelData = async () => {
+			if (relData) return relData;
+			relData = (await frappe.call({method:'siraj_research.visualization.relationship_data'})).message;
+			this.relLayer.setEdges(relData.edges || []);
+			relData.edges.forEach(e => { if (e.type) this.relLayer.registerType(e.type, this.colors.Relationship || '#53706b', null); });
+			return relData;
+		};
+
+		// Marker cluster layer
 		let markers = L.markerClusterGroup({
-			maxClusterRadius: 45, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
-			iconCreateFunction: cluster => L.divIcon({ className: 'sx-cluster', html: '<span>' + cluster.getChildCount() + '</span>', iconSize: [40, 40] })
+			maxClusterRadius:45, showCoverageOnHover:false, spiderfyOnMaxZoom:true,
+			iconCreateFunction: c => L.divIcon({className:'sx-cluster', html:'<span>'+c.getChildCount()+'</span>', iconSize:[40,40]})
 		}).addTo(map);
 		const draw = () => {
-			if (selectedCircle) { map.removeLayer(selectedCircle); selectedCircle = null; }
+			if (selectedCircle) { map.removeLayer(selectedCircle); selectedCircle=null; }
 			markers.clearLayers();
 			const term = searchTerm.toLocaleLowerCase();
-			currentPoints = data.points.filter(p => (!selectedType || p.doctype === selectedType) && (p.label + ' ' + p.name).toLocaleLowerCase().includes(term));
+			currentPoints = data.points.filter(p => (!selectedType || p.doctype===selectedType) && (p.label+' '+p.name).toLocaleLowerCase().includes(term));
 			currentPoints.forEach(p => {
-				const marker = L.marker([Number(p.latitude), Number(p.longitude)], { icon: pointIcon(p), title: p.label, keyboard: true });
-				marker.bindTooltip(this.escape(p.label));
-				marker.on('click', () => selectPoint(p));
-				markers.addLayer(marker);
+				const m = L.marker([Number(p.latitude),Number(p.longitude)],{icon:pointIcon(p),title:p.label,keyboard:true});
+				m.bindTooltip(this.escape(p.label));
+				m.on('click', () => selectPoint(p));
+				markers.addLayer(m);
 			});
-			const text = data.unavailable ? __('Record data could not be loaded. The local basemap may still be available.') : __('Showing {0} record-owned points. Unset and ambiguous 0,0 coordinates are excluded.', [currentPoints.length]) + ' ' + this.warning(data);
-			this.note.toggleClass('sx-warning', !!data.unavailable).text(text);
+			// Rebuild pointsById for the current set so rel layer resolves correctly.
+			pointsById.clear();
+			currentPoints.forEach(p => pointsById.set(this.id(p), p));
+			const text = data.unavailable ? __('Record data could not be loaded.') : __('Showing {0} record points.',[currentPoints.length]) + ' ' + this.warning(data);
+			this.note.toggleClass('sx-warning',!!data.unavailable).text(text);
 			renderList();
-			drawOverlay();
+			this.relLayer.redraw();
 		};
+		searchBox.on('input', () => { searchTerm = searchBox.val(); listLimit = 100; draw(); });
+		typeSel.on('change', () => { selectedType = typeSel.val(); listLimit = 100; draw(); });
 
-		// ========== EMBEDDED TOOLBAR (in-canvas) ==========
-		this.toolbar = L.control.sirajToolbar({ position: 'topright' }).addTo(map);
-		const localPacks = new Map();
-		const panels = { records: true, details: true };
-		// Always-visible search at the top of the dock.
-		const searchBox = $('<div class="siraj-toolbar-search"><input type="search" class="form-control input-sm" placeholder="' + __('Search records') + '" aria-label="' + __('Search records') + '"></div>');
-		searchBox.find('input').on('input', e => { searchTerm = e.target.value; listLimit = 100; draw(); });
-		this.toolbar.attachNode(searchBox);
+		// ------ Measurement tool (shared state machine, single-click model) ------
+		const measure = new Kit.MeasureTool(map, { onStatus: mapStatus });
 
-		// Type filter (popover)
-		const typeFilterMenu = pop => {
-			const w = $('<div></div>').appendTo(pop);
-			const opt = (val, label, active) => {
-				const b = $('<button type="button" class="siraj-toolbar-opt"></button>').html('<span>' + label + '</span>');
-				if (active) b.addClass('is-active');
-				b.on('click', () => {
-					selectedType = val;
-					w.find('.is-active').removeClass('is-active');
-					b.addClass('is-active');
-					listLimit = 100; draw();
+		// ------ Pick-to-link flow ------
+		const startPick = () => {
+			mapStatus(__('Click a point to link it to an existing or new record.'));
+			measure.onPick = async latlng => {
+				measure.onPick = null;
+				const dlg = new frappe.ui.Dialog({
+					title: __('Link a record to this point'),
+					fields: [
+						{ fieldname:'doctype', label:__('Record type'), fieldtype:'Select', options:types.join('\n'), reqd:1 },
+						{ fieldname:'target',  label:__('Record'),      fieldtype:'Link',   options:'Person', depends_on:'eval:doc.doctype', reqd:1,
+						  description: __('Leave blank to create a new record after saving.') },
+						{ fieldname:'note',    label:__('Note'),        fieldtype:'Small Text' },
+					],
+					primary_action_label: __('Set coordinates'),
+					primary_action: async vals => {
+						if (!vals.doctype) return;
+						if (vals.target) {
+							try {
+								await frappe.call({ method:'frappe.client.set_value', args: {
+									doctype: vals.doctype, name: vals.target,
+									fieldname: { latitude: Number(latlng.lat).toFixed(6), longitude: Number(latlng.lng).toFixed(6), geocoding_method:'map_pick' }
+								}});
+								frappe.show_alert({message:__('Coordinates updated for {0}',[vals.target]), indicator:'green'});
+								dlg.hide();
+								draw();
+							} catch (e) { frappe.msgprint(__('Could not update: ') + (e.message||e)); }
+						} else {
+							frappe.new_doc(vals.doctype, { latitude: Number(latlng.lat).toFixed(6), longitude: Number(latlng.lng).toFixed(6), geocoding_method:'map_pick' });
+							dlg.hide();
+						}
+					}
 				});
-				b.appendTo(w);
+				// Update the Link field's options when doctype changes.
+				dlg.fields_dict.doctype.$input.on('change', () => {
+					const dt = dlg.get_value('doctype');
+					if (dt && dlg.fields_dict.target) {
+						dlg.fields_dict.target.df.options = dt;
+						dlg.fields_dict.target.refresh();
+					}
+				});
+				dlg.show();
+				// Display the clicked point temporarily so the user sees what they picked.
+				L.circleMarker(latlng,{radius:6,color:'#1a6670',weight:2,fillColor:'#1a6670',fillOpacity:0.4}).addTo(map).bindTooltip(dms(latlng.lat,true)+' · '+dms(latlng.lng,false)).openTooltip();
 			};
-			opt('', __('All types'), true);
-			types.forEach(t => opt(t, __(t), false));
+			measure.activate('pick');
 		};
-		this.toolbar.group(__('Filter'))
-			.add({ icon: 'search', label: __('Type'), menuTitle: __('Record type'), menu: typeFilterMenu });
 
-		// Navigate group
+		// ------ In-map toolbar (MAP TOOLS ONLY) ------
+		this.toolbar = L.control.sirajToolbar({ position:'topright' }).addTo(map);
+		const localPacks = new Map();
+		const toggleBtn = (key, on) => { const b=this.toolbar._buttons && this.toolbar._buttons.get(key); if (b) b.classList.toggle('is-active',!!on); };
+
+		// Navigate
 		this.toolbar.group(__('Navigate'))
-			.add({ icon: 'zoom_in', label: __('In'), action: () => map.zoomIn() })
-			.add({ icon: 'zoom_out', label: __('Out'), action: () => map.zoomOut() })
-			.add({ icon: 'home', label: __('Home'), action: () => map.setView([33.3152, 44.3661], 4) })
-			.add({ icon: 'fit', label: __('Fit'), action: () => {
-				if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p => [Number(p.latitude), Number(p.longitude)])).pad(0.15), { maxZoom: 12 });
+			.add({ icon:'zoom_in',   label:__('In'),    action: () => map.zoomIn() })
+			.add({ icon:'zoom_out',  label:__('Out'),   action: () => map.zoomOut() })
+			.add({ icon:'home',      label:__('Home'),  action: () => map.setView([33.3152,44.3661],4) })
+			.add({ icon:'fit',       label:__('Fit'),   action: () => {
+				if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p=>[Number(p.latitude),Number(p.longitude)])).pad(0.15),{maxZoom:12});
 			}})
-			.add({ icon: 'locate', label: __('Coords'), menuTitle: __('Go to coordinates'), menu: pop => {
-				const w = $('<div></div>').appendTo(pop);
-				const row = $('<div style="display:flex;gap:4px"></div>').appendTo(w);
-				const lat = $('<input type="number" step="any" min="-90" max="90" class="form-control input-sm" placeholder="' + __('Lat') + '">').appendTo(row);
-				const lon = $('<input type="number" step="any" min="-180" max="180" class="form-control input-sm" placeholder="' + __('Lon') + '">').appendTo(row);
-				const stat = $('<div style="font-size:11px;color:var(--text-muted);margin-top:4px"></div>').appendTo(w);
-				$('<button type="button" class="btn btn-sm btn-primary" style="margin-top:4px">' + __('Go') + '</button>').appendTo(w).on('click', () => {
-					const la = Number(lat.val()), lo = Number(lon.val());
-					if (![la,lo].every(Number.isFinite) || Math.abs(la)>90 || Math.abs(lo)>180) { stat.text(__('Enter valid decimal coordinates.')); return; }
-					stat.text(dms(la,true) + ' / ' + dms(lo,false));
-					map.setView([la,lo], 8);
+			.add({ icon:'locate_me', label:__('My loc'),action: () => map.locate({setView:true,maxZoom:12,enableHighAccuracy:true}) })
+			.add({ icon:'locate',    label:__('Coords'),menuTitle:__('Go to coordinates'), menu: pop => {
+				const w=$('<div></div>').appendTo(pop);
+				const row=$('<div style="display:flex;gap:4px"></div>').appendTo(w);
+				const lat=$('<input type="number" step="any" min="-90" max="90" class="form-control input-sm" placeholder="'+__('Lat')+'">').appendTo(row);
+				const lon=$('<input type="number" step="any" min="-180" max="180" class="form-control input-sm" placeholder="'+__('Lon')+'">').appendTo(row);
+				$('<button type="button" class="btn btn-sm btn-primary" style="margin-top:4px">'+__('Go')+'</button>').appendTo(w).on('click',()=>{
+					const la=Number(lat.val()),lo=Number(lon.val());
+					if (![la,lo].every(Number.isFinite)||Math.abs(la)>90||Math.abs(lo)>180) return;
+					map.setView([la,lo],Math.max(8,map.getZoom()));
 				});
 			}});
 
-		// Basemap group
+		// Basemap
 		const selectBasemap = val => {
-			if (onlineLayer) { map.removeLayer(onlineLayer); onlineLayer = null; }
-			if (localPackLayer) { map.removeLayer(localPackLayer); localPackLayer = null; }
+			if (onlineLayer) { map.removeLayer(onlineLayer); onlineLayer=null; }
+			if (localPackLayer) { map.removeLayer(localPackLayer); localPackLayer=null; }
 			map.setMinZoom(0);
-			const selectedPack = localPacks.get(String(val).replace(/^pack-/, ''));
-			if (selectedPack) {
+			const pack = localPacks.get(String(val).replace(/^pack-/,''));
+			if (pack) {
 				if (offlineLayer) map.removeLayer(offlineLayer);
-				const url = '/api/method/siraj_research.local_maps.tile?kind=' + encodeURIComponent(selectedPack.kind) + '&z={z}&x={x}&y={y}';
-				map.setMinZoom(selectedPack.minzoom);
-				localPackLayer = L.tileLayer(url, {minZoom: selectedPack.minzoom, maxZoom:22, maxNativeZoom: selectedPack.maxzoom,
-					attribution: this.escape(selectedPack.attribution || '')}).addTo(map);
-				localPackLayer.on('tileerror', () => mapStatus(__('Some local tiles are unavailable at this location or zoom.'), true));
-				mapStatus(__('Local map pack: coverage depends on supplied data.'));
-			} else if (val === 'online') {
+				map.setMinZoom(pack.minzoom);
+				localPackLayer = L.tileLayer('/api/method/siraj_research.local_maps.tile?kind='+encodeURIComponent(pack.kind)+'&z={z}&x={x}&y={y}',{minZoom:pack.minzoom,maxZoom:22,maxNativeZoom:pack.maxzoom,attribution:pack.attribution||''}).addTo(map);
+				localPackLayer.on('tileerror',()=>mapStatus(__('Some local tiles are unavailable.'),true));
+			} else if (val==='online') {
 				if (offlineLayer) map.removeLayer(offlineLayer);
-				onlineLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:22, maxNativeZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
-				onlineLayer.on('tileerror', () => mapStatus(__('Some online tiles failed to load. Choose the offline basemap to continue.'), true));
-				mapStatus(__('Online tiles disclose your IP address and viewed area to OpenStreetMap.'));
+				onlineLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+				mapStatus(__('Online tiles disclose your IP to OpenStreetMap.'));
 			} else {
 				if (offlineLayer) offlineLayer.addTo(map).bringToBack();
-				mapStatus(offlineLayer ? __('Offline basemap: Natural Earth, low detail.') : __('Local basemap could not be loaded.'), !offlineLayer);
 			}
 		};
-		const basemapMenu = pop => {
-			const w = $('<div></div>').appendTo(pop);
-			const opt = (val, icon, label, active) => {
-				const b = $('<button type="button" class="siraj-toolbar-opt"></button>')
-					.html(window.sirajIcons.svg(icon,{size:16}) + '<span>' + label + '</span>');
-				if (active) b.addClass('is-active');
-				b.on('click', () => { w.find('.is-active').removeClass('is-active'); b.addClass('is-active'); selectBasemap(val); });
-				b.appendTo(w); return b;
-			};
-			opt('local','offline',__('Offline basemap'), true);
-			opt('online','online',__('Online: OpenStreetMap'), false);
-			$('<hr>').appendTo(w);
-			const note = $('<div style="font-size:11px;color:var(--text-muted);padding:4px"></div>').text(__('Downloaded local packs appear here.')).appendTo(w);
-			frappe.call({method:'siraj_research.local_maps.available_packs', type:'GET', silent:true, error_handlers:{403:()=>{}}}).then(res => {
-				if (!Array.isArray(res.message)) return;
-				res.message.forEach(pack => {
-					if (pack.unavailable || !['standard','aerial'].includes(pack.kind)) return;
-					localPacks.set(pack.kind, pack);
-					opt('pack-'+pack.kind,'layers',pack.kind==='aerial'?__('Local aerial'):__('Local standard'),false);
-				});
-				if (localPacks.size) note.remove();
-			}).catch(()=>{});
-		};
 		this.toolbar.group(__('Basemap'))
-			.add({ icon: 'layers', label: __('Basemap'), menuTitle: __('Basemap'), menu: basemapMenu });
-
+			.add({ icon:'layers', label:__('Basemap'), menuTitle:__('Basemap'), menu: pop => {
+				const w=$('<div></div>').appendTo(pop);
+				const opt=(val,icon,label,active)=>{
+					const b=$('<button type="button" class="siraj-toolbar-opt"></button>').html(window.sirajIcons.toolSvg(icon,{size:16})+'<span>'+label+'</span>');
+					if (active) b.addClass('is-active');
+					b.on('click',()=>{w.find('.is-active').removeClass('is-active');b.addClass('is-active');selectBasemap(val);});
+					b.appendTo(w); return b;
+				};
+				opt('local','offline',__('Offline'),true);
+				opt('online','online',__('Online: OSM'),false);
+				$('<hr>').appendTo(w);
+				frappe.call({method:'siraj_research.local_maps.available_packs',type:'GET',silent:true}).then(res=>{
+					if (!Array.isArray(res.message)) return;
+					res.message.forEach(pack=>{
+						if (pack.unavailable||!['standard','aerial'].includes(pack.kind)) return;
+						localPacks.set(pack.kind,pack);
+						opt('pack-'+pack.kind,'layers',pack.kind==='aerial'?__('Local aerial'):__('Local standard'),false);
+					});
+				}).catch(()=>{});
+			}});
 		this.toolbar.separator();
 
-		// Display group
-		let clusterBtn, relBtn, recsBtn, detailsBtn;
-		this.toolbar.group(__('Display'))
-			.add({ icon: 'cluster', label: __('Clusters'), active: true, key: 'clusters', action: function() {
-				clustered = !clustered;
+		// Measure group
+		this.toolbar.group(__('Measure'))
+			.add({ icon:'ruler',   label:__('Distance'), action: () => measure.activate('distance') })
+			.add({ icon:'area',    label:__('Area'),     action: () => measure.activate('area') })
+			.add({ icon:'radius',  label:__('Radius'),   action: () => measure.activate('radius') })
+			.add({ icon:'bearing', label:__('Bearing'),  action: () => measure.activate('bearing') })
+			.add({ icon:'clear',   label:__('Clear'),    action: () => measure.clear() });
+		this.toolbar.separator();
+
+		// Pick
+		this.toolbar.group(__('Pick'))
+			.add({ icon:'pick', label:__('Link record'), action: startPick });
+		this.toolbar.separator();
+
+		// Overlays (toggles)
+		this.toolbar.group(__('Overlays'))
+			.add({ icon:'cluster', label:__('Clusters'), active:true, key:'clusters', action: function() {
+				clustered=!clustered; toggleBtn('clusters',clustered);
 				map.removeLayer(markers);
 				markers = clustered
-					? L.markerClusterGroup({ maxClusterRadius:45, showCoverageOnHover:false, spiderfyOnMaxZoom:true, iconCreateFunction: c => L.divIcon({ className:'sx-cluster', html:'<span>'+c.getChildCount()+'</span>', iconSize:[40,40] }) })
+					? L.markerClusterGroup({maxClusterRadius:45,showCoverageOnHover:false,spiderfyOnMaxZoom:true,iconCreateFunction:c=>L.divIcon({className:'sx-cluster',html:'<span>'+c.getChildCount()+'</span>',iconSize:[40,40]})})
 					: L.featureGroup();
 				markers.addTo(map); draw();
 			}})
-			.add({ icon: 'lines', label: __('Rel lines'), key: 'rel_lines', action: async function() {
-				const btn = $(this);
-				if (overlayEnabled) { overlayEnabled=false; drawOverlay(); btn.removeClass('is-active'); return; }
-				btn.prop('disabled', true);
-				try {
-					if (!overlayData) overlayData = (await frappe.call({method:'siraj_research.visualization.relationship_data'})).message;
-					if (renderId !== this.renderId) return;
-					overlayEnabled = true; drawOverlay(); btn.addClass('is-active');
-				} catch { mapStatus(__('Unable to load relationship lines.'), true); }
-				finally { btn.prop('disabled', false); }
-			}})
-			.add({ icon: 'panel_left', label: __('Records'), active: true, key: 'records', action: function() {
-				panels.records = !panels.records;
-				$('.sx-layout').toggleClass('sx-no-records', !panels.records);
-				this.records.toggle(panels.records);
-				setTimeout(()=>map.invalidateSize(),0);
-			}.bind(this)})
-			.add({ icon: 'panel_right', label: __('Details'), active: true, key: 'details', action: function() {
-				panels.details = !panels.details;
-				$('.sx-layout').toggleClass('sx-no-details', !panels.details);
-				this.aside.toggle(panels.details);
-				setTimeout(()=>map.invalidateSize(),0);
+			.add({ icon:'lines', label:__('Relationships'), key:'rel_lines', action: async function() {
+				const btn=$(this);
+				if (overlayEnabled) { overlayEnabled=false; map.removeLayer(this.relLayer.layer); btn.removeClass('is-active'); return; }
+				btn.prop('disabled',true);
+				try { await ensureRelData(); overlayEnabled=true; this.relLayer.layer.addTo(map); btn.addClass('is-active'); draw(); }
+				catch { mapStatus(__('Unable to load relationship lines.'),true); }
+				finally { btn.prop('disabled',false); }
 			}.bind(this)});
 
-		this.toolbar.separator();
-
-		// Tools group
-		let measuring = '', measurePoints = [], measureLine = null;
-		const clearMeasure = () => { measurePoints=[]; if (measureLine){map.removeLayer(measureLine); measureLine=null;} };
-		this.toolbar.group(__('Tools'))
-			.add({ icon: 'ruler', label: __('Distance'), action: () => { measuring='distance'; clearMeasure(); mapStatus(__('Click two points to measure distance.')); }})
-			.add({ icon: 'area', label: __('Area'), action: () => { measuring='area'; clearMeasure(); mapStatus(__('Click at least three points to measure area.')); }})
-			.add({ icon: 'clear', label: __('Clear'), action: () => { measuring=''; clearMeasure(); mapStatus(''); }})
-			.add({ icon: 'export', label: __('GeoJSON'), action: () => {
-				const geojson = { type:'FeatureCollection', features: currentPoints.map(p => ({ type:'Feature', geometry:{ type:'Point', coordinates:[Number(p.longitude),Number(p.latitude)] }, properties:{ doctype:p.doctype, name:p.name, label:p.label, precision:p.geo_precision, method:p.geocoding_method, uncertainty_m:p.geo_uncertainty_m, source:p.geometry_source }})) };
-				const url=URL.createObjectURL(new Blob([JSON.stringify(geojson)],{type:'application/geo+json'}));
-				const a=document.createElement('a'); a.href=url; a.download='siraj-visible-points.geojson'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
-			}})
-			.add({ icon: 'info', label: __('About'), menuTitle: __('About this map'), menu: pop => {
-				$('<div style="font-size:12px;line-height:1.5;color:#3c5054"></div>')
-					.text(__('Select a marker to inspect its record. Clusters group nearby points; tools live in the dock at the right edge of the map. Online tiles are opt-in.'))
-					.appendTo(pop);
-			}});
-
-		map.on('click', event => {
-			if (!measuring) return;
-			if (measuring === 'distance' && measurePoints.length === 2) clearMeasure();
-			measurePoints.push(event.latlng);
-			if (measureLine) map.removeLayer(measureLine);
-			if (measurePoints.length >= 2) measureLine = (measuring === 'area' && measurePoints.length >= 3 ? L.polygon : L.polyline)(measurePoints, {color:'#1a6670',weight:3,dashArray:'6 5',fillOpacity:0.1,interactive:false}).addTo(map);
-			if (measuring === 'distance' && measurePoints.length === 2) mapStatus(__('Distance: {0} km', [(map.distance(measurePoints[0], measurePoints[1])/1000).toFixed(2)]));
-			if (measuring === 'area' && measurePoints.length >= 3) {
-				const R=6371008.8, pts=measurePoints; let sum=0;
-				pts.forEach((p,i)=>{ const n=pts[(i+1)%pts.length]; let d=(n.lng-p.lng)*Math.PI/180; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; sum+=d*(2+Math.sin(p.lat*Math.PI/180)+Math.sin(n.lat*Math.PI/180)); });
-				const sph=4*Math.PI*R*R, raw=Math.abs(sum*R*R/2)%sph;
-				mapStatus(__('Approximate area: {0} km²', [(Math.min(raw,sph-raw)/1e6).toFixed(2)]));
-			}
-		});
-
-		// Clear the legacy horizontal tool strip now that everything is in the map dock.
+		// Empty the legacy top strip (we now use appPanel + in-canvas dock).
 		this.tools.empty();
 
 		draw();
-		this.showDetails(__('Geographic map'), [[__('About this view'), __('Select a marker to inspect its record. Clusters show the number of nearby points. Map tools live in the dock on the right edge of the map.')]]);
-		if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p => [Number(p.latitude), Number(p.longitude)])).pad(0.15), { maxZoom: 12 });
-		setTimeout(()=>map.invalidateSize(), 0);
+		this.showDetails(__('Geographic map'), [[__('About this view'),__('Map tools (navigate, basemap, measure, pick, overlays) live in the dock on the right edge of the map. Records, filters, and export live in the panel at the upper left.')]]);
+		if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p=>[Number(p.latitude),Number(p.longitude)])).pad(0.15),{maxZoom:12});
+		setTimeout(()=>map.invalidateSize(),0);
 	}
 	async relationships(data, renderId) {
 		await frappe.require(['/assets/siraj_research/vendor/vis-network/vis-network.min.js', '/assets/siraj_research/css/siraj_explorer.css']);
@@ -402,10 +422,27 @@ class SirajExplorer {
 		let centerButton, resetButton;
 		const graphHost = $('<div class="sx-graph-host"></div>').appendTo(this.canvas);
 		const matrixHost = $('<div class="sx-atlas-matrix"></div>').hide().appendTo(this.canvas);
+		// Generate a data-URI for each doctype so the network shows the same
+		// glyph+colour that appears on map pins, list avatars, and form pills.
+		const nodeImageCache = new Map();
+		const nodeImage = doctype => {
+			if (nodeImageCache.has(doctype)) return nodeImageCache.get(doctype);
+			const colour = this.colors[doctype] || '#6a7a7e';
+			// Use the server/boot GLYPH strings directly (just path/circle fragments
+			// on a 24×24 grid), so we can draw them white inside a coloured disc.
+			const meta = (window.sirajRecordMeta && window.sirajRecordMeta.glyphs) ? window.sirajRecordMeta.glyphs[doctype] : null;
+			const glyphPaths = meta || (window.sirajIcons && window.sirajIcons.types[doctype] && window.sirajIcons.types[doctype].replace
+				? window.sirajIcons.types[doctype]
+				: '<path d="M6 3h9l3 3v15H6Z"/><path d="M9 10h6M9 14h6"/>');
+			const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" fill="${colour}" stroke="#fff" stroke-width="3"/><g transform="translate(12 12) scale(1)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${glyphPaths}</g></svg>`;
+			const uri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+			nodeImageCache.set(doctype, uri);
+			return uri;
+		};
 		this.network = new vis.Network(graphHost[0], { nodes: nodeSet, edges: edgeSet }, {
 			interaction: { hover: true, navigationButtons: true, keyboard: true },
 			physics: { stabilization: { iterations: 100 }, barnesHut: { gravitationalConstant: -5000, springLength: 150 } },
-			nodes: { shape: 'dot', size: 13, font: { size: 13 }, borderWidth: 2 },
+			nodes: { shape: 'circularImage', size: 22, borderWidth: 3, color: { border:'#fff', background:'#6a7a7e' }, font: { size:13, color:'#233b37' } },
 			edges: { color: { color: '#9aa9b1', highlight: '#267b77' }, smooth: { type: 'dynamic' }, font: { size: 11, align: 'middle' } }
 		});
 		const showNode = (id, remember = true) => {
@@ -534,7 +571,7 @@ class SirajExplorer {
 					positions.set(id, {x: radius * Math.cos(angle), y: radius * Math.sin(angle)});
 				});
 			});
-			nodeSet.add(nodes.map((n, i) => ({ id: this.id(n), label: n.label, color: this.colors[n.doctype],
+			nodeSet.add(nodes.map((n, i) => ({ id: this.id(n), label: n.label, image: nodeImage(n.doctype), color: { border:'#fff', background: this.colors[n.doctype] || '#6a7a7e', highlight:{border:'#fff',background: this.colors[n.doctype] || '#6a7a7e'} },
 				...(layout === 'orbit' ? positions.get(this.id(n)) : large ? { x: (i % columns) * 180, y: Math.floor(i / columns) * 110 } : {}) })));
 			graphHost.toggle(layout !== 'matrix'); matrixHost.toggle(layout === 'matrix');
 			if (layout === 'matrix') drawMatrix(nodes, currentEdges);
