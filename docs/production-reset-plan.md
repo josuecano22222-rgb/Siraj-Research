@@ -1,6 +1,6 @@
 # Production clean-start plan — not yet approved for execution
 
-The intended future operation is to reinstall the `frappe.com` Frappe site **only after** implementation, test-site validation, acceptance, a verified backup/restore rehearsal and explicit operator approval. Nothing in the repository automatically performs that operation. The current implementation is not yet fully verified or an identical port; see [original-feature-parity.md](original-feature-parity.md). This is a checklist, not permission to reset a site.
+The intended future operation is to reinstall the `frappe.com` Frappe site **only after** implementation, test-site validation, acceptance, a verified backup/restore rehearsal and explicit operator approval. Nothing in the repository automatically performs that operation. A critical collision between SIRAJ and Frappe's `Event` DocTypes is unresolved and blocks the sample fixture. The current implementation is not yet fully verified or an identical port; see [original-feature-parity.md](original-feature-parity.md). This is a checklist, not permission to reset a site.
 
 ## What reinstall means
 

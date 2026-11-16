@@ -109,6 +109,10 @@ class FixtureTest(unittest.TestCase):
     def setUp(self):
         self.frappe = FakeFrappe()
         self.module = load(self.frappe)
+        # The fixture construction is schema-tested independently, but cannot
+        # run on a real site until the Event collision is resolved.
+        self.real_event_guard = self.module._assert_event_safe
+        self.module._assert_event_safe = lambda: None
 
     def test_coverage_links_and_repeat_guard(self):
         result = self.module.seed_test_data()
@@ -118,6 +122,13 @@ class FixtureTest(unittest.TestCase):
         self.assertTrue(all(result['created'][name] for name in self.module.CHILD_TYPES))
         with self.assertRaisesRegex(RuntimeError, 'Sample identifier already exists'):
             self.module.seed_test_data()
+
+    def test_collision_blocks_seeding_before_writes(self):
+        self.module._assert_event_safe = self.real_event_guard
+        before = set(self.frappe.records)
+        with self.assertRaisesRegex(RuntimeError, 'Event conflicts'):
+            self.module.seed_test_data()
+        self.assertEqual(set(self.frappe.records), before)
 
     def test_existing_operational_data_is_preserved_and_samples_are_marked(self):
         self.frappe.local.site = 'frappe.com'

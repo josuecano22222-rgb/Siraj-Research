@@ -12,6 +12,10 @@ Reference: `researchers-db` branch `arena/d114ff02-researchers-db`, including `a
 
 All three Explorer data sets scan permission-visible records without the old 1,500-record cap. Counts and diagrams are restricted to what the user may read. Large synchronous scans and full client-side graph/map rendering require representative scale testing; concurrent edits can change results during paging. Original and Frappe schemas and permission systems differ. The implementation has passed mock and synthetic Chromium tests but has not been tested in a live Frappe bench or visually verified against the source at matching viewport, language, data and theme. Do not describe it as an identical port.
 
+## Critical Frappe Event collision
+
+SIRAJ's `Event` DocType uses the same global name as Frappe's calendar `Event`. A live sample insert failed in Frappe's Google Calendar hook because the SIRAJ schema lacks its calendar field. Other calendar behavior and existing records may also be affected. Sample insertion is paused before writes; the name conflict requires a non-destructive, separately tested schema/data migration and live verification, not a hidden hook bypass. See [test-data.md](test-data.md) for read-only diagnostics. Do not assume reinstall or migration is safe until this is resolved.
+
 ## Tree navigation repair
 
 The standard Frappe v15 tree view assumes a returned root and fails when the list is empty. SIRAJ's Place, Military Unit and Command Region tree views use a virtual root and a read-only, permission-checked child query over the explicitly declared parent fields. The view supports empty and multiple roots. Military Unit's New and Add child actions open the normal form, with the latter setting the parent ID; Place and Command Region remain navigation-only. Military Unit calculations now traverse parent links rather than nested-set indexes and reject cycles on save. Existing totals are not globally rebuilt, and concurrent hierarchy edits are not serialized. The views do **not** repair historic nested-set indices. A separately tested, backed-up migration is required before using nested-set calculations or rebuilding indices.

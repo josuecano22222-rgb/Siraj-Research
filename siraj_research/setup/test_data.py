@@ -30,9 +30,18 @@ CHILD_TYPES = (
 )
 
 
+def _assert_event_safe():
+    # SIRAJ's Event currently has the same global DocType name as Frappe's
+    # calendar Event. Their schemas and lifecycle hooks are incompatible.
+    # Refuse before making any writes; do not work around this by disabling
+    # calendar hooks or overriding Frappe's metadata on a live site.
+    raise RuntimeError("Sample insertion is paused: SIRAJ Event conflicts with Frappe's built-in Event. Inspect the site and resolve the DocType collision before retrying.")
+
+
 def _guard():
     if not frappe.local.site or not frappe.db.exists("DocType", "SIRAJ Settings"):
         raise RuntimeError("Install siraj_research on the selected site first.")
+    _assert_event_safe()
     for doctype, name in (("Country", "Iraq"), ("Person Category", "Military"), ("Workflow State", "Draft")):
         if not frappe.db.exists(doctype, name):
             raise RuntimeError("Missing fixture prerequisite: " + doctype + " / " + name)
