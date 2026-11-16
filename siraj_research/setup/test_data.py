@@ -115,15 +115,27 @@ def seed_test_data():
         village = add("Village", code="TEST_VIL", label_ar="اختبار قرية", label_en="TEST Village", municipality=municipality, district=district, governorate=gov, country="Iraq")
         community = add("Community", code="TEST_COMM", label_ar="اختبار مجتمع", label_en="TEST Community", village=village, municipality=municipality, district=district, governorate=gov, country="Iraq")
         ext = [{"scheme": scheme, "value": "TEST-001"}]
-        source = add("Source", title="TEST fictional source", display_name="TEST fictional source", source_type=lookup["Source Type"], source_reliability=lookup["Source Reliability"], external_identifiers=ext)
-        evidence = [{"source": source, "support_type": "supports", "supported_claim": "Fictional test claim"}]
-        place = add("Place", name_ar="اختبار مكان", name_en="TEST Place", display_name="TEST Place", place_type=lookup["Place Type"], country="Iraq", governorate=gov, district=district, municipality=municipality, village=village, community=community, latitude=33.3, longitude=44.3, geo_precision="approximate", geocoding_method="manual", evidence=evidence)
-        institution = add("Institution", name_ar="اختبار مؤسسة", name_en="TEST Institution", display_name="TEST Institution", institution_type=lookup["Institution Type"], institution_subcategory=lookup["Institution Subcategory"], governance_system=lookup["Governance System"], country="Iraq", place=place, latitude=33.31, longitude=44.31, expertise=[{"expertise": lookup["Expertise Area"]}], social_accounts=[{"platform": platform, "handle": "test-only"}], evidence=evidence)
-        person = add("Person", name_ar="اختبار شخص", name_en="TEST Person", display_name="TEST Person", nationality="Iraq", birthplace=place, category="Military", classification=lookup["Person Classification"], person_status=lookup["Person Status"], branch=lookup["Military Branch"], latitude=33.32, longitude=44.32, positions=[{"title_ar": "اختبار منصب", "title_en": "TEST Position", "institution": institution, "place": place}], specializations=[{"specialization": lookup["Specialization"]}], leadership_assessments=[{"quality": lookup["Leadership Quality"], "level": lookup["Leadership Level"], "evidence_note": "Fictional assessment"}], evidence=evidence)
-        other_person = add("Person", name_ar="اختبار شخص ثان", name_en="TEST Second Person", display_name="TEST Second Person", nationality="Iraq", birthplace=place, category=lookup["Person Category"], latitude=33.34, longitude=44.34)
+        source = add("Source", title="TEST Fictional Al-Nur Community Archive: Annual Report 2019",
+                     title_ar="اختبار تقرير أرشيف النور المجتمعي لعام ٢٠١٩",
+                     publisher="TEST Al-Nur Community Archive (fictional)",
+                     archive_reference="TEST-BOX-04-FILE-02", publication_date_as_stated="2019",
+                     publication_date="2019-01-01", publication_date_precision="year",
+                     verification_notes="Fictional source for testing; no actual archive or report is implied.",
+                     source_type=lookup["Source Type"], source_reliability=lookup["Source Reliability"], external_identifiers=ext)
+        evidence = [{"source": source, "support_type": "supports",
+                     "supported_claim": "TEST fictional report documents a community outreach initiative."}]
+        place = add("Place", name_ar="اختبار مركز النور المجتمعي", name_en="TEST Al-Nur Community Centre", place_type=lookup["Place Type"], country="Iraq", governorate=gov, district=district, municipality=municipality, village=village, community=community, latitude=33.3, longitude=44.3, geo_precision="approximate", geocoding_method="manual", geo_uncertainty_m=1500,
+                    geometry_source="TEST illustrative point, not a verified location", primary_source=source, evidence=evidence)
+        institution = add("Institution", name_ar="اختبار جمعية النور", name_en="TEST Al-Nur Association", institution_type=lookup["Institution Type"], institution_subcategory=lookup["Institution Subcategory"], governance_system=lookup["Governance System"], country="Iraq", place=place, latitude=33.31, longitude=44.31, founded_date_as_stated="2015", founded_date="2015-01-01",
+                          founded_date_precision="year", objectives="TEST fictional association coordinates community outreach and training.",
+                          primary_source=source, expertise=[{"expertise": lookup["Expertise Area"]}], social_accounts=[{"platform": platform, "handle": "test-only"}], evidence=evidence)
+        person = add("Person", name_ar="اختبار ليلى السهلي", name_en="TEST Layla Al-Sahli", nationality="Iraq", birthplace=place, category="Military", classification=lookup["Person Classification"], person_status=lookup["Person Status"], branch=lookup["Military Branch"], birth_date_as_stated="1984", birth_date="1984-01-01", birth_date_precision="year",
+                     current_position_as_stated="TEST community outreach coordinator", primary_source=source,
+                     latitude=33.32, longitude=44.32, positions=[{"title_ar": "اختبار منسقة التواصل المجتمعي", "title_en": "TEST Community Outreach Coordinator", "institution": institution, "place": place}], specializations=[{"specialization": lookup["Specialization"]}], leadership_assessments=[{"quality": lookup["Leadership Quality"], "level": lookup["Leadership Level"], "evidence_note": "Fictional assessment"}], evidence=evidence)
+        other_person = add("Person", name_ar="اختبار سامر الدالي", name_en="TEST Samir Al-Dali", display_name="TEST Second Person", nationality="Iraq", birthplace=place, category=lookup["Person Category"], latitude=33.34, longitude=44.34)
         # Sparse records still satisfy required fields: "incomplete" means
         # optional research information is absent, not invalid database rows.
-        add("Source", title="اختبار مصدر محدود البيانات", source_type=lookup["Source Type"])
+        second_source = add("Source", title="اختبار مصدر محدود البيانات", source_type=lookup["Source Type"])
         add("Place", name_ar="اختبار مكان بلا إحداثيات", place_type=lookup["Place Type"])
         add("Institution", name_ar="اختبار مؤسسة محدودة البيانات", name_original="TEST 研究機関",
             institution_type=lookup["Institution Type"])
@@ -143,15 +155,19 @@ def seed_test_data():
         for index in range(1, FOLD_RECORDS + 1):
             add("Person", name_ar=f"اختبار شخص دفعة {index:02}", name_en=f"TEST Batch Person {index:02}",
                 birthplace=place, nationality="Iraq", classification=lookup["Person Classification"])
-        event = add("Event", title_ar="اختبار حدث", title_en="TEST Event", display_name="TEST Event", event_type=lookup["Event Type"], place=place, latitude=33.33, longitude=44.33, evidence=evidence)
+        event = add("Event", title_ar="اختبار يوم النور للتواصل المجتمعي", title_en="TEST Al-Nur Community Outreach Day",
+                    event_type=lookup["Event Type"], place=place, start_date_as_stated="2019-05-18",
+                    start_date="2019-05-18 00:00:00", start_date_precision="day",
+                    description="TEST fictional one-day outreach and training event at the community centre.",
+                    primary_source=source, latitude=33.33, longitude=44.33, geo_precision="approximate", evidence=evidence)
         for index, (source_type, source_name, dest_type, dest_name) in enumerate((("Person", person, "Institution", institution), ("Institution", institution, "Place", place), ("Place", place, "Event", event), ("Event", event, "Source", source), ("Person", other_person, "Person", person))):
             add("Relationship", relationship_type=symmetric_type if index == 4 else lookup["Relationship Type"], subject_type=source_type, subject=source_name, object_type=dest_type, object=dest_name, evidence=[] if index == 4 else evidence, end_date="2020-12-31" if index == 4 else None, is_current=int(index != 4))
         # Parallel and self relationships exercise the inspector and matrix;
         # the isolated Arabic-only person deliberately has no relationship.
         add("Relationship", relationship_type=lookup["Relationship Type"], subject_type="Person", subject=other_person,
             object_type="Person", object=person,
-            evidence=[{"source": source, "support_type": "contradicts", "supported_claim": "TEST disputed claim"},
-                      {"source": source, "support_type": "contextualizes", "supported_claim": "TEST context"}])
+            evidence=[{"source": second_source, "support_type": "contradicts", "supported_claim": "TEST fictional second account disputes the reported association."},
+                      {"source": source, "support_type": "contextualizes", "supported_claim": "TEST fictional report describes the outreach programme."}])
         add("Relationship", relationship_type=lookup["Relationship Type"], subject_type="Person", subject=mixed,
             object_type="Person", object=mixed)
         add("Event", title_ar="اختبار حدث ناقص البيانات", event_type=lookup["Event Type"])

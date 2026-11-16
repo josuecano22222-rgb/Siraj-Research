@@ -149,7 +149,7 @@ class FixtureTest(unittest.TestCase):
         cyrillic = next(p for p in people if 'Новак' in p.values.get('name_original', ''))
         self.assertLess(cyrillic.values['latitude'], 0)
         self.assertEqual(cyrillic.values['birth_date_precision'], 'year')
-        full = next(p for p in people if p.values.get('name_en') == 'TEST Person')
+        full = next(p for p in people if p.values.get('name_en') == 'TEST Layla Al-Sahli')
         self.assertTrue(full.values.get('evidence'))
         self.assertTrue(full.values.get('leadership_assessments'))
         edges = [self.frappe.records['Relationship'][name].values for name in result['created_names']['Relationship']]
@@ -165,6 +165,26 @@ class FixtureTest(unittest.TestCase):
             record = self.frappe.records[doctype]['TEST ' + doctype]
             self.assertIn('اختبار', record.values['label_ar'])
             self.assertNotIn(doctype, record.values['label_ar'])
+
+    def test_fictional_narrative_and_disputed_evidence_are_connected(self):
+        result = self.module.seed_test_data()
+        def records(doctype):
+            return [self.frappe.records[doctype][name] for name in result['created_names'][doctype]]
+        source = next(d for d in records('Source') if d.values.get('publisher'))
+        person = next(d for d in records('Person') if d.values.get('name_en') == 'TEST Layla Al-Sahli')
+        institution = next(d for d in records('Institution') if d.values.get('name_en') == 'TEST Al-Nur Association')
+        event = next(d for d in records('Event') if d.values.get('title_en') == 'TEST Al-Nur Community Outreach Day')
+        self.assertEqual(person.values['primary_source'], source.name)
+        self.assertEqual(institution.values['primary_source'], source.name)
+        self.assertEqual(event.values['primary_source'], source.name)
+        self.assertEqual(person.values['birth_date_as_stated'], '1984')
+        self.assertEqual(event.values['start_date_as_stated'], '2019-05-18')
+        self.assertEqual(event.values['start_date_precision'], 'day')
+        edges = records('Relationship')
+        disputed = next(d for d in edges if any(row.values['support_type'] == 'contradicts' for row in d.values.get('evidence', [])))
+        evidence = disputed.values['evidence']
+        self.assertEqual(len({row.values['source'] for row in evidence}), 2)
+        self.assertTrue(all('TEST' in row.values['supported_claim'] for row in evidence))
 
     def test_fixture_exercises_folded_group_and_record_counts(self):
         from test_visualization import FakeFrappe as VisualizationFrappe, load_visualization

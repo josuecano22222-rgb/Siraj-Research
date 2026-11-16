@@ -1,0 +1,24 @@
+# Event collision: assessment and proposed remediation
+
+**Status: unresolved.** The fictional-data command deliberately refuses before writing. Do not use this document as an operational migration procedure. Do not run `migrate`, `reinstall`, force a metadata reload, delete records, or disable the calendar hooks to work around this issue. A migration must first be implemented, reviewed and rehearsed against a restore-tested copy appropriate to the site's actual app versions and customizations.
+
+## Observed site state
+
+The operator's read-only diagnostic on `frappe.com` reported `Event` metadata owned by `Siraj Research`; SIRAJ fields `title_ar`, `display_name`, and `event_type` were present in both metadata and table. The Frappe calendar fields `subject`, `starts_on`, `sync_with_google_calendar`, and `google_calendar` were absent from metadata but present as table columns. The table had zero Event rows. All reported operational `TEST SAMPLE` note-marker counts were zero. These are point-in-time observations, not proof that the earlier failure had no nontransactional side effects, or that there are no dependent references, customizations, files, or other affected records. Counts do not establish ownership. The subsequent seed attempt was rejected by the guard before fixture writes; the following `NameError` comes from Frappe's `bench execute` exception fallback, not a second fixture failure.
+
+The schemas are incompatible even where names overlap: for example both define `event_type`, but with different meanings and options. Simply adding a calendar field or suppressing a hook does not restore the core controller, permissions, calendar functionality, or integration semantics.
+
+## Design direction to evaluate
+
+Separate SIRAJ historical events into a distinct global DocType (for example `SIRAJ Research Event`), restore the standard Frappe `Event` to the correct version of core metadata and controller, and update SIRAJ's links, dynamic-link type values, Explorer, reports, cards, charts, workspace, translations, and form scripts to use the new identity. This is a compatibility change, not merely a display label change; integrations and client code using the old DocType name require explicit review. Avoid globally renaming the existing `Event` DocType without understanding Frappe's rename behavior, because that name is also core's identity and a rename can rewrite references belonging to unrelated apps.
+
+Before implementing an automated transition, inventory installed apps and their exact versions, `Event` custom fields, property setters, permissions and workflows, calendar integrations, dynamic and ordinary links, child rows, attachments, comments, assignments, notifications, audit history, custom scripts, reports, APIs and any external references. An empty Event table does not imply these references do not exist. Establish a policy for ambiguous historical references instead of automatically reclassifying all `Event` references as SIRAJ or calendar. Back up the database, files and configuration and prove a restore. Coordinate downtime and stop background jobs/integrations for any eventual change; DDL and external operations may not roll back with an ordinary transaction.
+
+The implementation must support clean installations as well as explicit safe handling of existing sites, preserve and reconcile applicable customizations and records, and stop on unrecognized or ambiguous states. Verify ordering and Frappe's actual schema-sync and patch behavior for each supported version; do not assume a database transaction can undo DDL. Four old SIRAJ patches are marked completed on this site despite missing modules; that fact does not establish their transformations ran.
+
+## Acceptance before lifting the guard
+
+- A reproducible, version-specific rehearsal on a restored copy covering backup/restore, rollback/recovery, repeat execution, mixed core and SIRAJ references, and both empty and populated legacy Event states.
+- Independently verify normal Frappe calendar create, update, delete, permissions, and integrations, and SIRAJ event create, edit, linked records, Explorer, reports and counts. Verify permissions and field-level access for affected roles.
+- Validate every fixture document through real Frappe controllers and hooks, verify sample linkage and counts, and review any custom side effects. Preserve the explicit opt-in command; no install-time samples.
+- Review the actual production inventory and rehearse its transition. Only then agree a backup-backed maintenance plan and obtain explicit approval for any production migration or reset. A future `reinstall` would destroy data for all apps on the site and is not authorized by this design note.
