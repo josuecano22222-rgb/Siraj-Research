@@ -22,3 +22,13 @@ The implementation must support clean installations as well as explicit safe han
 - Independently verify normal Frappe calendar create, update, delete, permissions, and integrations, and SIRAJ event create, edit, linked records, Explorer, reports and counts. Verify permissions and field-level access for affected roles.
 - Validate every fixture document through real Frappe controllers and hooks, verify sample linkage and counts, and review any custom side effects. Preserve the explicit opt-in command; no install-time samples.
 - Review the actual production inventory and rehearse its transition. Only then agree a backup-backed maintenance plan and obtain explicit approval for any production migration or reset. A future `reinstall` would destroy data for all apps on the site and is not authorized by this design note.
+
+## Additional limited inventory
+
+The administrator may run the following **read-only** diagnostic after updating the app code, without migration or reinstall:
+
+```bash
+bench --site frappe.com execute siraj_research.setup.event_diagnostics.inspect_known_event_references
+```
+
+It counts `Event` type values in a fixed selection of Relationship endpoints, child tables, attachments, comments, assignments, versions, shares, and customization records. It returns only field and DocType names and aggregate counts, not record contents or IDs. `null` means the table or column is absent; counts for different fields can overlap. A nonzero count does not determine which event type owns a reference; zero counts do not prove safety. The list does not discover arbitrary custom fields, app-specific references, external systems, free text, or all dependencies. It performs database count queries, so schedule it appropriately for large sites and treat the results as potentially sensitive operational metadata. It does not fix or authorize any migration.
