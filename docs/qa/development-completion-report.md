@@ -73,3 +73,7 @@ This delivery fixes an unsigned-status text spoofing weakness, adds a fixture-te
 ## Owner-reported 6b0daac application and fixture results
 
 The owner supplied a successful fast-forward and fixture results: Event review 5/5, query-scaling 3/3, visualization-permission 2/2 and the Node DOM-stub script passed. Full evidence and limitations are in `milestone-6b0daac-results.md`. This updates the preceding milestone's awaiting-local-testing status for those fixtures only; it does not approve the threat model or Event specification, which remain proposals requiring further review. Real-site authorization, performance, migration/rollback and real-record export remain NOT RUN.
+
+## Event discovery, snapshot hardening and synthetic tree coverage
+
+`410ece9` delivers fixture-only Event reference discovery/classification and model gates; `fcb4144` adds strict experimental signed-body parsing and adversarial fixtures. The accompanying Place-tree suite models non-admin ownership/share/query/document cases and records synthetic stub query shapes and timings in `link-query-performance.md`. **UPLOADED on push / AWAITING OWNER LOCAL FIXTURE TESTS.** All actual site evidence, migrations, restore tests, real export and key provisioning remain NOT RUN; the security and Event documents remain proposals.

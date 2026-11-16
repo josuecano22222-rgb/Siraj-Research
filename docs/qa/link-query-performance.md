@@ -54,3 +54,18 @@ The example source path must refer to the reviewed new probe file, not an older 
 ## Synthetic query-shape regression
 
 `tests/test_privacy_query_scaling.py` runs the actual report against Frappe-shaped stubs. Fixtures contain 1, 10 or 1,000 relationships sharing two endpoints, or 500 relationships with 500 distinct Person endpoints. The test asserts one Person and one Place exact-name list call for repeated endpoints, versus 500 Person and one Place calls for 500 unique endpoints; 1,000 relationships require six stub relationship list pages because the report requests one final empty page when the count is an exact multiple of 200. It also asserts list-hidden endpoints are omitted even if document permission allows them. These are counts of stubbed `get_list` calls, **not SQL counts, real latency, optimized benchmarks or real Frappe security evidence**. The Place tree and snapshot negative cases are covered separately by stubs; approved real-role/direct API tests remain required. Candidate batching might reduce repeated queries but must preserve user permissions, list hooks, shares and error semantics; no optimization has yet been measured or implemented.
+
+### Place-tree and report stub measurements (sandbox only)
+
+Reproduce with `python3 tests/benchmark_synthetic_queries.py`; each median is five in-process iterations including fixture construction, module loading and invocation. Staged-archive run in sandbox Python 3.11.2, Linux 6.1.158+ x86_64, glibc 2.36, recorded the following. These are *stub function calls*, not database/SQL queries; timings include local Python/list-scanning overhead and vary with host load. They cannot be used as Frappe/site latency or evidence of an improvement.
+
+| Synthetic fixture | Size | Stub list pages | Exact-name list calls | Document checks / exists | Median ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Place children under one parent | 10 | 1 | 1 parent | 11 / 1 | 0.530 |
+| Place children under one parent | 200 | 2 | 1 parent | 201 / 1 | 1.579 |
+| Place children under one parent | 1,000 | 6 | 1 parent | 1,001 / 1 | 8.126 |
+| Relationship report, one unique Person endpoint | 10 | 1 | 1 Person + 1 Place | not measured | 5.425 |
+| Relationship report, 500 unique Person endpoints | 500 | 3 | 500 Person + 1 Place | not measured | 104.144 |
+| Relationship report, one unique Person endpoint | 1,000 | 6 | 1 Person + 1 Place | not measured | 6.516 |
+
+Place fixtures additionally made three DocType checks each. Full 200-row pages trigger one final empty list request. The report fixture also returns one shared Place; the unique count is Person endpoints, not total endpoints. Test cases model per-user ownership and sharing, query-hidden and document-hook-denied nodes, inaccessible/missing parent links, and field filtering in stub code. Stub results do not establish real Frappe user/share/query-hook behavior. Real measurements must use a separately authorized isolated dataset, approved accounts and instrumentation; no optimization has been claimed.
