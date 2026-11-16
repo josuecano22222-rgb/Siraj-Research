@@ -52,8 +52,13 @@ async function load(obj, size=100) {
   const network = {version:1,created_at:'fixture',nodes:[hub,...places],
     edges:places.map((p,i)=>({source:i%2 ? p : hub,target:i%2 ? hub : p,type:'related'}))};
   await load(network); descendants(elements['record-results'],'button')[0].click();
-  assert.match(elements['record-info'].textContent,/150 relationships.*showing at most 100/);
-  assert.equal(descendants(elements['record-info'],'button').length,100);
+  assert.match(elements['record-info'].textContent,/150 relationships.*showing 1–100/);
+  assert.equal(descendants(elements['record-info'],'button').length,101);
+  descendants(elements['record-info'],'button').find(b=>b.textContent==='Next relationships').click();
+  assert.match(elements['record-info'].textContent,/showing 101–150/);
+  assert.equal(descendants(elements['record-info'],'button').length,51);
+  descendants(elements['record-info'],'button').find(b=>b.textContent==='Previous relationships').click();
+  assert.match(elements['record-info'].textContent,/showing 1–100/);
   assert.match(elements['record-info'].textContent,/→ related/); assert.match(elements['record-info'].textContent,/← related/);
   descendants(elements['record-info'],'button')[0].click();
   assert.match(elements['record-info'].textContent,/1 relationship/);

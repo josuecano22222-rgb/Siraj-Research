@@ -33,21 +33,24 @@
         if (signedInfo && Date.now() >= expires) { generation++; reset('Signed snapshot expired or revocation policy is stale; no records loaded.'); return false; }
         return true;
     }
-    function open(node) {
+    function open(node, offset = 0) {
         if (!snapshot || !stillValid()) return;
         const info = el('record-info'); info.replaceChildren();
         const title = document.createElement('strong'); title.textContent = node.doctype + ': ' + node.name; info.append(title);
         const related = links.get(key(node)) || [], list = document.createElement('ul');
-        for (const {edge, outgoing} of related.slice(0, MAX_LINKS)) {
+        offset = Math.max(0, Math.min(offset, Math.max(0, Math.ceil(related.length / MAX_LINKS) - 1) * MAX_LINKS));
+        for (const {edge, outgoing} of related.slice(offset, offset + MAX_LINKS)) {
             const other = nodes.get(key(outgoing ? edge.target : edge.source));
             const li = document.createElement('li');
             const prefix = document.createElement('span'); prefix.textContent = (outgoing ? '→ ' : '← ') + (edge.type || 'Relationship') + ': ';
             li.append(prefix, button(other.doctype + ': ' + other.name, () => open(other))); list.append(li);
         }
         const summary = document.createElement('p');
-        summary.textContent = related.length ? related.length + (related.length === 1 ? ' relationship' : ' relationships') + ' in this snapshot; showing at most ' + MAX_LINKS + '.' : 'No relationships in this snapshot.';
+        summary.textContent = related.length ? related.length + (related.length === 1 ? ' relationship' : ' relationships') + ' in this snapshot; showing ' + (offset + 1) + '–' + Math.min(offset + MAX_LINKS, related.length) + '.' : 'No relationships in this snapshot.';
         info.append(summary);
         if (related.length) info.append(list);
+        if (offset > 0) info.append(button('Previous relationships', () => open(node, offset - MAX_LINKS)));
+        if (offset + MAX_LINKS < related.length) info.append(button('Next relationships', () => open(node, offset + MAX_LINKS)));
     }
     function render() {
         const results = el('record-results'); results.replaceChildren();
