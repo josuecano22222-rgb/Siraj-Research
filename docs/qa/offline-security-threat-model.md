@@ -1,6 +1,6 @@
 # Offline record snapshots: threat model and implementation gates
 
-**Decision: not approved for real-record export.** This is a proposed security design and risk register, not a claim of production readiness. No export endpoint, key provisioning, trust-policy delivery, encryption or synchronization is enabled. The v3 signature prototype and v1 unverified viewer have only fixture evidence. The owner must separately approve any real-data tests; no keys or actual records are requested in chat.
+**Status: PROPOSAL; further security and operational review required. Decision: not approved for real-record export.** This is a proposed security design and risk register, not a claim of production readiness. No export endpoint, key provisioning, trust-policy delivery, encryption or synchronization is enabled. The v3 signature prototype and v1 unverified viewer have only fixture evidence. The owner must separately approve any real-data tests; no keys or actual records are requested in chat.
 
 ## Boundaries, assets and assumptions
 

@@ -1,6 +1,6 @@
 # Event identity transition — non-mutating specification
 
-**Review status: incomplete for the actual site; not executable.** This specifies the proposed categories and gates but cannot list the owner's actual records, custom fields, hooks or integrations because the agent cannot access the site. No data was read from it here. No migration, metadata reload, schema change, SQL update, cleanup or rollback command is authorized by this specification. Previously reported zero Event rows and zero counts for a fixed subset of references were point-in-time observations, not a complete dependency or rollback inventory.
+**Review status: PROPOSAL; further review required, incomplete for the actual site and not executable.** This specifies the proposed categories and gates but cannot list the owner's actual records, custom fields, hooks or integrations because the agent cannot access the site. No data was read from it here. No migration, metadata reload, schema change, SQL update, cleanup or rollback command is authorized by this specification. Previously reported zero Event rows and zero counts for a fixed subset of references were point-in-time observations, not a complete dependency or rollback inventory.
 
 ## Identities and source of truth
 
