@@ -77,6 +77,39 @@ with zipfile.ZipFile(p / 'map.zip') as z: z.extractall(p / 'map')
     assert.match(await page.$eval('#record-state', e => e.textContent), /1 matching records/);
     await page.click('#record-close');
     assert.match(await page.$eval('#record-state', e => e.textContent), /closed/);
+    // Experimental signed path: fixture key and records never leave this process.
+    const signed = await page.evaluate(async () => {
+      const keys = await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'}, true, ['sign','verify']);
+      const pub = await crypto.subtle.exportKey('jwk', keys.publicKey);
+      const iso = ms => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
+      const now=Date.now(), source={doctype:'Person',name:'a'}, target={doctype:'Place',name:'b'};
+      const body={version:3,site:'site',subject:'account',key_id:'fixture-key',snapshot_id:'0123456789abcdef0123456789abcdef',
+        created_at:iso(now-1000),expires_at:iso(now+3600000),payload:{scope:{included_types:['Person','Place'],omitted_types:[],excluded_types:['Event'],relationships:'filtered',consistency:'non_atomic'},
+        nodes:[source,target],edges:[{source,target,type:''}]}};
+      const raw = new TextEncoder().encode(JSON.stringify(body));
+      const domain = new TextEncoder().encode('SIRAJ-OFFLINE-SNAPSHOT-V3\0');
+      const message = new Uint8Array(domain.length+raw.length); message.set(domain); message.set(raw,domain.length);
+      const signature = new Uint8Array(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},keys.privateKey,message));
+      const b64 = bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+      window.SIRAJ_OFFLINE_TRUST={site:'site',subject:'account',key_id:'fixture-key',public_key:{kty:pub.kty,crv:pub.crv,x:pub.x,y:pub.y},
+        revoked_snapshot_ids:[],revoked_key_ids:[],revocation_valid_until:iso(now+3600000)};
+      return {version:3,body:b64(raw),signature:b64(signature)};
+    });
+    const signedPath=path.join(tmp, 'signed-fixture.json'); fs.writeFileSync(signedPath, JSON.stringify(signed));
+    await page.evaluate(() => { window.fixtureTrust=window.SIRAJ_OFFLINE_TRUST; delete window.SIRAJ_OFFLINE_TRUST; });
+    await input.uploadFile(signedPath);
+    await page.waitForFunction(() => document.querySelector('#record-state').textContent.includes('rejected'));
+    await page.evaluate(() => { window.SIRAJ_OFFLINE_TRUST=window.fixtureTrust; document.querySelector('#record-file').value=''; });
+    await input.uploadFile(signedPath);
+    await page.waitForFunction(() => document.querySelector('#record-state').textContent.includes('Signature verified'));
+    assert.match(await page.$eval('#record-state', e=>e.textContent), /owner: account/);
+    await page.click('#record-results button');
+    assert.match(await page.$eval('#record-info', e=>e.textContent), /Place: b/);
+    await page.click('#record-close');
+    await page.evaluate(() => window.SIRAJ_OFFLINE_TRUST.revoked_snapshot_ids.push('0123456789abcdef0123456789abcdef'));
+    await input.uploadFile(signedPath);
+    await page.waitForFunction(() => document.querySelector('#record-state').textContent.includes('rejected'));
+    assert.equal(await page.$$eval('#record-results button', e=>e.length), 0);
     assert.deepStrictEqual(external, []);
     assert.deepStrictEqual(errors, []);
     console.log('Offline viewer: file:// rendering, coordinates, escaped attribution and no external requests passed');

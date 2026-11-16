@@ -29,7 +29,7 @@ console.log('Offline area planner: bounds, dateline, limits and zoom validation 
   let progress;
   let result = await w.sirajOfflineDownload.build(pack, [-180,-85,180,85], 0, 0, controller.signal, (...x)=>{progress=x;});
   assert.equal(result.stored,1); assert.equal(result.requested,1); assert.equal(result.bytes,1);
-  assert.equal(requests,1); assert.equal(progress[0],1); assert(files.includes('tiles/0/0/0.png')); assert(files.includes('index.html')); assert(files.includes('records.js')); assert(files.includes('leaflet/LICENSE'));
+  assert.equal(requests,1); assert.equal(progress[0],1); assert(files.includes('tiles/0/0/0.png')); assert(files.includes('index.html')); assert(files.includes('records.js')); assert(files.includes('snapshot_verify.js')); assert(files.includes('leaflet/LICENSE'));
   tileStatus=404;
   await assert.rejects(() => w.sirajOfflineDownload.build(pack, [-180,-85,180,85], 0, 0, controller.signal, ()=>{}), /empty/);
   tileStatus=403;

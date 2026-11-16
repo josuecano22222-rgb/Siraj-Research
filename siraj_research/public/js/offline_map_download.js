@@ -2,7 +2,7 @@
 (() => {
     'use strict';
     const LIMIT = 512, MAX_BYTES = 16 * 1024 * 1024, MAX_TILE_BYTES = 4 * 1024 * 1024, LAT = 85.0511287798066;
-    const assets = ['offline_map/index.html', 'offline_map/viewer.js', 'offline_map/records.js', 'vendor/leaflet/leaflet.js', 'vendor/leaflet/leaflet.css', 'vendor/leaflet/LICENSE',
+    const assets = ['offline_map/index.html', 'offline_map/viewer.js', 'offline_map/records.js', 'offline_map/snapshot_verify.js', 'vendor/leaflet/leaflet.js', 'vendor/leaflet/leaflet.css', 'vendor/leaflet/LICENSE',
         'vendor/leaflet/images/layers.png', 'vendor/leaflet/images/layers-2x.png', 'vendor/leaflet/images/marker-icon.png', 'vendor/leaflet/images/marker-icon-2x.png', 'vendor/leaflet/images/marker-shadow.png'];
     const y = (lat,n) => (1 - Math.asinh(Math.tan(lat * Math.PI / 180)) / Math.PI) / 2 * n;
     function plan(bounds, min, max) {

@@ -29,7 +29,7 @@ input {width:8rem} button,select,input {font:inherit;padding:.25rem} #map {flex:
 <div id="status" role="status" aria-live="polite">Tiles are available only where included in this package.</div>
 <details id="records">
 <summary>Offline records (experimental, read-only)</summary>
-<p id="record-warning">UNVERIFIED FILE: this disconnected viewer does not verify origin, integrity, identity or permissions and cannot revoke copies. Only open a snapshot you are authorized to access. Files may be sensitive and unencrypted. No export or synchronization is provided.</p>
+<p id="record-warning">Unsigned files are UNVERIFIED. Signed files need an independently configured trusted key and revocation policy. This viewer cannot authenticate the current user, recheck permissions or revoke copied files. Files are unencrypted. No export or synchronization is provided.</p>
 <label>Open local record snapshot <input id="record-file" type="file" accept="application/json,.json"></label>
 <button id="record-close" type="button">Close snapshot</button>
 <div id="record-state" role="status" aria-live="polite">No snapshot loaded. This viewer does not connect to a server.</div>
@@ -41,6 +41,7 @@ input {width:8rem} button,select,input {font:inherit;padding:.25rem} #map {flex:
 <script src="leaflet/leaflet.js"></script>
 <script src="config.js"></script>
 <script src="viewer.js"></script>
+<script src="snapshot_verify.js"></script>
 <script src="records.js"></script>
 </body>
 </html>
