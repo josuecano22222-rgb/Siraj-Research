@@ -662,3 +662,23 @@ Some local tiles are unavailable at this location or zoom.,بعض أجزاء ا�
 Local map pack: coverage depends on supplied data.,حزمة الخرائط المحلية: تعتمد التغطية على البيانات المقدمة.
 Local overview,خريطة محلية عامة
 Local basemap,الخريطة الأساسية المحلية
+Download local area,تنزيل منطقة محلية
+West,الغرب
+South,الجنوب
+East,الشرق
+North,الشمال
+Minimum zoom,أدنى تكبير
+Maximum zoom,أقصى تكبير
+Use current map area,استخدام المنطقة الحالية على الخريطة
+Area selected. Review bounds and zooms before downloading.,تم تحديد المنطقة. راجع الحدود ومستويات التكبير قبل التنزيل.
+Estimate tiles,تقدير مربعات الخريطة
+"Up to {0} tiles; actual coverage and size may be smaller.","حتى {0} مربعاً؛ قد تكون التغطية والحجم الفعلي أقل."
+"Invalid bounds, zooms, or more than 512 possible tiles.",الحدود أو مستويات التكبير غير صالحة أو يتجاوز العدد المحتمل 512 مربعاً.
+Cancel download,إلغاء التنزيل
+Download ZIP,تنزيل ZIP
+Select a local pack and enter valid bounds and zooms.,اختر حزمة محلية وأدخل حدوداً ومستويات تكبير صالحة.
+"Tiles checked: {0} of {1}; available: {2}.","المربعات المفحوصة: {0} من {1}؛ المتاحة: {2}."
+"Downloaded {0} of {1} possible tiles. Missing tiles will be blank.","تم تنزيل {0} من أصل {1} مربع محتمل. ستظهر المربعات المفقودة فارغة."
+Download cancelled.,أُلغي التنزيل.
+"Download failed. Check bounds, zooms, tile limit, size, permissions and connection.",فشل التنزيل. تحقق من الحدود ومستويات التكبير والحدود القصوى والحجم والصلاحيات والاتصال.
+"Basemap only, unencrypted. Maximum 512 possible tiles and 16 MiB of imagery. Use only on authorized devices.",خريطة أساسية فقط دون تشفير. الحد الأقصى 512 مربعاً محتملاً و16 ميبيبايت من الصور. استخدم أجهزة مصرحاً بها فقط.

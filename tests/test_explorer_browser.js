@@ -4,6 +4,9 @@
 const assert = require('assert');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+const {execFileSync} = require('child_process');
+const {pathToFileURL} = require('url');
 const puppeteer = require('puppeteer-core');
 const ROOT = path.resolve(__dirname, '..');
 const asset = name => path.join(ROOT, 'siraj_research/public', name);
@@ -37,11 +40,17 @@ async function executable() {
 		await page.setViewport({width: 1440, height: 1000});
 		await page.setContent('<!doctype html><html><head><base href="https://site.test/"></head><body><div id="host"></div></body></html>');
 		for (const file of ['vendor/leaflet/leaflet.css', 'css/siraj_explorer.css']) await page.addStyleTag({path: asset(file)});
-		for (const file of [require.resolve('jquery/dist/jquery.js'), ...['vendor/leaflet/leaflet.js', 'vendor/leaflet-markercluster/leaflet.markercluster.js', 'vendor/topojson/topojson-client.min.js', 'vendor/vis-network/vis-network.min.js', 'vendor/d3/d3.min.js', 'vendor/d3-sankey/d3-sankey.min.js', 'js/structure_deck.js'].map(asset)]) await page.addScriptTag({path: file});
+		for (const file of [require.resolve('jquery/dist/jquery.js'), ...['vendor/leaflet/leaflet.js', 'vendor/leaflet-markercluster/leaflet.markercluster.js', 'vendor/topojson/topojson-client.min.js', 'vendor/vis-network/vis-network.min.js', 'vendor/d3/d3.min.js', 'vendor/d3-sankey/d3-sankey.min.js', 'js/structure_deck.js', 'vendor/jszip/jszip.min.js', 'js/offline_map_download.js'].map(asset)]) await page.addScriptTag({path: file});
 		const world = JSON.parse(fs.readFileSync(asset('vendor/world-atlas/countries-110m.json'), 'utf8'));
-		await page.evaluate(world => {
+		const exportAssets = Object.fromEntries(['offline_map/index.html', 'offline_map/viewer.js', 'vendor/leaflet/leaflet.js', 'vendor/leaflet/leaflet.css', 'vendor/leaflet/LICENSE', ...['layers.png','layers-2x.png','marker-icon.png','marker-icon-2x.png','marker-shadow.png'].map(x => 'vendor/leaflet/images/' + x)].map(name => [name, fs.readFileSync(asset(name)).toString('base64')]));
+		await page.evaluate((world, exportAssets) => {
 			window.__ = (s, args) => args ? s.replace(/\{(\d+)\}/g, (_, i) => args[i]) : s;
-			window.fetch = async () => ({ok: true, json: async () => world});
+			window.fetch = async url => {
+				if (url.includes('countries-110m')) return {ok:true, json:async()=>world};
+				const key = url.replace('/assets/siraj_research/', '');
+				const encoded = url.startsWith('/api/method/siraj_research.local_maps.tile?') ? 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/a3sAAAAASUVORK5CYII=' : exportAssets[key];
+				return encoded ? {ok:true,status:200,arrayBuffer:async()=>Uint8Array.from(atob(encoded), c=>c.charCodeAt(0)).buffer} : {ok:false,status:404};
+			};
 			window.downloads = [];
 			URL.createObjectURL = blob => { window.downloads.push(blob); return 'blob:test'; };
 			URL.revokeObjectURL = () => {};
@@ -53,8 +62,8 @@ async function executable() {
 			const graph = {nodes, edges: nodes.slice(1).map((n, i) => ({name: 'r' + i, source: [nodes[0].doctype, nodes[0].name], target: [n.doctype, n.name], type: 'Member', direction: 'Directed'})), truncated: []};
 			graph.edges.push({name:'parallel', source:[nodes[0].doctype,nodes[0].name], target:[nodes[1].doctype,nodes[1].name], type:'Parallel', direction:'Symmetric'}, {name:'loop', source:[nodes[1].doctype,nodes[1].name], target:[nodes[1].doctype,nodes[1].name], type:'Loop', direction:'Directed'});
 			const points = nodes.map((n, i) => ({...n, latitude: 30 + i * .25, longitude: 43 + i * .35}));
-			window.frappe = {pages: {'siraj-explorer': {}}, ui: {make_app_page: ({parent}) => ({main: $(parent)})}, require: async () => {}, set_route() {}, call: async ({method}) => ({message: method.endsWith('available_packs') ? [{kind:'aerial', minzoom:0, maxzoom:2, attribution:'<img src=x onerror=alert(1)>'}] : method.endsWith('geographic_data') ? {points, truncated: []} : method.endsWith('relationship_data') ? graph : {doctype: 'Person', dimensions: ['Nationality', 'Classification', 'Status'], count: 420, group_count: 7, children: groups}})};
-		}, world);
+			window.frappe = {pages: {'siraj-explorer': {}}, ui: {make_app_page: ({parent}) => ({main: $(parent)})}, require: async () => {}, set_route() {}, call: async ({method}) => ({message: method.endsWith('available_packs') ? [{kind:'aerial', format:'png', download_allowed:true, minzoom:0, maxzoom:2, attribution:'<img src=x onerror=alert(1)>'}] : method.endsWith('geographic_data') ? {points, truncated: []} : method.endsWith('relationship_data') ? graph : {doctype: 'Person', dimensions: ['Nationality', 'Classification', 'Status'], count: 420, group_count: 7, children: groups}})};
+		}, world, exportAssets);
 		await page.addScriptTag({path: path.join(ROOT, 'siraj_research/siraj_research/page/siraj_explorer/siraj_explorer.js')});
 		await page.evaluate(() => frappe.pages['siraj-explorer'].on_page_load(document.getElementById('host')));
 		await page.waitForSelector('.sx-record-item');
@@ -64,6 +73,31 @@ async function executable() {
 		await page.waitForFunction(() => [...document.querySelectorAll('.leaflet-tile')].some(t => t.complete && t.naturalWidth > 0));
 		assert(tileRequests.length > 0);
 		assert.equal(await page.$eval('.leaflet-control-attribution', e => e.querySelectorAll('img').length), 0);
+		await page.evaluate(() => { const panel = document.querySelector('.sx-area-fields').parentElement; panel.open = true; });
+		await page.evaluate(() => [...document.querySelectorAll('.sx-area-fields button')].find(b=>b.textContent==='Use current map area').click());
+		await page.evaluate(() => [...document.querySelectorAll('.sx-area-fields button')].find(b=>b.textContent==='Download ZIP').click());
+		await page.waitForFunction(() => window.downloads.length > 0);
+		const zipFiles = await page.evaluate(async () => Object.keys((await JSZip.loadAsync(await window.downloads[0].arrayBuffer())).files));
+		assert(zipFiles.includes('index.html') && zipFiles.includes('viewer.js') && zipFiles.some(n=>/^tiles\/\d+\/\d+\/\d+\.png$/.test(n)));
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'siraj-ui-download-'));
+		try {
+			const encoded = await page.evaluate(async () => {
+				const bytes = new Uint8Array(await window.downloads[0].arrayBuffer()); let binary = '';
+				for (const byte of bytes) binary += String.fromCharCode(byte);
+				return btoa(binary);
+			});
+			fs.writeFileSync(path.join(dir, 'map.zip'), Buffer.from(encoded, 'base64'));
+			execFileSync('python3', ['-c', 'import sys,zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])', path.join(dir, 'map.zip'), path.join(dir, 'map')]);
+			const offline = await browser.newPage(), external = [], offlineErrors = [];
+			offline.on('request', req => { if (!req.url().startsWith('file:')) external.push(req.url()); });
+			offline.on('pageerror', err => offlineErrors.push(String(err)));
+			await offline.goto(pathToFileURL(path.join(dir, 'map', 'index.html')).href);
+			await offline.waitForFunction(() => [...document.querySelectorAll('.leaflet-tile')].some(t => t.complete && t.naturalWidth > 0));
+			assert.deepStrictEqual(external, []); assert.deepStrictEqual(offlineErrors, []);
+			await offline.close();
+		} finally { fs.rmSync(dir, {recursive:true, force:true}); }
+
+
 		await page.select('select[aria-label=Basemap]', 'local');
 		await page.click('.sx-record-item');
 		assert.strictEqual(await page.$eval('.sx-aside h4', e => e.textContent), 'Record 0');

@@ -79,7 +79,7 @@
 .sx-atlas-rail .sx-check { margin-top: 8px; }
 @media (max-width: 1000px) { .sx-layout-relationships { grid-template-columns: minmax(0, 1fr); } }
 .sx-coordinate-entry { position: relative; } .sx-coordinate-entry summary { cursor: pointer; padding: 5px 10px; border: 1px solid var(--sx-line); border-radius: 5px; }
-.sx-coordinate-fields { position: absolute; z-index: 1200; top: 100%; inset-inline-start: 0; width: 230px; padding: 10px; background: var(--sx-bg); border: 1px solid var(--sx-line); border-radius: 6px; box-shadow: 0 5px 20px #0002; }
-.sx-coordinate-fields input { width: 100%; margin-bottom: 6px; } .sx-coordinate-fields span { display: block; color: var(--text-muted); font-size: 12px; }
+.sx-coordinate-fields, .sx-area-fields { position: absolute; z-index: 1200; top: 100%; inset-inline-start: 0; width: 230px; padding: 10px; background: var(--sx-bg); border: 1px solid var(--sx-line); border-radius: 6px; box-shadow: 0 5px 20px #0002; }
+.sx-coordinate-fields input, .sx-area-fields input { width: 100%; margin-bottom: 6px; } .sx-coordinate-fields span, .sx-area-fields span { display: block; color: var(--text-muted); font-size: 12px; }
 .sd-bar .sd-depth { max-width: 100px; } .sd-bar .sd-find { max-width: 160px; }
 .sd-stage:focus-visible { outline: 2px solid #c69a21; outline-offset: -2px; }

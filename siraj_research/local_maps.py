@@ -104,7 +104,11 @@ def available_packs():
         try:
             path = _path(kind)
             if path:
-                result.append({"kind": kind, **_inspect(path)})
+                # This opt-in is a licensing decision, not additional access control:
+                # tile readers can already save individual tiles.
+                enabled = frappe.conf.get("siraj_offline_map_downloads", [])
+                allowed = isinstance(enabled, list) and kind in enabled
+                result.append({"kind": kind, **_inspect(path), "download_allowed": allowed})
         except (TilePackError, OSError):
             # A broken pack must not prevent other packs from being used.
             result.append({"kind": kind, "unavailable": True})

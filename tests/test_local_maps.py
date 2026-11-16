@@ -24,6 +24,7 @@ class LocalMapsTest(unittest.TestCase):
         self.packdir = self.private / 'siraj_maps'; self.packdir.mkdir()
         self.f = types.ModuleType('frappe')
         self.f.session = types.SimpleNamespace(user='reader')
+        self.f.conf = {}
         self.f.PermissionError = PermissionError; self.f.ValidationError = ValueError
         self.f.whitelist = lambda **kw: lambda fn: fn
         self.f.has_permission = lambda *args: True
@@ -63,7 +64,11 @@ class LocalMapsTest(unittest.TestCase):
         reply = self.module.available_packs()
         self.assertEqual(reply.headers['Cache-Control'], 'private, no-store')
         metadata = json.loads(reply.data)['message']
-        self.assertEqual(metadata, [{'kind':'standard', 'name':'<example>', 'attribution':'Offline source', 'format':'png', 'minzoom':1, 'maxzoom':1}])
+        self.assertEqual(metadata, [{'kind':'standard', 'name':'<example>', 'attribution':'Offline source', 'format':'png', 'minzoom':1, 'maxzoom':1, 'download_allowed':False}])
+        self.f.conf['siraj_offline_map_downloads'] = ['standard']
+        self.assertTrue(json.loads(self.module.available_packs().data)['message'][0]['download_allowed'])
+        self.f.conf['siraj_offline_map_downloads'] = 'standard'
+        self.assertFalse(json.loads(self.module.available_packs().data)['message'][0]['download_allowed'])
         response = self.module.tile('standard','1','0','0')
         self.assertEqual(response.data, PNG)
         self.assertEqual(response.content_type, 'image/png')

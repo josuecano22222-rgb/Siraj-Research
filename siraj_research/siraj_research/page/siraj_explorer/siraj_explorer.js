@@ -23,6 +23,7 @@ class SirajExplorer {
 		return b;
 	}
 	async render() {
+		if (this.downloadController) { this.downloadController.abort(); this.downloadController = null; }
 		if (this.map) { this.map.remove(); this.map = null; }
 		if (this.network) { this.network.destroy(); this.network = null; }
 		const renderId = this.renderId = (this.renderId || 0) + 1;
@@ -241,6 +242,54 @@ class SirajExplorer {
 		$('<option value="local"></option>').text(__('Offline basemap')).appendTo(base);
 		$('<option value="online"></option>').text(__('Online: OpenStreetMap')).appendTo(base);
 		const localPacks = new Map();
+		const downloadPanel = $('<details class="sx-coordinate-entry"></details>').hide().appendTo(this.tools);
+		$('<summary></summary>').text(__('Download local area')).appendTo(downloadPanel);
+		const downloadFields = $('<div class="sx-area-fields"></div>').appendTo(downloadPanel);
+		const makeInput = (name, label) => $('<input type="number" step="any" class="form-control input-sm">').attr({placeholder:label, 'aria-label':label, 'data-area-field':name}).appendTo(downloadFields);
+		const west = makeInput('west', __('West')), south = makeInput('south', __('South')), east = makeInput('east', __('East')), north = makeInput('north', __('North'));
+		const minZoom = makeInput('minzoom', __('Minimum zoom')), maxZoom = makeInput('maxzoom', __('Maximum zoom'));
+		const downloadStatus = $('<span role="status" aria-live="polite"></span>').appendTo(downloadFields);
+		const currentPack = () => localPacks.get(String(base.val()).replace(/^pack-/, ''));
+		this.button(__('Use current map area'), () => {
+			const bounds = map.getBounds(), left = bounds.getWest(), right = bounds.getEast();
+			const norm = value => ((value + 180) % 360 + 360) % 360 - 180;
+			west.val(right - left >= 360 ? -180 : norm(left)); east.val(right - left >= 360 ? 180 : norm(right));
+			south.val(Math.max(-85.0511287798066, bounds.getSouth())); north.val(Math.min(85.0511287798066, bounds.getNorth()));
+			const pack = currentPack();
+			if (pack) { const zoom = Math.max(pack.minzoom, Math.min(pack.maxzoom, Math.round(map.getZoom()))); minZoom.val(Math.max(pack.minzoom, zoom - 2)); maxZoom.val(zoom); }
+			downloadStatus.text(__('Area selected. Review bounds and zooms before downloading.'));
+		}).appendTo(downloadFields);
+		this.button(__('Estimate tiles'), async () => {
+			const pack = currentPack(), inputs = [west,south,east,north,minZoom,maxZoom];
+			if (!pack?.download_allowed || inputs.some(input => input.val() === '')) { downloadStatus.text(__('Select a local pack and enter valid bounds and zooms.')); return; }
+			const values = inputs.map(input => Number(input.val()));
+			try {
+				await frappe.require(['/assets/siraj_research/vendor/jszip/jszip.min.js', '/assets/siraj_research/js/offline_map_download.js']);
+				if (values[4] < pack.minzoom || values[5] > pack.maxzoom) throw Error('zoom');
+				const result = window.sirajOfflineDownload.plan(values.slice(0,4), values[4], values[5]);
+				if (renderId === this.renderId) downloadStatus.text(__('Up to {0} tiles; actual coverage and size may be smaller.', [result.count]));
+			} catch (_) { if (renderId === this.renderId) downloadStatus.text(__('Invalid bounds, zooms, or more than 512 possible tiles.')); }
+		}).appendTo(downloadFields);
+		const cancelDownload = this.button(__('Cancel download'), () => this.downloadController?.abort()).hide().appendTo(downloadFields);
+		const startDownload = this.button(__('Download ZIP'), async () => {
+			const pack = currentPack(), inputs = [west,south,east,north,minZoom,maxZoom];
+			if (!pack?.download_allowed || inputs.some(input => input.val() === '')) { downloadStatus.text(__('Select a local pack and enter valid bounds and zooms.')); return; }
+			const values = inputs.map(input => Number(input.val())), controller = new AbortController();
+			this.downloadController = controller; startDownload.prop('disabled', true); cancelDownload.show();
+			try {
+				await frappe.require(['/assets/siraj_research/vendor/jszip/jszip.min.js', '/assets/siraj_research/js/offline_map_download.js']);
+				if (controller.signal.aborted) return;
+				const result = await window.sirajOfflineDownload.build(pack, values.slice(0,4), values[4], values[5], controller.signal,
+					(done,total,stored) => downloadStatus.text(__('Tiles checked: {0} of {1}; available: {2}.', [done,total,stored])));
+				if (renderId !== this.renderId || controller.signal.aborted) return;
+				const url = URL.createObjectURL(result.blob), a = document.createElement('a');
+				a.href = url; a.download = 'siraj-offline-' + pack.kind + '.zip'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+				downloadStatus.text(__('Downloaded {0} of {1} possible tiles. Missing tiles will be blank.', [result.stored,result.requested]));
+			} catch (error) {
+				if (renderId === this.renderId) downloadStatus.text(error.name === 'AbortError' ? __('Download cancelled.') : __('Download failed. Check bounds, zooms, tile limit, size, permissions and connection.'));
+			} finally { if (this.downloadController === controller) this.downloadController = null; startDownload.prop('disabled', false); cancelDownload.hide(); }
+		}).appendTo(downloadFields);
+		$('<span></span>').text(__('Basemap only, unencrypted. Maximum 512 possible tiles and 16 MiB of imagery. Use only on authorized devices.')).appendTo(downloadFields);
 		// This endpoint exposes only licensed packs placed in this site's private
 		// map directory. Permission denial leaves the built-in basemap available.
 		frappe.call({method: 'siraj_research.local_maps.available_packs', type: 'GET', silent: true, error_handlers: {403: () => {}}}).then(res => {
@@ -252,6 +301,8 @@ class SirajExplorer {
 			});
 		}).catch(() => {});
 		base.on('change', () => {
+			if (this.downloadController) this.downloadController.abort();
+			downloadPanel.toggle(!!currentPack()?.download_allowed);
 			if (onlineLayer) { map.removeLayer(onlineLayer); onlineLayer = null; }
 			if (localPackLayer) { map.removeLayer(localPackLayer); localPackLayer = null; }
 			map.setMinZoom(0);
