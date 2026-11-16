@@ -47,6 +47,21 @@ async function load(obj, size=100) {
   const invalid = [ {...data, edges:[{source:node('Person','missing'),target:node('Place','b'),type:''}]},
     {...data, nodes:[data.nodes[0],data.nodes[0]]}, {...data, nodes:[node('Event','c')]}, {...data, extra:'bad'} ];
   for (const value of invalid) { await load(value); assert.match(state(), /rejected/); assert.equal(descendants(elements['record-results'],'button').length,0); }
+  // Bounded adjacency, incoming/outgoing navigation and self links, all local.
+  const hub = node('Person','hub'), places = Array.from({length:150},(_,i)=>node('Place','p'+i));
+  const network = {version:1,created_at:'fixture',nodes:[hub,...places],
+    edges:places.map((p,i)=>({source:i%2 ? p : hub,target:i%2 ? hub : p,type:'related'}))};
+  await load(network); descendants(elements['record-results'],'button')[0].click();
+  assert.match(elements['record-info'].textContent,/150 relationships.*showing at most 100/);
+  assert.equal(descendants(elements['record-info'],'button').length,100);
+  assert.match(elements['record-info'].textContent,/→ related/); assert.match(elements['record-info'].textContent,/← related/);
+  descendants(elements['record-info'],'button')[0].click();
+  assert.match(elements['record-info'].textContent,/1 relationship/);
+  const loop = {version:1,created_at:'fixture',nodes:[hub],edges:[{source:hub,target:hub,type:'self'}]};
+  await load(loop); descendants(elements['record-results'],'button')[0].click();
+  assert.equal(descendants(elements['record-info'],'button').length,1);
+  await load({...loop,edges:[{source:hub,target:node('Place','absent'),type:''}]});
+  assert.match(state(), /rejected/); assert.equal(descendants(elements['record-info'],'button').length,0);
   await load(data, 2*1024*1024+1); assert.match(state(), /rejected/);
   // A previously signed display must never confer trust on a later v1 import.
   const deadline = new Date(Date.now()+60000).toISOString();

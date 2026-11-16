@@ -2,9 +2,9 @@
 (() => {
     'use strict';
     const el = id => document.getElementById(id);
-    const MAX_BYTES = 2 * 1024 * 1024, MAX_NODES = 2000, MAX_EDGES = 4000, MAX_TEXT = 256, MAX_RESULTS = 100;
+    const MAX_BYTES = 2 * 1024 * 1024, MAX_NODES = 2000, MAX_EDGES = 4000, MAX_TEXT = 256, MAX_RESULTS = 100, MAX_LINKS = 100;
     const types = new Set(['Person', 'Institution', 'Place', 'Source', 'SIRAJ Research Event']);
-    let snapshot = null, nodes = new Map(), generation = 0, signedInfo = null, expires = 0, expiryTimer = null;
+    let snapshot = null, nodes = new Map(), links = new Map(), generation = 0, signedInfo = null, expires = 0, expiryTimer = null;
     const key = node => JSON.stringify([node.doctype, node.name]);
     const text = value => typeof value === 'string' && value.length > 0 && value.length <= MAX_TEXT && value.trim() === value;
     const shape = (obj, fields) => obj && typeof obj === 'object' && !Array.isArray(obj) &&
@@ -12,17 +12,19 @@
     function validate(data) {
         if (!shape(data, ['version','created_at','nodes','edges']) || data.version !== 1 || !text(data.created_at) ||
             !Array.isArray(data.nodes) || data.nodes.length > MAX_NODES || !Array.isArray(data.edges) || data.edges.length > MAX_EDGES) throw Error('Invalid snapshot');
-        const index = new Map();
+        const index = new Map(), adjacency = new Map();
         for (const node of data.nodes) {
             if (!shape(node, ['doctype','name']) || !types.has(node.doctype) || !text(node.name) || index.has(key(node))) throw Error('Invalid record');
-            index.set(key(node), node);
+            index.set(key(node), node); adjacency.set(key(node), []);
         }
         for (const edge of data.edges) {
             if (!shape(edge, ['source','target','type']) || !shape(edge.source, ['doctype','name']) || !shape(edge.target, ['doctype','name']) ||
                 !types.has(edge.source.doctype) || !types.has(edge.target.doctype) || !text(edge.source.name) || !text(edge.target.name) ||
                 !index.has(key(edge.source)) || !index.has(key(edge.target)) || typeof edge.type !== 'string' || edge.type.length > MAX_TEXT) throw Error('Invalid relationship');
+            adjacency.get(key(edge.source)).push({edge, outgoing:true});
+            if (key(edge.source) !== key(edge.target)) adjacency.get(key(edge.target)).push({edge, outgoing:false});
         }
-        return index;
+        return {index, adjacency};
     }
     function button(label, fn) {
         const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.addEventListener('click', fn); return b;
@@ -35,17 +37,17 @@
         if (!snapshot || !stillValid()) return;
         const info = el('record-info'); info.replaceChildren();
         const title = document.createElement('strong'); title.textContent = node.doctype + ': ' + node.name; info.append(title);
-        const list = document.createElement('ul'); let count = 0;
-        for (const edge of snapshot.edges) {
-            const isSource = key(edge.source) === key(node), isTarget = key(edge.target) === key(node);
-            if (!isSource && !isTarget) continue;
-            const other = nodes.get(key(isSource ? edge.target : edge.source));
+        const related = links.get(key(node)) || [], list = document.createElement('ul');
+        for (const {edge, outgoing} of related.slice(0, MAX_LINKS)) {
+            const other = nodes.get(key(outgoing ? edge.target : edge.source));
             const li = document.createElement('li');
-            const prefix = document.createElement('span'); prefix.textContent = (isSource ? '→ ' : '← ') + (edge.type || 'Relationship') + ': ';
-            li.append(prefix, button(other.doctype + ': ' + other.name, () => open(other))); list.append(li); count++;
+            const prefix = document.createElement('span'); prefix.textContent = (outgoing ? '→ ' : '← ') + (edge.type || 'Relationship') + ': ';
+            li.append(prefix, button(other.doctype + ': ' + other.name, () => open(other))); list.append(li);
         }
-        if (!count) { const p = document.createElement('p'); p.textContent = 'No relationships in this snapshot.'; info.append(p); }
-        else info.append(list);
+        const summary = document.createElement('p');
+        summary.textContent = related.length ? related.length + (related.length === 1 ? ' relationship' : ' relationships') + ' in this snapshot; showing at most ' + MAX_LINKS + '.' : 'No relationships in this snapshot.';
+        info.append(summary);
+        if (related.length) info.append(list);
     }
     function render() {
         const results = el('record-results'); results.replaceChildren();
@@ -63,7 +65,7 @@
         el('record-state').textContent = status + matching.length + ' matching records; showing at most ' + MAX_RESULTS + '.';
     }
     function reset(message) {
-        snapshot = null; nodes = new Map(); signedInfo = null; expires = 0;
+        snapshot = null; nodes = new Map(); links = new Map(); signedInfo = null; expires = 0;
         if (expiryTimer) { clearTimeout(expiryTimer); expiryTimer = null; }
         el('record-results').replaceChildren(); el('record-info').replaceChildren();
         el('record-type').replaceChildren(new Option('All types', ''));
@@ -83,9 +85,9 @@
                 deadline = Math.min(Date.parse(info.expires_at), Date.parse(window.SIRAJ_OFFLINE_TRUST.revocation_valid_until));
                 if (!Number.isFinite(deadline) || deadline <= Date.now()) throw Error('Expired');
             }
-            const index = validate(data);
+            const checked = validate(data);
             if (token !== generation) return;
-            snapshot = data; nodes = index; signedInfo = info; expires = deadline;
+            snapshot = data; nodes = checked.index; links = checked.adjacency; signedInfo = info; expires = deadline;
             if (info) expiryTimer = setTimeout(() => { if (token === generation) stillValid(); }, Math.max(0, deadline - Date.now()));
             for (const type of [...new Set(data.nodes.map(node => node.doctype))].sort()) el('record-type').append(new Option(type, type));
             render();
