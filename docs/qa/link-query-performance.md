@@ -5,3 +5,18 @@
 Only in a separately approved representative environment and window, compare parent commit `e42ba8f` and 60c2809 on equivalent restored datasets, versions, indexes, user roles, concurrency and cache conditions. Do not downgrade the working site or disable security to obtain a baseline. Confirm the baseline still exposes the simulated list-hidden link, and never make it accessible to unauthorized users. Exclude other traffic if possible; record it if not. Include relationship reports with repeated endpoints versus many distinct endpoints, and tree expansions across shallow/deep/wide parents. Include list-query hooks, shares and per-document hooks representative of the site. Do not create data on the working site.
 
 Start with one read per case only after explicit authorization; agree service/DB CPU, memory, query-duration, error and concurrency stop limits and recovery contacts beforehand. Scale only as explicitly authorized; browser-side cancellation does not guarantee server cancellation. Capture sanitized route, revision, anonymized role, record/edge counts, unique endpoints, cache state, total SQL count and duration from approved server/database instrumentation, response bytes, client/server duration, error/timeout counts, and CPU/memory/IO/connection pressure. Record p50/p95/p99 only with sufficient repetitions; label single requests as smoke checks. Do not log query values, names, responses or identifiers. Compare both performance and visibility results; a faster query that changes the intended security policy fails. No optimization is currently proposed as safe until the actual hook and sharing semantics are understood.
+
+## Implemented bounded route probes (not run)
+
+After reviewing `load-probe.js`, and only in an authorized window, the existing browser probe can request the relevant paths using the current authenticated session. Load the reviewed script as described in `load-test-report.md`, then start with one request for each approved case:
+
+```js
+await sirajLoadProbe('relationship_report', 1, 1)
+await sirajLoadProbe('place_tree_root', 1, 1)
+// Substitute a real, approved existing parent locally; never share its name.
+await sirajLoadProbe('place_tree_parent', 1, 1, 'EXISTING-PLACE-NAME')
+```
+
+The report endpoint has an `ignore_prepared_report=1` request flag but site overrides/customizations must be reviewed; failures may cause server-side Error Log writes. Parent identifiers may be retained by browser/proxy/server logs, though the probe's summary omits them. HTTP 200 is not proof of security or identical data. Verify the result privately and capture only aggregate metrics and pass/fail. The probe stops scheduling new calls on first non-200/network/size error; concurrent calls already sent and server processing can continue. Its bounds are client-only. Review the safety plan and test smaller representative workloads before increasing requests. This measures current code; a security-equivalent optimized implementation does not yet exist, so no optimized measurement or comparison can honestly be reported.
+
+The Explorer relationship map (`visualization.relationship_data`) builds a permission-visible Source/node set and checks membership per edge; the 60c2809 primary-source correction itself adds no per-edge `can_read_link` list query. The **separate Entity Relationship Graph report** uses `can_read_link` for endpoint checks, with a per-report cache, and selected-parent Place tree expansion uses it once per request. Relationship-map scans and document permission checks can still be expensive; measure them separately instead of attributing their total latency to the report/tree change.
