@@ -110,9 +110,33 @@ with zipfile.ZipFile(p / 'map.zip') as z: z.extractall(p / 'map')
     await input.uploadFile(signedPath);
     await page.waitForFunction(() => document.querySelector('#record-state').textContent.includes('rejected'));
     assert.equal(await page.$$eval('#record-results button', e=>e.length), 0);
+    // Synthetic extended v4 stays explicitly unsigned; hierarchy is never inferred.
+    const extended=(doctype,name,label,parent=null,details={})=>({doctype,name,label,parent,details});
+    const place=extended('Place','r','Region',null,{origin:'<img src=x>'});
+    const child=extended('Place','c','District','r');
+    const person=extended('Person','p','Researcher',null,{note:'<script>not code</script>'});
+    const rich={version:4,created_at:'untrusted',nodes:[place,child,person],
+      edges:[{source:node('Person','p'),target:node('Place','c'),type:'visited'}]};
+    const richPath=path.join(tmp,'rich-fixture.json'); fs.writeFileSync(richPath,JSON.stringify(rich));
+    await input.uploadFile(richPath);
+    await page.waitForFunction(() => document.querySelector('#record-state').textContent.includes('3 matching records'));
+    assert.match(await page.$eval('#record-state',e=>e.textContent),/UNVERIFIED/);
+    await page.click('#record-tree-root');
+    assert.match(await page.$eval('#record-tree-state',e=>e.textContent),/Top-level places: 1/);
+    await page.evaluate(() => [...document.querySelectorAll('#record-tree-results button')].find(b=>b.textContent==='Show children of Region').click());
+    assert.match(await page.$eval('#record-tree-state',e=>e.textContent),/Children of Region: 1/);
+    await page.evaluate(() => [...document.querySelectorAll('#record-tree-results button')].find(b=>b.textContent==='District').click());
+    assert.match(await page.$eval('#record-info',e=>e.textContent),/Researcher|Person: p/);
+    await page.click('#record-info button');
+    assert.match(await page.$eval('#record-info',e=>e.textContent),/<script>not code<\/script>/);
+    assert.equal(await page.$$eval('#record-info script',x=>x.length),0);
+    const cyclePath=path.join(tmp,'cycle-fixture.json'); fs.writeFileSync(cyclePath,JSON.stringify({...rich,nodes:[{...place,parent:'c'},child,person]}));
+    await input.uploadFile(cyclePath);
+    await page.waitForFunction(() => document.querySelector('#record-state').textContent.includes('rejected'));
+    assert.equal(await page.$$eval('#record-tree-results button', x=>x.length),0);
     assert.deepStrictEqual(external, []);
     assert.deepStrictEqual(errors, []);
-    console.log('Offline viewer: file:// rendering, coordinates, escaped attribution and no external requests passed');
+    console.log('Offline viewer: file:// maps, synthetic extended hierarchy, signed/unsigned status and no external requests passed');
   } finally {
     if (browser) await browser.close();
     fs.rmSync(tmp, {recursive:true, force:true});

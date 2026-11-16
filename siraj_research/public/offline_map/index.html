@@ -37,6 +37,12 @@ input {width:8rem} button,select,input {font:inherit;padding:.25rem} #map {flex:
 <label>Record type <select id="record-type"><option value="">All types</option></select></label>
 <ul id="record-results"></ul>
 <div id="record-info"></div>
+<section aria-label="Offline Place tree">
+<h3>Place tree (experimental)</h3>
+<button id="record-tree-root" type="button">Show top-level places</button>
+<div id="record-tree-state" role="status" aria-live="polite">Load a snapshot with an explicit Place hierarchy.</div>
+<ul id="record-tree-results"></ul>
+</section>
 </details>
 <script src="leaflet/leaflet.js"></script>
 <script src="config.js"></script>
