@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIRAJ offline map</title>
+<link rel="stylesheet" href="leaflet/leaflet.css">
+<style>
+html,body {height:100%;margin:0;font:15px sans-serif} body {display:flex;flex-direction:column}
+header {padding:.6rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center} #map {flex:1;min-height:250px;background:#dce8ed} #status {padding:.5rem}
+</style>
+</head>
+<body>
+<header><strong>SIRAJ offline map</strong><span>Pan or zoom; click to see coordinates. This package contains basemap imagery only, not SIRAJ records.</span></header>
+<div id="map" aria-label="Offline map"></div>
+<div id="status" role="status">Tiles are available only where included in this package.</div>
+<script src="leaflet/leaflet.js"></script>
+<script src="config.js"></script>
+<script src="viewer.js"></script>
+</body>
+</html>
