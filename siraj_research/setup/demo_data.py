@@ -132,9 +132,21 @@ def seed_demo_data():
     REL_AFFILIATED = _get_first("Relationship Type", code="affiliated_with")
 
     # ------------------------------------------------------------------
-    # 1. Military Division (top-level formation; unit-classification record)
+    # 1. Command Region (created FIRST because Military Division.region is mandatory)
     # ------------------------------------------------------------------
-    # Create a "Mechanized Infantry" unit classification if absent
+    regions = {}
+    regions["baghdad_ops"] = _add("Command Region", {
+        "naming_series": "MIL-REG-.####",
+        "region_name": f"Baghdad Operations Command {TAG}",
+        "region_type": "Region",
+        "country": country_iq,
+        "description": f"{TAG} Unified command covering Baghdad governorate and the central belts.",
+        "workflow_state": _workflow_state("Published"),
+    }, region_name=f"Baghdad Operations Command {TAG}")
+
+    # ------------------------------------------------------------------
+    # 2. Military Division (top-level formation; unit-classification record)
+    # ------------------------------------------------------------------
     cls_mech = _get_first("Unit Classification", classification_name="Mechanized Infantry")
     if not cls_mech:
         cls_mech = _add("Unit Classification", {
@@ -146,11 +158,10 @@ def seed_demo_data():
             "workflow_state": _workflow_state("Published"),
         }, classification_name="Mechanized Infantry")
 
-    # Create the 6th Mechanised Division Military Division record
     div6_md = _add("Military Division", {
         "naming_series": "MIL-DIV-.####",
         "division_name": f"6th Mechanised Division (demo) {TAG}",
-        "region": _get_first("Command Region", region_name=f"Baghdad Operations Command {TAG}"),  # filled later if needed
+        "region": regions["baghdad_ops"],
         "division_type": "Mechanized",
         "formation_date": _dt.date(2005, 1, 1),
         "headquarters": f"Camp Rashid, Baghdad {TAG}",
@@ -158,7 +169,7 @@ def seed_demo_data():
     }, division_name=f"6th Mechanised Division (demo) {TAG}")
 
     # ------------------------------------------------------------------
-    # 2. Places
+    # 3. Places
     # ------------------------------------------------------------------
     places = {}
 
@@ -243,7 +254,7 @@ def seed_demo_data():
     }, name_en=f"Camp Rashid {TAG}")
 
     # ------------------------------------------------------------------
-    # 3. Sources
+    # 4. Sources
     # ------------------------------------------------------------------
     sources = {}
 
@@ -300,25 +311,6 @@ def seed_demo_data():
         "source_reliability": SRC_RELIAB_MED,
         "workflow_state": _workflow_state("Verified"),
     }, title=f"Country report on Iraq (DEMO) {TAG}")
-
-    # ------------------------------------------------------------------
-    # 4. Command Region — patch division.region after region exists
-    # ------------------------------------------------------------------
-    regions = {}
-    regions["baghdad_ops"] = _add("Command Region", {
-        "naming_series": "MIL-REG-.####",
-        "region_name": f"Baghdad Operations Command {TAG}",
-        "region_type": "Region",
-        "country": country_iq,
-        "description": f"{TAG} Unified command covering Baghdad governorate and the central belts.",
-        "workflow_state": _workflow_state("Published"),
-    }, region_name=f"Baghdad Operations Command {TAG}")
-
-    # Wire the Military Division's region now that the region exists
-    div_doc = frappe.get_doc("Military Division", div6_md)
-    if not div_doc.region:
-        div_doc.region = regions["baghdad_ops"]
-        div_doc.save(ignore_permissions=True)
 
     # ------------------------------------------------------------------
     # 5. Institutions
@@ -738,19 +730,20 @@ def teardown_demo_data():
     """Remove every DEMO-tagged record. Safe to re-run."""
     removed = 0
     # Delete child-containing documents first so FKs don't block us.
+    # Order: leaf records → records that link to them → parents last.
     doctypes_field = {
         "Relationship": "display_name",
         "Operational Deployment": "deployment_name",
         "Training Exercise": "exercise_name",
         "Mission": "mission_name",
         "Research Event": "title_en",
-        "Military Unit": "unit_name",
-        "Military Division": "division_name",
-        "Command Region": "region_name",
+        "Military Unit": "unit_name",       # FK → Division, Region, Person, Source, Classification
+        "Military Division": "division_name",  # FK → Region
         "Person": "name_en",
         "Institution": "name_en",
         "Source": "title",
         "Place": "name_en",
+        "Command Region": "region_name",
         "Unit Classification": "classification_name",
     }
     for dt, field in doctypes_field.items():
