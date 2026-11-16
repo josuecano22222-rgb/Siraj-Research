@@ -100,3 +100,43 @@
 @media (prefers-reduced-motion: reduce) {
   @keyframes siraj-pulse { 0%,100% { opacity:.2; } }
 }
+
+/* Shared filter chip panel */
+.siraj-filter-bar { font-size: 11px; }
+.siraj-preset-row .btn { min-height: 28px; font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+.siraj-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px 3px 4px; margin: 0; border-radius: 999px; border: 1px solid var(--sx-line, #d4dfe0);
+  background: var(--sx-bg, #fff); color: var(--text-color, #233b37); font-size: 11px;
+  cursor: pointer; min-height: 28px; opacity: 0.55; transition: opacity .12s;
+}
+.siraj-chip.is-on { opacity: 1; border-color: var(--chip-color, #0c5e5b); background: color-mix(in srgb, var(--chip-color,#0c5e5b) 10%, #fff); }
+.siraj-chip:focus-visible { outline: 2px solid #c69a21; outline-offset: 2px; }
+.siraj-chip-swatch { display:inline-block; width:8px; height:8px; border-radius:50%; background: var(--chip-color,#0c5e5b); margin-inline-start: 2px; }
+.siraj-chip-glyph { display:inline-flex; width:14px; height:14px; align-items:center; justify-content:center; background: var(--chip-color,#0c5e5b); color:#fff; border-radius:50%; }
+.siraj-chip-glyph svg { width:10px; height:10px; }
+.siraj-chip-label { font-weight: 600; }
+.siraj-chip-count { color: var(--text-muted); margin-inline-start: 2px; font-variant-numeric: tabular-nums; }
+[dir="rtl"] .siraj-chip { flex-direction: row-reverse; }
+
+/* Help overlay (generated from TOOL_SPEC) */
+.siraj-help-overlay { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; padding: 4px; max-height: 60vh; overflow: auto; }
+.siraj-help-overlay section h6 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.siraj-help-overlay ul { list-style: none; margin: 0; padding: 0; }
+.siraj-help-overlay li { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 12px; }
+.siraj-help-glyph { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-color); }
+.siraj-help-label { flex: 1; }
+.siraj-help-overlay kbd { font: inherit; font-size: 10px; padding: 1px 6px; border: 1px solid var(--sx-line,#d4dfe0); border-bottom-width: 2px; border-radius: 4px; background: #fff; color: var(--text-muted); font-family: inherit; }
+
+/* Button state variants (CSS-only, no JS class juggling beyond is-active) */
+.sx-tools .btn, .siraj-toolbar button, .sx-app-panel button {
+  min-height: 32px;
+}
+.sx-tools .btn:hover, .siraj-toolbar button:hover, .sx-app-panel button:hover { filter: brightness(0.97); }
+.sx-tools .btn:focus-visible, .siraj-toolbar button:focus-visible, .sx-app-panel button:focus-visible { outline: 2px solid #c69a21; outline-offset: 2px; }
+.sx-tools .btn:active, .siraj-toolbar button:active { transform: translateY(1px); }
+.sx-tools .btn[disabled], .siraj-toolbar button[disabled] { opacity: .5; pointer-events: none; }
+
+@media (max-width: 768px) {
+  .siraj-toolbar button, .sx-tools .btn { min-height: 44px; min-width: 44px; }
+}

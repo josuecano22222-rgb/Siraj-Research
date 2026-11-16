@@ -361,9 +361,32 @@
 		{ id:'sel_path',     group:__('Selection'),kind:'map-tool', icon:'path',      mode:'momentary', hotkey:'T', tooltip:__('Path to another entity') },
 		{ id:'sel_back',     group:__('Selection'),kind:'map-tool', icon:'back',      mode:'momentary', hotkey:'Backspace', tooltip:__('Back to previous selection') },
 		{ id:'sel_clear',    group:__('Selection'),kind:'map-tool', icon:'eraser',    mode:'momentary', hotkey:'Esc', tooltip:__('Clear selection') },
-		{ id:'link_add',     group:__('Selection'),kind:'map-tool', icon:'link_add',  mode:'momentary', hotkey:'L', tooltip:__('Add relationship to selected') },
+		{ id:'link_add',     group:__('Selection'),kind:'map-tool', icon:'link_add',  mode:'momentary', hotkey:'N', tooltip:__('Add relationship to selected') },
+		{ id:'sel_open',     group:__('Selection'),kind:'app-fn',   icon:'card',      mode:'momentary', hotkey:'Enter', tooltip:__('Open selected record') },
 		{ id:'edge_filter',  group:__('Selection'),kind:'map-tool', icon:'edge_filter',mode:'popover',   tooltip:__('Filter relationship types') },
 	];
 
-	window.SirajMapKit = { Geodesic: { distance, area: ringArea, bearing, destination, fmtLength, fmtArea, compass }, MeasureTool, RelLayer, TOOL_SPEC };
+	/* Generated help overlay (single source of truth for hotkey map). */
+	function helpOverlay() {
+		const groups = {};
+		TOOL_SPEC.forEach(t => { (groups[t.group] = groups[t.group] || []).push(t); });
+		const root = document.createElement('div');
+		root.className = 'siraj-help-overlay';
+		Object.keys(groups).forEach(g => {
+			const sec = document.createElement('section');
+			const h = document.createElement('h6'); h.textContent = g; sec.appendChild(h);
+			const ul = document.createElement('ul');
+			groups[g].forEach(t => {
+				const li = document.createElement('li');
+				const glyph = (window.sirajIcons && window.sirajIcons.toolSvg) ? window.sirajIcons.toolSvg(t.icon, {size:14}) : '';
+				const kbd = t.hotkey ? '<kbd>' + t.hotkey + '</kbd>' : '';
+				li.innerHTML = '<span class="siraj-help-glyph">' + glyph + '</span><span class="siraj-help-label">' + t.tooltip + '</span>' + kbd;
+				ul.appendChild(li);
+			});
+			sec.appendChild(ul); root.appendChild(sec);
+		});
+		return root;
+	}
+
+	window.SirajMapKit = { Geodesic: { distance, area: ringArea, bearing, destination, fmtLength, fmtArea, compass }, MeasureTool, RelLayer, TOOL_SPEC, helpOverlay };
 })();

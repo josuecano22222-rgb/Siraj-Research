@@ -57,18 +57,21 @@ app_include_js = [
 	"/assets/siraj_research/js/siraj-map/siraj-map.js",
 	# 3) Pure graph module (ego network, shortest path, cluster aggregation).
 	"/assets/siraj_research/js/siraj-map/siraj-graph.js",
-	# 4) Measurement / relationship / geodesic primitives used by all maps.
+	# 4) Shared filter-state module (entity/relationship-type filters, presets,
+	#    Arabic/English search normalisation, URL hash) — engine-neutral.
+	"/assets/siraj_research/js/siraj-map/siraj-filters.js",
+	# 5) Measurement / relationship / geodesic primitives used by all maps.
 	"/assets/siraj_research/js/siraj-map-kit.js",
-	# 4) Shared in-map toolbar control (Leaflet-only; retained during migration).
+	# 6) Shared in-map toolbar control (Leaflet-only; retained during migration).
 	"/assets/siraj_research/js/siraj-map-toolbar.js",
-	# 5) Global list/form/link/breadcrumb/dashboard decorators.
+	# 7) Global list/form/link/breadcrumb/dashboard decorators.
 	"/assets/siraj_research/js/siraj-list-icons.js",
-	# 6) Compatibility shims (L.control.locate polyfill, scoped BaseChart guard,
+	# 8) Compatibility shims (L.control.locate polyfill, scoped BaseChart guard,
 	#    native Map view offline-by-default + SIRAJ pins).
 	"/assets/siraj_research/js/siraj-compat.js",
-	# 7) Per-form coordinate picker (reads from the registry + toolbar + kit).
+	# 9) Per-form coordinate picker (reads from the registry + toolbar + kit).
 	"/assets/siraj_research/js/coordinate_map.js",
-	# 8) Thin icon facade so legacy frappe.require('...siraj-icons.js') keeps working.
+	# 10) Thin icon facade so legacy frappe.require('...siraj-icons.js') keeps working.
 	"/assets/siraj_research/js/siraj-icons.js",
 ]
 app_include_css = [

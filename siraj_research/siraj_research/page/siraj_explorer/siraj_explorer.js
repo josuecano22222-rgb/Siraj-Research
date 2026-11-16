@@ -102,9 +102,11 @@ class SirajExplorer {
 	showLegend(types, icons = null) {
 		types.forEach(type => {
 			const item = $('<span class="sx-legend-item"></span>').appendTo(this.legend);
-			if (icons && icons[type]) {
-				// SVG fragments are fixed application constants, never record data.
-				$('<span class="sx-map-pin sx-legend-pin"><svg viewBox="0 0 24 24" aria-hidden="true">' + icons[type] + '</svg></span>').css('background', this.colors[type]).appendTo(item);
+			if (window.sirajIcons && window.sirajIcons.svg) {
+				const pin = $('<span class="sx-map-pin sx-legend-pin"></span>').css('background', this.colors[type]).appendTo(item);
+				pin.html(window.sirajIcons.svg(type, {size:14}));
+			} else if (icons && icons[type]) {
+				$('<span class="sx-map-pin sx-legend-pin"></span>').css('background', this.colors[type]).html(icons[type]).appendTo(item);
 			} else $('<i class="sx-pin-key"></i>').css('background', this.colors[type]).appendTo(item);
 			item.append(document.createTextNode(__(type)));
 		});
@@ -177,7 +179,7 @@ class SirajExplorer {
 		};
 		const types = [...new Set(data.points.map(p => p.doctype))];
 		this.showLegend(types, window.sirajIcons ? window.sirajIcons.types : null);
-		let clustered = true, overlayEnabled = false, currentPoints = [], searchTerm = '', selectedType = '', listLimit = 100;
+		let clustered = true, overlayEnabled = false, currentPoints = [], listLimit = 100;
 		const pointsById = new Map();
 		data.points.forEach(p => pointsById.set(this.id(p), p));
 
@@ -189,17 +191,78 @@ class SirajExplorer {
 		if (this.records) this.records.hide();
 		// ------ App panel (records + filters + export) — overlay over the map canvas ------
 		const appPanel = $('<div class="sx-app-panel"></div>');
+
+		// --- Shared filter state (SirajFilters) ---
+		const Filters = window.SirajFilters;
+		let filterState = Filters.initialState(types);
+		// Restore from URL hash if present.
+		try {
+			const m = (location.hash || '').match(new RegExp('[#&]' + Filters.HASH_KEY.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '=([^&]+)'));
+			if (m) { const restored = Filters.decodeHash(m[1]); if (restored) filterState = Filters.initialState(types); Object.keys(restored.types||{}).forEach(k => filterState.types[k] = !!restored.types[k]); }
+		} catch(_) {}
+		const filterStore = Filters.createStore(filterState);
 		const recSection = $('<div class="sx-app-section"></div>').appendTo(appPanel);
 		const recordHeading = $('<h5></h5>').text(__('Mapped records')).appendTo(recSection);
-		const searchBox = $('<input type="search" class="form-control input-sm" style="width:100%;box-sizing:border-box;margin-bottom:6px" placeholder="' + __('Search records') + '">').appendTo(recSection);
-		const typeSel = $('<select class="form-control input-sm" style="width:100%;box-sizing:border-box;margin-bottom:6px"><option value="">' + __('All types') + '</option></select>').appendTo(recSection);
-		types.forEach(t => $('<option></option>').val(t).text(__(t)).appendTo(typeSel));
-		const recordList = $('<div></div>').css({maxHeight:'40vh',overflow:'auto'}).appendTo(recSection);
+		const activeFilterBar = $('<div class="siraj-filter-bar" style="font-size:11px;color:var(--text-muted);margin-bottom:4px"></div>').appendTo(recSection);
+		const searchBox = $('<input type="search" class="form-control input-sm" style="width:100%;box-sizing:border-box;margin-bottom:6px" placeholder="' + __('Search records') + '" aria-label="' + __('Search records') + '">').appendTo(recSection);
+		const presetRow = $('<div class="siraj-preset-row" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px"></div>').appendTo(recSection);
+		const chipRow = $('<div class="siraj-chip-row" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px"></div>').appendTo(recSection);
+		const chipActions = $('<div style="display:flex;gap:4px;margin-bottom:6px;font-size:11px"></div>').appendTo(recSection);
+		const recordList = $('<div></div>').css({maxHeight:'30vh',overflow:'auto'}).appendTo(recSection);
 		const listMore = this.button(__('Show more'), () => { listLimit += 100; renderList(); }).appendTo(recSection);
+
+		const renderFilters = () => {
+			const st = filterStore.get();
+			presetRow.empty();
+			Filters.BUILTIN_PRESETS.forEach(p => {
+				const btn = $('<button type="button" class="btn btn-xs"></button>')
+					.addClass(st.activePreset === p.id ? 'btn-primary' : 'btn-default')
+					.text(__(p.label)).on('click', () => filterStore.dispatch({type:'APPLY_PRESET', id:p.id}));
+				presetRow.append(btn);
+			});
+			chipRow.empty();
+			const counts = Filters.countByType(data.points);
+			types.forEach(t => {
+				const on = Filters.isTypeVisible(st, t);
+				const color = this.colors[t] || '#6a7a7e';
+				const chip = $('<button type="button" class="siraj-chip"></button>')
+					.toggleClass('is-on', on).attr('aria-pressed', on?'true':'false')
+					.css({'--chip-color': color}).attr('title', __(t) + ' · ' + (counts[t]||0))
+					.html('<span class="siraj-chip-swatch" style="background:'+color+'"></span>'
+						+ '<span class="siraj-chip-glyph">'+(window.sirajIcons?window.sirajIcons.svg(t,{size:12}):'')+'</span>'
+						+ '<span class="siraj-chip-label">'+__(t)+'</span>'
+						+ '<span class="siraj-chip-count">'+(counts[t]||0)+'</span>')
+					.on('click', () => filterStore.dispatch({type:'TOGGLE_TYPE', doctype:t}));
+				chipRow.append(chip);
+			});
+			chipActions.empty();
+			$('<button type="button" class="btn btn-link btn-xs"></button>').text(__('All')).on('click',()=>filterStore.dispatch({type:'SELECT_ALL_TYPES'})).appendTo(chipActions);
+			$('<button type="button" class="btn btn-link btn-xs"></button>').text(__('None')).on('click',()=>filterStore.dispatch({type:'SELECT_NONE_TYPES'})).appendTo(chipActions);
+			$('<button type="button" class="btn btn-link btn-xs"></button>').text(__('Invert')).on('click',()=>filterStore.dispatch({type:'INVERT_TYPES'})).appendTo(chipActions);
+			const connectors = $('<label style="margin-inline-start:auto;display:flex;align-items:center;gap:4px"><input type="checkbox">' + __('Keep connectors') + '</label>').appendTo(chipActions);
+			connectors.find('input').prop('checked', !!st.includeHiddenConnectors).on('change', e => filterStore.dispatch({type:'TOGGLE_HIDDEN_CONNECTORS'}));
+			const vt = Filters.visibleTypeCount(st);
+			const tot = Filters.typeCount(st);
+			const visibleCount = currentPoints.length;
+			activeFilterBar.text(
+				vt === tot
+					? __('Showing all {0} types · {1} records', [tot, visibleCount])
+					: __('Showing {0} of {1} types · {2} records', [vt, tot, visibleCount])
+			);
+			// Update URL hash
+			try {
+				const h = Filters.encodeHash(st);
+				const rest = (location.hash || '').replace(new RegExp('&?'+Filters.HASH_KEY.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'=[^&]*','g'),'').replace(/^#/,'');
+				location.replace('#' + (rest ? rest + '&' : '') + Filters.HASH_KEY + '=' + h);
+			} catch(_) {}
+		};
+		searchBox.on('input', () => { filterStore.dispatch({type:'SET_SEARCH', value: searchBox.val()}); });
+
 		const dataSection = $('<div class="sx-app-section"></div>').appendTo(appPanel);
 		$('<h5></h5>').text(__('Data')).appendTo(dataSection);
 		const exportBtn = this.button(__('Export GeoJSON'), () => {
-			const geojson = { type:'FeatureCollection', features: currentPoints.map(p => ({
+			const visible = currentPoints;
+			const geojson = { type:'FeatureCollection', features: visible.map(p => ({
 				type:'Feature', geometry:{ type:'Point', coordinates:[Number(p.longitude),Number(p.latitude)] },
 				properties:{ doctype:p.doctype, name:p.name, label:p.label, precision:p.geo_precision, method:p.geocoding_method, uncertainty_m:p.geo_uncertainty_m, source:p.geometry_source }
 			})) };
@@ -399,68 +462,218 @@ class SirajExplorer {
 			isolateSelected = false;
 			this.toolbar.find('button[data-siraj-key=sel_isolate]').removeClass('is-active');
 		};
-		const renderDetails = () => {
+		// Format a single field value returned by get_entity_profile.
+		const fmtProfileValue = v => {
+			if (v == null) return '';
+			if (typeof v === 'object' && v.type === 'link') return v.title + ' (' + __(v.doctype) + ')';
+			if (typeof v === 'object' && v.type === 'attach') return v.url;
+			return String(v);
+		};
+		const renderValueCell = (v, dt, name) => {
+			if (v == null) return '';
+			if (typeof v === 'object' && v.type === 'link' && !v.restricted) {
+				const b = $('<button type="button" class="btn btn-link btn-xs" style="padding:0"></button>').text(v.title);
+				b.on('click', () => {
+					// Fly to counterpart if mapped; otherwise open form.
+					const key = this.id({doctype:v.doctype, name:v.name});
+					const n = pointsById.get(key);
+					if (n && n.latitude != null) selectNode(n);
+					else frappe.set_route('Form', v.doctype, v.name);
+				});
+				return b;
+			}
+			return document.createTextNode(fmtProfileValue(v));
+		};
+		let profileReqSeq = 0;
+		const renderDetails = async () => {
 			if (!selectedNode) return;
 			const p = selectedNode;
-			const rows = [
-				[__('Type'), __(p.doctype)], [__('ID'), p.name],
-				[__('Latitude'), p.latitude],[__('Longitude'), p.longitude],
-				p.geo_precision ? [__('Coordinate precision'), p.geo_precision] : null,
-				p.geocoding_method ? [__('Method'), p.geocoding_method] : null,
-			].filter(Boolean);
 			this.aside.empty();
+			// Header (render immediately from map payload).
 			const head = $('<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"></div>').appendTo(this.aside);
 			head.append(itemGlyph(p.doctype, 24));
-			$('<h4 style="margin:0"></h4>').text(p.label).appendTo(head);
+			$('<h4 style="margin:0"></h4>').text(p.label || p.name).appendTo(head);
+			$('<span style="font-size:11px;color:var(--text-muted);padding:2px 6px;border-radius:999px;background:#eaf1f1;margin-inline-start:6px"></span>').text(__(p.doctype)).appendTo(head);
 			$('<button type="button" class="btn btn-link btn-sm" style="margin-inline-start:auto"></button>').text(__('Open record')).on('click', () => frappe.set_route('Form', p.doctype, p.name)).appendTo(head);
 			if (selectionTrail.length) {
-				const back = this.button('↩ ' + __('Back to {0}',[selectionTrail[selectionTrail.length-1].label]), () => {
+				this.button('↩ ' + __('Back'), () => {
 					const prev = selectionTrail.pop();
 					const n = pointsById.get(this.id(prev));
 					if (n) selectNode(n); else { selectionTrail.length=0; clearSelection(); }
-				}).addClass('btn-default btn-sm').appendTo(this.aside);
+				}).addClass('btn-default btn-xs').appendTo(this.aside);
 			}
-			const dl = $('<dl></dl>').appendTo(this.aside);
-			rows.forEach(([k,v]) => { $('<dt></dt>').text(k).appendTo(dl); $('<dd></dd>').text(v==null?'':String(v)).appendTo(dl); });
-			// Connections section
-			if (egoData) {
-				$('<h5 style="margin-top:14px"></h5>').text(__('Connections ({0})',[egoData.edges.length])).appendTo(this.aside);
-				const depthRow = $('<div style="display:flex;gap:4px;margin-bottom:6px"></div>').appendTo(this.aside);
-				[1,2,3].forEach(d => {
-					const btn = $('<button type="button" class="btn btn-xs"></button>').addClass(d===egoDepth?'btn-primary':'btn-default').text(d).on('click',()=>{ depthRow.find('button').removeClass('btn-primary').addClass('btn-default'); btn.removeClass('btn-default').addClass('btn-primary'); loadEgo(d); });
-					depthRow.append(btn);
-				});
-				const byType = {};
-				egoData.edges.forEach(e => { byType[e.type||__('Unspecified')] = (byType[e.type||__('Unspecified')]||0)+1; });
-				Object.entries(byType).slice(0,8).forEach(([t,c]) => {
-					const meta = (egoData.types && egoData.types[t]) || {};
-					const row = $('<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12px"></div>').appendTo(this.aside);
-					$('<span class="sd-swatch siraj-swatch"></span>').css('background', meta.color||'#53706b').appendTo(row);
-					$('<span style="flex:1"></span>').text(t).appendTo(row);
-					$('<span style="color:var(--text-muted)"></span>').text(c).appendTo(row);
-				});
-				// Unmapped connections.
-				if (egoData.unmapped && egoData.unmapped.length) {
-					$('<h5 style="margin-top:10px"></h5>').text(__('Unmapped connections ({0})',[egoData.unmapped.length])).appendTo(this.aside);
-					egoData.unmapped.slice(0,20).forEach(u => {
-						const r = $('<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12px"></div>').appendTo(this.aside);
-						r.append(itemGlyph(u.doctype, 16));
-						$('<span style="flex:1"></span>').text(u.label + ' (' + __(u.doctype) + ')').appendTo(r);
-						this.button(__('Place'), () => {
-							const meas = measure;
-							if (!meas || !meas.activate) return;
-							meas.activate('pick');
-							meas.onPick = latlng => {
-								frappe.new_doc(u.doctype, { latitude: Number(latlng.lat).toFixed(6), longitude: Number(latlng.lng).toFixed(6), geocoding_method:'map_pick' });
-								meas.onPick = null;
-							};
-							frappe.show_alert({message:__('Click the map to place {0}',[u.label]),indicator:'blue'});
-						}).addClass('btn-xs btn-default').appendTo(r);
+			// Tabs
+			const tabBar = $('<div style="display:flex;gap:2px;border-bottom:1px solid var(--sx-line,#d4dfe0);margin-bottom:8px"></div>').appendTo(this.aside);
+			const tabs = ['overview','fields','connections','location','activity'];
+			const tabLabels = { overview:__('Overview'), fields:__('Fields'), connections:__('Connections'), location:__('Location'), activity:__('Activity') };
+			const tabBody = $('<div></div>').appendTo(this.aside);
+			let activeTab = 'overview';
+			const switchTab = id => {
+				activeTab = id;
+				tabBar.find('button').removeClass('btn-primary').addClass('btn-default');
+				tabBar.find('button[data-tab="'+id+'"]').removeClass('btn-default').addClass('btn-primary');
+				renderTab(id);
+			};
+			tabs.forEach(id => $('<button type="button" class="btn btn-xs"></button>').addClass(id===activeTab?'btn-primary':'btn-default').text(tabLabels[id]).attr('data-tab',id).on('click',()=>switchTab(id)).appendTo(tabBar));
+
+			// Ego depth controls (persistent, above tabs body).
+			const egoRow = $('<div style="display:flex;gap:4px;margin:6px 0 8px;align-items:center"></div>').appendTo(this.aside);
+			$('<small style="color:var(--text-muted)"></small>').text(__('Network depth')).appendTo(egoRow);
+			[1,2,3].forEach(d => $('<button type="button" class="btn btn-xs"></button>').addClass(d===egoDepth?'btn-primary':'btn-default').text(d).on('click',()=>{egoRow.find('button').removeClass('btn-primary').addClass('btn-default');$(this).removeClass('btn-default').addClass('btn-primary');loadEgo(d);}).appendTo(egoRow));
+			$('<button type="button" class="btn btn-xs btn-default" style="margin-inline-start:auto"></button>').text(__('Isolate')).on('click',()=>{isolateSelected=!isolateSelected;$(this).toggleClass('btn-primary',isolateSelected).toggleClass('btn-default',!isolateSelected);if(selectedNode)renderEgo();}).appendTo(egoRow);
+
+			const renderTab = (id) => {
+				tabBody.empty();
+				if (id === 'overview' || id === 'fields' || id === 'connections' || id === 'location' || id === 'activity') {
+					tabBody.append($('<div class="siraj-profile-loading"></div>').text(__('Loading…')));
+					const seq = ++profileReqSeq;
+					frappe.call({ method:'siraj_research.api.entity_profile.get_entity_profile',
+						args:{ doctype:p.doctype, name:p.name } })
+						.then(r => {
+							if (seq !== profileReqSeq || !selectedNode || selectedNode.name !== p.name) return;
+							tabBody.empty();
+							renderProfileTab(id, r.message, tabBody);
+						})
+						.catch(e => {
+							if (seq !== profileReqSeq) return;
+							tabBody.empty();
+							const err = $('<div class="siraj-profile-error" style="color:var(--red,#c0392b);font-size:12px"></div>').appendTo(tabBody);
+							err.text(__('Could not load details: {0}',[e.message || String(e)]));
+							$('<button type="button" class="btn btn-xs btn-default"></button>').text(__('Retry')).on('click',()=>renderTab(id)).appendTo(err);
+						});
+				}
+			};
+
+			const renderProfileTab = (id, prof, el) => {
+				if (!prof) return;
+				if (id === 'overview') {
+					// Mini summary — status, owner, modified, network summary.
+					const dl = $('<dl></dl>').appendTo(el);
+					if (prof.header.status) $('<dt></dt>').text(__('Status')).appendTo(dl), $('<dd></dd>').text(prof.header.status).appendTo(dl);
+					$('<dt></dt>').text(__('Modified')).appendTo(dl); $('<dd></dd>').text(prof.header.modified).appendTo(dl);
+					$('<dt></dt>').text(__('Owner')).appendTo(dl); $('<dd></dd>').text(prof.header.owner).appendTo(dl);
+					const ns = prof.network_summary || {};
+					$('<h5 style="margin-top:10px"></h5>').text(__('Network summary')).appendTo(el);
+					const sm = $('<div style="display:flex;gap:6px;flex-wrap:wrap"></div>').appendTo(el);
+					$('<span class="siraj-chip is-on" style="--chip-color:#53706b"></span>').html('<span class="siraj-chip-label">'+__('Relationships')+'</span><span class="siraj-chip-count">'+(ns.relationship_count||0)+'</span>').appendTo(sm);
+					$('<span class="siraj-chip is-on" style="--chip-color:#6a7a7e"></span>').html('<span class="siraj-chip-label">'+__('Outbound links')+'</span><span class="siraj-chip-count">'+(ns.outbound_count||0)+'</span>').appendTo(sm);
+					$('<span class="siraj-chip is-on" style="--chip-color:#6a7a7e"></span>').html('<span class="siraj-chip-label">'+__('Inbound links')+'</span><span class="siraj-chip-count">'+(ns.inbound_count||0)+'</span>').appendTo(sm);
+					$('<div style="margin-top:10px"></div>').append(this.button(__('Add relationship…'),()=>addRelationship(null)).addClass('btn-primary btn-sm')).appendTo(el);
+				} else if (id === 'fields') {
+					(prof.sections||[]).forEach(sec => {
+						$('<h5 style="margin-top:8px"></h5>').text(sec.heading).appendTo(el);
+						const dl = $('<dl></dl>').appendTo(el);
+						sec.fields.forEach(f => {
+							$('<dt></dt>').text(f.label).appendTo(dl);
+							const dd = $('<dd></dd>').appendTo(dl);
+							dd.append(renderValueCell(f.value));
+						});
+					});
+					// Child tables
+					Object.entries(prof.children||{}).forEach(([fn, tbl]) => {
+						if (!tbl.rows || !tbl.rows.length) return;
+						$('<h5 style="margin-top:10px"></h5>').text(tbl.label + (tbl.truncated?' ('+__('showing 50 of {0}',[tbl.total])+')':'')).appendTo(el);
+						const keys = Object.keys(tbl.rows[0]);
+						const t = $('<table class="table table-condensed" style="font-size:11px"></table>').appendTo(el);
+						const thead = $('<thead></thead>').appendTo(t), trh=$('<tr></tr>').appendTo(thead);
+						keys.forEach(k=>$('<th></th>').text(tbl.rows[0][k].label).appendTo(trh));
+						const tbody = $('<tbody></tbody>').appendTo(t);
+						tbl.rows.forEach(row => { const tr=$('<tr></tr>').appendTo(tbody); keys.forEach(k=>{$('<td></td>').text(fmtProfileValue(row[k].value)).appendTo(tr);}); });
+					});
+				} else if (id === 'connections') {
+					// Authored relationships
+					const rels = (prof.connections && prof.connections.relationships) || [];
+					$('<h5></h5>').text(__('Relationships ({0})',[rels.length])).appendTo(el);
+					if (!rels.length) $('<div style="color:var(--text-muted);font-size:12px"></div>').text(__('No authored relationships.')).appendTo(el);
+					rels.slice(0,50).forEach(r => {
+						const row = $('<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px;border-bottom:1px dashed var(--sx-line,#d4dfe0)"></div>').appendTo(el);
+						const dirGlyph = r.direction_relative === 'outbound' ? '→' : (r.direction_relative === 'inbound' ? '←' : '↔');
+						$('<span style="color:var(--text-muted);width:18px;text-align:center"></span>').text(dirGlyph).appendTo(row);
+						row.append(itemGlyph(r.counterpart_doctype,16));
+						const lbl = $('<button type="button" class="btn btn-link btn-xs" style="padding:0;text-align:start"></button>').text(r.counterpart_title + (r.relationship_type?' · '+r.relationship_type:'')).appendTo(row);
+						lbl.on('click', () => {
+							if (r.counterpart_restricted) return;
+							const key = this.id({doctype:r.counterpart_doctype, name:r.counterpart_name});
+							const n = pointsById.get(key);
+							if (n && n.latitude != null) selectNode(n);
+							else frappe.set_route('Form', r.counterpart_doctype, r.counterpart_name);
+						});
+						$('<span style="margin-inline-start:auto;color:var(--text-muted);font-size:11px"></span>').text(r.start_date || '').appendTo(row);
+					});
+					// Outbound links
+					const ob = (prof.connections && prof.connections.outbound_links) || [];
+					$('<h5 style="margin-top:12px"></h5>').text(__('Outbound links ({0})',[ob.length])).appendTo(el);
+					ob.forEach(l => {
+						const row = $('<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12px"></div>').appendTo(el);
+						row.append(itemGlyph(l.doctype, 14));
+						$('<span style="color:var(--text-muted);font-size:11px"></span>').text(l.label).appendTo(row);
+						const b = $('<button type="button" class="btn btn-link btn-xs" style="padding:0"></button>').text(l.title).appendTo(row);
+						b.on('click',()=>{ if (l.restricted) return; frappe.set_route('Form', l.doctype, l.name); });
+					});
+					// Inbound links
+					const ib = (prof.connections && prof.connections.inbound_links) || [];
+					$('<h5 style="margin-top:12px"></h5>').text(__('Inbound links')).appendTo(el);
+					ib.forEach(l => {
+						const row = $('<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12px"></div>').appendTo(el);
+						if (l.restricted) { $('<span style="color:var(--text-muted)"></span>').text(__('{0}: restricted',[__(l.doctype)])).appendTo(row); return; }
+						$('<span class="siraj-chip is-on" style="--chip-color:#6a7a7e"></span>').html('<span class="siraj-chip-label">'+__(l.doctype)+'</span><span class="siraj-chip-count">'+(l.count||0)+'</span>').appendTo(row);
+						if (l.sample && l.sample.length) {
+							const sm = $('<span style="color:var(--text-muted);font-size:11px;flex:1"></span>').appendTo(row);
+							sm.text(l.sample.map(s=>s.title).join(', '));
+						}
+						$('<button type="button" class="btn btn-link btn-xs"></button>').text(__('View all')).on('click',()=>frappe.set_route('List', l.doctype)).appendTo(row);
+					});
+					// Ego data (unmapped list) from network call
+					if (egoData && egoData.unmapped && egoData.unmapped.length) {
+						$('<h5 style="margin-top:12px"></h5>').text(__('Unmapped connections ({0})',[egoData.unmapped.length])).appendTo(el);
+						egoData.unmapped.slice(0,20).forEach(u => {
+							const r = $('<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12px"></div>').appendTo(el);
+							r.append(itemGlyph(u.doctype,16));
+							$('<span style="flex:1"></span>').text(u.label + ' (' + __(u.doctype) + ')').appendTo(r);
+							this.button(__('Place'), () => {
+								const meas = measure; if (!meas || !meas.activate) return; meas.activate('pick');
+								meas.onPick = latlng => { frappe.new_doc(u.doctype,{latitude:Number(latlng.lat).toFixed(6),longitude:Number(latlng.lng).toFixed(6),geocoding_method:'map_pick'}); meas.onPick=null; };
+								frappe.show_alert({message:__('Click the map to place {0}',[u.label]),indicator:'blue'});
+							}).addClass('btn-xs btn-default').appendTo(r);
+						});
+					}
+				} else if (id === 'location') {
+					const loc = prof.location || {};
+					const dl = $('<dl></dl>').appendTo(el);
+					[['latitude',__('Latitude')],['longitude',__('Longitude')],['precision',__('Precision')],['method',__('Method')],['uncertainty_m',__('Uncertainty (m)')],['source',__('Source')],['location_source',__('Provenance')]].forEach(([k,label])=>{
+						if (loc[k] == null || loc[k] === '') return;
+						$('<dt></dt>').text(label).appendTo(dl);
+						$('<dd></dd>').text(String(loc[k])).appendTo(dl);
+					});
+					if (loc.latitude != null && loc.longitude != null) {
+						this.button(__('Fly to'), () => map.flyTo([Number(loc.latitude),Number(loc.longitude)], 14)).addClass('btn-xs btn-default').appendTo(el);
+					} else {
+						$('<div style="color:var(--text-muted);font-size:12px"></div>').text(__('No coordinates on this record.')).appendTo(el);
+					}
+				} else if (id === 'activity') {
+					const a = prof.activity || {};
+					$('<h5></h5>').text(__('Attachments ({0})',[(a.attachments||[]).length])).appendTo(el);
+					(a.attachments||[]).forEach(f => {
+						$('<div style="font-size:12px;padding:2px 0"></div>').append(
+							$('<a target="_blank" rel="noopener"></a>').attr('href',f.file_url||'').text(f.file_name||f.name)
+						).appendTo(el);
+					});
+					$('<h5 style="margin-top:10px"></h5>').text(__('Comments ({0})',[(a.comments||[]).length])).appendTo(el);
+					(a.comments||[]).forEach(c => {
+						$('<div style="font-size:12px;padding:4px 0;border-bottom:1px dashed var(--sx-line,#d4dfe0)"></div>')
+							.text((c.comment_by||c.comment_email||'') + ' · ' + (c.content||'').replace(/<[^>]+>/g,'')).appendTo(el);
+					});
+					$('<h5 style="margin-top:10px"></h5>').text(__('Recent changes ({0})',[(a.versions||[]).length])).appendTo(el);
+					(a.versions||[]).forEach(v => {
+						$('<div style="font-size:12px;padding:2px 0;color:var(--text-muted)"></div>').text((v.owner||'')+' · '+v.creation).appendTo(el);
 					});
 				}
-				// Add relationship button.
-				this.button(__('Add relationship…'), () => addRelationship(null), this.aside).addClass('btn-primary btn-sm').css('margin-top','8px');
-			}
+				// Add relationship button (visible on all tabs).
+				if (prof.permissions && prof.permissions.can_create) {
+					$('<div style="margin-top:10px"></div>').append(this.button(__('Add relationship…'),()=>addRelationship(null)).addClass('btn-primary btn-sm')).appendTo(el);
+				}
+			};
+			switchTab(activeTab);
 		};
 		const selectPoint = selectNode; // backward alias used by markers/renderList
 		const renderList = () => {
@@ -502,26 +715,36 @@ class SirajExplorer {
 			iconCreateFunction: c => L.divIcon({className:'sx-cluster', html:'<span>'+c.getChildCount()+'</span>', iconSize:[40,40]})
 		}).addTo(map);
 		const draw = () => {
-			if (selectedCircle) { map.removeLayer(selectedCircle); selectedCircle=null; }
+			if (selectedCircle && !selectedNode) { map.removeLayer(selectedCircle); selectedCircle=null; }
 			markers.clearLayers();
-			const term = searchTerm.toLocaleLowerCase();
-			currentPoints = data.points.filter(p => (!selectedType || p.doctype===selectedType) && (p.label+' '+p.name).toLocaleLowerCase().includes(term));
+			const st = filterStore.get();
+			// Provenance filter: only hide records whose location_source is explicitly 'unmapped' when includeUnlocated is off.
+			currentPoints = data.points.filter(p => {
+				if (!Filters.isTypeVisible(st, p.doctype)) return false;
+				if (!Filters.matchesSearch(st, (p.label||'')+' '+(p.name||''))) return false;
+				if (!st.includeUnlocated && p.location_source === 'unmapped') return false;
+				const prov = p.location_source || 'direct';
+				if (!st.provenance.direct && prov === 'direct') return false;
+				if (!st.provenance.inferred && String(prov).startsWith('inferred')) return false;
+				return true;
+			});
 			currentPoints.forEach(p => {
 				const m = L.marker([Number(p.latitude),Number(p.longitude)],{icon:pointIcon(p),title:p.label,keyboard:true});
 				m.bindTooltip(this.escape(p.label));
 				m.on('click', () => selectPoint(p));
 				markers.addLayer(m);
 			});
-			// Rebuild pointsById for the current set so rel layer resolves correctly.
 			pointsById.clear();
 			currentPoints.forEach(p => pointsById.set(this.id(p), p));
+			// Also include ego nodes in pointsById if loaded (so clicks on ego-only nodes resolve).
+			if (egoData) egoData.nodes.forEach(n => { if (n.latitude != null) pointsById.set(this.id(n), n); });
 			const text = data.unavailable ? __('Record data could not be loaded.') : __('Showing {0} record points.',[currentPoints.length]) + ' ' + this.warning(data);
 			this.note.toggleClass('sx-warning',!!data.unavailable).text(text);
 			renderList();
-			this.relLayer.redraw();
+			renderFilters();
+			if (this.relLayer && this.relLayer.redraw) this.relLayer.redraw();
 		};
-		searchBox.on('input', () => { searchTerm = searchBox.val(); listLimit = 100; draw(); });
-		typeSel.on('change', () => { selectedType = typeSel.val(); listLimit = 100; draw(); });
+		filterStore.subscribe(() => { listLimit = 100; draw(); });
 
 		// ------ Measurement tool (shared state machine, single-click model) ------
 		const measure = new Kit.MeasureTool(map, { onStatus: mapStatus });
@@ -682,11 +905,44 @@ class SirajExplorer {
 		selGroup.add({ icon:'back', label:__('Back'), key:'sel_back', action: function() { if (selectionTrail.length) { const prev = selectionTrail.pop(); const n = pointsById.get(this.id(prev)); if(n) selectNode(n); else { selectionTrail.length=0; clearSelection(); } } else clearSelection(); }.bind(this) });
 		selGroup.add({ icon:'eraser', label:__('Clear'), key:'sel_clear', action: clearSelection });
 
+		// Help / hotkeys button (generated from TOOL_SPEC — single source of truth).
+		const helpGroup = this.toolbar.group(__('Help'));
+		helpGroup.add({ icon:'help', label:__('Help'), key:'help', mode:'popover', action: function() {
+			if (!Kit.helpOverlay) return;
+			const node = Kit.helpOverlay();
+			const dlg = new frappe.ui.Dialog({ title: __('Map tools & hotkeys'), primary_action_label: __('Close'), primary_action: () => dlg.hide() });
+			dlg.body.append(node); dlg.show();
+		}});
+
+		// Hotkey handler (driven by TOOL_SPEC hotkey field).
+		const HOTKEY_MAP = {};
+		(Kit.TOOL_SPEC||[]).forEach(spec => { if (spec.hotkey && spec.key) HOTKEY_MAP[String(spec.hotkey).toLowerCase()] = spec.key; });
+		const self = this;
+		L.DomEvent.on(document, 'keydown', function(e) {
+			if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+			const k = e.key;
+			const code = k === 'Escape' ? 'esc' : k === 'Enter' ? 'enter' : k === 'Backspace' ? 'backspace' : k.toLowerCase();
+			const target = HOTKEY_MAP[code];
+			if (!target) return;
+			e.preventDefault();
+			switch (target) {
+				case 'sel_clear': clearSelection(); break;
+				case 'sel_back': if (selectionTrail.length) { const prev = selectionTrail.pop(); const n = pointsById.get(self.id(prev)); if(n) selectNode(n); else clearSelection(); } break;
+				case 'sel_isolate': isolateSelected=!isolateSelected; if(selectedNode) renderEgo(); break;
+				case 'sel_ego': if(selectedNode) loadEgo(egoDepth); break;
+				case 'sel_depth1': if(selectedNode) loadEgo(1); break;
+				case 'sel_depth2': if(selectedNode) loadEgo(2); break;
+				case 'sel_depth3': if(selectedNode) loadEgo(3); break;
+				case 'link_add': if(selectedNode) addRelationship(null); else mapStatus(__('Select a record first.'),true); break;
+				case 'sel_open': if(selectedNode) frappe.set_route('Form', selectedNode.doctype, selectedNode.name); break;
+			}
+		});
+
 		// Empty the legacy top strip (we now use appPanel + in-canvas dock).
 		this.tools.empty();
 
 		draw();
-		this.showDetails(__('Geographic map'), [[__('About this view'),__('Map tools (navigate, basemap, measure, pick, overlays) live in the dock on the right edge of the map. Records, filters, and export live in the panel at the upper left.')]]);
+		this.showDetails(__('Geographic map'), [[__('About this view'),__('Map tools (navigate, basemap, measure, pick, overlays, selection) live in the dock on the right edge of the map. Records, filters, and export live in the panel at the upper left. Press ? or the Help button for the full hotkey list.')]]);
 		if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p=>[Number(p.latitude),Number(p.longitude)])).pad(0.15),{maxZoom:12});
 		setTimeout(()=>map.invalidateSize(),0);
 	}
