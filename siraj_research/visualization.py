@@ -5,7 +5,8 @@ user and document permissions; neither SQL nor get_all bypasses them here.
 """
 from __future__ import annotations
 
-import math
+import re
+from decimal import Decimal, InvalidOperation
 
 import frappe
 from frappe import _
@@ -75,21 +76,44 @@ def _entity_rows(types, extra_fields=(), include_details=False):
     return nodes, truncated
 
 
-def _valid_point(lat, lon):
+_COORDINATE_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹٫", "01234567890123456789.")
+_DECIMAL_COORDINATE = re.compile(r"^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$")
+
+
+def _coordinate(value, limit):
+    """Convert text to a map number, without changing the stored text."""
+    if value is None or isinstance(value, bool):
+        return None
+    text = str(value).strip().translate(_COORDINATE_DIGITS)
+    # Python may stringify tiny legacy numeric values with an exponent.
+    if isinstance(value, str) and not _DECIMAL_COORDINATE.fullmatch(text):
+        return None
     try:
-        lat, lon = float(lat), float(lon)
-        # Frappe Float fields commonly default to zero. 0,0 is ambiguous and
-        # cannot safely be distinguished from an unset pair in this schema.
-        return math.isfinite(lat) and math.isfinite(lon) and -90 <= lat <= 90 and -180 <= lon <= 180 and (lat != 0 or lon != 0)
-    except (TypeError, ValueError):
-        return False
+        number = Decimal(text)
+        if not number.is_finite() or abs(number) > limit:
+            return None
+        return float(number)
+    except (InvalidOperation, ValueError, OverflowError):
+        return None
+
+
+def _valid_point(lat, lon):
+    lat, lon = _coordinate(lat, 90), _coordinate(lon, 180)
+    # Historic Frappe Float fields can store unset coordinates as (0, 0).
+    # Keep excluding the ambiguous pair until existing records are reviewed.
+    return lat is not None and lon is not None and (lat != 0 or lon != 0)
 
 
 @frappe.whitelist()
 def geographic_data():
-    """Only record-owned coordinates are shown; linked Place coordinates are never copied."""
+    """Only record-owned coordinates are shown; linked Place coordinates are never copied.
+
+    Coordinate strings stay untouched in the record. Map positions are binary
+    floating-point approximations for compatibility with browser map libraries.
+    """
     nodes, truncated = _entity_rows(GEO_TYPES, ("latitude", "longitude", "geo_precision", "geocoding_method", "geo_uncertainty_m", "geometry_source"))
-    points = [node for node in nodes if _valid_point(node["latitude"], node["longitude"])]
+    points = [{**node, "latitude": _coordinate(node["latitude"], 90), "longitude": _coordinate(node["longitude"], 180)}
+              for node in nodes if _valid_point(node["latitude"], node["longitude"])]
     return {"points": points, "truncated": truncated}
 
 

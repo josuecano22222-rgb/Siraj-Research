@@ -642,3 +642,17 @@ Find,بحث
 Legend,المفتاح
 No matching group or record in the loaded structure.,لا توجد مجموعة أو سجل مطابق في الهيكل المحمّل.
 Unable to export: some node positions are unavailable. Try again after the layout settles.,تعذر التصدير: بعض مواقع العقد غير متاحة. حاول مجدداً بعد استقرار التخطيط.
+Coordinate map,خريطة الإحداثيات
+"Click the map to select a point, or type latitude and longitude above.",انقر على الخريطة لتحديد نقطة، أو أدخل خط العرض وخط الطول أعلاه.
+Clear coordinates,مسح الإحداثيات
+Enable online street map,تفعيل خريطة الشوارع عبر الإنترنت
+Disable online street map,إيقاف خريطة الشوارع عبر الإنترنت
+Online map tiles are optional; enabling them shares your IP address and viewed area with OpenStreetMap.,خرائط الإنترنت اختيارية؛ تفعيلها يشارك عنوان IP والمنطقة المعروضة مع OpenStreetMap.
+"Enter valid decimal coordinates: latitude −90 to 90, longitude −180 to 180.",أدخل إحداثيات عشرية صحيحة: خط العرض من −90 إلى 90، وخط الطول من −180 إلى 180.
+Enter coordinates or select a point on the map.,أدخل الإحداثيات أو اختر نقطة على الخريطة.
+Location shown. Typed coordinate text is not rounded by the map.,يظهر الموقع. لا تقرّب الخريطة نص الإحداثيات المُدخل.
+Preview only: both coordinate fields must be text fields to select a point.,معاينة فقط: يجب أن يكون حقلا الإحداثيات نصيين لاختيار نقطة.
+Location preview (read-only).,معاينة الموقع (للقراءة فقط).
+Could not update the coordinate fields.,تعذر تحديث حقلي الإحداثيات.
+Selected coordinates exceed the text field length.,الإحداثيات المحددة تتجاوز طول الحقل النصي.
+Offline basemap could not be loaded. Online tiles remain optional.,تعذر تحميل الخريطة المحلية. تظل خرائط الإنترنت اختيارية.
