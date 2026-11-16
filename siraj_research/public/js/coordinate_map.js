@@ -15,6 +15,7 @@
  */
 (() => {
 	'use strict';
+	window.SIRAJ_COORDINATE_MAP_VERSION = 2;   // bumped for cache-bust detection
 	const states = new WeakMap();
 	const registered = new Set();
 	const t = s => __(s);

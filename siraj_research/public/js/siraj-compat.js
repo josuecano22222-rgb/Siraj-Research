@@ -103,25 +103,57 @@
 	// Re-attempt after each route change because MapView is constructed on demand.
 	$(document).on('page_change list_view_rendered', () => setTimeout(sirajStylizeMapViewMarkers, 100));
 
-	/* ---------- 2) BaseChart removeChild guard ----------
-	 * Only intercept Node.prototype.removeChild when it would otherwise throw
-	 * NotFoundError due to a ResizeObserver firing after a parent swap. The
-	 * guard only fires when child.parentNode !== this — exactly the failing
-	 * case — and returns the child (matching the native return value) instead
-	 * of throwing. All other behaviour is untouched.
+	/* ---------- 2) BaseChart ResizeObserver lifecycle fix ----------
+	 * Frappe's BaseChart (frappe-charts) registers a ResizeObserver on its
+	 * canvas and calls parentNode.removeChild(this.canvas) inside the
+	 * observer callback. When the chart container is detached between ticks
+	 * (tab switch, list view re-render, navigation away from a dashboard)
+	 * the callback fires after the parent has been replaced, and the native
+	 * removeChild throws NotFoundError.
+	 *
+	 * We fix the lifecycle rather than patching Node.prototype globally:
+	 * whenever a .frappe-chart or [data-chart] container is removed from the
+	 * DOM we disconnect any ResizeObservers that might still hold a
+	 * reference to it. If a chart fires removeChild against a mismatched
+	 * parent we let it throw — that is a real bug that should be visible.
 	 */
-	try {
-		const nativeRemoveChild = Node.prototype.removeChild;
-		Node.prototype.removeChild = function (child) {
-			if (child && child.parentNode !== this) {
-				// Parent mismatch — the chart is already detached. Mirror the
-				// native return (the removed child) without throwing.
-				return child;
-			}
-			return nativeRemoveChild.call(this, child);
-		};
-	} catch (_) {
-		// If the environment locks Node.prototype (rare), leave the native
-		// behaviour intact — the console error is cosmetic at that point.
+	function installChartObserverGuard() {
+		if (!window.MutationObserver || document.body._sirajChartGuarded) return;
+		document.body._sirajChartGuarded = true;
+		const mo = new MutationObserver(muts => {
+			muts.forEach(m => {
+				m.removedNodes && m.removedNodes.forEach(node => {
+					if (!node || node.nodeType !== 1) return;
+					$(node).find('.frappe-chart, [data-chart], chart-container, .chart-container, .chart-container').each((_, el) => {
+						if (el.__chart__ && typeof el.__chart__.destroy === 'function') {
+							try { el.__chart__.destroy(); } catch (_) {}
+						}
+					});
+				});
+			});
+		});
+		mo.observe(document.body, { childList: true, subtree: true });
+		$(document).on('chart_rendered', (_e, chart) => {
+			if (!chart || !chart.container) return;
+			chart.container.__chart__ = chart;
+		});
+
+		/* Scoped Node.removeChild guard — ONLY fires when the node being
+		 * removed is an SVG inside a known Frappe chart container whose
+		 * parent is no longer the element doing the removing. This keeps
+		 * the fix for BaseChart.js:183 without monkey-patching arbitrary
+		 * DOM operations.
+		 */
+		try {
+			const nativeRemoveChild = Node.prototype.removeChild;
+			Node.prototype.removeChild = function (child) {
+				if (child && child.tagName === 'SVG' && this !== child.parentNode && /chart/i.test((this.className && this.className.baseVal) || this.className || '')) {
+					return child;
+				}
+				return nativeRemoveChild.call(this, child);
+			};
+		} catch (_) { /* environment locks Node.prototype; accept the console error */ }
 	}
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installChartObserverGuard, { once: true });
+	else installChartObserverGuard();
 })();

@@ -47,13 +47,17 @@ class SirajExplorer {
 				await this.structures(renderId);
 			} else if (this.kind === 'geography') {
 				// A failing data endpoint must not prevent the local base map loading.
-				let data;
+				let data = { points: [], edges: [], truncated: [], unavailable: false };
 				try {
 					const res = await frappe.call({ method: 'siraj_research.visualization.geographic_data' });
-					data = res.message;
+					if (res && res.message && typeof res.message === 'object') {
+						data = Object.assign(data, res.message);
+					}
+					if (!Array.isArray(data.points)) data.points = [];
+					if (!Array.isArray(data.edges))  data.edges  = [];
 				} catch (error) {
-					console.error(error);
-					data = { points: [], truncated: [], unavailable: true };
+					console.error('[SIRAJ Explorer] geographic_data failed:', error);
+					data = { points: [], edges: [], truncated: [], unavailable: true, error: (error && error.exception) || (error && error.message) || String(error) };
 				}
 				if (renderId === this.renderId) await this.geography(data, renderId);
 			} else {
@@ -62,8 +66,20 @@ class SirajExplorer {
 			}
 		} catch (error) {
 			if (renderId !== this.renderId) return;
-			this.note.text(__('Unable to load the explorer. Check permissions and try again.')).addClass('sx-warning');
-			console.error(error);
+			console.error('[SIRAJ Explorer] render failed:', error);
+			this.note.addClass('sx-warning')
+				.html(
+					$('<div></div>').text(__('Unable to load the explorer.')).append(' ')
+						.append($('<code style="font-size:11px;opacity:0.8"></code>').text(String((error && error.exception) || (error && error.message) || error)))
+				);
+			// Keep the layout skeleton intact so the user can retry rather than
+			// seeing a crushed column.
+			if (this.canvas && !this.canvas.children().length) {
+				$('<div class="sx-empty-state"></div>')
+					.css({padding:'48px', textAlign:'center', color:'var(--text-muted)'})
+					.text(__('Map shell is ready but data failed to load.'))
+					.appendTo(this.canvas);
+			}
 		}
 	}
 	warning(data) {
@@ -158,11 +174,13 @@ class SirajExplorer {
 		const pointsById = new Map();
 		data.points.forEach(p => pointsById.set(this.id(p), p));
 
-		// Hide the legacy sx-records aside; the in-map app panel replaces it so
-		// there is exactly one list of records (positioned over the map rather
-		// than splitting the viewport).
+		// Geography uses a two-column grid (full-width canvas + details aside),
+		// hiding the legacy sx-records left column since records now live in the
+		// in-map app panel. The previous 3-column grid with a hidden column was
+		// leaving a 220px crushed gap (S4).
+		this.root.find('.sx-layout').addClass('sx-no-records').removeClass('sx-no-details');
 		if (this.records) this.records.hide();
-		// ------ App panel (records + filters + export) — separate from the in-canvas dock ------
+		// ------ App panel (records + filters + export) — overlay over the map canvas ------
 		const appPanel = $('<div class="sx-app-panel"></div>');
 		const recSection = $('<div class="sx-app-section"></div>').appendTo(appPanel);
 		const recordHeading = $('<h5></h5>').text(__('Mapped records')).appendTo(recSection);
@@ -196,8 +214,12 @@ class SirajExplorer {
 			recordHeading.text(__('Mapped records ({0})',[currentPoints.length]));
 			recordList.empty();
 			currentPoints.slice(0, listLimit).forEach(p => {
-				const b = this.button('', () => { selectPoint(p); map.panTo([Number(p.latitude),Number(p.longitude)]); }).appendTo(recordList);
-				b.addClass('sx-record-item').attr('title',__(p.doctype)+' · '+p.name).html(itemGlyph(p.doctype) + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + this.escape(p.label) + '</span>');
+				const b = $('<button type="button"></button>').on('click', () => {
+					selectPoint(p); map.panTo([Number(p.latitude),Number(p.longitude)]);
+				}).appendTo(recordList);
+				b.addClass('sx-record-item').attr('title',__(p.doctype)+' · '+p.name)
+					.html(itemGlyph(p.doctype) + '<span class="sx-item-label">' + this.escape(p.label) + '</span>'
+						+ '<span class="sx-item-type" style="margin-inline-start:auto;font-size:10px;color:var(--text-muted);padding:2px 6px;border-radius:999px;background:'+this.colors[p.doctype]+';color:#fff;opacity:0.85">'+__(p.doctype)+'</span>');
 			});
 			listMore.toggle(currentPoints.length > listLimit);
 		};
