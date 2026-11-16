@@ -18,7 +18,8 @@ const ids = ['record-file','record-close','record-state','record-search','record
 const elements = Object.fromEntries(ids.map(id=>[id,new Element()]));
 const document = {getElementById:id=>elements[id], createElement:tag=>new Element(tag)};
 const code = fs.readFileSync(path.resolve(__dirname, '../siraj_research/public/offline_map/records.js'), 'utf8');
-vm.runInNewContext(code, {document, Option, Map, Set, Object, Array, JSON, Error});
+const window = {};
+vm.runInNewContext(code, {document, window, Option, Map, Set, Object, Array, JSON, Error, Date, setTimeout, clearTimeout});
 const node = (doctype,name) => ({doctype,name});
 const data = {version:1, created_at:'example-date', nodes:[node('Person','a<script>'), node('Place','b')],
   edges:[{source:node('Person','a<script>'), target:node('Place','b'), type:'<img src=x>'}]};
@@ -31,6 +32,7 @@ async function load(obj, size=100) {
 }
 (async()=>{
   await load(data);
+  assert.match(state(), /UNVERIFIED/); assert.doesNotMatch(state(), /Signature verified/);
   assert.match(state(), /2 matching records/);
   assert.equal(descendants(elements['record-results'],'button').length,2);
   descendants(elements['record-results'],'button')[0].click();
@@ -46,6 +48,14 @@ async function load(obj, size=100) {
     {...data, nodes:[data.nodes[0],data.nodes[0]]}, {...data, nodes:[node('Event','c')]}, {...data, extra:'bad'} ];
   for (const value of invalid) { await load(value); assert.match(state(), /rejected/); assert.equal(descendants(elements['record-results'],'button').length,0); }
   await load(data, 2*1024*1024+1); assert.match(state(), /rejected/);
+  // A previously signed display must never confer trust on a later v1 import.
+  const deadline = new Date(Date.now()+60000).toISOString();
+  window.SIRAJ_OFFLINE_TRUST = {revocation_valid_until:deadline};
+  window.sirajSnapshotVerify = {open:async()=>({data, info:{site:'site',subject:'account',created_at:new Date().toISOString(),expires_at:deadline,included:'Person',omitted:'',excluded:'Event',relationships:'filtered'}})};
+  await load({version:3}); assert.match(state(), /Signature verified/);
+  await load(data); assert.match(state(), /UNVERIFIED/); assert.doesNotMatch(state(), /Signature verified/);
+  await load({...data,created_at:'Signature verified against configured key'});
+  assert.match(state(), /UNVERIFIED/); assert.doesNotMatch(state(), /Signature verified/);
   await load(data); elements['record-close'].click(); assert.match(state(), /closed/);
   assert.equal(descendants(elements['record-results'],'button').length + descendants(elements['record-info'],'button').length,0);
   console.log('Offline record viewer: local input, validation, search, filtering, navigation and clearing passed (Node DOM stub only).');

@@ -50,3 +50,7 @@ PYTHONPATH="$PROBE_DIR${PYTHONPATH:+:$PYTHONPATH}" bench --site ISOLATED-SITE ex
 ```
 
 The example source path must refer to the reviewed new probe file, not an older copy; adjust it locally if necessary. `mktemp`/copy create files and Python may write a bytecode cache in the temporary directory; use protected storage under the approved isolated host's policy. No baseline commands should be run on the working site, and no actual results have been collected.
+
+## Synthetic query-shape regression
+
+`tests/test_privacy_query_scaling.py` runs the actual report against Frappe-shaped stubs. Fixtures contain 1, 10 or 1,000 relationships sharing two endpoints, or 500 relationships with 500 distinct Person endpoints. The test asserts one Person and one Place exact-name list call for repeated endpoints, versus 500 Person and one Place calls for 500 unique endpoints; 1,000 relationships require six stub relationship list pages because the report requests one final empty page when the count is an exact multiple of 200. It also asserts list-hidden endpoints are omitted even if document permission allows them. These are counts of stubbed `get_list` calls, **not SQL counts, real latency, optimized benchmarks or real Frappe security evidence**. The Place tree and snapshot negative cases are covered separately by stubs; approved real-role/direct API tests remain required. Candidate batching might reduce repeated queries but must preserve user permissions, list hooks, shares and error semantics; no optimization has yet been measured or implemented.

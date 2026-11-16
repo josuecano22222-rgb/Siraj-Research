@@ -59,7 +59,7 @@
             ', created: ' + signedInfo.created_at + ', age at last refresh: ' + Math.max(0, Math.floor((Date.now() - Date.parse(signedInfo.created_at)) / 60000)) + ' min, expires: ' + signedInfo.expires_at + ', included: ' + signedInfo.included +
             ', omitted: ' + signedInfo.omitted + ', excluded: ' + signedInfo.excluded + ', relationships: ' + signedInfo.relationships +
             '. Permission and identity are not rechecked; contents are unencrypted and scan was non-atomic. ' :
-            'UNVERIFIED disconnected read-only snapshot (claimed date: ' + snapshot.created_at + '). ';
+            'UNVERIFIED disconnected read-only snapshot. File date is untrusted. ';
         el('record-state').textContent = status + matching.length + ' matching records; showing at most ' + MAX_RESULTS + '.';
     }
     function reset(message) {

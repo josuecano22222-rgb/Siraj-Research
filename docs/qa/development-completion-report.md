@@ -63,3 +63,9 @@ This delivery adds a non-whitelisted current-session candidate collector and HMA
 ## Owner-reported 74b5cf3 tests and connected signature prototype
 
 The owner applied `74b5cf3` and passed 9 snapshot, 6 Event, 4 query-probe stub tests and the Node DOM-stub test. No site record export or Frappe security/load test was reported. This delivery adds a fixture-tested P-256 signing path from the existing candidate collector to offline WebCrypto verification, and a pure Event metadata comparator. Its trust policy must be independently provisioned; the mechanism is not encryption, offline user authentication, full revocation or proof of authorized records. No real-data endpoint is enabled. Event migration, physical rollback, coordinate conversion and real performance measurements are still outstanding. **IMPLEMENTED and UPLOADED on push; AWAITING LOCAL TESTING.**
+
+## Owner-reported 4cf349b fixture evidence and security correction
+
+The owner reported 3/3 signed-snapshot Python fixtures, 3/3 Event schema fixtures, the Node signature fixture and the Node-only offline viewer fixture passing after applying `4cf349b`. These test results are local fixture evidence, not proof of live Frappe authorization or production readiness. See `milestone-4cf349b-results.md`.
+
+This delivery fixes an unsigned-status text spoofing weakness, adds a fixture-tested non-mutating Event review with separate coverage assertions, documents committed-field mapping and unresolved site-specific dependencies, and exercises synthetic report query shapes. The offline threat model identifies remaining trust, encryption, revocation and identity gates. Delivery: **CORRECTIONS UPLOADED / AWAITING LOCAL TESTING** for the status fix and **IMPLEMENTED / UPLOADED on push / AWAITING LOCAL TESTING** for the review additions. Real Event migration/rollback, Frappe role tests, actual exports and real performance measurements remain NOT RUN and are not VERIFIED.
