@@ -38,3 +38,15 @@ The snapshot candidate collector uses Frappe read and export checks at DocType a
 `tests/test_visualization_permission_paths.py` exercises list-hidden direct-record and relationship endpoint denials plus a document-denied relationship against stubs. `test_privacy_query_scaling.py` checks list-hidden relationship-report endpoints under synthetic repeated/distinct fixtures. These do not establish HTTP, Frappe permission-hook, sharing or role behavior on the actual site; the controlled case matrix above remains required.
 
 `test_place_tree_synthetic.py` now models two non-admin identities, owner/shared records, a list-hidden owned record and a list-visible document-hook denial, as well as hidden/missing parent direct requests, DocType denial and field filtering. Its models are explicitly hand-written stubs; they do not establish Frappe's actual owner/share or hook semantics. Test separately with approved real accounts and permissions on an isolated copy before drawing authorization conclusions.
+
+## Isolated-site decision assertion helper
+
+`permission_assertions.check` is non-whitelisted and checks caller-supplied expectations through the existing `permission_review.inspect_permissions` helper, which calls actual Frappe role/document permission APIs and exact-name `get_list` as each existing user. It validates every case before reading, caps the batch at 20, requires an explicit isolation confirmation and returns only case indices, assertion counts and failed assertion names. This is **not** HTTP/API enforcement, actual create/write/delete testing, attachment permissions, snapshot authorization, or proof of security. No accounts or records are created. It has only fake-inspector tests; no actual site results yet.
+
+After separate explicit approval, on a verified isolated copy only, an operator may use the following shape after substituting an existing isolated-site name, account and existing isolated record, and expectations selected from the documented test matrix:
+
+```bash
+bench --site <isolated-site> execute siraj_research.setup.permission_assertions.check --kwargs '{"confirm":"ISOLATED-TEST-APPROVED","cases":[{"user":"<existing-isolated-user>","doctype":"Person","record_name":"<existing-isolated-record>","expect":{"doctype.read":true,"document.read":true,"list_contains_record":true}}]}'
+```
+
+Do not paste real identifiers into chat. Shell history, process arguments and bench logs may retain arguments. Outputs can reveal permission policy and must be protected. Review all custom hooks and test load first: although the helper does no writes, hooks can write or have external effects, and successful `bench execute` can commit. The `confirm` argument is a guard, not the user's approval. A mismatch is reported as a named assertion failure; missing/invalid test inputs raise and stop. Include independently chosen Administrator, non-admin owner/shared, query-hidden and document-denied cases; follow-up direct HTTP/CRUD and attachment tests require a separate approved isolated test suite and remain unimplemented.
