@@ -435,61 +435,53 @@ def seed_demo_data():
     # Places
     # ------------------------------------------------------------------
     places = {}
+    # All tuples use the same 14-field layout:
+    # (key, ar, en, ptype, parent, lat, lng, gprec, gmeth, gunc, ctry, gov, district, ws_state)
     pdata = [
+        # Country-level
         ("iraq", "العراق", "Iraq", PTYPE["country"], None, None, None, None, None,
-         None, None, None, "Published", country_iq, None, None, None, None, None,
-         None, None, None),
-        ("baghdad_city", "بغداد", "Baghdad", PTYPE["city"], "iraq", Geo.BAGHDAD[0], Geo.BAGHDAD[1],
-         "centroid", "city_centroid", 5000, country_iq, gov_baghdad, "Published", None, None,
-         "approximate"),
-        ("mosul_city", "الموصل", "Mosul", PTYPE["city"], "iraq", Geo.MOSUL[0], Geo.MOSUL[1],
-         "approximate", "gazetteer", 2000, country_iq, gov_nineveh, "Published", None, None,
-         "approximate"),
-        ("basra_city", "البصرة", "Basra", PTYPE["city"], "iraq", Geo.BASRA[0], Geo.BASRA[1],
-         "approximate", "gazetteer", 1500, country_iq, gov_basra, "Published", None, None,
-         "approximate"),
-        ("erbil_city", "أربيل", "Erbil", PTYPE["city"], "iraq", Geo.ERBIL[0], Geo.ERBIL[1],
-         "approximate", "gazetteer", 1000, country_iq, gov_erbil, "Published", None, None,
-         "approximate"),
-        ("kirkuk_city", "كركوك", "Kirkuk", PTYPE["city"], "iraq", Geo.KIRKUK[0], Geo.KIRKUK[1],
-         "approximate", "gazetteer", 1200, country_iq, gov_kirkuk, "Published", None, None,
-         "approximate"),
-        ("fallujah_city", "الفلوجة", "Fallujah", PTYPE["city"], "iraq", Geo.FALLUJAH[0], Geo.FALLUJAH[1],
-         "approximate", "gazetteer", 800, country_iq, gov_anbar, "Verified", None, None,
-         "approximate"),
-        ("ramadi_city", "الرمادي", "Ramadi", PTYPE["city"], "iraq", Geo.RAMADI[0], Geo.RAMADI[1],
-         "approximate", "gazetteer", 800, country_iq, gov_anbar, "Published", None, None,
-         "approximate"),
-        ("tikrit_city", "تكريت", "Tikrit", PTYPE["city"], "iraq", Geo.TIKRIT[0], Geo.TIKRIT[1],
-         "approximate", "gazetteer", 800, country_iq, gov_salahadin, "Published", None, None,
-         "approximate"),
-        ("najaf_city", "النجف", "Najaf", PTYPE["city"], "iraq", Geo.NAJAF[0], Geo.NAJAF[1],
-         "approximate", "gazetteer", 800, country_iq, gov_najaf, "Published", None, None,
-         "approximate"),
-        ("karbala_city", "كربلاء", "Karbala", PTYPE["city"], "iraq", Geo.KARBALA[0], Geo.KARBALA[1],
-         "approximate", "gazetteer", 800, country_iq, gov_karbala, "Published", None, None,
-         "approximate"),
-        ("samarr_city", "سامراء", "Samarra", PTYPE["city"], "iraq", Geo.SAMARRA[0], Geo.SAMARRA[1],
-         "approximate", "gazetteer", 800, country_iq, gov_salahadin, "Published", None, None,
-         "approximate"),
+         None, country_iq, None, None, "Published"),
+        # Cities
+        ("baghdad_city", "بغداد", "Baghdad", PTYPE["city"], "iraq", *Geo.BAGHDAD,
+         "centroid", "city_centroid", 5000, country_iq, gov_baghdad, None, "Published"),
+        ("mosul_city", "الموصل", "Mosul", PTYPE["city"], "iraq", *Geo.MOSUL,
+         "approximate", "gazetteer", 2000, country_iq, gov_nineveh, None, "Published"),
+        ("basra_city", "البصرة", "Basra", PTYPE["city"], "iraq", *Geo.BASRA,
+         "approximate", "gazetteer", 1500, country_iq, gov_basra, None, "Published"),
+        ("erbil_city", "أربيل", "Erbil", PTYPE["city"], "iraq", *Geo.ERBIL,
+         "approximate", "gazetteer", 1000, country_iq, gov_erbil, None, "Published"),
+        ("kirkuk_city", "كركوك", "Kirkuk", PTYPE["city"], "iraq", *Geo.KIRKUK,
+         "approximate", "gazetteer", 1200, country_iq, gov_kirkuk, None, "Published"),
+        ("fallujah_city", "الفلوجة", "Fallujah", PTYPE["city"], "iraq", *Geo.FALLUJAH,
+         "approximate", "gazetteer", 800, country_iq, gov_anbar, dist_fallujah, "Verified"),
+        ("ramadi_city", "الرمادي", "Ramadi", PTYPE["city"], "iraq", *Geo.RAMADI,
+         "approximate", "gazetteer", 800, country_iq, gov_anbar, dist_ramadi, "Published"),
+        ("tikrit_city", "تكريت", "Tikrit", PTYPE["city"], "iraq", *Geo.TIKRIT,
+         "approximate", "gazetteer", 800, country_iq, gov_salahadin, dist_tikrit, "Published"),
+        ("najaf_city", "النجف", "Najaf", PTYPE["city"], "iraq", *Geo.NAJAF,
+         "approximate", "gazetteer", 800, country_iq, gov_najaf, dist_najaf, "Published"),
+        ("karbala_city", "كربلاء", "Karbala", PTYPE["city"], "iraq", *Geo.KARBALA,
+         "approximate", "gazetteer", 800, country_iq, gov_karbala, dist_karbala, "Published"),
+        ("samarr_city", "سامراء", "Samarra", PTYPE["city"], "iraq", *Geo.SAMARRA,
+         "approximate", "gazetteer", 800, country_iq, gov_salahadin, None, "Published"),
         # Military installations
         ("mod_hq", "مقر وزارة الدفاع", "Ministry of Defence HQ", PTYPE["building"],
-         "baghdad_city", Geo.MOD[0], Geo.MOD[1], "approximate", "administrative", 200,
-         country_iq, gov_baghdad, "Published", None, "Institution site"),
+         "baghdad_city", *Geo.MOD, "approximate", "administrative", 200,
+         country_iq, gov_baghdad, dist_karkh, "Published"),
         ("taji_camp", "معسكر التاجي", "Taji Military Camp", PTYPE["building"],
-         "baghdad_city", Geo.TAJI[0], Geo.TAJI[1], "approximate", "gazetteer", 500,
+         "baghdad_city", *Geo.TAJI, "approximate", "gazetteer", 500,
          country_iq, gov_baghdad, dist_taji, "Published"),
         ("victory_base", "مجمع قواعد النصر", "Victory Base Complex", PTYPE["building"],
-         "baghdad_city", Geo.VIC_GREEN[0], Geo.VIC_GREEN[1], "approximate", "gazetteer", 1000,
+         "baghdad_city", *Geo.VIC_GREEN, "approximate", "gazetteer", 1000,
          country_iq, gov_baghdad, dist_karkh, "Published"),
         ("rust_college_campus", "حرم الكلية العسكرية الأولى", "First Military College Campus",
-         PTYPE["building"], "baghdad_city", Geo.RUSTAMIYAH[0], Geo.RUSTAMIYAH[1], "approximate",
+         PTYPE["building"], "baghdad_city", *Geo.RUSTAMIYAH, "approximate",
          "administrative", 150, country_iq, gov_baghdad, dist_rusafa, "Published"),
         ("rashid_camp", "معسكر الرشيد", "Camp Rashid", PTYPE["building"],
-         "baghdad_city", Geo.RASHID[0], Geo.RASHID[1], "approximate", "gazetteer", 400,
+         "baghdad_city", *Geo.RASHID, "approximate", "gazetteer", 400,
          country_iq, gov_baghdad, dist_rusafa, "Published"),
         ("abu_ghraib_camp", "سجن أبو غريب / معسكر", "Abu Ghraib Camp", PTYPE["building"],
-         "baghdad_city", Geo.ABU_GHRAIB[0], Geo.ABU_GHRAIB[1], "approximate", "gazetteer", 400,
+         "baghdad_city", *Geo.ABU_GHRAIB, "approximate", "gazetteer", 400,
          country_iq, gov_baghdad, dist_abughraib, "Disputed"),
         ("al_asad_airbase", "قاعدة عين الأسد الجوية", "Al-Asad Airbase", PTYPE["building"],
          "iraq", 33.8000, 42.4333, "approximate", "gazetteer", 2000, country_iq, gov_anbar,
@@ -500,10 +492,10 @@ def seed_demo_data():
         # Cultural / religious
         ("imam_hussain", "حرم الإمام الحسين", "Imam Husayn Shrine", PTYPE["shrine"],
          "karbala_city", 32.6164, 44.0327, "approximate", "gazetteer", 200, country_iq,
-         gov_karbala, dist_karbala, "Published"),
+         gov_karbala, None, "Published"),
         ("imam_ali", "حرم الإمام علي", "Imam Ali Shrine", PTYPE["shrine"],
          "najaf_city", 31.9960, 44.3136, "approximate", "gazetteer", 200, country_iq,
-         gov_najaf, dist_najaf, "Published"),
+         gov_najaf, None, "Published"),
         ("mutawakkil_mosque", "جامع المتوكل", "Great Mosque of Samarra", PTYPE["mosque"],
          "samarr_city", 34.1953, 43.8833, "approximate", "gazetteer", 200, country_iq,
          gov_salahadin, None, "Published"),
@@ -528,47 +520,30 @@ def seed_demo_data():
          gov_babil, dist_hillah, "Published"),
         ("nineveh_ruins", "آثار نينوى", "Nineveh ruins", PTYPE["archaeological_site"],
          "mosul_city", 36.3333, 43.1522, "approximate", "gazetteer", 300, country_iq,
-         gov_nineveh, dist_mosul, "Published"),
+         gov_nineveh, None, "Published"),
         ("cietesphon", "طيسفون", "Ctesiphon arch (Taq Kisra)", PTYPE["archaeological_site"],
          "iraq", 33.0925, 44.5810, "approximate", "gazetteer", 100, country_iq,
-         gov_baghdad, dist_mahmudiyah, "Needs Update"),
+         gov_baghdad, None, "Needs Update"),
     ]
-    for row in pdata:
-        (key, ar, en, ptype, parent, lat, lng, gprec, gmeth, gunc, ctry, gov, dist_en,
-         ws_state) = row[:14]
+    for (key, ar, en, ptype, parent, lat, lng, gprec, gmeth, gunc,
+         ctry, gov, district, ws_state) in pdata:
         vals = {
             "naming_series": "PLC-.####",
             "name_ar": f"{ar} {TAG}",
             "name_en": f"{en} {TAG}",
             "place_type": ptype,
-            "country": ctry,
-            "governorate": gov,
             "latitude": lat,
             "longitude": lng,
-            "geo_precision": gprec,
-            "geocoding_method": gmeth,
-            "geo_uncertainty_m": gunc,
             "workflow_state": _ws(ws_state),
         }
-        if parent:
-            vals["parent_place"] = places[parent]
-        if dist_en and len(row) > 14:
-            # district column may or may not exist
-            pass
-        # Try to find district match by matching key
-        dist_map = {
-            "mod_hq": dist_karkh, "rust_college_campus": dist_rusafa,
-            "rashid_camp": dist_rusafa, "abu_ghraib_camp": dist_abughraib,
-            "victory_base": dist_karkh, "taji_camp": dist_taji,
-            "iraq_museum": dist_karkh, "national_library": dist_karkh,
-            "house_of_manuscripts": dist_karkh, "baghdad_univ_campus": dist_karkh,
-            "mustansiriya_univ": dist_rusafa, "fallujah_city": dist_fallujah,
-            "ramadi_city": dist_ramadi,
-        }
-        if key in dist_map:
-            vals["district"] = dist_map[key]
-        if gov == gov_babil:
-            vals["district"] = dist_hillah
+        if parent: vals["parent_place"] = places[parent]
+        if ctry: vals["country"] = ctry
+        if gov: vals["governorate"] = gov
+        if district: vals["district"] = district
+        if lat is not None and lng is not None:
+            vals["geo_precision"] = gprec
+            vals["geocoding_method"] = gmeth
+            vals["geo_uncertainty_m"] = gunc
         places[key] = _add("Place", vals, name_en=f"{en} {TAG}")
 
     # ------------------------------------------------------------------
