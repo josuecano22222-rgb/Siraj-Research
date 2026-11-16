@@ -138,13 +138,14 @@ INTERNAL = {
 }
 
 
-def boot_session():
-	"""Return the JS-ready record-metadata dict, exposed via ``frappe.boot``.
+def boot_session(bootinfo):
+	"""Attach JS-ready record-metadata to ``bootinfo`` so every page sees it.
 
-	Hooks calls this at ``on_session_creation`` so every page (Desk, Explorer,
-	print views) can rely on ``window.sirajRecordMeta`` existing.
+	Hooks calls this at ``on_session_creation`` (with ``bootinfo`` as the
+	sole positional argument) so every Desk page, Explorer view and print
+	format can rely on ``frappe.boot.siraj_record_meta`` existing.
 	"""
-	return {
+	bootinfo.siraj_record_meta = {
 		"colours": COLOURS,
 		"glyphs": GLYPHS,
 		"records": {dt: {"colour": v["colour"], "category": v["category"]} for dt, v in RECORDS.items()},
