@@ -139,7 +139,10 @@ def relationship_data(include_evidence=0):
                           "type": row.get("relationship_type") or "", "direction": row.get("direction") or "",
                           "description": row.get("description") or "", "state": row.get("workflow_state") or "",
                           "is_current": row.get("is_current"), "end_date": row.get("end_date"),
-                          "authentication_level": row.get("authentication_level") or "", "primary_source": row.get("primary_source") or ""})
+                          "authentication_level": row.get("authentication_level") or "",
+                          # A readable relationship does not grant access to its source.
+                          # Reuse the graph's permission-filtered Source snapshot.
+                          "primary_source": row.get("primary_source") if ("Source", row.get("primary_source")) in visible else ""})
             if with_evidence:
                 doc = frappe.get_doc("Relationship", row["name"])
                 doc.check_permission("read")

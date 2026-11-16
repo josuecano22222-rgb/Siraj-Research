@@ -32,4 +32,10 @@ def can_read_link(doctype, name, allowed_types):
         return False
     if not frappe.has_permission(doctype, "read") or not frappe.db.exists(doctype, name):
         return False
-    return frappe.has_permission(doctype, "read", doc=name, throw=False)
+    if not frappe.has_permission(doctype, "read", doc=name, throw=False):
+        return False
+    # A custom permission_query_conditions hook can hide a record from list
+    # queries even when document-level checks alone return true. Require both.
+    rows = frappe.get_list(doctype, fields=["name"], filters={"name": name},
+                           order_by="name asc", limit_start=0, limit_page_length=1)
+    return any(row.get("name") == name for row in rows)

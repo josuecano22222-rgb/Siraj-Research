@@ -52,3 +52,7 @@ This reports whether each named module exists and whether a non-skipped Patch Lo
 ## Record titles
 
 On normal saves, Person, Institution and Place derive `display_name` from the English name, falling back to Arabic; Event uses its English then Arabic title, Source uses its title, and Relationship uses the stored endpoint identifiers and type. Titles are trimmed to 140 characters. Existing records are **not** mass-updated by this change; they acquire a derived title on a later normal save, and the Explorer otherwise falls back to the record ID. If a site customizes field-level permissions, treat the derived `display_name` as exposing the corresponding source name/title fields and configure its permissions accordingly.
+
+## Link privacy hardening
+
+Relationship primary-source identifiers are returned only when the Source appears in the permission-filtered graph snapshot; missing or inaccessible sources are blank. Report/tree helper link checks require both document permission and visibility in an exact-name Frappe list query, so custom query conditions can further restrict links. This can hide identifiers that were formerly shown and may add database queries; results and impact require testing with actual user permissions, query hooks and representative data. It does not comprehensively sanitize every linked detail/grouping value or resolve derived-label privacy. See `qa/permission-test-report.md` for the remaining checks.

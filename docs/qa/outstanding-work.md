@@ -40,3 +40,7 @@ The owner operates the existing local environment. The agent commits and pushes 
 | --- | --- | --- |
 | Environment clarification and read-only permission decisions probe | IMPLEMENTED; AWAITING LOCAL TESTING after upload and separately authorized deployment | Stub tests only; owner reviews custom hooks, then uses `permission-test-report.md` if approved. Direct API and CRUD outcomes remain unverified. |
 | Bounded browser load probe | IMPLEMENTED; AWAITING LOCAL TESTING after upload and separately authorized load window | Synthetic JS tests only; `load-test-report.md` defines small-sample limits and required telemetry. No real load or timings have been recorded. |
+
+### Owner evidence: Administrator probe
+
+The owner reported a successful fast-forward to `e42ba8f` and ran the Administrator DocType-level probe against `frappe.com`. All eight DocTypes returned SIRAJ module, non-submittable metadata and all-true Administrator permission booleans. This is a partial real-environment observation, not general permission verification or a CRUD test. `Event` remains owned by SIRAJ. An unrelated local workspace JSON modification was present before the merge; it must be preserved. No real non-Administrator, document-level or load test was reported.
