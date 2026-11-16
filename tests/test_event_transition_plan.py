@@ -33,7 +33,7 @@ class TransitionPlanTests(unittest.TestCase):
         self.assertIn('not verified', result['warning'])
 
     def test_target_collision_and_duplicate_source_fail(self):
-        for events, names in [(self.events, ['r']), (self.events + [self.events[0]], [])]:
+        for events, names in [(self.events, ['r']), (self.events + [self.events[0]], []), (self.events, ['unused', 'unused'])]:
             with self.subTest(events=events, names=names), self.assertRaises(PlanError):
                 prepare_transition(events, [], names)
 

@@ -41,6 +41,8 @@ def prepare_transition(events, references, existing_target_names):
     if any(not _text(name) for name in existing_target_names):
         raise PlanError("Invalid existing target name")
     target_names = set(existing_target_names)
+    if len(target_names) != len(existing_target_names):
+        raise PlanError("Duplicate existing target name")
     classes = {}
     for event in events:
         if not isinstance(event, dict) or set(event) != {"name", "classification"}:
@@ -85,7 +87,7 @@ def prepare_transition(events, references, existing_target_names):
               for name in sorted(classes) if classes[name] == "research"]
     changes.sort(key=lambda x: (x["doctype"], x["name"], x["type_field"]))
     counts = Counter(classes.values())
-    return {"candidate_copies": copies, "candidate_reference_changes": changes,
+    return {"execution_ready": False, "candidate_copies": copies, "candidate_reference_changes": changes,
             "counts": {"research_events": counts["research"], "calendar_events": counts["calendar"],
                        "references_reviewed": len(references), "reference_changes": len(changes)},
             "warning": ("Partial candidate only: supplied inventory and ownership are not verified. "

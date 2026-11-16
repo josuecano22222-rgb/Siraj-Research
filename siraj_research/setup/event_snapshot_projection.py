@@ -92,7 +92,7 @@ def project(events, references, rows):
         projected[key]['values'][change['type_field']] = change['new_type']
     journal = {'created': [copy.deepcopy(projected[key]) for key in created],
                'changed': [{'before': before[key], 'after': copy.deepcopy(projected[key])} for key in sorted(before)]}
-    return {'rows': [projected[key] for key in sorted(projected)], 'journal': journal, 'counts': plan['counts'],
+    return {'execution_ready': False, 'rows': [projected[key] for key in sorted(projected)], 'journal': journal, 'counts': plan['counts'],
             'warning': 'In-memory projection only; original Event rows remain and no site, schema, permissions or hooks were changed.'}
 
 
@@ -144,7 +144,7 @@ def inspect_projection(events, references, before, after):
     changed = sorted(key for key in expected_keys & observed_keys if not _same(expected[key], observed[key]))
     def identities(keys):
         return [{'doctype': dt, 'name': name} for dt, name in keys]
-    return {'pre': result['counts'],
+    return {'execution_ready': False, 'pre': result['counts'],
             'post': {'expected_rows': len(expected), 'observed_rows': len(observed),
                      'missing': identities(missing), 'unexpected': identities(unexpected), 'changed': identities(changed)},
             'model_matches': not (missing or unexpected or changed),
