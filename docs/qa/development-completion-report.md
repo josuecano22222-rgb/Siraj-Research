@@ -1,10 +1,10 @@
 # Development completion report — audit in progress
 
-This is a living report, not a production readiness certificate. Definition of done is **not met**. The current workspace has no running bench/database, actual test accounts, installed-site records, representative load environment, or supplied imagery licenses. No production deployment, migration, reinstall, sample insertion, destructive operation or production load test was performed in this audit.
+This is a living report, not a production readiness certificate. Definition of done is **not met**. The working Frappe environment exists locally on the owner's machine but is not directly accessible to the development agent. Real-environment testing must therefore be coordinated with the owner. The owner reported applying `bf55664`, building assets, clearing cache and restarting services; this is not verification of functionality. The agent has not directly run production migration, reinstall, sample insertion, destructive operations or load tests.
 
 | Work item | Status | Evidence this audit | Remaining blocker / risk |
 | --- | --- | --- | --- |
-| Permissions | BLOCKED | Static metadata and API review; mock tests only. `permission-test-report.md`. | Effective permissions and real direct API behavior need authorized Frappe accounts/environment and controlled operations. Link fields, derived titles and custom rules need particular review. |
+| Permissions | IN PROGRESS | Static metadata and API review; mock tests only. `permission-test-report.md`. | Effective permissions and real direct API behavior need authorized Frappe accounts/environment and controlled operations. Link fields, derived titles and custom rules need particular review. |
 | Load/performance | BLOCKED | Candidate scan/N+1/tile paths identified; no measured numbers. `load-test-report.md`. | Authorized representative environment, realistic workload, metrics and post-fix comparison. |
 | Imagery | IN PROGRESS | `imagery-register.md`: all five bundled Leaflet PNG hashes match `leaflet@1.9.4`; world atlas hash matches `world-atlas@2.0.2`. Corrected optional coordinate picker OSM tile hostname and attribution link, with mocked regression. | Owner-provided packs, site uploads/URLs, logo/trademark and inline SVG provenance, service policy and full attribution review remain. |
 | Explorer | IN PROGRESS | Code trace and synthetic browser/unit tests; see `explorer-verification.md`. | No real record, link or role tests. Offline basemap viewer is not an offline record Explorer. |
@@ -24,4 +24,10 @@ In the current **dirty worktree**, `python3 -m unittest discover -s tests -v`: 8
 
 ## Release and recovery
 
-Do not deploy this audit's changes or run migration/reinstall/seeding as a consequence of this report. Follow the sequencing and gates in `outstanding-work.md`, and the backup/data recovery constraints in `coordinate-migration.md` and `../event-collision-remediation.md`. Any future production deployment or data-changing operation needs a separate explicit authorization, current verified backups, a rehearsed recovery plan and a site-specific maintenance runbook. No test report currently establishes that all critical errors or information leaks are absent.
+The owner reported deploying `bf55664`; no further deployment is authorized by this report. Do not run migration/reinstall/seeding as a consequence of this report. Follow the sequencing and gates in `outstanding-work.md`, and the backup/data recovery constraints in `coordinate-migration.md` and `../event-collision-remediation.md`. Any future production deployment or data-changing operation needs a separate explicit authorization, current verified backups, a rehearsed recovery plan and a site-specific maintenance runbook. No test report currently establishes that all critical errors or information leaks are absent.
+
+## Collaborative owner-operated testing milestone
+
+The owner has confirmed that the real Frappe environment is local to them, and reported a successful `bf55664` fetch/build/cache-clear/restart. Service startup is not functional, security or load verification. This milestone adds `siraj_research/setup/permission_review.py` and `tests/test_permission_review.py` for an owner-operated, non-whitelisted permission-decision probe, and `docs/qa/load-probe.js` plus `tests/test_load_probe.js` for bounded, opt-in browser-side HTTP timing. The detailed operating and safety checklists are in `permission-test-report.md` and `load-test-report.md`. Neither helper has been run against the owner's environment; the scripts do not establish real CRUD behavior or performance by themselves.
+
+Delivery state: **IMPLEMENTED; UPLOADED when this commit is pushed; AWAITING LOCAL TESTING after separate deployment and test authorization.** No user accounts or records have been created. No production load test is authorized by these instructions. Other outstanding tasks and their blockers remain as in the register.

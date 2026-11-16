@@ -1,6 +1,6 @@
 # Application load and performance report
 
-**Status: BLOCKED — no actual load test or timing has been performed.** There is no running bench/database in this workspace, and production load testing is not authorized. Synthetic unit tests, single-browser smoke tests and static code review are not load measurements.
+**Status: BLOCKED — no actual load test or timing has been performed.** The working Frappe environment exists locally on the owner's machine but is not directly accessible to the development agent. Real-environment testing must therefore be coordinated with the owner. Production load testing is not authorized. Synthetic unit tests, single-browser smoke tests and static code review are not load measurements.
 
 ## Candidate workloads and risks (hypotheses, not measured bottlenecks)
 
@@ -14,3 +14,15 @@
 Use only a separately authorized environment with a restore-tested, appropriately anonymized representative dataset and licensed packs. Record exact revision/app and DB versions, topology and resource limits, dataset cardinalities and distribution, user roles, cache state, service/DB configuration, tool/version and test duration. Agree stop thresholds and rollback/incident plan before any test. Capture baseline and a single-variable post-optimization repeat at approved concurrency levels (for example 1, 5, 20 and 50 users only if capacity and authorization allow). Include cold/warm reads, filtered maps, graphs with/without evidence, structure sources, record details, reports, tree navigation, normal map pan/zoom and a bounded area download. Do not use public OSM tile servers for automated load tests.
 
 For each run record requests/second, p50/p95/p99, timeouts and error counts, client/server CPU and memory, DB connections, query counts/slow plans, I/O, queue depth and worker saturation, and any effects on other apps. Redact logs and avoid storing sensitive record values. Results, bottlenecks, changes and comparisons: **NOT RUN / NOT AVAILABLE**. A real Frappe environment and permission to run the agreed workload are required before this task can be verified.
+
+## Bounded browser probe (implemented, not run)
+
+`docs/qa/load-probe.js` defines an opt-in `sirajLoadProbe` in an already authenticated browser tab. It does not run on loading and stores no credentials or response bodies. It uses only three fixed same-origin **GET** routes: geography, relationships and people Structures; it has a maximum of five concurrent requests, 20 total requests, 16 MiB consumed per response, and a 60-second overall browser-side deadline. These caps do **not** bound database work, server processing after a client abort, side effects of custom hooks or load from other traffic. Larger-scale and mixed-user tests need a separately designed, approved workload. The browser does not collect server/DB resource usage, and HTTP 200 alone is not a correctness or permission result.
+
+**Do not run on the working site until the owner separately authorizes a test window, reviews expected query volume and stop thresholds, and has a monitoring/recovery plan.** After the update has separately been approved and applied, the authorized operator may open the Frappe site while logged in as the approved role, inspect the script at `apps/siraj_research/docs/qa/load-probe.js`, and paste its complete contents into that same tab's developer console. Only paste code after reviewing it and only on the intended site. Then start with a single request:
+
+```js
+await sirajLoadProbe('geography', 1, 1)
+```
+
+Additional calls, such as `await sirajLoadProbe('relationships', 2, 4)` or `await sirajLoadProbe('structures', 2, 4)`, require the approved workload plan. The result lists status counts, success throughput, response bytes and client-observed p50/p95/p99; small samples cannot support a meaningful p95/p99 and are smoke checks only. Record revision, route, role label, concurrent requests, duration, browser, anonymized dataset scale, server/database CPU/memory/IO, query metrics, errors and competing workload. Stop on the agreed thresholds or unexpected errors; aborting the tab does not guarantee server work stops. Do not paste response bodies, records, session cookies or credentials. No measurements have yet been collected.

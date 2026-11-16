@@ -1,6 +1,6 @@
 # Frappe permission test report
 
-**Status: BLOCKED — no running Frappe site, test accounts, database or authorized destructive testing environment is available in this workspace.** No real permission result is asserted here. Static JSON, code review and stubs are not evidence of the effective site permissions.
+**Status: IN PROGRESS — the working Frappe environment exists locally on the owner's machine but is not directly accessible to the development agent. Real-environment testing must therefore be coordinated with the owner.** A read-only bench probe is implemented but has only stub tests; no local role results have been reported. No real permission result is asserted here. Static JSON, code review and stubs are not evidence of the effective site permissions.
 
 ## Scope and static observations
 
@@ -25,3 +25,37 @@ No accounts were created or used in this audit. On an authorized isolated enviro
 | Submit/cancel and other operations | Not applicable only when actual effective DocType is not submittable; otherwise allowed and denied cases | NOT RUN |
 
 Use production records read-only only if explicitly permitted and with access controls. Write/delete/submit/cancel/concurrency testing requires an authorized safe environment and backup/recovery plan; never manipulate real records to manufacture test cases. Record actual HTTP status and sanitized response shapes for direct APIs, including `siraj_research.visualization.*`, `siraj_research.treeview.get_children`, `siraj_research.local_maps.*` and relevant reports. Fail the release gate on any unexpected disclosure or inconsistent denial.
+
+## Owner-operated read-only probe (awaiting local testing)
+
+`siraj_research.setup.permission_review.inspect_permissions` is a **non-whitelisted bench CLI helper**, not a web method. It checks the actual effective Frappe role/permission functions while temporarily setting the CLI process's user; it restores the prior user in `finally`. It accepts only the eight fixed SIRAJ DocTypes and can optionally check one explicit existing record and a single-record `get_list`. It returns roles, booleans and module/submittable metadata—not the chosen user, record name or field values. It does not deliberately insert, update or delete records. Custom permission hooks and framework caches/logs may have their own side effects; review site-specific hooks and obtain operational authorization before running on the owner's working environment. Permission checks are not actual CRUD operations, workflow validation or direct-API tests. They cannot prove that the user can successfully carry out an operation.
+
+The exact command for the existing built-in Administrator account, **only after approval of this release and this diagnostic**, is:
+
+```bash
+cd /home/frappe/frappe-bench
+bench --site frappe.com execute siraj_research.setup.permission_review.inspect_permissions --kwargs '{"user":"Administrator"}'
+```
+
+To probe an existing account and optionally an existing record, substitute locally with correct JSON quoting; do not share credentials, session cookies, record identifiers or document values. Do not create accounts or records solely for this test on the working site. Example syntax (replace values locally; placeholders are not runnable):
+
+```bash
+bench --site frappe.com execute siraj_research.setup.permission_review.inspect_permissions --kwargs '{"user":"EXISTING-USER-ID","doctype":"Person","record_name":"EXISTING-PERSON-ID"}'
+```
+
+Run only accounts the owner is authorized to inspect. Record an anonymized label, actual assigned role set, test case and output booleans; remove identifying/sensitive content before sharing. A missing record/user, permission-hook exception or unexpected traceback is a failure to investigate—not an authorization success. Frappe's `bench execute` may produce fallback noise after an exception; capture the first relevant error, redact sensitive text, and do not repeat failed tests without analysis.
+
+### Local checklist (no writes)
+
+1. After authorization, probe Administrator, an existing System Manager and existing accounts representing each available SIRAJ role. Confirm `roles` matches actual assignments. The `doctype_permissions` values are framework permission decisions, not proof that writes are permitted under the active workflow. `is_submittable` is actual metadata, not a guarantee that submit/cancel will work. For Administrator, Frappe v15's permission function may return true even for non-submittable types; use the metadata field to judge applicability.
+2. With permission to inspect the chosen existing record, repeat for one allowed and one restricted Person or other supported DocType. Compare `document_permissions.read` and `list_contains_record` to the owner’s configured access. `null` for list means the probe skipped the list query because DocType read permission was false; it is not an observed list denial. Owner/share/user-permission cases need appropriate existing records. A mismatch is a finding, not an instruction to change permissions.
+3. For an existing user without Place read, while logged into that user's ordinary browser session on the site, inspect only the status of a direct call (do not paste response contents or use another person's session):
+
+   ```js
+   fetch('/api/method/siraj_research.local_maps.available_packs', {credentials: 'same-origin'}).then(r => console.log('local-pack status:', r.status));
+   ```
+
+   Expected: **403** for a logged-in user without Place read. A Place reader should get **200** even if the pack list is empty. A different status, redirected login, network error, or unexpected access is a finding. This call checks the metadata endpoint only; tile permissions, other APIs and record/field confidentiality still require testing. Use the owner-approved inspection account and site, never a public tile server.
+4. In the Explorer screen, verify that the authorized user sees only records they can normally read, that an unprivileged user cannot see restricted records or endpoint details, and that an empty view is reported honestly. Do not change or create records. Save only sanitized observations. Full permission acceptance remains pending direct API tests for record details/reports, field-level and link restrictions, and approved write/delete/submit/cancel scenarios.
+
+Collect the app revision, site name if approved, anonymized account-role labels, expected/actual booleans, HTTP status, and the **first** relevant sanitized traceback or site Error Log entry. Do not share passwords, API keys, cookies, full raw responses, or record data.
