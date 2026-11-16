@@ -11,6 +11,8 @@ class Map {
   constructor() { this.events = {}; this.layers = []; this.zoom = 4; this.views = []; maps.push(this); }
   setView(point, zoom) { this.views.push(point); this.zoom = zoom; return this; }
   getZoom() { return this.zoom; }
+  setZoom(zoom) { this.zoom=zoom; return this; }
+  setMinZoom() { return this; }
   on(name, handler) { this.events[name] = handler; return this; }
   removeLayer(layer) { this.layers = this.layers.filter(item => item !== layer); }
   invalidateSize() {} remove() { this.removed = true; }
@@ -19,13 +21,14 @@ class Layer {
   constructor(point) { this.point = point; }
   addTo(map) { map.layers.push(this); this.map = map; return this; }
   setLatLng(point) { this.point = point; }
+  on() { return this; }
   bringToFront() {}
 }
 w.L = {map: () => new Map(), marker: point => new Layer(point), geoJSON: () => new Layer(),
        tileLayer: () => { network++; return new Layer(); }};
 w.topojson = {feature: () => ({})};
 w.fetch = async () => ({ok:true, json:async () => ({objects:{countries:{}}})});
-w.frappe = {require: async () => {}, ui:{form:{on: (doctype, events) => {registrations[doctype] = events;}}}};
+w.frappe = {call: async () => ({message:[{kind:'aerial',minzoom:0,maxzoom:16,attribution:'<script>bad</script>'}]}), require: async () => {}, ui:{form:{on: (doctype, events) => {registrations[doctype] = events;}}}};
 w.eval(fs.readFileSync('siraj_research/public/js/coordinate_map.js','utf8'));
 function form(doctype, type='Data') {
   const container = $('<div></div>').appendTo('#form');
@@ -51,8 +54,11 @@ const wait = () => new Promise(resolve => setTimeout(resolve, 20));
   assert.equal(x.frm.doc.latitude,'0.0000001'); assert.equal(x.frm.doc.longitude,'-0.0000002');
   x.lat.$input.val('90.00000000000000001').trigger('input'); assert(x.container.text().includes('Enter valid decimal coordinates'));
   x.lat.$input.val('91').trigger('input'); assert(x.container.text().includes('Enter valid decimal coordinates'));
+  const local = x.container.find('select[aria-label="Local basemap"]'); assert.equal(local.find('option').length,2);
+  local.val('aerial').trigger('change'); assert.equal(network,1);
+  local.val('').trigger('change');
   const toggle = x.container.find('button').filter((i,e)=>$(e).text()==='Enable online street map');
-  toggle.trigger('click'); assert.equal(network,1); toggle.trigger('click');
+  toggle.trigger('click'); assert.equal(network,2); toggle.trigger('click');
   $(w.document).trigger('form-refresh',[x.frm]); await wait(); assert.equal(maps.length,1);
   x.lat.status = 'Read'; x.lon.status = 'Read'; $(w.document).trigger('form-refresh',[x.frm]); await wait();
   const before = x.frm.calls.length; maps[0].events.click({latlng:{lat:1,lng:2}}); await wait(); assert.equal(x.frm.calls.length,before);

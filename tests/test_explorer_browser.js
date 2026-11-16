@@ -23,12 +23,19 @@ async function executable() {
 (async () => {
 	const browser = await puppeteer.launch({executablePath: await executable(), args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'], headless: true});
 	const page = await browser.newPage();
-	const errors = [];
+	const errors = [], tileRequests = [];
+	await page.setRequestInterception(true);
+	page.on('request', request => {
+		if (request.url().startsWith('https://site.test/api/method/siraj_research.local_maps.tile?')) {
+			tileRequests.push(request.url());
+			request.respond({status:200, contentType:'image/png', body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/a3sAAAAASUVORK5CYII=', 'base64')});
+		} else request.continue();
+	});
 	page.on('pageerror', error => errors.push(error.stack));
 	page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
 	try {
 		await page.setViewport({width: 1440, height: 1000});
-		await page.setContent('<!doctype html><html><head></head><body><div id="host"></div></body></html>');
+		await page.setContent('<!doctype html><html><head><base href="https://site.test/"></head><body><div id="host"></div></body></html>');
 		for (const file of ['vendor/leaflet/leaflet.css', 'css/siraj_explorer.css']) await page.addStyleTag({path: asset(file)});
 		for (const file of [require.resolve('jquery/dist/jquery.js'), ...['vendor/leaflet/leaflet.js', 'vendor/leaflet-markercluster/leaflet.markercluster.js', 'vendor/topojson/topojson-client.min.js', 'vendor/vis-network/vis-network.min.js', 'vendor/d3/d3.min.js', 'vendor/d3-sankey/d3-sankey.min.js', 'js/structure_deck.js'].map(asset)]) await page.addScriptTag({path: file});
 		const world = JSON.parse(fs.readFileSync(asset('vendor/world-atlas/countries-110m.json'), 'utf8'));
@@ -46,12 +53,18 @@ async function executable() {
 			const graph = {nodes, edges: nodes.slice(1).map((n, i) => ({name: 'r' + i, source: [nodes[0].doctype, nodes[0].name], target: [n.doctype, n.name], type: 'Member', direction: 'Directed'})), truncated: []};
 			graph.edges.push({name:'parallel', source:[nodes[0].doctype,nodes[0].name], target:[nodes[1].doctype,nodes[1].name], type:'Parallel', direction:'Symmetric'}, {name:'loop', source:[nodes[1].doctype,nodes[1].name], target:[nodes[1].doctype,nodes[1].name], type:'Loop', direction:'Directed'});
 			const points = nodes.map((n, i) => ({...n, latitude: 30 + i * .25, longitude: 43 + i * .35}));
-			window.frappe = {pages: {'siraj-explorer': {}}, ui: {make_app_page: ({parent}) => ({main: $(parent)})}, require: async () => {}, set_route() {}, call: async ({method}) => ({message: method.endsWith('geographic_data') ? {points, truncated: []} : method.endsWith('relationship_data') ? graph : {doctype: 'Person', dimensions: ['Nationality', 'Classification', 'Status'], count: 420, group_count: 7, children: groups}})};
+			window.frappe = {pages: {'siraj-explorer': {}}, ui: {make_app_page: ({parent}) => ({main: $(parent)})}, require: async () => {}, set_route() {}, call: async ({method}) => ({message: method.endsWith('available_packs') ? [{kind:'aerial', minzoom:0, maxzoom:2, attribution:'<img src=x onerror=alert(1)>'}] : method.endsWith('geographic_data') ? {points, truncated: []} : method.endsWith('relationship_data') ? graph : {doctype: 'Person', dimensions: ['Nationality', 'Classification', 'Status'], count: 420, group_count: 7, children: groups}})};
 		}, world);
 		await page.addScriptTag({path: path.join(ROOT, 'siraj_research/siraj_research/page/siraj_explorer/siraj_explorer.js')});
 		await page.evaluate(() => frappe.pages['siraj-explorer'].on_page_load(document.getElementById('host')));
 		await page.waitForSelector('.sx-record-item');
 		assert.strictEqual(await page.$$eval('.sx-record-item', list => list.length), 20);
+		await page.waitForFunction(() => !!document.querySelector('select[aria-label=Basemap] option[value=pack-aerial]'));
+		await page.select('select[aria-label=Basemap]', 'pack-aerial');
+		await page.waitForFunction(() => [...document.querySelectorAll('.leaflet-tile')].some(t => t.complete && t.naturalWidth > 0));
+		assert(tileRequests.length > 0);
+		assert.equal(await page.$eval('.leaflet-control-attribution', e => e.querySelectorAll('img').length), 0);
+		await page.select('select[aria-label=Basemap]', 'local');
 		await page.click('.sx-record-item');
 		assert.strictEqual(await page.$eval('.sx-aside h4', e => e.textContent), 'Record 0');
 		await page.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent === 'Structures').click());

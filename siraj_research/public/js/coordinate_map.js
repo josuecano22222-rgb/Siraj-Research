@@ -128,9 +128,9 @@
 		const canvas = $('<div role="region"></div>').attr('aria-label', t('Coordinate map')).css({height: '320px', width: '100%', background: '#dce8ed'}).appendTo(box);
 		const status = $('<div role="status" aria-live="polite"></div>').css({marginTop: '6px'}).appendTo(box);
 		fields.lon.$wrapper.after(box);
-		const map = L.map(canvas[0], {maxZoom: 19, scrollWheelZoom: false}).setView([33.3152, 44.3661], 4);
+		const map = L.map(canvas[0], {maxZoom: 22, scrollWheelZoom: false}).setView([33.3152, 44.3661], 4);
 		if (map.attributionControl) map.attributionControl.addAttribution('Natural Earth');
-		const state = {lat: fields.lat, lon: fields.lon, docname, box, map, status, clear, marker: null, tileLayer: null, editable: fields.editable, offlineLayer: null};
+		const state = {lat: fields.lat, lon: fields.lon, docname, box, map, status, clear, marker: null, tileLayer: null, editable: fields.editable, offlineLayer: null, packLayer: null};
 		states.set(frm, state);
 		if (window.ResizeObserver) {
 			state.resizeObserver = new window.ResizeObserver(() => {
@@ -144,6 +144,31 @@
 			try { await frm.set_value({latitude: '', longitude: ''}); update(frm, false); }
 			catch (_) { status.text(t('Could not update the coordinate fields.')); }
 		});
+		const packSelect = $('<select class="form-control input-sm"></select>').attr('aria-label', t('Local basemap')).hide().appendTo(toolbar);
+		$('<option value=""></option>').text(t('Local overview')).appendTo(packSelect);
+		const localPacks = new Map();
+		frappe.call({method: 'siraj_research.local_maps.available_packs', type: 'GET', silent: true, error_handlers: {403: () => {}}}).then(res => {
+			if (states.get(frm) !== state || !Array.isArray(res.message)) return;
+			res.message.forEach(pack => {
+				if (pack.unavailable || !['standard', 'aerial'].includes(pack.kind)) return;
+				localPacks.set(pack.kind, pack);
+				$('<option></option>').val(pack.kind).text(pack.kind === 'aerial' ? t('Local aerial') : t('Local standard')).appendTo(packSelect);
+			});
+			if (localPacks.size) packSelect.show();
+		}).catch(() => {});
+		packSelect.on('change', () => {
+			if (state.tileLayer) { map.removeLayer(state.tileLayer); state.tileLayer = null; tiles.text(t('Enable online street map')); }
+			if (state.packLayer) { map.removeLayer(state.packLayer); state.packLayer = null; }
+			map.setMinZoom(0);
+			const pack = localPacks.get(packSelect.val());
+			if (!pack) { if (state.offlineLayer) state.offlineLayer.addTo(map); return; }
+			if (state.offlineLayer) map.removeLayer(state.offlineLayer);
+			map.setMinZoom(pack.minzoom);
+			const url = '/api/method/siraj_research.local_maps.tile?kind=' + encodeURIComponent(pack.kind) + '&z={z}&x={x}&y={y}';
+			state.packLayer = L.tileLayer(url, {minZoom: pack.minzoom, maxZoom: 22, maxNativeZoom: pack.maxzoom,
+				attribution: $('<div></div>').text(pack.attribution || '').html()}).addTo(map);
+			state.packLayer.on('tileerror', () => status.text(t('Some local tiles are unavailable at this location or zoom.')));
+		});
 		tiles.on('click', () => {
 			if (state.tileLayer) {
 				map.removeLayer(state.tileLayer); state.tileLayer = null;
@@ -151,8 +176,9 @@
 				tiles.text(t('Enable online street map'));
 			} else {
 				if (state.offlineLayer) map.removeLayer(state.offlineLayer);
+				if (state.packLayer) { map.removeLayer(state.packLayer); state.packLayer = null; packSelect.val(''); map.setMinZoom(0); }
 				state.tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-					maxZoom: 19, attribution: '&copy; OpenStreetMap contributors',
+					maxZoom: 22, maxNativeZoom: 19, attribution: '&copy; OpenStreetMap contributors',
 				}).addTo(map);
 				tiles.text(t('Disable online street map'));
 			}
@@ -168,7 +194,7 @@
 			state.offlineLayer = L.geoJSON(topojson.feature(world, world.objects.countries), {
 				style: {color: '#7793a0', weight: 1, fillColor: '#eef3ed', fillOpacity: 1}, interactive: false,
 			});
-			if (!state.tileLayer) state.offlineLayer.addTo(map);
+			if (!state.tileLayer && !state.packLayer) state.offlineLayer.addTo(map);
 			if (state.marker?.bringToFront) state.marker.bringToFront();
 		} catch (_) { if (states.get(frm) === state) status.text(t('Offline basemap could not be loaded. Online tiles remain optional.')); }
 	}

@@ -656,3 +656,9 @@ Location preview (read-only).,معاينة الموقع (للقراءة فقط).
 Could not update the coordinate fields.,تعذر تحديث حقلي الإحداثيات.
 Selected coordinates exceed the text field length.,الإحداثيات المحددة تتجاوز طول الحقل النصي.
 Offline basemap could not be loaded. Online tiles remain optional.,تعذر تحميل الخريطة المحلية. تظل خرائط الإنترنت اختيارية.
+Local aerial,الصور الجوية المحلية
+Local standard,الخريطة المحلية القياسية
+Some local tiles are unavailable at this location or zoom.,بعض أجزاء الخريطة المحلية غير متوفرة في هذا الموقع أو مستوى التكبير.
+Local map pack: coverage depends on supplied data.,حزمة الخرائط المحلية: تعتمد التغطية على البيانات المقدمة.
+Local overview,خريطة محلية عامة
+Local basemap,الخريطة الأساسية المحلية

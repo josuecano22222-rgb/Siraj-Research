@@ -108,11 +108,11 @@ class SirajExplorer {
 			'/assets/siraj_research/css/siraj_explorer.css'
 		]);
 		if (renderId !== this.renderId) return;
-		const map = this.map = L.map(this.canvas[0], { worldCopyJump: true, preferCanvas: true, minZoom: 2, maxZoom: 19, zoomAnimation: false }).setView([33.3152, 44.3661], 4);
+		const map = this.map = L.map(this.canvas[0], { worldCopyJump: true, preferCanvas: true, minZoom: 0, maxZoom: 22, zoomAnimation: false }).setView([33.3152, 44.3661], 4);
 		L.control.scale({ imperial: false }).addTo(map);
 		// All basemap geometry is served by this site; no external request is
 		// made until the user explicitly selects OpenStreetMap.
-		let offlineLayer = null, onlineLayer = null, selectedCircle = null;
+		let offlineLayer = null, onlineLayer = null, localPackLayer = null, selectedCircle = null;
 		const mapStatus = $('<div class="sx-map-status" role="status"></div>').appendTo(this.root);
 		try {
 			const response = await fetch('/assets/siraj_research/vendor/world-atlas/countries-110m.json');
@@ -240,11 +240,33 @@ class SirajExplorer {
 		const base = $('<select class="form-control input-sm" aria-label="Basemap"></select>').appendTo(this.tools);
 		$('<option value="local"></option>').text(__('Offline basemap')).appendTo(base);
 		$('<option value="online"></option>').text(__('Online: OpenStreetMap')).appendTo(base);
+		const localPacks = new Map();
+		// This endpoint exposes only licensed packs placed in this site's private
+		// map directory. Permission denial leaves the built-in basemap available.
+		frappe.call({method: 'siraj_research.local_maps.available_packs', type: 'GET', silent: true, error_handlers: {403: () => {}}}).then(res => {
+			if (renderId !== this.renderId || !Array.isArray(res.message)) return;
+			res.message.forEach(pack => {
+				if (pack.unavailable || !['standard', 'aerial'].includes(pack.kind)) return;
+				localPacks.set(pack.kind, pack);
+				$('<option></option>').val('pack-' + pack.kind).text(pack.kind === 'aerial' ? __('Local aerial') : __('Local standard')).appendTo(base);
+			});
+		}).catch(() => {});
 		base.on('change', () => {
 			if (onlineLayer) { map.removeLayer(onlineLayer); onlineLayer = null; }
-			if (base.val() === 'online') {
+			if (localPackLayer) { map.removeLayer(localPackLayer); localPackLayer = null; }
+			map.setMinZoom(0);
+			const selectedPack = localPacks.get(String(base.val()).replace(/^pack-/, ''));
+			if (selectedPack) {
 				if (offlineLayer) map.removeLayer(offlineLayer);
-				onlineLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
+				const url = '/api/method/siraj_research.local_maps.tile?kind=' + encodeURIComponent(selectedPack.kind) + '&z={z}&x={x}&y={y}';
+				map.setMinZoom(selectedPack.minzoom);
+				localPackLayer = L.tileLayer(url, {minZoom: selectedPack.minzoom, maxZoom: 22, maxNativeZoom: selectedPack.maxzoom,
+					attribution: this.escape(selectedPack.attribution || '')}).addTo(map);
+				localPackLayer.on('tileerror', () => mapStatus.text(__('Some local tiles are unavailable at this location or zoom.')).addClass('sx-warning'));
+				mapStatus.text(__('Local map pack: coverage depends on supplied data.')).removeClass('sx-warning');
+			} else if (base.val() === 'online') {
+				if (offlineLayer) map.removeLayer(offlineLayer);
+				onlineLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22, maxNativeZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map);
 				onlineLayer.on('tileerror', () => mapStatus.text(__('Some online tiles failed to load. Choose the offline basemap to continue.')).addClass('sx-warning'));
 				mapStatus.text(__('Online tiles disclose your IP address and viewed area to OpenStreetMap.')).removeClass('sx-warning');
 			} else {
