@@ -438,17 +438,16 @@ def seed_demo_data():
     places = {}
     # All tuples use the same 14-field layout:
     # (key, ar, en, ptype, parent, lat, lng, gprec, gmeth, gunc, ctry, gov, district, ws_state)
+    # (key, ar, en, ptype, parent, lat, lng, gprec, gmeth, gunc, country, governorate, district, ws_state)
     pdata = [
-        # Country-level
-        ("iraq", "العراق", "Iraq", PTYPE["country"], None, None, None, None, None,
-         None, country_iq, None, None, "Published"),
-        # Cities
+        ("iraq", "العراق", "Iraq", PTYPE["country"], None, None, None, None, None, None,
+         country_iq, None, None, "Published"),
         ("baghdad_city", "بغداد", "Baghdad", PTYPE["city"], "iraq", *Geo.BAGHDAD,
          "centroid", "city_centroid", 5000, country_iq, gov_baghdad, None, "Published"),
         ("mosul_city", "الموصل", "Mosul", PTYPE["city"], "iraq", *Geo.MOSUL,
          "approximate", "gazetteer", 2000, country_iq, gov_nineveh, None, "Published"),
         ("basra_city", "البصرة", "Basra", PTYPE["city"], "iraq", *Geo.BASRA,
-         "approximate", "gazetteer", 1500, country_iq, gov_basra, None, "Published"),
+         "approximate", "gazetteer", 1500, country_iq, gov_basra, dist_basra, "Published"),
         ("erbil_city", "أربيل", "Erbil", PTYPE["city"], "iraq", *Geo.ERBIL,
          "approximate", "gazetteer", 1000, country_iq, gov_erbil, None, "Published"),
         ("kirkuk_city", "كركوك", "Kirkuk", PTYPE["city"], "iraq", *Geo.KIRKUK,
@@ -465,7 +464,6 @@ def seed_demo_data():
          "approximate", "gazetteer", 800, country_iq, gov_karbala, dist_karbala, "Published"),
         ("samarr_city", "سامراء", "Samarra", PTYPE["city"], "iraq", *Geo.SAMARRA,
          "approximate", "gazetteer", 800, country_iq, gov_salahadin, None, "Published"),
-        # Military installations
         ("mod_hq", "مقر وزارة الدفاع", "Ministry of Defence HQ", PTYPE["building"],
          "baghdad_city", *Geo.MOD, "approximate", "administrative", 200,
          country_iq, gov_baghdad, dist_karkh, "Published"),
@@ -486,17 +484,16 @@ def seed_demo_data():
          country_iq, gov_baghdad, dist_abughraib, "Disputed"),
         ("al_asad_airbase", "قاعدة عين الأسد الجوية", "Al-Asad Airbase", PTYPE["building"],
          "iraq", 33.8000, 42.4333, "approximate", "gazetteer", 2000, country_iq, gov_anbar,
-         None, "Verified"),
+         dist_qaem, "Verified"),
         ("um_qasr_port", "ميناء أم قصر", "Umm Qasr Naval Base", PTYPE["building"],
          "basra_city", 30.0333, 47.9333, "approximate", "gazetteer", 500, country_iq, gov_basra,
          dist_faw, "Published"),
-        # Cultural / religious
         ("imam_hussain", "حرم الإمام الحسين", "Imam Husayn Shrine", PTYPE["shrine"],
          "karbala_city", 32.6164, 44.0327, "approximate", "gazetteer", 200, country_iq,
-         gov_karbala, None, "Published"),
+         gov_karbala, dist_karbala, "Published"),
         ("imam_ali", "حرم الإمام علي", "Imam Ali Shrine", PTYPE["shrine"],
          "najaf_city", 31.9960, 44.3136, "approximate", "gazetteer", 200, country_iq,
-         gov_najaf, None, "Published"),
+         gov_najaf, dist_najaf, "Published"),
         ("mutawakkil_mosque", "جامع المتوكل", "Great Mosque of Samarra", PTYPE["mosque"],
          "samarr_city", 34.1953, 43.8833, "approximate", "gazetteer", 200, country_iq,
          gov_salahadin, None, "Published"),
@@ -515,17 +512,23 @@ def seed_demo_data():
         ("mustansiriya_univ", "الجامعة المستنصرية", "Al-Mustansiriya University", PTYPE["school"],
          "baghdad_city", 33.3460, 44.4080, "approximate", "administrative", 200, country_iq,
          gov_baghdad, dist_rusafa, "Published"),
-        # Ancient sites
         ("babylon_ruins", "آثار بابل", "Babylon ruins", PTYPE["archaeological_site"],
          "iraq", 32.5400, 44.4200, "approximate", "gazetteer", 500, country_iq,
          gov_babil, dist_hillah, "Published"),
         ("nineveh_ruins", "آثار نينوى", "Nineveh ruins", PTYPE["archaeological_site"],
          "mosul_city", 36.3333, 43.1522, "approximate", "gazetteer", 300, country_iq,
-         gov_nineveh, None, "Published"),
+         gov_nineveh, dist_mosul, "Published"),
         ("cietesphon", "طيسفون", "Ctesiphon arch (Taq Kisra)", PTYPE["archaeological_site"],
          "iraq", 33.0925, 44.5810, "approximate", "gazetteer", 100, country_iq,
-         gov_baghdad, None, "Needs Update"),
+         gov_baghdad, dist_mahmudiyah, "Needs Update"),
     ]
+    # District -> governorate map (to enforce admin chain)
+    _D2G = {dist_taji: gov_baghdad, dist_rusafa: gov_baghdad, dist_karkh: gov_baghdad,
+            dist_abughraib: gov_baghdad, dist_mahmudiyah: gov_baghdad,
+            dist_fallujah: gov_anbar, dist_ramadi: gov_anbar, dist_qaem: gov_anbar,
+            dist_tikrit: gov_salahadin, dist_najaf: gov_najaf, dist_karbala: gov_karbala,
+            dist_hillah: gov_babil, dist_mosul: gov_nineveh, dist_basra: gov_basra,
+            dist_faw: gov_basra}
     for (key, ar, en, ptype, parent, lat, lng, gprec, gmeth, gunc,
          ctry, gov, district, ws_state) in pdata:
         vals = {
@@ -540,7 +543,9 @@ def seed_demo_data():
         if parent: vals["parent_place"] = places[parent]
         if ctry: vals["country"] = ctry
         if gov: vals["governorate"] = gov
-        if district: vals["district"] = district
+        # Only set district if its governorate matches the place's governorate
+        if district and (not gov or _D2G.get(district) == gov):
+            vals["district"] = district
         if lat is not None and lng is not None:
             vals["geo_precision"] = gprec
             vals["geocoding_method"] = gmeth
@@ -962,7 +967,7 @@ def seed_demo_data():
          "Active", 1850, "Mechanized Infantry", "bde_22", "Taji Military Camp",
          Geo.TAJI[0], Geo.TAJI[1], [("bmp1", 45), ("m113", 60), ("m16", 600)], "Published"),
         ("bde24", "24th Motorised Brigade", "div6", "Brigade", "div6", "baghdad_ops",
-         "Training", 1420, "Mechanized Infantry", None, "Camp Rashid",
+         "Training", 1420, "Mechanized Infantry", "bde_24", "Camp Rashid",
          Geo.RASHID[0]+0.02, Geo.RASHID[1], [("humvee", 40), ("m16", 400)], "In Review"),
         ("div9", "9th Armoured Division", None, "Division", "div9", "baghdad_ops",
          "Active", 280, "Armored", "div_c9", "Camp Taji",
@@ -980,12 +985,12 @@ def seed_demo_data():
          "Active", 420, "Special Operations", None, "Victory Base (HQ)",
          Geo.VIC_GREEN[0], Geo.VIC_GREEN[1]+0.003, [("humvee", 20)], "Published"),
         ("naval_uq", "Umm Qasr Naval Battalion", None, "Battalion", None, "basra_ops",
-         "Active", 680, None, None, "Umm Qasr Naval Base",
+         "Active", 680, None, "naval", "Umm Qasr Naval Base",
          30.0333, 47.9333, [], "Published"),
         ("bde73", "73rd Infantry Brigade (Anbar)", None, "Brigade", None, "anbar_ops",
          "Reorganizing", 1900, "Mechanized Infantry", None, "Al-Asad Airbase",
          33.8000, 42.4333, [("humvee", 50), ("m16", 800), ("d30", 12)], "Published"),
-        ("al_asad_air", "Al-Asad Air Defence Detachment", None, "Detachment", None,
+        ("al_asad_air", "Al-Asad Air Defence Detachment", "bde73", "Detachment", None,
          "anbar_ops", "Reserve", 120, None, None, "Al-Asad Airbase",
          33.8050, 42.4300, [], "Needs Update"),
         ("krg_div1", "1st Kurdistan Regional Guard Division", None, "Division", None,
@@ -1089,6 +1094,7 @@ def seed_demo_data():
             "workflow_state": _ws(ws_state),
             "documentation_level": DOC["partial"],
             "authentication_level": AUTH["single_source"],
+            "is_current": 1 if status == "Active" else 0,
         }
         if ed: vals["end_date"] = ed
         if src in sources: vals["primary_source"] = sources[src]
@@ -1109,7 +1115,7 @@ def seed_demo_data():
          "mod_press", "Published"),
         ("officer_course", "Rustamiyah Officer Commissioning Course (demo cohort)",
          "train_cent", "Course", "Excellent", _dt.date(2025, 9, 1),
-         _dt.date(2026, 6, 1), 240, None, "First Military College",
+         _dt.date(2026, 6, 1), 60, None, "First Military College",
          "mod_press", "Published"),
         ("ct_cert", "CT Close-Quarter Battle Certification", "bde35",
          "Certification", "Satisfactory", today - _dt.timedelta(days=60),
@@ -1148,19 +1154,20 @@ def seed_demo_data():
     # Missions
     # ------------------------------------------------------------------
     missions = {}
+    # (key, name, unit, deployment, status, start, end, src, ws_state)
     mdata = [
-        ("op_baghdad", "Operation Baghdad Shield", "div6", "Ongoing",
+        ("op_baghdad", "Operation Baghdad Shield", "bde22", "baghdad_sec", "Ongoing",
          today - _dt.timedelta(days=180), None, "mod_press", "Verified"),
         ("op_mosul_liberation", "Operation We Are Coming, Nineveh (Mosul liberation)",
-         "bde22", "Executed", _dt.date(2016, 10, 17), _dt.date(2017, 7, 10),
+         "bde22", "mosul_2016", "Executed", _dt.date(2016, 10, 17), _dt.date(2017, 7, 10),
          "dod_report", "Published"),
         ("op_faw_cancelled", "Planned Faw amphibious demonstration (CANCELLED)",
-         "naval_uq", "Cancelled", _dt.date(2025, 4, 1), _dt.date(2025, 4, 15),
+         "naval_uq", None, "Cancelled", _dt.date(2025, 4, 1), _dt.date(2025, 4, 15),
          "jazeera_art", "Rejected"),
-        ("op_anbar_planned", "Planned Anbar Desert Patrol", "bde73",
+        ("op_anbar_planned", "Planned Anbar Desert Patrol", "bde73", None,
          "Planned", today + _dt.timedelta(days=120), None, "mod_press", "Draft"),
     ]
-    for (key, name, uk, status, sd, ed, src, ws_state) in mdata:
+    for (key, name, uk, dep_key, status, sd, ed, src, ws_state) in mdata:
         vals = {
             "naming_series": "MIL-MIS-.YYYY.-.####",
             "mission_name": f"{name} {TAG}",
@@ -1171,6 +1178,8 @@ def seed_demo_data():
             "documentation_level": DOC["partial"],
             "authentication_level": AUTH["single_source"],
         }
+        if dep_key and dep_key in deploys:
+            vals["deployment"] = deploys[dep_key]
         if ed: vals["end_date"] = ed
         if src in sources: vals["primary_source"] = sources[src]
         missions[key] = _add("Mission", vals, mission_name=f"{name} {TAG}")
