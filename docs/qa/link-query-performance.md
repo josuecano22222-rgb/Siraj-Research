@@ -69,3 +69,15 @@ Reproduce with `python3 tests/benchmark_synthetic_queries.py`; each median is fi
 | Relationship report, one unique Person endpoint | 1,000 | 6 | 1 Person + 1 Place | not measured | 6.516 |
 
 Place fixtures additionally made three DocType checks each. Full 200-row pages trigger one final empty list request. The report fixture also returns one shared Place; the unique count is Person endpoints, not total endpoints. Test cases model per-user ownership and sharing, query-hidden and document-hook-denied nodes, inaccessible/missing parent links, and field filtering in stub code. Stub results do not establish real Frappe user/share/query-hook behavior. Real measurements must use a separately authorized isolated dataset, approved accounts and instrumentation; no optimization has been claimed.
+
+### Isolated direct-function aggregation helper
+
+`performance_summary.run` invokes the existing non-whitelisted `link_query_probe.measure` in 1–3 batches of three samples. It summarizes median and nearest-rank p95 elapsed and SQL-wall milliseconds, SQL calls and row counts without returning SQL, identifiers or row data. With 3–9 samples p95 is exploratory (usually the maximum), not a statistically reliable tail estimate. It instruments only calls through `frappe.db.sql` inside the direct report or Place-tree function; it is not HTTP, browser, concurrency, snapshot export, memory, dataset generation or full DB instrumentation. It can load the server and custom hooks may write or call external services; successful `bench execute` can commit. No real-site run has occurred.
+
+After separate explicit approval, and only after checking the actual isolated site, existing user/record, data size, permissions and hooks, the invocation shape is:
+
+```bash
+bench --site <isolated-site> execute siraj_research.setup.performance_summary.run --kwargs '{"user":"<existing-isolated-user>","workload":"place_tree","parent":"<existing-isolated-parent>","batches":2,"confirm":"ISOLATED-TEST-APPROVED"}'
+```
+
+For the relationship report use `"workload":"relationship_report"` and omit `parent`. The confirmation string does not grant approval. Arguments can be retained by shell/process/bench logs; don't publish identifiers. Results contain aggregate counts which may themselves be sensitive. Representative datasets, HTTP timing, real role comparisons, memory, baseline versus optimization and isolated-site SQL behavior remain NOT RUN. The fixture tests only verify aggregation and guards.
