@@ -2,7 +2,7 @@
 
 **Branch:** `arena/1c42cec4-siraj-research`
 **Upstream:** `origin/arena/1c42cec4-siraj-research`
-**Commit:** `eeded38` — "Resolve Event DocType collision; fix lint and CI; complete reference discovery"
+**Commit:** `8c15f1e` — "Resolve Event DocType collision; fix lint and CI; complete reference discovery" (replaces earlier `eeded38`, which was branched from the pre-merge PR tip rather than `main`; rebased onto `a63a18e` so it fast-forwards cleanly)
 **Baseline merged commit:** `a63a18e` (tree `5769724`)
 **App version:** `0.0.1` (unchanged; no release or tag created)
 
