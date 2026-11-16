@@ -1,0 +1,502 @@
+{
+ "charts": [
+  {
+   "chart_name": "Events by Type",
+   "label": "Events by Type"
+  },
+  {
+   "chart_name": "Relationships by Type",
+   "label": "Relationships by Type"
+  }
+ ],
+ "content": "[{\"id\":\"hdr-overview\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>SIRAJ Research Registry</b></span>\",\"col\":12}},{\"id\":\"nc-persons\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Persons\",\"col\":3}},{\"id\":\"nc-institutions\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Institutions\",\"col\":3}},{\"id\":\"nc-places\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Places\",\"col\":3}},{\"id\":\"nc-events\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Events\",\"col\":3}},{\"id\":\"nc-relationships\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Relationships\",\"col\":4}},{\"id\":\"nc-sources\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Sources\",\"col\":4}},{\"id\":\"nc-military\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Total Military Units\",\"col\":4}},{\"id\":\"ch-events\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Events by Type\",\"col\":6}},{\"id\":\"ch-rels\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Relationships by Type\",\"col\":6}},{\"id\":\"hdr-shortcuts\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Quick Access</b></span>\",\"col\":12}},{\"id\":\"sc-person\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Person\",\"col\":3}},{\"id\":\"sc-institution\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Institution\",\"col\":3}},{\"id\":\"sc-place\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Place\",\"col\":3}},{\"id\":\"sc-event\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Event\",\"col\":3}},{\"id\":\"sc-relationship\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Relationship\",\"col\":3}},{\"id\":\"sc-source\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Source\",\"col\":3}},{\"id\":\"sc-military-unit\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Military Unit\",\"col\":3}},{\"id\":\"sc-settings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"SIRAJ Settings\",\"col\":3}},{\"id\":\"sc-explorer\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"SIRAJ Explorer\",\"col\":3}},{\"id\":\"sp-1\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"hdr-links\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Registry &amp; Operations</b></span>\",\"col\":12}},{\"id\":\"crd-core\",\"type\":\"card\",\"data\":{\"card_name\":\"Core Research Registry\",\"col\":4}},{\"id\":\"crd-military\",\"type\":\"card\",\"data\":{\"card_name\":\"Military & Operations\",\"col\":4}},{\"id\":\"crd-geo\",\"type\":\"card\",\"data\":{\"card_name\":\"Geographic Administration\",\"col\":4}},{\"id\":\"crd-vocab\",\"type\":\"card\",\"data\":{\"card_name\":\"Controlled Vocabularies\",\"col\":6}},{\"id\":\"crd-reports\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports & Analytics\",\"col\":6}}]",
+ "creation": "2026-11-15 10:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "book",
+ "idx": 0,
+ "indicator_color": "blue",
+ "is_hidden": 0,
+ "label": "Siraj Research",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Core Research Registry",
+   "link_count": 6,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Person",
+   "link_count": 0,
+   "link_to": "Person",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Institution",
+   "link_count": 0,
+   "link_to": "Institution",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Place",
+   "link_count": 0,
+   "link_to": "Place",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Event",
+   "link_count": 0,
+   "link_to": "Event",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Relationship",
+   "link_count": 0,
+   "link_to": "Relationship",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Source",
+   "link_count": 0,
+   "link_to": "Source",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Military & Operations",
+   "link_count": 9,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Military Unit",
+   "link_count": 0,
+   "link_to": "Military Unit",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Military Division",
+   "link_count": 0,
+   "link_to": "Military Division",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Command Region",
+   "link_count": 0,
+   "link_to": "Command Region",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Command Appointment",
+   "link_count": 0,
+   "link_to": "Command Appointment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Unit Classification",
+   "link_count": 0,
+   "link_to": "Unit Classification",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Armament",
+   "link_count": 0,
+   "link_to": "Armament",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Mission",
+   "link_count": 0,
+   "link_to": "Mission",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Operational Deployment",
+   "link_count": 0,
+   "link_to": "Operational Deployment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Training Exercise",
+   "link_count": 0,
+   "link_to": "Training Exercise",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Geographic Administration",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Governorate",
+   "link_count": 0,
+   "link_to": "Governorate",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "District",
+   "link_count": 0,
+   "link_to": "District",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Municipality",
+   "link_count": 0,
+   "link_to": "Municipality",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Village",
+   "link_count": 0,
+   "link_to": "Village",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Community",
+   "link_count": 0,
+   "link_to": "Community",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Controlled Vocabularies",
+   "link_count": 10,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Place Type",
+   "link_count": 0,
+   "link_to": "Place Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Event Type",
+   "link_count": 0,
+   "link_to": "Event Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Relationship Type",
+   "link_count": 0,
+   "link_to": "Relationship Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Person Status",
+   "link_count": 0,
+   "link_to": "Person Status",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Person Category",
+   "link_count": 0,
+   "link_to": "Person Category",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Institution Type",
+   "link_count": 0,
+   "link_to": "Institution Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Source Type",
+   "link_count": 0,
+   "link_to": "Source Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Source Reliability",
+   "link_count": 0,
+   "link_to": "Source Reliability",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Governance System",
+   "link_count": 0,
+   "link_to": "Governance System",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "External ID Scheme",
+   "link_count": 0,
+   "link_to": "External ID Scheme",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Reports & Analytics",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Entity Relationship Graph",
+   "link_count": 0,
+   "link_to": "Entity Relationship Graph",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Data Quality & Verification Summary",
+   "link_count": 0,
+   "link_to": "Data Quality & Verification Summary",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Military Force Structure",
+   "link_count": 0,
+   "link_to": "Military Force Structure",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-11-15 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Siraj Research",
+ "name": "Siraj Research",
+ "number_cards": [
+  {
+   "label": "Total Persons",
+   "number_card_name": "Total Persons"
+  },
+  {
+   "label": "Total Institutions",
+   "number_card_name": "Total Institutions"
+  },
+  {
+   "label": "Total Places",
+   "number_card_name": "Total Places"
+  },
+  {
+   "label": "Total Events",
+   "number_card_name": "Total Events"
+  },
+  {
+   "label": "Total Relationships",
+   "number_card_name": "Total Relationships"
+  },
+  {
+   "label": "Total Sources",
+   "number_card_name": "Total Sources"
+  },
+  {
+   "label": "Total Military Units",
+   "number_card_name": "Total Military Units"
+  }
+ ],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "Person",
+   "link_to": "Person",
+   "type": "DocType"
+  },
+  {
+   "color": "Green",
+   "doc_view": "List",
+   "label": "Institution",
+   "link_to": "Institution",
+   "type": "DocType"
+  },
+  {
+   "color": "Orange",
+   "doc_view": "Tree",
+   "label": "Place",
+   "link_to": "Place",
+   "type": "DocType"
+  },
+  {
+   "color": "Purple",
+   "doc_view": "List",
+   "label": "Event",
+   "link_to": "Event",
+   "type": "DocType"
+  },
+  {
+   "color": "Cyan",
+   "doc_view": "List",
+   "label": "Relationship",
+   "link_to": "Relationship",
+   "type": "DocType"
+  },
+  {
+   "color": "Yellow",
+   "doc_view": "List",
+   "label": "Source",
+   "link_to": "Source",
+   "type": "DocType"
+  },
+  {
+   "color": "Red",
+   "doc_view": "Tree",
+   "label": "Military Unit",
+   "link_to": "Military Unit",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "",
+   "label": "SIRAJ Settings",
+   "link_to": "SIRAJ Settings",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "",
+   "label": "SIRAJ Explorer",
+   "link_to": "siraj-explorer",
+   "type": "Page"
+  }
+ ],
+ "title": "Siraj Research"
+}

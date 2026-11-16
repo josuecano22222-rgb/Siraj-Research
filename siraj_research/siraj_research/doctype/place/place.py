@@ -4,6 +4,8 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from siraj_research.utils.display_name import set_display_name
+
 #: app/geo_chain.py ADMIN_CHAIN — each level must sit under the level before it
 ADMIN_CHAIN = [
 	("country", "Country", None),
@@ -16,6 +18,9 @@ ADMIN_CHAIN = [
 
 
 class Place(Document):
+	def before_validate(self):
+		set_display_name(self, 'name_en', 'name_ar')
+
 	def validate(self):
 		self.validate_admin_chain()
 

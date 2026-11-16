@@ -1,0 +1,85 @@
+.siraj-explorer { --sx-line: var(--border-color, #d9e2e7); --sx-bg: var(--card-bg, #fff); }
+.sx-tabs, .sx-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.sx-tabs button.active { background: var(--primary, #126a68); color: white; }
+.sx-layout { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 14px; }
+.sx-canvas { min-height: 570px; height: min(70vh, 760px); border: 1px solid var(--sx-line); border-radius: 8px; overflow: hidden; background: #e7efed; }
+.sx-canvas.sx-graph { background: var(--sx-bg); }
+.sx-aside { padding: 18px; border: 1px solid var(--sx-line); border-radius: 8px; background: var(--sx-bg); overflow-wrap: anywhere; }
+.sx-aside h4 { margin-top: 0; } .sx-aside p { margin: 8px 0; } .sx-aside dl { margin-top: 16px; }
+.sx-aside dt { font-size: 11px; color: var(--text-muted); margin-top: 12px; } .sx-aside dd { margin: 2px 0; }
+.sx-note { color: var(--text-muted); margin: 8px 0 14px; } .sx-warning { color: #a04c13; }
+.sx-tools input:not([type="checkbox"]), .sx-tools select { max-width: 240px; min-width: 150px; }
+.sx-tree { padding: 18px; height: min(70vh, 760px); overflow: auto; border: 1px solid var(--sx-line); border-radius: 8px; background: var(--sx-bg); }
+.sx-tree details { margin-inline-start: 16px; } .sx-tree summary { cursor: pointer; padding: 6px; border-bottom: 1px solid var(--sx-line); }
+.sx-count { float: inline-end; font-weight: 600; } .sx-bar-row { margin: 12px 0; } .sx-bar { background: #398c84; height: 9px; border-radius: 5px; margin-top: 5px; }
+.sx-pin-key { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-inline-end: 6px; }
+.sx-open { margin-top: 12px; } .sx-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; font-size: 12px; }
+@media (max-width: 800px) { .sx-layout { grid-template-columns: 1fr; } .sx-canvas { min-height: 420px; height: 55vh; } }
+/* The offline map and its fixed, type-specific symbols work without an icon font. */
+.siraj-explorer .leaflet-container { background: #c8dfe0; }
+.sx-pin-wrapper { border: 0; background: transparent; }
+.sx-map-pin { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 3px solid #fff; border-radius: 50%; color: #fff; box-shadow: 0 2px 7px #263c4055; }
+.sx-map-pin svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sx-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.sx-legend-pin { display: inline-flex; width: 24px; height: 24px; border-width: 2px; }
+.sx-legend-pin svg { width: 15px; height: 15px; }
+.sx-cluster { display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #fff; background: #1a6670; border: 4px solid #c4e5de; box-shadow: 0 2px 7px #263c4066; font-weight: 700; }
+.sx-map-status { margin-top: 8px; color: var(--text-muted); font-size: 12px; }
+.sx-neighbors-heading { margin-top: 24px; } .sx-muted { color: var(--text-muted); font-size: 12px; }
+.sx-neighbor { border-top: 1px solid var(--sx-line); padding: 8px 0; }
+.sx-neighbor small { display: block; color: var(--text-muted); }
+.sx-neighbor-link { margin-top: 3px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.leaflet-cluster-anim .leaflet-marker-icon { transition: transform .3s ease-out, opacity .3s ease-in; }
+
+.sx-group-count { margin-inline-start: 8px; color: var(--text-muted); font-size: 12px; }
+
+/* Structure deck: a common stage and inspector for all six views. */
+.sx-structure-deck { border: 1px solid var(--sx-line); border-radius: 8px; background: var(--sx-bg); overflow: hidden; min-width: 0; }
+.sd-bar, .sd-tabs, .sd-crumbs { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.sd-bar { padding: 8px; border-bottom: 1px solid var(--sx-line); background: var(--subtle-fg, #f5f7f5); }
+.sd-tabs { flex: 1; } .sd-tabs .active { background: #263d3a; color: #fff; }
+.sd-crumbs { min-height: 36px; padding: 4px 10px; border-bottom: 1px solid var(--sx-line); }
+.sd-crumb { border: 0; background: transparent; }
+.sd-stage { height: min(65vh, 700px); min-height: 420px; overflow: auto; background: radial-gradient(circle at 30% 15%, #c9a2270d, transparent 60%), var(--sx-bg); }
+.sd-stage svg { display: block; width: 100%; height: 100%; }
+.sd-label { font: 11px sans-serif; fill: var(--text-color, #243632); pointer-events: none; }
+.sd-mark { cursor: pointer; }
+.sd-mark:hover { filter: brightness(1.12); } .sd-mark:focus-visible, .sd-toggle:focus-visible { outline: 2px solid #c69a21; }
+.sd-toggle { cursor: pointer; font: bold 16px sans-serif; fill: #243c39; }
+.sd-footer { padding: 9px 12px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--sx-line); }
+.sd-table { max-height: 400px; overflow: auto; padding: 8px; } .sd-table[hidden] { display: none; }
+.sd-table-link { text-align: start; white-space: normal; } .sd-explore { margin-top: 12px; }
+.sd-check { display: inline-flex; align-items: center; gap: 5px; margin: 0 6px; font-size: 12px; font-weight: normal; }
+.sx-graph-host { width: 100%; height: 100%; }
+.sx-atlas-matrix { width: 100%; height: 100%; overflow: auto; background: var(--sx-bg); }
+.sx-atlas-matrix svg { background: linear-gradient(90deg, #d9e6e633 1px, transparent 1px), linear-gradient(#d9e6e633 1px, transparent 1px); background-size: 24px 24px; }
+.sx-atlas-matrix text { font: 11px sans-serif; fill: var(--text-color, #233b37); }
+.sx-matrix-cell { cursor: pointer; stroke: white; stroke-width: 1px; }
+.sx-matrix-cell:focus-visible { outline: 2px solid #c69a21; }
+.sx-check { display: inline-flex; align-items: center; gap: 5px; margin: 0; font-size: 12px; font-weight: normal; }
+.sx-edge-link { display: block; color: var(--text-muted); font-size: 12px; }
+.sx-layout-geo { grid-template-columns: 220px minmax(0, 1fr) 290px; }
+.sx-layout-geo.sx-no-records { grid-template-columns: minmax(0, 1fr) 290px; }
+.sx-layout-geo.sx-no-details { grid-template-columns: 220px minmax(0, 1fr); }
+.sx-layout-geo.sx-no-records.sx-no-details { grid-template-columns: minmax(0, 1fr); }
+.sx-records { padding: 14px; border: 1px solid var(--sx-line); border-radius: 8px; background: var(--sx-bg); min-width: 0; }
+.sx-record-list { max-height: min(58vh, 650px); overflow: auto; }
+.sx-record-item { display: block; width: 100%; text-align: start; overflow: hidden; text-overflow: ellipsis; margin: 3px 0; }
+@media (max-width: 1000px) { .sx-layout-geo, .sx-layout-geo.sx-no-records, .sx-layout-geo.sx-no-details { grid-template-columns: minmax(0, 1fr); } .sx-record-list { max-height: 180px; } }
+.sx-matrix-label { cursor: pointer; } .sx-matrix-label:focus-visible { outline: 2px solid #c69a21; }
+
+.sd-legend { display: flex; flex-wrap: wrap; gap: 3px 8px; padding: 6px 10px; border-top: 1px solid var(--sx-line); }
+.sd-legend:empty { display: none; } .sd-legend-item { font-size: 11px; border: 0; background: transparent; }
+.sd-swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-inline-end: 5px; }
+.sx-layout-relationships { grid-template-columns: 200px minmax(0, 1fr) 290px; }
+.sx-atlas-rail { padding: 14px; border: 1px solid var(--sx-line); border-radius: 8px; background: var(--subtle-fg, #f3f6f7); }
+.sx-atlas-rail h5 { text-transform: uppercase; font-size: 11px; letter-spacing: .04em; font-weight: 700; margin: 16px 0 7px; }
+.sx-atlas-rail h5:first-child { margin-top: 0; }
+.sx-atlas-rail input:not([type="checkbox"]), .sx-atlas-rail select { width: 100%; margin-bottom: 7px; }
+.sx-atlas-rail .sx-check { margin-top: 8px; }
+@media (max-width: 1000px) { .sx-layout-relationships { grid-template-columns: minmax(0, 1fr); } }
+.sx-coordinate-entry { position: relative; } .sx-coordinate-entry summary { cursor: pointer; padding: 5px 10px; border: 1px solid var(--sx-line); border-radius: 5px; }
+.sx-coordinate-fields, .sx-area-fields { position: absolute; z-index: 1200; top: 100%; inset-inline-start: 0; width: 230px; padding: 10px; background: var(--sx-bg); border: 1px solid var(--sx-line); border-radius: 6px; box-shadow: 0 5px 20px #0002; }
+.sx-coordinate-fields input, .sx-area-fields input { width: 100%; margin-bottom: 6px; } .sx-coordinate-fields span, .sx-area-fields span { display: block; color: var(--text-muted); font-size: 12px; }
+.sd-bar .sd-depth { max-width: 100px; } .sd-bar .sd-find { max-width: 160px; }
+.sd-stage:focus-visible { outline: 2px solid #c69a21; outline-offset: -2px; }

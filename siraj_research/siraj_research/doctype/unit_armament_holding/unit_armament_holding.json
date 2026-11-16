@@ -63,6 +63,6 @@
  "autoname": "hash",
  "istable": 1,
  "editable_grid": 1,
- "in_create": 1,
+ "in_create": 0,
  "description": "The source's `unit_armament` table: one row per (unit, armament), with a uniqueness constraint and a positive-quantity check. Owned repeated data of a unit, so a child table — and the unique pair becomes the child-table rule in the controller."
 }

@@ -1,0 +1,15 @@
+{
+ "doctype": "Page",
+ "module": "Siraj Research",
+ "name": "siraj-explorer",
+ "page_name": "siraj-explorer",
+ "title": "SIRAJ Explorer",
+ "standard": "Yes",
+ "roles": [
+  {"role": "SIRAJ Viewer"},
+  {"role": "SIRAJ Researcher"},
+  {"role": "SIRAJ Reviewer"},
+  {"role": "SIRAJ Administrator"},
+  {"role": "System Manager"}
+ ]
+}

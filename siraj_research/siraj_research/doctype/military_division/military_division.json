@@ -296,7 +296,7 @@
  "allow_import": 1,
  "show_title_field_in_link": 1,
  "allow_copy": 1,
- "in_create": 1,
+ "in_create": 0,
  "title_field": "division_name",
  "search_fields": "division_name,division_type",
  "icon": "layers",

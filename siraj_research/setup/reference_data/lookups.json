@@ -1,0 +1,2375 @@
+{
+  "source_commit": "e6796de67daa717eaccd2285a8034302735a4334",
+  "domains": {
+    "record_status": [
+      [
+        "draft",
+        "Draft",
+        "مسودة",
+        10,
+        null,
+        "gray"
+      ],
+      [
+        "in_review",
+        "In review",
+        "قيد المراجعة",
+        20,
+        null,
+        "amber"
+      ],
+      [
+        "verified",
+        "Verified",
+        "موثّق",
+        30,
+        null,
+        "blue"
+      ],
+      [
+        "published",
+        "Published",
+        "منشور",
+        40,
+        null,
+        "green"
+      ],
+      [
+        "needs_update",
+        "Needs update",
+        "بحاجة إلى تحديث",
+        50,
+        null,
+        "orange"
+      ],
+      [
+        "disputed",
+        "Disputed",
+        "محل خلاف",
+        60,
+        null,
+        "red"
+      ],
+      [
+        "archived",
+        "Archived",
+        "مؤرشف",
+        70,
+        null,
+        "slate"
+      ],
+      [
+        "rejected",
+        "Rejected",
+        "مرفوض",
+        80,
+        null,
+        "rose"
+      ]
+    ],
+    "authentication_level": [
+      [
+        "unverified",
+        "Unverified",
+        "غير موثّق",
+        10,
+        null,
+        "gray"
+      ],
+      [
+        "self_declared",
+        "Self-declared",
+        "إقرار ذاتي",
+        20,
+        null,
+        "amber"
+      ],
+      [
+        "single_source",
+        "Single source",
+        "مصدر واحد",
+        30,
+        null,
+        "blue"
+      ],
+      [
+        "corroborated",
+        "Corroborated (2+ sources)",
+        "مُعزَّز بمصدرين أو أكثر",
+        40,
+        null,
+        "green"
+      ],
+      [
+        "primary_document",
+        "Primary document verified",
+        "موثّق بوثيقة أولية",
+        50,
+        null,
+        "teal"
+      ],
+      [
+        "institutionally_confirmed",
+        "Institutionally confirmed",
+        "مؤكد مؤسسياً",
+        60,
+        null,
+        "indigo"
+      ]
+    ],
+    "documentation_level": [
+      [
+        "none",
+        "Not documented",
+        "غير موثّق",
+        10,
+        null,
+        "gray"
+      ],
+      [
+        "minimal",
+        "Minimal",
+        "حد أدنى",
+        20,
+        null,
+        "amber"
+      ],
+      [
+        "partial",
+        "Partial",
+        "جزئي",
+        30,
+        null,
+        "blue"
+      ],
+      [
+        "substantial",
+        "Substantial",
+        "وافٍ",
+        40,
+        null,
+        "green"
+      ],
+      [
+        "exhaustive",
+        "Exhaustive",
+        "شامل",
+        50,
+        null,
+        "teal"
+      ]
+    ],
+    "entity_type": [
+      [
+        "person",
+        "Person",
+        "شخص",
+        10,
+        null,
+        "indigo"
+      ],
+      [
+        "institution",
+        "Institution",
+        "مؤسسة",
+        20,
+        null,
+        "teal"
+      ],
+      [
+        "place",
+        "Place",
+        "مكان",
+        30,
+        null,
+        "green"
+      ],
+      [
+        "event",
+        "Event",
+        "حدث",
+        40,
+        null,
+        "amber"
+      ],
+      [
+        "relationship",
+        "Relationship",
+        "علاقة",
+        50,
+        null,
+        "violet"
+      ],
+      [
+        "source",
+        "Source",
+        "مصدر",
+        60,
+        null,
+        "slate"
+      ]
+    ],
+    "person_status": [
+      [
+        "active",
+        "Active",
+        "نشط",
+        10,
+        null,
+        "green"
+      ],
+      [
+        "retired",
+        "Retired",
+        "متقاعد",
+        20,
+        null,
+        "amber"
+      ],
+      [
+        "deceased",
+        "Deceased",
+        "متوفى",
+        30,
+        null,
+        "slate"
+      ],
+      [
+        "missing",
+        "Whereabouts unknown",
+        "مجهول المصير",
+        40,
+        null,
+        "orange"
+      ],
+      [
+        "unknown",
+        "Unknown",
+        "غير معروف",
+        50,
+        null,
+        "gray"
+      ]
+    ],
+    "person_classification": [
+      [
+        "researcher",
+        "Researcher",
+        "باحث",
+        10,
+        null,
+        "indigo"
+      ],
+      [
+        "professor",
+        "Professor",
+        "أستاذ جامعي",
+        20,
+        null,
+        "indigo"
+      ],
+      [
+        "historian",
+        "Historian",
+        "مؤرخ",
+        30,
+        null,
+        "indigo"
+      ],
+      [
+        "religious_scholar",
+        "Religious scholar",
+        "عالم ديني",
+        40,
+        null,
+        "teal"
+      ],
+      [
+        "writer",
+        "Writer / author",
+        "كاتب",
+        50,
+        null,
+        "teal"
+      ],
+      [
+        "translator",
+        "Translator",
+        "مترجم",
+        60,
+        null,
+        "teal"
+      ],
+      [
+        "journalist",
+        "Journalist",
+        "صحفي",
+        70,
+        null,
+        "amber"
+      ],
+      [
+        "official",
+        "Government official",
+        "مسؤول حكومي",
+        80,
+        null,
+        "amber"
+      ],
+      [
+        "politician",
+        "Politician",
+        "سياسي",
+        90,
+        null,
+        "amber"
+      ],
+      [
+        "librarian",
+        "Librarian",
+        "أمين مكتبة",
+        100,
+        null,
+        "blue"
+      ],
+      [
+        "archivist",
+        "Archivist",
+        "أرشيفي",
+        110,
+        null,
+        "blue"
+      ],
+      [
+        "administrator",
+        "Institutional administrator",
+        "إداري مؤسسي",
+        120,
+        null,
+        "blue"
+      ],
+      [
+        "student",
+        "Student",
+        "طالب",
+        130,
+        null,
+        "gray"
+      ],
+      [
+        "other",
+        "Other",
+        "أخرى",
+        999,
+        null,
+        "gray"
+      ]
+    ],
+    "place_type": [
+      [
+        "country",
+        "Country",
+        "بلد",
+        10,
+        null,
+        "slate"
+      ],
+      [
+        "region",
+        "Region / governorate",
+        "منطقة / محافظة",
+        20,
+        null,
+        "green"
+      ],
+      [
+        "city",
+        "City",
+        "مدينة",
+        30,
+        null,
+        "green"
+      ],
+      [
+        "town",
+        "Town",
+        "بلدة",
+        40,
+        null,
+        "green"
+      ],
+      [
+        "village",
+        "Village",
+        "قرية",
+        50,
+        null,
+        "green"
+      ],
+      [
+        "district",
+        "District",
+        "قضاء",
+        60,
+        null,
+        "green"
+      ],
+      [
+        "neighbourhood",
+        "Neighbourhood",
+        "حي",
+        70,
+        null,
+        "green"
+      ],
+      [
+        "street",
+        "Street",
+        "شارع",
+        80,
+        null,
+        "gray"
+      ],
+      [
+        "square",
+        "Square",
+        "ساحة",
+        90,
+        null,
+        "gray"
+      ],
+      [
+        "mosque",
+        "Mosque",
+        "مسجد",
+        100,
+        null,
+        "teal"
+      ],
+      [
+        "shrine",
+        "Shrine",
+        "مزار",
+        110,
+        null,
+        "teal"
+      ],
+      [
+        "church",
+        "Church",
+        "كنيسة",
+        120,
+        null,
+        "teal"
+      ],
+      [
+        "school",
+        "School",
+        "مدرسة",
+        130,
+        null,
+        "blue"
+      ],
+      [
+        "library",
+        "Library",
+        "مكتبة",
+        140,
+        null,
+        "blue"
+      ],
+      [
+        "archive",
+        "Archive",
+        "أرشيف",
+        150,
+        null,
+        "blue"
+      ],
+      [
+        "museum",
+        "Museum",
+        "متحف",
+        160,
+        null,
+        "blue"
+      ],
+      [
+        "cemetery",
+        "Cemetery",
+        "مقبرة",
+        170,
+        null,
+        "slate"
+      ],
+      [
+        "archaeological_site",
+        "Archaeological site",
+        "موقع أثري",
+        180,
+        null,
+        "amber"
+      ],
+      [
+        "building",
+        "Building / institution site",
+        "مبنى / موقع مؤسسة",
+        190,
+        null,
+        "amber"
+      ],
+      [
+        "natural_site",
+        "Natural site",
+        "موقع طبيعي",
+        200,
+        null,
+        "green"
+      ],
+      [
+        "other",
+        "Other",
+        "أخرى",
+        999,
+        null,
+        "gray"
+      ]
+    ],
+    "institution_type": [
+      [
+        "university",
+        "University",
+        "جامعة",
+        10,
+        null,
+        "indigo"
+      ],
+      [
+        "college",
+        "College / faculty",
+        "كلية",
+        20,
+        null,
+        "indigo"
+      ],
+      [
+        "research_center",
+        "Research centre",
+        "مركز بحثي",
+        30,
+        null,
+        "teal"
+      ],
+      [
+        "institute",
+        "Institute",
+        "معهد",
+        40,
+        null,
+        "teal"
+      ],
+      [
+        "ministry",
+        "Ministry",
+        "وزارة",
+        50,
+        null,
+        "amber"
+      ],
+      [
+        "government_body",
+        "Government body",
+        "جهة حكومية",
+        60,
+        null,
+        "amber"
+      ],
+      [
+        "library",
+        "Library",
+        "مكتبة",
+        70,
+        null,
+        "blue"
+      ],
+      [
+        "archive",
+        "Archive",
+        "أرشيف",
+        80,
+        null,
+        "blue"
+      ],
+      [
+        "museum",
+        "Museum",
+        "متحف",
+        90,
+        null,
+        "blue"
+      ],
+      [
+        "association",
+        "Association / society",
+        "جمعية",
+        100,
+        null,
+        "green"
+      ],
+      [
+        "foundation",
+        "Foundation / endowment",
+        "مؤسسة / وقف",
+        110,
+        null,
+        "green"
+      ],
+      [
+        "school",
+        "School",
+        "مدرسة",
+        120,
+        null,
+        "gray"
+      ],
+      [
+        "media",
+        "Media organisation",
+        "مؤسسة إعلامية",
+        130,
+        null,
+        "rose"
+      ],
+      [
+        "hospital",
+        "Hospital",
+        "مستشفى",
+        140,
+        null,
+        "rose"
+      ],
+      [
+        "international_body",
+        "International body",
+        "منظمة دولية",
+        150,
+        null,
+        "violet"
+      ],
+      [
+        "other",
+        "Other",
+        "أخرى",
+        999,
+        null,
+        "gray"
+      ]
+    ],
+    "institution_subcategory": [
+      [
+        "public",
+        "Public / state",
+        "حكومية",
+        10,
+        null,
+        "amber"
+      ],
+      [
+        "private",
+        "Private",
+        "خاصة",
+        20,
+        null,
+        "teal"
+      ],
+      [
+        "religious",
+        "Religious",
+        "دينية",
+        30,
+        null,
+        "indigo"
+      ],
+      [
+        "secular",
+        "Secular",
+        "مدنية",
+        40,
+        null,
+        "blue"
+      ],
+      [
+        "ngo",
+        "Non-governmental",
+        "غير حكومية",
+        50,
+        null,
+        "green"
+      ],
+      [
+        "international",
+        "International",
+        "دولية",
+        60,
+        null,
+        "violet"
+      ],
+      [
+        "military",
+        "Military",
+        "عسكرية",
+        70,
+        null,
+        "slate"
+      ],
+      [
+        "mixed",
+        "Mixed",
+        "مختلطة",
+        80,
+        null,
+        "gray"
+      ]
+    ],
+    "relationship_type": [
+      [
+        "student_of",
+        "Student of",
+        "تلميذ لـ",
+        10,
+        {
+          "inverse": "teacher_of"
+        },
+        "indigo"
+      ],
+      [
+        "teacher_of",
+        "Teacher of",
+        "أستاذ لـ",
+        20,
+        {
+          "inverse": "student_of"
+        },
+        "indigo"
+      ],
+      [
+        "supervised_by",
+        "Supervised by",
+        "أشرف عليه",
+        30,
+        {
+          "inverse": "supervised"
+        },
+        "indigo"
+      ],
+      [
+        "supervised",
+        "Supervised",
+        "أشرف على",
+        40,
+        {
+          "inverse": "supervised_by"
+        },
+        "indigo"
+      ],
+      [
+        "colleague_of",
+        "Colleague of",
+        "زميل لـ",
+        50,
+        {
+          "symmetric": true
+        },
+        "teal"
+      ],
+      [
+        "collaborator_of",
+        "Collaborator of",
+        "متعاون مع",
+        60,
+        {
+          "symmetric": true
+        },
+        "teal"
+      ],
+      [
+        "co_author_of",
+        "Co-author with",
+        "مؤلف مشارك مع",
+        70,
+        {
+          "symmetric": true
+        },
+        "teal"
+      ],
+      [
+        "member_of",
+        "Member of",
+        "عضو في",
+        80,
+        {
+          "inverse": "has_member"
+        },
+        "green"
+      ],
+      [
+        "has_member",
+        "Has member",
+        "يضم عضواً",
+        90,
+        {
+          "inverse": "member_of"
+        },
+        "green"
+      ],
+      [
+        "board_member_of",
+        "Board member of",
+        "عضو مجلس إدارة",
+        100,
+        null,
+        "green"
+      ],
+      [
+        "director_of",
+        "Director of",
+        "مدير لـ",
+        110,
+        {
+          "inverse": "directed_by"
+        },
+        "green"
+      ],
+      [
+        "directed_by",
+        "Directed by",
+        "يديره",
+        120,
+        {
+          "inverse": "director_of"
+        },
+        "green"
+      ],
+      [
+        "employed_by",
+        "Employed by",
+        "يعمل لدى",
+        130,
+        {
+          "inverse": "employs"
+        },
+        "green"
+      ],
+      [
+        "employs",
+        "Employs",
+        "يوظّف",
+        140,
+        {
+          "inverse": "employed_by"
+        },
+        "green"
+      ],
+      [
+        "affiliated_with",
+        "Affiliated with",
+        "منتسب إلى",
+        150,
+        null,
+        "green"
+      ],
+      [
+        "founder_of",
+        "Founder of",
+        "مؤسس لـ",
+        160,
+        {
+          "inverse": "founded_by"
+        },
+        "amber"
+      ],
+      [
+        "founded_by",
+        "Founded by",
+        "أسسه",
+        170,
+        {
+          "inverse": "founder_of"
+        },
+        "amber"
+      ],
+      [
+        "partner_of",
+        "Partner of",
+        "شريك لـ",
+        180,
+        {
+          "symmetric": true
+        },
+        "violet"
+      ],
+      [
+        "succeeded_by",
+        "Succeeded by",
+        "خلفه",
+        190,
+        {
+          "inverse": "succeeded"
+        },
+        "slate"
+      ],
+      [
+        "succeeded",
+        "Succeeded",
+        "خَلَفَ",
+        200,
+        {
+          "inverse": "succeeded_by"
+        },
+        "slate"
+      ],
+      [
+        "located_in",
+        "Located in",
+        "يقع في",
+        210,
+        {
+          "inverse": "contains"
+        },
+        "green"
+      ],
+      [
+        "contains",
+        "Contains",
+        "يضم",
+        220,
+        {
+          "inverse": "located_in"
+        },
+        "green"
+      ],
+      [
+        "graduated_from",
+        "Graduated from",
+        "تخرج في",
+        230,
+        null,
+        "indigo"
+      ],
+      [
+        "endowed",
+        "Endowed / funded",
+        "أوقف / مول",
+        240,
+        null,
+        "amber"
+      ],
+      [
+        "corresponded_with",
+        "Corresponded with",
+        "راسل",
+        250,
+        {
+          "symmetric": true
+        },
+        "teal"
+      ],
+      [
+        "relative_of",
+        "Relative of",
+        "قريب لـ",
+        260,
+        {
+          "symmetric": true
+        },
+        "slate"
+      ],
+      [
+        "father_of",
+        "Father of",
+        "والد",
+        270,
+        {
+          "inverse": "child_of"
+        },
+        "slate"
+      ],
+      [
+        "child_of",
+        "Child of",
+        "ابن/ابنة لـ",
+        280,
+        {
+          "inverse": "father_of"
+        },
+        "slate"
+      ],
+      [
+        "rival_of",
+        "Rival of",
+        "منافس لـ",
+        290,
+        {
+          "symmetric": true
+        },
+        "rose"
+      ],
+      [
+        "participated_in",
+        "Participated in",
+        "شارك في",
+        300,
+        {
+          "inverse": "had_participant"
+        },
+        "violet"
+      ],
+      [
+        "had_participant",
+        "Had participant",
+        "شارك فيه",
+        310,
+        {
+          "inverse": "participated_in"
+        },
+        "violet"
+      ],
+      [
+        "cites",
+        "Cites / references",
+        "يستشهد بـ",
+        320,
+        {
+          "inverse": "cited_by"
+        },
+        "slate"
+      ],
+      [
+        "cited_by",
+        "Cited by",
+        "مستشهد به من",
+        330,
+        {
+          "inverse": "cites"
+        },
+        "slate"
+      ],
+      [
+        "other",
+        "Other",
+        "أخرى",
+        999,
+        null,
+        "gray"
+      ]
+    ],
+    "relation_direction": [
+      [
+        "directed",
+        "Directed",
+        "موجهة",
+        10,
+        null,
+        "slate"
+      ],
+      [
+        "symmetric",
+        "Symmetric",
+        "متناظرة",
+        20,
+        null,
+        "slate"
+      ]
+    ],
+    "source_type": [
+      [
+        "book",
+        "Book",
+        "كتاب",
+        10,
+        null,
+        "indigo"
+      ],
+      [
+        "journal_article",
+        "Journal article",
+        "مقالة دورية",
+        20,
+        null,
+        "indigo"
+      ],
+      [
+        "thesis",
+        "Thesis / dissertation",
+        "أطروحة",
+        30,
+        null,
+        "indigo"
+      ],
+      [
+        "archive_document",
+        "Archival document",
+        "وثيقة أرشيفية",
+        40,
+        null,
+        "amber"
+      ],
+      [
+        "manuscript",
+        "Manuscript",
+        "مخطوطة",
+        50,
+        null,
+        "amber"
+      ],
+      [
+        "official_register",
+        "Official register / record",
+        "سجل رسمي",
+        60,
+        null,
+        "amber"
+      ],
+      [
+        "interview",
+        "Interview",
+        "مقابلة",
+        70,
+        null,
+        "teal"
+      ],
+      [
+        "oral_history",
+        "Oral history",
+        "تاريخ شفوي",
+        80,
+        null,
+        "teal"
+      ],
+      [
+        "website",
+        "Website",
+        "موقع إلكتروني",
+        90,
+        null,
+        "blue"
+      ],
+      [
+        "social_media",
+        "Social media post",
+        "منشور على منصات التواصل",
+        100,
+        null,
+        "blue"
+      ],
+      [
+        "newspaper",
+        "Newspaper article",
+        "مقالة صحفية",
+        110,
+        null,
+        "rose"
+      ],
+      [
+        "report",
+        "Report",
+        "تقرير",
+        120,
+        null,
+        "slate"
+      ],
+      [
+        "photograph",
+        "Photograph",
+        "صورة",
+        130,
+        null,
+        "green"
+      ],
+      [
+        "map",
+        "Map",
+        "خريطة",
+        140,
+        null,
+        "green"
+      ],
+      [
+        "database",
+        "Database / dataset",
+        "قاعدة بيانات",
+        150,
+        null,
+        "violet"
+      ],
+      [
+        "encyclopedia",
+        "Encyclopaedia entry",
+        "مدخل موسوعي",
+        160,
+        null,
+        "violet"
+      ],
+      [
+        "other",
+        "Other",
+        "أخرى",
+        999,
+        null,
+        "gray"
+      ]
+    ],
+    "source_reliability": [
+      [
+        "high",
+        "High",
+        "عالية",
+        10,
+        null,
+        "green"
+      ],
+      [
+        "medium",
+        "Medium",
+        "متوسطة",
+        20,
+        null,
+        "amber"
+      ],
+      [
+        "low",
+        "Low",
+        "منخفضة",
+        30,
+        null,
+        "orange"
+      ],
+      [
+        "unverified",
+        "Unverified",
+        "لم يتم التحقق",
+        40,
+        null,
+        "gray"
+      ],
+      [
+        "primary_contemporary",
+        "Primary contemporary",
+        "أولية معاصرة",
+        50,
+        null,
+        "teal"
+      ],
+      [
+        "secondary",
+        "Secondary",
+        "ثانوية",
+        60,
+        null,
+        "blue"
+      ]
+    ],
+    "external_party_type": [
+      [
+        "government",
+        "Government",
+        "حكومة",
+        10,
+        null,
+        "amber"
+      ],
+      [
+        "university",
+        "University",
+        "جامعة",
+        20,
+        null,
+        "indigo"
+      ],
+      [
+        "foreign_institution",
+        "Foreign institution",
+        "مؤسسة أجنبية",
+        30,
+        null,
+        "violet"
+      ],
+      [
+        "ngo",
+        "Non-governmental organisation",
+        "منظمة غير حكومية",
+        40,
+        null,
+        "green"
+      ],
+      [
+        "funder",
+        "Funder",
+        "جهة ممولة",
+        50,
+        null,
+        "teal"
+      ],
+      [
+        "media",
+        "Media",
+        "إعلام",
+        60,
+        null,
+        "rose"
+      ],
+      [
+        "individual",
+        "Individual",
+        "فرد",
+        70,
+        null,
+        "slate"
+      ],
+      [
+        "other",
+        "Other",
+        "أخرى",
+        999,
+        null,
+        "gray"
+      ]
+    ],
+    "event_type": [
+      [
+        "birth",
+        "Birth",
+        "ولادة",
+        10,
+        null,
+        "green"
+      ],
+      [
+        "death",
+        "Death",
+        "وفاة",
+        20,
+        null,
+        "slate"
+      ],
+      [
+        "founding",
+        "Founding",
+        "تأسيس",
+        30,
+        null,
+        "amber"
+      ],
+      [
+        "merger",
+        "Merger",
+        "دمج",
+        40,
+        null,
+        "amber"
+      ],
+      [
+        "closure",
+        "Closure",
+        "إغلاق",
+        50,
+        null,
+        "rose"
+      ],
+      [
+        "reopening",
+        "Reopening",
+        "إعادة افتتاح",
+        60,
+        null,
+        "green"
+      ],
+      [
+        "conference",
+        "Conference",
+        "مؤتمر",
+        70,
+        null,
+        "violet"
+      ],
+      [
+        "appointment",
+        "Appointment",
+        "تعيين",
+        80,
+        null,
+        "blue"
+      ],
+      [
+        "publication",
+        "Publication",
+        "نشر",
+        90,
+        null,
+        "indigo"
+      ],
+      [
+        "migration",
+        "Migration",
+        "هجرة",
+        100,
+        null,
+        "teal"
+      ],
+      [
+        "dispute",
+        "Dispute",
+        "نزاع",
+        110,
+        null,
+        "red"
+      ],
+      [
+        "celebration",
+        "Celebration",
+        "احتفال",
+        120,
+        null,
+        "green"
+      ],
+      [
+        "destruction",
+        "Destruction",
+        "تدمير",
+        130,
+        null,
+        "red"
+      ],
+      [
+        "reform",
+        "Reform",
+        "إصلاح",
+        140,
+        null,
+        "blue"
+      ],
+      [
+        "other",
+        "Other",
+        "أخرى",
+        999,
+        null,
+        "gray"
+      ]
+    ],
+    "governance_system": [
+      [
+        "centralized",
+        "Centralised",
+        "مركزية",
+        10,
+        null,
+        "amber"
+      ],
+      [
+        "decentralized",
+        "Decentralised",
+        "لامركزية",
+        20,
+        null,
+        "teal"
+      ],
+      [
+        "federal",
+        "Federal",
+        "فدرالية",
+        30,
+        null,
+        "blue"
+      ],
+      [
+        "waqf_endowment",
+        "Waqf endowment",
+        "وقف",
+        40,
+        null,
+        "green"
+      ],
+      [
+        "board_of_trustees",
+        "Board of trustees",
+        "مجلس أمناء",
+        50,
+        null,
+        "indigo"
+      ],
+      [
+        "collegial",
+        "Collegial",
+        "جماعية",
+        60,
+        null,
+        "violet"
+      ],
+      [
+        "religious_authority",
+        "Religious authority",
+        "مرجعية دينية",
+        70,
+        null,
+        "teal"
+      ],
+      [
+        "military",
+        "Military",
+        "عسكرية",
+        80,
+        null,
+        "slate"
+      ],
+      [
+        "other",
+        "Other",
+        "أخرى",
+        999,
+        null,
+        "gray"
+      ]
+    ],
+    "indicator_area": [
+      [
+        "research_output",
+        "Research output",
+        "المخرجات البحثية",
+        10,
+        null,
+        "indigo"
+      ],
+      [
+        "publications",
+        "Publications",
+        "المنشورات",
+        20,
+        null,
+        "indigo"
+      ],
+      [
+        "funding",
+        "Funding",
+        "التمويل",
+        30,
+        null,
+        "green"
+      ],
+      [
+        "staffing",
+        "Staffing",
+        "الكوادر",
+        40,
+        null,
+        "blue"
+      ],
+      [
+        "infrastructure",
+        "Infrastructure",
+        "البنية التحتية",
+        50,
+        null,
+        "slate"
+      ],
+      [
+        "partnerships",
+        "Partnerships",
+        "الشراكات",
+        60,
+        null,
+        "violet"
+      ],
+      [
+        "archival_coverage",
+        "Archival coverage",
+        "التغطية الأرشيفية",
+        70,
+        null,
+        "amber"
+      ],
+      [
+        "documentation_quality",
+        "Documentation quality",
+        "جودة التوثيق",
+        80,
+        null,
+        "teal"
+      ],
+      [
+        "geographic_coverage",
+        "Geographic coverage",
+        "التغطية الجغرافية",
+        90,
+        null,
+        "green"
+      ],
+      [
+        "diversity",
+        "Diversity",
+        "التنوع",
+        100,
+        null,
+        "rose"
+      ]
+    ],
+    "date_precision": [
+      [
+        "exact",
+        "Exact (full date)",
+        "دقيق (تاريخ كامل)",
+        10,
+        null,
+        "green"
+      ],
+      [
+        "day",
+        "Day",
+        "يوم",
+        20,
+        null,
+        "green"
+      ],
+      [
+        "month",
+        "Month",
+        "شهر",
+        30,
+        null,
+        "blue"
+      ],
+      [
+        "year",
+        "Year only",
+        "سنة فقط",
+        40,
+        null,
+        "amber"
+      ],
+      [
+        "approximate",
+        "Approximate",
+        "تقريبي",
+        50,
+        null,
+        "orange"
+      ],
+      [
+        "uncertain",
+        "Uncertain",
+        "غير مؤكد",
+        60,
+        null,
+        "rose"
+      ],
+      [
+        "range",
+        "Range",
+        "نطاق زمني",
+        70,
+        null,
+        "slate"
+      ],
+      [
+        "unknown",
+        "Unknown",
+        "غير معروف",
+        80,
+        null,
+        "gray"
+      ]
+    ],
+    "geo_precision": [
+      [
+        "exact",
+        "Exact point",
+        "نقطة دقيقة",
+        10,
+        null,
+        "green"
+      ],
+      [
+        "approximate",
+        "Approximate",
+        "تقريبية",
+        20,
+        null,
+        "amber"
+      ],
+      [
+        "centroid",
+        "Centroid of area",
+        "مركز المنطقة",
+        30,
+        null,
+        "blue"
+      ],
+      [
+        "uncertain",
+        "Uncertain",
+        "غير مؤكدة",
+        40,
+        null,
+        "rose"
+      ]
+    ],
+    "geocoding_method": [
+      [
+        "manual",
+        "Point read off a map",
+        "نقطة مقروءة من خريطة",
+        10,
+        null,
+        "green"
+      ],
+      [
+        "map_pick",
+        "Point picked on the map",
+        "نقطة محددة على الخريطة",
+        12,
+        null,
+        "green"
+      ],
+      [
+        "coordinate_entry",
+        "Coordinates typed in",
+        "إحداثيات مدخلة رقمياً",
+        14,
+        null,
+        "green"
+      ],
+      [
+        "gazetteer",
+        "Matched to a gazetteer entry",
+        "مطابقة مع مدخل معجمي",
+        20,
+        null,
+        "green"
+      ],
+      [
+        "administrative",
+        "Administrative centroid",
+        "مركز إداري",
+        30,
+        null,
+        "blue"
+      ],
+      [
+        "city_centroid",
+        "City point only",
+        "نقطة المدينة فقط",
+        40,
+        null,
+        "amber"
+      ],
+      [
+        "geocoder",
+        "Automatic geocoder",
+        "محدِّد إحداثيات آلي",
+        50,
+        null,
+        "amber"
+      ],
+      [
+        "historical_map",
+        "Historical map",
+        "خريطة تاريخية",
+        60,
+        null,
+        "blue"
+      ],
+      [
+        "inherited",
+        "Inherited from parent place",
+        "موروثة من المكان الأعلى",
+        70,
+        null,
+        "gray"
+      ]
+    ],
+    "language": [
+      [
+        "ar",
+        "Arabic",
+        "العربية",
+        10,
+        {
+          "dir": "rtl"
+        },
+        "green"
+      ],
+      [
+        "en",
+        "English",
+        "الإنجليزية",
+        20,
+        {
+          "dir": "ltr"
+        },
+        "blue"
+      ],
+      [
+        "fr",
+        "French",
+        "الفرنسية",
+        30,
+        {
+          "dir": "ltr"
+        },
+        "blue"
+      ],
+      [
+        "tr",
+        "Turkish",
+        "التركية",
+        40,
+        {
+          "dir": "ltr"
+        },
+        "teal"
+      ],
+      [
+        "fa",
+        "Persian",
+        "الفارسية",
+        50,
+        {
+          "dir": "rtl"
+        },
+        "teal"
+      ],
+      [
+        "ota",
+        "Ottoman Turkish",
+        "التركية العثمانية",
+        60,
+        {
+          "dir": "rtl"
+        },
+        "amber"
+      ],
+      [
+        "de",
+        "German",
+        "الألمانية",
+        70,
+        {
+          "dir": "ltr"
+        },
+        "slate"
+      ],
+      [
+        "ru",
+        "Russian",
+        "الروسية",
+        80,
+        {
+          "dir": "ltr"
+        },
+        "slate"
+      ],
+      [
+        "es",
+        "Spanish",
+        "الإسبانية",
+        90,
+        {
+          "dir": "ltr"
+        },
+        "slate"
+      ],
+      [
+        "it",
+        "Italian",
+        "الإيطالية",
+        100,
+        {
+          "dir": "ltr"
+        },
+        "slate"
+      ],
+      [
+        "he",
+        "Hebrew",
+        "العبرية",
+        110,
+        {
+          "dir": "rtl"
+        },
+        "slate"
+      ],
+      [
+        "ku",
+        "Kurdish",
+        "الكردية",
+        120,
+        {
+          "dir": "ltr"
+        },
+        "slate"
+      ]
+    ],
+    "person_category": [
+      [
+        "military",
+        "Military",
+        "عسكري",
+        10,
+        null,
+        "green"
+      ],
+      [
+        "civilian",
+        "Civilian",
+        "مدني",
+        20,
+        null,
+        "blue"
+      ],
+      [
+        "other",
+        "Other",
+        "آخر",
+        30,
+        null,
+        "slate"
+      ]
+    ],
+    "military_service_status": [
+      [
+        "Active",
+        "Active",
+        "على قيد الخدمة",
+        10,
+        null,
+        "green"
+      ],
+      [
+        "Reserve",
+        "Reserve",
+        "احتياط",
+        20,
+        null,
+        "slate"
+      ],
+      [
+        "Retired",
+        "Retired",
+        "متقاعد",
+        30,
+        null,
+        "gray"
+      ]
+    ],
+    "military_branch": [
+      [
+        "Army",
+        "Army",
+        "القوات البرية",
+        10,
+        null,
+        "green"
+      ],
+      [
+        "Navy",
+        "Navy",
+        "القوات البحرية",
+        20,
+        null,
+        "blue"
+      ],
+      [
+        "Air Force",
+        "Air Force",
+        "القوات الجوية",
+        30,
+        null,
+        "blue"
+      ],
+      [
+        "Joint",
+        "Joint",
+        "مشترك",
+        40,
+        null,
+        "slate"
+      ],
+      [
+        "Gendarmerie",
+        "Gendarmerie",
+        "الدرك",
+        50,
+        null,
+        "amber"
+      ],
+      [
+        "Coast Guard",
+        "Coast Guard",
+        "حرس السواحل",
+        60,
+        null,
+        "amber"
+      ]
+    ],
+    "leadership_quality": [
+      [
+        "Decisiveness",
+        "Decisiveness",
+        "الحسم",
+        10,
+        null,
+        "slate"
+      ],
+      [
+        "Tactical Acumen",
+        "Tactical Acumen",
+        "البراعة التكتيكية",
+        20,
+        null,
+        "slate"
+      ],
+      [
+        "Strategic Vision",
+        "Strategic Vision",
+        "الرؤية الاستراتيجية",
+        30,
+        null,
+        "slate"
+      ],
+      [
+        "Leadership Under Fire",
+        "Leadership Under Fire",
+        "القيادة تحت النار",
+        40,
+        null,
+        "slate"
+      ],
+      [
+        "Discipline",
+        "Discipline",
+        "الانضباط",
+        50,
+        null,
+        "slate"
+      ],
+      [
+        "Initiative",
+        "Initiative",
+        "المبادرة",
+        60,
+        null,
+        "slate"
+      ],
+      [
+        "Resilience",
+        "Resilience",
+        "المرونة والصبر",
+        70,
+        null,
+        "slate"
+      ],
+      [
+        "Logistics Mastery",
+        "Logistics Mastery",
+        "إتقان الإمداد",
+        80,
+        null,
+        "slate"
+      ],
+      [
+        "Training & Development",
+        "Training & Development",
+        "التدريب والتطوير",
+        90,
+        null,
+        "slate"
+      ],
+      [
+        "Coalition Building",
+        "Coalition Building",
+        "بناء التحالفات",
+        100,
+        null,
+        "slate"
+      ],
+      [
+        "Intelligence & Deception",
+        "Intelligence & Deception",
+        "الاستخبارات والخداع",
+        110,
+        null,
+        "slate"
+      ],
+      [
+        "Communication",
+        "Communication",
+        "التواصل",
+        120,
+        null,
+        "slate"
+      ]
+    ],
+    "leadership_level": [
+      [
+        "Exceptional",
+        "Exceptional",
+        "استثنائي",
+        10,
+        null,
+        "green"
+      ],
+      [
+        "Outstanding",
+        "Outstanding",
+        "متميز",
+        20,
+        null,
+        "blue"
+      ],
+      [
+        "Proficient",
+        "Proficient",
+        "بارع",
+        30,
+        null,
+        "slate"
+      ],
+      [
+        "Developing",
+        "Developing",
+        "قيد التطوير",
+        40,
+        null,
+        "amber"
+      ]
+    ]
+  },
+  "legacy_districts": [
+    [
+      "IQ-NI-DW",
+      "IQ-NI",
+      "al-Dawwasa",
+      "الدوّاسة",
+      10
+    ],
+    [
+      "IQ-BG-RS",
+      "IQ-BG",
+      "Rusafa",
+      "الرصافة",
+      10
+    ],
+    [
+      "IQ-BG-KR",
+      "IQ-BG",
+      "Karkh",
+      "الكرخ",
+      20
+    ],
+    [
+      "IQ-BA-CT",
+      "IQ-BA",
+      "Basra Centre",
+      "مركز البصرة",
+      10
+    ],
+    [
+      "EG-C-CT",
+      "EG-C",
+      "Cairo Centre",
+      "وسط القاهرة",
+      10
+    ],
+    [
+      "SY-DI-CT",
+      "SY-DI",
+      "Damascus Centre",
+      "وسط دمشق",
+      10
+    ]
+  ],
+  "historical_countries": [
+    [
+      "SU",
+      "Soviet Union",
+      "الاتحاد السوفيتي",
+      {
+        "historical": true,
+        "iso3": "SUN",
+        "valid_from": "1922-12-30",
+        "valid_to": "1991-12-26",
+        "successors": [
+          "RU",
+          "UA",
+          "BY",
+          "KZ",
+          "UZ",
+          "TM",
+          "KG",
+          "TJ",
+          "AM",
+          "AZ",
+          "GE",
+          "MD",
+          "LT",
+          "LV",
+          "EE"
+        ]
+      }
+    ],
+    [
+      "YU",
+      "Yugoslavia",
+      "يوغوسلافيا",
+      {
+        "historical": true,
+        "iso3": "YUG",
+        "valid_from": "1918-12-01",
+        "valid_to": "2003-02-04",
+        "successors": [
+          "SI",
+          "HR",
+          "BA",
+          "RS",
+          "ME",
+          "MK"
+        ]
+      }
+    ],
+    [
+      "CS",
+      "Czechoslovakia",
+      "تشيكوسلوفاكيا",
+      {
+        "historical": true,
+        "iso3": "CSK",
+        "valid_from": "1918-10-28",
+        "valid_to": "1992-12-31",
+        "successors": [
+          "CZ",
+          "SK"
+        ]
+      }
+    ],
+    [
+      "DD",
+      "German Democratic Republic",
+      "ألمانيا الديمقراطية",
+      {
+        "historical": true,
+        "iso3": "DDR",
+        "valid_from": "1949-10-07",
+        "valid_to": "1990-10-03",
+        "successors": [
+          "DE"
+        ]
+      }
+    ],
+    [
+      "YD",
+      "People's Democratic Republic of Yemen",
+      "اليمن الديمقراطية",
+      {
+        "historical": true,
+        "iso3": "YMD",
+        "valid_from": "1967-11-30",
+        "valid_to": "1990-05-22",
+        "successors": [
+          "YE"
+        ]
+      }
+    ],
+    [
+      "NT",
+      "United Arab Republic",
+      "الجمهورية العربية المتحدة",
+      {
+        "historical": true,
+        "iso3": "UAR",
+        "valid_from": "1958-02-01",
+        "valid_to": "1971-09-02",
+        "successors": [
+          "EG",
+          "SY"
+        ]
+      }
+    ],
+    [
+      "SCG",
+      "Serbia and Montenegro",
+      "صربيا والجبل الأسود",
+      {
+        "historical": true,
+        "iso3": "SCG",
+        "valid_from": "2003-02-04",
+        "valid_to": "2006-06-05",
+        "successors": [
+          "RS",
+          "ME"
+        ]
+      }
+    ]
+  ],
+  "country_aliases": {
+    "IR": [
+      "Persia",
+      "بلاد فارس"
+    ],
+    "TH": [
+      "Siam",
+      "سيام"
+    ],
+    "MM": [
+      "Burma",
+      "بورما"
+    ],
+    "SZ": [
+      "Swaziland",
+      "سوازيلاند"
+    ],
+    "TL": [
+      "East Timor",
+      "تيمور الشرقية"
+    ],
+    "CV": [
+      "Cape Verde",
+      "الرأس الأخضر"
+    ],
+    "CZ": [
+      "Czech Republic",
+      "التشيك"
+    ],
+    "TR": [
+      "Ottoman Empire successor state",
+      "دولة عثمانية سابقة"
+    ],
+    "RU": [
+      "Russian Empire",
+      "الإمبراطورية الروسية"
+    ],
+    "GR": [
+      "Hellas",
+      "اليونان"
+    ],
+    "NL": [
+      "Holland",
+      "هولندا"
+    ],
+    "KP": [
+      "Democratic People's Republic of Korea",
+      "كوريا الشعبية"
+    ],
+    "KR": [
+      "Republic of Korea",
+      "كوريا الجنوبية"
+    ],
+    "VA": [
+      "Holy See",
+      "الفاتيكان"
+    ],
+    "BN": [
+      "Brunei Darussalam",
+      "بروناي دار السلام"
+    ]
+  }
+}

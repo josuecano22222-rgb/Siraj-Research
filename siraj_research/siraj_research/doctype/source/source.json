@@ -438,32 +438,7 @@
    "table_fieldname": "evidence"
   }
  ],
- "actions": [
-  {
-   "label": "Find duplicates",
-   "group": "Data quality",
-   "action_type": "Server Action",
-   "action": "siraj.api.duplicate_candidates_for_doc",
-   "hidden": 0,
-   "custom": 0
-  },
-  {
-   "label": "Open on the map",
-   "group": "Geography",
-   "action_type": "Server Action",
-   "action": "siraj.api.open_on_map",
-   "hidden": 0,
-   "custom": 0
-  },
-  {
-   "label": "Merge a duplicate into this record",
-   "group": "Data quality",
-   "action_type": "Server Action",
-   "action": "siraj.api.merge_duplicate_into",
-   "hidden": 0,
-   "custom": 0
-  }
- ],
+ "actions": [],
  "states": [
   {
    "title": "Draft",
@@ -514,7 +489,7 @@
  "show_preview_popup": 1,
  "allow_copy": 1,
  "allow_events_in_timeline": 1,
- "in_create": 1,
+ "in_create": 0,
  "title_field": "display_name",
  "search_fields": "display_name,title,title_ar,publisher,archive_reference,isbn_issn",
  "icon": "book",

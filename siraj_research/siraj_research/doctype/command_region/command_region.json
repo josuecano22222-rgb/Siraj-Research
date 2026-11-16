@@ -306,7 +306,7 @@
  "allow_import": 1,
  "show_title_field_in_link": 1,
  "allow_copy": 1,
- "in_create": 1,
+ "in_create": 0,
  "nsm_parent_field": "parent_region",
  "title_field": "region_name",
  "search_fields": "region_name,region_type",

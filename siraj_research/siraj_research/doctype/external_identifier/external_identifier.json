@@ -54,6 +54,6 @@
  "autoname": "hash",
  "istable": 1,
  "editable_grid": 1,
- "in_create": 1,
+ "in_create": 0,
  "description": "An authority-file or legacy identifier for the parent record (the original `entity_external_id`)."
 }

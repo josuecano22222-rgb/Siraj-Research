@@ -261,7 +261,7 @@
  "editable_grid": 1,
  "track_changes": 1,
  "allow_import": 1,
- "in_create": 1,
+ "in_create": 0,
  "icon": "settings",
  "description": "Instance-wide policy for the SIRAJ research registry."
 }

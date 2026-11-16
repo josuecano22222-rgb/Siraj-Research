@@ -65,6 +65,6 @@
  "autoname": "hash",
  "istable": 1,
  "editable_grid": 1,
- "in_create": 1,
+ "in_create": 0,
  "description": "One leadership judgement about a person, with its basis. The source keeps these in `commander_trait` and then `person_trait` (migrations 019/020); a judgement about a person is owned by that person, so it is a child table of Person here."
 }

@@ -11,6 +11,7 @@ app_license = "mit"
 # required_apps = []
 
 after_install = "siraj_research.setup.install.after_install"
+after_migrate = "siraj_research.setup.install.ensure_default_workflow_state"
 
 fixtures = [
 	# the four SIRAJ roles (Del. 8 �4); the DocPerm rows on the DocTypes name them
@@ -26,22 +27,21 @@ fixtures = [
 ]
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "siraj_research",
-# 		"logo": "/assets/siraj_research/logo.png",
-# 		"title": "Siraj Research",
-# 		"route": "/siraj_research",
-# 		"has_permission": "siraj_research.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "siraj_research",
+		"logo": "/assets/frappe/images/frappe-framework-logo.svg",
+		"title": "Siraj Research",
+		"route": "/app/siraj-research",
+	}
+]
 
 # Includes in <head>
 # ------------------
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/siraj_research/css/siraj_research.css"
-# app_include_js = "/assets/siraj_research/js/siraj_research.js"
+app_include_js = "/assets/siraj_research/js/coordinate_map.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/siraj_research/css/siraj_research.css"
@@ -60,7 +60,7 @@ fixtures = [
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
-# doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
+# Standard per-DocType tree scripts live beside their DocType JSON files.
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
 # Svg Icons
