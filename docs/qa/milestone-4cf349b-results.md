@@ -4,8 +4,8 @@ The owner reported a fast-forward from `74b5cf3` to `4cf349b` with the existing 
 
 | Command, run from `/home/frappe/frappe-bench/apps/siraj_research` | Expected | Owner-reported actual |
 | --- | --- | --- |
-| `/home/frappe/frappe-bench/env/bin/python -m unittest discover -s tests -p 'test_signed_offline_snapshot.py' -v` | 3 tests; `OK`; none skipped | 3 passed, `OK`, 0.102 s, no skips |
-| `python3 -m unittest discover -s tests -p 'test_event_schema_compare.py' -v` | 3 tests; `OK` | 3 passed, `OK`, 0.000 s |
+| `/home/frappe/frappe-bench/env/bin/python -m unittest discover -s tests -p 'test_signed_offline_snapshot.py' -v` | 3 tests; `OK`; none skipped | 3 passed, `OK`, no skips |
+| `python3 -m unittest discover -s tests -p 'test_event_schema_compare.py' -v` | 3 tests; `OK` | 3 passed, `OK` |
 | `node tests/test_signed_snapshot_crypto.js` | One synthetic WebCrypto test script success message | Success message reported; no individual test count is printed |
 | `node tests/test_offline_records.js` | One synthetic Node DOM-stub test script success message | Success message reported; no individual test count is printed |
 
