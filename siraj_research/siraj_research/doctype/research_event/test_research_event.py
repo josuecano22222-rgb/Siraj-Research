@@ -4,7 +4,7 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestEvent(FrappeTestCase):
+class TestResearchEvent(FrappeTestCase):
 	def test_doctype_loads(self):
 		"""The DocType exists, its JSON is valid and its controller imports."""
-		self.assertTrue(frappe.get_meta("Event").fields)
+		self.assertTrue(frappe.get_meta("Research Event").fields)

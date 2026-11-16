@@ -6,7 +6,10 @@ from frappe.model.document import Document
 
 from siraj_research.report_access import readable_rows
 from siraj_research.utils.military import (
-	ancestors, descendants, military_person, subtree_personnel,
+	ancestors,
+	descendants,
+	military_person,
+	subtree_personnel,
 )
 
 
@@ -35,8 +38,7 @@ class MilitaryUnit(Document):
 				continue
 			if row.armament in seen:
 				frappe.throw(
-					_("Row {0}: {1} is already held by this unit.").format(
-						row.idx, row.armament),
+					_("Row {0}: {1} is already held by this unit.").format(row.idx, row.armament),
 					title=_("Duplicate armament"),
 				)
 			seen.add(row.armament)
@@ -47,20 +49,21 @@ class MilitaryUnit(Document):
 		"""rules.delete blocked by dependents — Frappe blocks Links, not child rows
 		and not a tree's children, so both are checked here."""
 		if frappe.db.exists(self.doctype, {"parent_unit": self.name}):
-			frappe.throw(_("{0} still has subordinate units.").format(self.name),
-			             title=_("Cannot delete"))
-		for doctype in ("Operational Deployment", "Mission", "Training Exercise",
-		                "Command Appointment"):
+			frappe.throw(_("{0} still has subordinate units.").format(self.name), title=_("Cannot delete"))
+		for doctype in ("Operational Deployment", "Mission", "Training Exercise", "Command Appointment"):
 			if frappe.db.exists(doctype, {"unit": self.name}):
-				frappe.throw(_("{0} still has {1} records.").format(self.name, _(doctype)),
-				             title=_("Cannot delete"))
+				frappe.throw(
+					_("{0} still has {1} records.").format(self.name, _(doctype)), title=_("Cannot delete")
+				)
 
 	def validate_commander(self):
 		"""rules.check_commander_person — only a military person may command a unit."""
 		commander = self.get("commander")
 		if commander and not military_person(commander):
-			frappe.throw(_("The commander of {0} must be a person of the Military category.")
-			             .format(self.name), title=_("Invalid commander"))
+			frappe.throw(
+				_("The commander of {0} must be a person of the Military category.").format(self.name),
+				title=_("Invalid commander"),
+			)
 
 	def validate_personnel(self):
 		if (self.get("direct_personnel") or 0) < 0:
@@ -70,9 +73,11 @@ class MilitaryUnit(Document):
 		"""Use submitted direct personnel plus persisted subordinate personnel."""
 		if self.is_new():
 			return int(self.get("direct_personnel") or 0)
-		return subtree_personnel(self.doctype, self.name) - int(
-			frappe.db.get_value(self.doctype, self.name, "direct_personnel") or 0
-		) + int(self.get("direct_personnel") or 0)
+		return (
+			subtree_personnel(self.doctype, self.name)
+			- int(frappe.db.get_value(self.doctype, self.name, "direct_personnel") or 0)
+			+ int(self.get("direct_personnel") or 0)
+		)
 
 	def update_ancestor_totals(self, *parents):
 		# Both old and new chains matter when a unit is reparented.
@@ -80,9 +85,13 @@ class MilitaryUnit(Document):
 		for parent in parents:
 			for ancestor in ancestors(self.doctype, parent):
 				if ancestor not in updated:
-					frappe.db.set_value(self.doctype, ancestor, "subtree_personnel",
-					                    subtree_personnel(self.doctype, ancestor),
-					                    update_modified=False)
+					frappe.db.set_value(
+						self.doctype,
+						ancestor,
+						"subtree_personnel",
+						subtree_personnel(self.doctype, ancestor),
+						update_modified=False,
+					)
 					updated.add(ancestor)
 
 	def on_update(self):

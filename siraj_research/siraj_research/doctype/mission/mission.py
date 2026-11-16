@@ -18,8 +18,9 @@ class Mission(Document):
 		if self.is_new():
 			return
 		before = self.get_doc_before_save()
-		check_transition(MISSION_TRANSITIONS, "status", before.status if before else None,
-		                 self.status, "Mission")
+		check_transition(
+			MISSION_TRANSITIONS, "status", before.status if before else None, self.status, "Mission"
+		)
 
 	def validate_end_date(self):
 		if self.status == "Executed" and not self.end_date:
@@ -34,7 +35,8 @@ class Mission(Document):
 			return
 		if not is_ancestor("Military Unit", dep_unit, self.unit):
 			frappe.throw(
-				_("Deployment {0} belongs to {1}, which is not {2} or one of its ancestors.")
-				.format(self.deployment, dep_unit, self.unit),
+				_("Deployment {0} belongs to {1}, which is not {2} or one of its ancestors.").format(
+					self.deployment, dep_unit, self.unit
+				),
 				title=_("Deployment outside the chain of command"),
 			)

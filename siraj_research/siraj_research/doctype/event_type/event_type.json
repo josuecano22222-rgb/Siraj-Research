@@ -171,9 +171,9 @@
  ],
  "links": [
   {
-   "link_doctype": "Event",
+   "link_doctype": "Research Event",
    "link_fieldname": "event_type",
-   "group": "Event"
+   "group": "Research Event"
   }
  ],
  "actions": [],

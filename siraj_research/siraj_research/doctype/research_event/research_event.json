@@ -1,6 +1,6 @@
 {
  "doctype": "DocType",
- "name": "Event",
+ "name": "Research Event",
  "module": "Siraj Research",
  "custom": 0,
  "engine": "InnoDB",
@@ -543,7 +543,7 @@
  "title_field": "display_name",
  "image_field": "image",
  "search_fields": "display_name,title_ar,title_en",
- "icon": "calendar",
- "description": "Historical events that connect persons, places and institutions.",
+ "icon": "flag",
+ "description": "Research-documented historical events that connect persons, places and institutions. Distinct from the Frappe calendar Event.",
  "default_print_format": "SIRAJ Research Dossier"
 }

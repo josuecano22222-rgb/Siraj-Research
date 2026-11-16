@@ -26,6 +26,7 @@ class TrainingExercise(Document):
 		if capacity and self.participant_count > capacity:
 			frappe.throw(
 				_("{0} participants exceeds {1}'s total of {2}.").format(
-					self.participant_count, self.unit, capacity),
+					self.participant_count, self.unit, capacity
+				),
 				title=_("Over capacity"),
 			)

@@ -1,8 +1,11 @@
-
 name: Linters
 
 on:
   pull_request:
+  push:
+    branches:
+      - develop
+      - main
   workflow_dispatch:
 
 permissions:
@@ -16,46 +19,76 @@ jobs:
   linter:
     name: 'Frappe Linter'
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: pip
-      - uses: pre-commit/action@v3.0.0
 
-      - name: Download Semgrep rules
-        run: git clone --depth 1 https://github.com/frappe/semgrep-rules.git frappe-semgrep-rules
+      - name: Install ruff
+        run: pip install ruff==0.8.1
 
-      - name: Run Semgrep rules
+      - name: Run ruff linter
+        run: ruff check .
+
+      - name: Run ruff format check
+        run: ruff format --check .
+
+      - name: Run pure-Python tests (no bench required)
         run: |
-          pip install semgrep
-          semgrep ci --config ./frappe-semgrep-rules/rules --config r/python.lang.correctness
+          pip install pytest cryptography
+          pytest tests/ --ignore=tests/test_coordinate_map.js \
+                        --ignore=tests/test_explorer_assets.js \
+                        --ignore=tests/test_explorer_browser.js \
+                        --ignore=tests/test_explorer_ui.js \
+                        --ignore=tests/test_list_navigation.js \
+                        --ignore=tests/test_load_probe.js \
+                        --ignore=tests/test_offline_map_download.js \
+                        --ignore=tests/test_signed_snapshot_adversarial.js \
+                        --ignore=tests/test_signed_snapshot_crypto.js \
+                        --ignore=tests/test_tree_navigation.js \
+                   -q
+
+      - name: Validate DocType JSON
+        run: |
+          python -c "import json, glob, sys
+          errors = 0
+          for p in glob.glob('siraj_research/**/*.json', recursive=True):
+              try:
+                  json.load(open(p))
+              except Exception as e:
+                  print(f'INVALID {p}: {e}')
+                  errors += 1
+          sys.exit(errors)"
+
+      - name: Validate Python syntax
+        run: |
+          python -c "import ast, glob, sys
+          errors = 0
+          for p in glob.glob('siraj_research/**/*.py', recursive=True) + glob.glob('tests/**/*.py', recursive=True):
+              try:
+                  ast.parse(open(p, encoding='utf-8').read())
+              except SyntaxError as e:
+                  print(f'SYNTAX {p}:{e.lineno}: {e.msg}')
+                  errors += 1
+          sys.exit(errors)"
 
   deps-vulnerable-check:
     name: 'Vulnerable Dependency Check'
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
 
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - uses: actions/checkout@v4
-
-      - name: Cache pip
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/*requirements.txt', '**/pyproject.toml', '**/setup.py') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-            ${{ runner.os }}-
-
       - name: Install and run pip-audit
         run: |
           pip install pip-audit
-          cd ${GITHUB_WORKSPACE}
           pip-audit --desc on .

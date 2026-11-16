@@ -512,9 +512,9 @@
    "group": "Person"
   },
   {
-   "link_doctype": "Event",
+   "link_doctype": "Research Event",
    "link_fieldname": "place",
-   "group": "Event"
+   "group": "Research Event"
   },
   {
    "link_doctype": "Place",

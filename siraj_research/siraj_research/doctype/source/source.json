@@ -426,7 +426,7 @@
    "link_fieldname": "source",
    "group": "Claims citing this source",
    "is_child_table": 1,
-   "parent_doctype": "Event",
+   "parent_doctype": "Research Event",
    "table_fieldname": "evidence"
   },
   {

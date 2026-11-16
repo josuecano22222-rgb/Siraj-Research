@@ -10,7 +10,7 @@ class SirajExplorer {
 		this.kind = 'geography';
 		this.map = null;
 		this.network = null;
-		this.colors = { 'Person': '#3577c0', 'Institution': '#8262b0', 'Place': '#188c7e', 'Event': '#d08733', 'Source': '#aa6b85', 'Military Unit': '#c3564b', 'Operational Deployment': '#867e45' };
+		this.colors = { 'Person': '#3577c0', 'Institution': '#8262b0', 'Place': '#188c7e', 'Research Event': '#d08733', 'Source': '#aa6b85', 'Military Unit': '#c3564b', 'Operational Deployment': '#867e45' };
 		this.render();
 	}
 
@@ -134,7 +134,7 @@ class SirajExplorer {
 			'Person': '<circle cx="12" cy="8" r="3"/><path d="M5 19c0-4 3-6 7-6s7 2 7 6"/>',
 			'Institution': '<path d="M3 9h18L12 3 3 9Zm2 1v8m5-8v8m4-8v8m5-8v8M3 20h18"/>',
 			'Place': '<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11Z"/><circle cx="12" cy="10" r="2"/>',
-			'Event': '<path d="M12 2l2.5 6 6.5.5-5 4 1.5 6.5-5.5-3.5L6.5 19 8 12.5l-5-4L9.5 8Z"/>',
+			'Research Event': '<path d="M12 2l2.5 6 6.5.5-5 4 1.5 6.5-5.5-3.5L6.5 19 8 12.5l-5-4L9.5 8Z"/>',
 			'Military Unit': '<path d="M12 2 20 5v6c0 5-3 8-8 11-5-3-8-6-8-11V5Z"/><path d="M12 7v10M7 12h10"/>',
 			'Operational Deployment': '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>'
 		};
@@ -669,7 +669,7 @@ class SirajExplorer {
 		await frappe.require('/assets/siraj_research/js/structure_deck.js');
 		if (renderId !== this.renderId) return;
 		this.canvas.removeClass('sx-canvas');
-		const choices = [['people', __('Person')], ['institutions', __('Institution')], ['places', __('Place')], ['events', __('Event')], ['relationships', __('Relationship')], ['sources', __('Source')], ['units', __('Units — command hierarchy')], ['regions', __('Regions — command hierarchy')], ['regions-units', __('Regions × Units')], ['units-ops', __('Units × Operations')], ['forces', __('Forces — echelon, status, classification')]];
+		const choices = [['people', __('Person')], ['institutions', __('Institution')], ['places', __('Place')], ['events', __('Research Event')], ['relationships', __('Relationship')], ['sources', __('Source')], ['units', __('Units — command hierarchy')], ['regions', __('Regions — command hierarchy')], ['regions-units', __('Regions × Units')], ['units-ops', __('Units × Operations')], ['forces', __('Forces — echelon, status, classification')]];
 		const select = $('<select class="form-control input-sm" aria-label="Structure source"></select>').appendTo(this.tools);
 		choices.forEach(([id, title]) => $('<option></option>').val(id).text(title).appendTo(select));
 		let request = 0;

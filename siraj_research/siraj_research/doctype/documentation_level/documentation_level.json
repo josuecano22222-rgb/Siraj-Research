@@ -186,9 +186,9 @@
    "group": "Place"
   },
   {
-   "link_doctype": "Event",
+   "link_doctype": "Research Event",
    "link_fieldname": "documentation_level",
-   "group": "Event"
+   "group": "Research Event"
   },
   {
    "link_doctype": "Relationship",

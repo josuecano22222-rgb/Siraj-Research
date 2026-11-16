@@ -19,7 +19,7 @@ ADMIN_CHAIN = [
 
 class Place(Document):
 	def before_validate(self):
-		set_display_name(self, 'name_en', 'name_ar')
+		set_display_name(self, "name_en", "name_ar")
 
 	def validate(self):
 		self.validate_admin_chain()
@@ -27,8 +27,9 @@ class Place(Document):
 	def validate_admin_chain(self):
 		"""app/geo_chain.expected_parent — the six-level chain, checked end to end.
 
-		`link_filters` already offer only the children of the level above; this is the
-		server-side guarantee for records created by API, import or patch.
+		               `link_filters` already offer only the children of the level above
+		this is the
+		               server-side guarantee for records created by API, import or patch.
 		"""
 		for fieldname, doctype, parent_field in ADMIN_CHAIN:
 			value = self.get(fieldname)
@@ -39,6 +40,7 @@ class Place(Document):
 			if declared and actual and actual != declared:
 				frappe.throw(
 					_("{0} {1} belongs to {2} {3}, not {4}.").format(
-						_(doctype), value, _(parent_field), actual, declared),
+						_(doctype), value, _(parent_field), actual, declared
+					),
 					title=_("Administrative chain broken"),
 				)

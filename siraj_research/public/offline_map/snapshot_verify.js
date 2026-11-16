@@ -58,7 +58,7 @@
         return parsed;
     }
     function validatePayload(p) {
-        const allowed = new Set(['Person','Institution','Place','Source','SIRAJ Research Event']);
+        const allowed = new Set(['Person','Institution','Place','Source','Research Event']);
         if (!Array.isArray(p.nodes) || p.nodes.length > 2000 || !Array.isArray(p.edges) || p.edges.length > 4000 ||
             (p.scope.relationships === 'not_authorized' && p.edges.length)) throw Error('invalid payload');
         const scopeTypes = [...p.scope.included_types, ...p.scope.omitted_types, ...p.scope.excluded_types];

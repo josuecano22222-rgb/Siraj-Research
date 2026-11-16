@@ -458,8 +458,8 @@
   {
    "color": "Purple",
    "doc_view": "List",
-   "label": "Event",
-   "link_to": "Event",
+   "label": "Research Event",
+   "link_to": "Research Event",
    "type": "DocType"
   },
   {

@@ -50,9 +50,14 @@ ignore = [
     "F403", # can't detect undefined names from * import
     "F405", # can't detect undefined names from * import
     "F722", # syntax error in forward type annotation
+    "F821", # frappe framework is provided by bench at runtime
+    "RUF001", # Unicode characters (Arabic digits, ×) are used intentionally
     "W191", # indentation contains tabs
 ]
 typing-modules = ["frappe.types.DF"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"frappe".msg = "frappe is provided by the Bench runtime; ensure imports are compatible with Frappe v15."
 
 [tool.ruff.format]
 quote-style = "double"

@@ -13,7 +13,7 @@ async function generatedFixture() {
   const pub = await webcrypto.subtle.exportKey('jwk', keys.publicKey);
   const body = {version:3, site:'site', subject:'account', key_id:'key', snapshot_id:'0123456789abcdef0123456789abcdef',
     created_at:'2026-01-01T00:00:00Z', expires_at:'2026-01-02T00:00:00Z', payload:{
-      scope:{included_types:['Person'],omitted_types:[],excluded_types:['Event','SIRAJ Research Event'],relationships:'filtered',consistency:'non_atomic'},
+      scope:{included_types:['Person'],omitted_types:[],excluded_types:['Event','Research Event'],relationships:'filtered',consistency:'non_atomic'},
       nodes:[{doctype:'Person',name:'example'}],edges:[]}};
   const raw = Buffer.from(JSON.stringify(body));
   const signature = await webcrypto.subtle.sign({name:'ECDSA',hash:'SHA-256'}, keys.privateKey,

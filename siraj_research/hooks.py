@@ -17,9 +17,18 @@ fixtures = [
 	# the four SIRAJ roles (Del. 8 �4); the DocPerm rows on the DocTypes name them
 	{
 		"dt": "Role",
-		"filters": [["name", "in", [
-			"SIRAJ Viewer", "SIRAJ Researcher", "SIRAJ Reviewer", "SIRAJ Administrator",
-		]]],
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"SIRAJ Viewer",
+					"SIRAJ Researcher",
+					"SIRAJ Reviewer",
+					"SIRAJ Administrator",
+				],
+			]
+		],
 	},
 	{"dt": "Workflow", "filters": [["name", "=", "SIRAJ Review"]]},
 	{"dt": "Workflow State"},
@@ -278,4 +287,3 @@ app_include_js = "/assets/siraj_research/js/coordinate_map.js"
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
-

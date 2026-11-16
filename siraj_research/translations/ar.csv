@@ -682,3 +682,4 @@ Select a local pack and enter valid bounds and zooms.,اختر حزمة محلي
 Download cancelled.,أُلغي التنزيل.
 "Download failed. Check bounds, zooms, tile limit, size, permissions and connection.",فشل التنزيل. تحقق من الحدود ومستويات التكبير والحدود القصوى والحجم والصلاحيات والاتصال.
 "Basemap only, unencrypted. Maximum 512 possible tiles and 16 MiB of imagery. Use only on authorized devices.",خريطة أساسية فقط دون تشفير. الحد الأقصى 512 مربعاً محتملاً و16 ميبيبايت من الصور. استخدم أجهزة مصرحاً بها فقط.
+Research Event,حدث بحثي

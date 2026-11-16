@@ -3,5 +3,24 @@
 *.egg-info
 *.swp
 tags
-node_modules
-__pycache__
+node_modules/
+__pycache__/
+package-lock.json
+
+# Python virtual environments
+.venv/
+srvenv/
+venv/
+env/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db

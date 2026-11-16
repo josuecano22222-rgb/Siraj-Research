@@ -10,9 +10,21 @@ from siraj_research.report_access import can_read_link, readable_rows
 def execute(filters=None):
 	filters = filters or {}
 	columns = [
-		{"fieldname": "name", "label": _("Unit ID"), "fieldtype": "Link", "options": "Military Unit", "width": 140},
+		{
+			"fieldname": "name",
+			"label": _("Unit ID"),
+			"fieldtype": "Link",
+			"options": "Military Unit",
+			"width": 140,
+		},
 		{"fieldname": "unit_name", "label": _("Unit name"), "fieldtype": "Data", "width": 220},
-		{"fieldname": "parent_unit", "label": _("Parent Unit"), "fieldtype": "Link", "options": "Military Unit", "width": 150},
+		{
+			"fieldname": "parent_unit",
+			"label": _("Parent Unit"),
+			"fieldtype": "Link",
+			"options": "Military Unit",
+			"width": 150,
+		},
 		{"fieldname": "workflow_state", "label": _("Review State"), "fieldtype": "Data", "width": 120},
 	]
 	conditions = {"name": filters["unit"]} if filters.get("unit") else {}
