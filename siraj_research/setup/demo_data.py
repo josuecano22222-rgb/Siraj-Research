@@ -694,34 +694,26 @@ def seed_demo_data():
         rel_count += 1
         return doc.name
 
+    # NOTE: Relationship.subject_type / object_type are restricted Select fields
+    # (Person / Institution / Place / Research Event / Source). Connections that
+    # involve Military Unit, Training Exercise, Operational Deployment, or Mission
+    # are already expressed natively by the Link fields on those DocTypes
+    # (commander, parent_unit, deployment.mission, lead_trainer, etc.) and do not
+    # need additional Relationship rows.
     _rel("Person", persons["cofs"], "director_of", "Institution", insts["mod"], is_current=1,
          start=_dt.datetime(today.year - 1, today.month, max(today.day, 1)))
-    _rel("Person", persons["div1"], "director_of", "Military Unit", units["div6"], is_current=1,
-         start=_dt.datetime(today.year - 2, today.month, max(today.day, 1)))
-    _rel("Person", persons["bde1"], "director_of", "Military Unit", units["bde22"], is_current=1,
-         start=_dt.datetime(today.year - 1, today.month, max(today.day, 1)))
-    _rel("Person", persons["train"], "director_of", "Training Exercise", trainings["jre"])
-
-    _rel("Military Unit", units["bde22"], "member_of", "Military Unit", units["div6"])
-    _rel("Military Unit", units["bde24"], "member_of", "Military Unit", units["div6"])
-    _rel("Military Unit", units["bde22"], "located_in", "Place", places["taji_camp"])
-    _rel("Military Unit", units["div6"], "located_in", "Place", places["rashid"])
     _rel("Institution", insts["mod"], "located_in", "Place", places["mod_hq"])
     _rel("Institution", insts["rust_college"], "located_in", "Place", places["mil_college"])
-
+    _rel("Person", persons["div1"], "affiliated_with", "Institution", insts["mod"], is_current=1)
+    _rel("Person", persons["bde1"], "affiliated_with", "Institution", insts["mod"], is_current=1)
+    _rel("Person", persons["train"], "affiliated_with", "Institution", insts["rust_college"], is_current=1)
     for p in (persons["div1"], persons["bde1"], persons["train"]):
         _rel("Person", p, "graduated_from", "Institution", insts["rust_college"])
-
     _rel("Person", persons["cofs"], "employed_by", "Institution", insts["mod"], is_current=1)
-    _rel("Person", persons["div1"], "employed_by", "Institution", insts["mod"], is_current=1)
-    _rel("Person", persons["bde1"], "employed_by", "Institution", insts["mod"], is_current=1)
-    _rel("Person", persons["train"], "affiliated_with", "Institution", insts["rust_college"], is_current=1)
-
-    _rel("Operational Deployment", deploys["baghdad_sec"], "member_of", "Mission", missions["op_baghdad"])
     _rel("Research Event", events["announce"], "located_in", "Place", places["mod_hq"])
     _rel("Research Event", events["jre_end"], "located_in", "Place", places["taji_camp"])
-    _rel("Research Event", events["announce"], "cites", "Source", sources["mod"])
     _rel("Research Event", events["founding_college"], "located_in", "Place", places["mil_college"])
+    _rel("Research Event", events["announce"], "cites", "Source", sources["mod"])
 
     frappe.db.commit()
 
