@@ -122,6 +122,7 @@ class Geo:
     RASHID = (33.2200, 44.4500)
     ABU_GHRAIB = (33.2900, 44.1700)
     VIC_GREEN = (33.3000, 44.3500)
+    NORTH_CAMP = (33.4500, 44.2500)  # north Baghdad belt (Taji-Mushahada axis)
     # Other cities
     MOSUL = (36.3300, 43.1000)
     BASRA = (30.5000, 47.7800)
