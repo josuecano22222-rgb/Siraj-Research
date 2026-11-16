@@ -213,8 +213,8 @@ def seed_demo_data():
              for c in ["active", "retired", "deceased", "missing", "unknown"]}
     PCLASS = {c: _gf("Person Classification", code=c)
               for c in ["researcher", "professor", "historian", "religious_scholar",
-                        "writer", "journalist", "official", "politician",
-                        "administrator", "student", "other"]}
+                        "writer", "translator", "journalist", "official", "politician",
+                        "librarian", "archivist", "administrator", "student", "other"]}
 
     country_iq = _gf("Country", code="IQ")
     country_us = _gf("Country", code="US")
