@@ -92,3 +92,7 @@ The supplied terminal output shows a successful fetch and fast-forward from `4cf
 ### Owner-reported d660c42 application and tests
 
 The owner supplied successful fast-forwards to `39f77f9` and `d660c42` and post-merge status showing the workspace JSON modification still present. The seven Python fixture suites (8/6/6/5/5/3/2) and all three Node scripts passed; scanner and synthetic benchmark completed. See `completion-matrix.md` for exact scope and measured stub-only results. No site migration, real export, real permission test or real benchmark is implied.
+
+### Owner-reported a871a1c application and fixture tests
+
+The supplied output shows fetch and fast-forward `d660c42..a871a1c` succeeded, and post-merge status still listed the workspace JSON modification. The owner reported 4 Event journal, 5 coordinate transition, 3 permission assertion and 2 performance summary fixture tests passed, plus the Node DOM-stub viewer suite. No site operations or real Frappe acceptance were reported. Existing prototypes are not complete application features; all migration, security, permission, performance and imagery blockers remain open.
