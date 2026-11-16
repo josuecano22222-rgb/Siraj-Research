@@ -41,7 +41,7 @@ def create_package(source, destination, bounds, minzoom, maxzoom, *, redistribut
                 span = east - west if east > west else (east - west) % 360
                 center_lon = ((west + span / 2 + 180) % 360) - 180
                 config = {"minzoom": minzoom, "maxzoom": maxzoom, "center": [(south + north) / 2, center_lon],
-                          "extension": extension, "attribution": meta.get("attribution", "")}
+                          "extension": extension, "bounds": list(bounds), "attribution": meta.get("attribution", "")}
                 # JSON in a separate script, not an inline HTML context.
                 archive.writestr("config.js", "window.SIRAJ_OFFLINE_MAP = " + json.dumps(config, ensure_ascii=True) + ";\n", compress_type=ZIP_DEFLATED)
                 for name in ("index.html", "viewer.js"):

@@ -34,6 +34,7 @@ class OfflineViewerTest(unittest.TestCase):
             self.assertEqual(z.read('tiles/1/0/0.png'), PNG)
             config = json.loads(z.read('config.js').decode().removeprefix('window.SIRAJ_OFFLINE_MAP = ').strip().removesuffix(';'))
             self.assertEqual(config['center'], [0, 0])
+            self.assertEqual(config['bounds'], [-180, -85, 180, 85])
             self.assertEqual(config['attribution'], 'Example attribution')
             self.assertNotIn('https://', z.read('viewer.js').decode())
 
@@ -54,7 +55,7 @@ class OfflineViewerTest(unittest.TestCase):
             db.execute("UPDATE metadata SET value=? WHERE name='attribution'", ('</script><script>alert(1)</script>',))
         self.package((170, -10, -170, 10), redistribution_allowed=True)
         with ZipFile(self.output) as z:
-            self.assertIn('text.textContent = c.attribution', z.read('viewer.js').decode())
+            self.assertIn('attribution.textContent = c.attribution', z.read('viewer.js').decode())
             config = json.loads(z.read('config.js').decode().removeprefix('window.SIRAJ_OFFLINE_MAP = ').strip().removesuffix(';'))
             self.assertEqual(config['center'][1], -180)
 

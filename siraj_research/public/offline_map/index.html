@@ -7,13 +7,24 @@
 <link rel="stylesheet" href="leaflet/leaflet.css">
 <style>
 html,body {height:100%;margin:0;font:15px sans-serif} body {display:flex;flex-direction:column}
-header {padding:.6rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center} #map {flex:1;min-height:250px;background:#dce8ed} #status {padding:.5rem}
+header {padding:.5rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+input {width:8rem} button,select,input {font:inherit;padding:.25rem} #map {flex:1;min-height:200px;background:#dce8ed} #status {padding:.5rem}
+.hint {font-size:.9em} .leaflet-container {font:inherit}
 </style>
 </head>
 <body>
-<header><strong>SIRAJ offline map</strong><span>Pan or zoom; click to see coordinates. This package contains basemap imagery only, not SIRAJ records.</span></header>
-<div id="map" aria-label="Offline map"></div>
-<div id="status" role="status">Tiles are available only where included in this package.</div>
+<header>
+<strong>SIRAJ offline map</strong>
+<label for="language" id="languageLabel">Language</label><select id="language"><option value="en">English</option><option value="ar">العربية</option></select>
+<label for="mode" id="modeLabel">Click mode</label><select id="mode"><option value="point">Point</option><option value="distance">Distance</option><option value="area">Area</option></select>
+<button id="undo" type="button">Undo point</button><button id="clear" type="button">Clear</button>
+<label for="lat" id="latLabel">Latitude</label><input id="lat" inputmode="decimal" autocomplete="off">
+<label for="lon" id="lonLabel">Longitude</label><input id="lon" inputmode="decimal" autocomplete="off">
+<button id="go" type="button">Go</button><button id="fit" type="button">Fit area</button>
+<span class="hint" id="hint">Basemap imagery only; no SIRAJ records. Click the map to select or measure.</span>
+</header>
+<div id="map" role="region" aria-label="Offline map"></div>
+<div id="status" role="status" aria-live="polite">Tiles are available only where included in this package.</div>
 <script src="leaflet/leaflet.js"></script>
 <script src="config.js"></script>
 <script src="viewer.js"></script>
