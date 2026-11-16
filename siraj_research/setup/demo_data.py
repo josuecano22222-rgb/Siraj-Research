@@ -427,12 +427,35 @@ def seed_demo_data():
         doc.save(ignore_permissions=True)
 
     # ------------------------------------------------------------------
-    # 7. Military Units
+    # 7. Armaments (master records — armament child table requires a Link)
+    # ------------------------------------------------------------------
+    armaments = {}
+    def _armament(code, name, category, spec=""):
+        aname = f"{name} {TAG}"
+        armaments[code] = _add("Armament", {
+            "naming_series": "MIL-ARM-.category.#####",
+            "armament_name": aname,
+            "category": category,
+            "origin_country": country_iq,
+            "specification": spec,
+            "primary_source": sources["iiss"],
+            "documentation_level": DOC_MINIMAL,
+            "authentication_level": AUTH_SINGLE,
+            "workflow_state": _workflow_state("Published"),
+        }, armament_name=aname)
+
+    _armament("m1a1m", "M1A1M Abrams MBT", "Vehicles", "Main battle tank, 120mm gun")
+    _armament("bmp1", "BMP-1 IFV", "Vehicles", "Infantry fighting vehicle, 73mm gun")
+    _armament("m113", "M113 APC", "Vehicles", "Armoured personnel carrier")
+    _armament("m198", "M198 155mm howitzer", "Artillery", "Towed howitzer")
+
+    # ------------------------------------------------------------------
+    # 8. Military Units
     # ------------------------------------------------------------------
     units = {}
 
     units["div6"] = _add("Military Unit", {
-        "naming_series": "MIL-DIV-.####",
+        "naming_series": "MIL-UNIT-.####",
         "unit_name": f"6th Mechanised Division (demo) {TAG}",
         "is_group": 1,
         "echelon": "Division",
@@ -458,9 +481,9 @@ def seed_demo_data():
 
     d6doc = frappe.get_doc("Military Unit", units["div6"])
     if not d6doc.armaments:
-        d6doc.append("armaments", {"armament_name": "M1A1M MBT (demo)", "quantity": 42, "condition": "Serviceable"})
-        d6doc.append("armaments", {"armament_name": "BMP-1 IFV (demo)", "quantity": 80, "condition": "Serviceable"})
-        d6doc.append("armaments", {"armament_name": "M198 155mm howitzer (demo)", "quantity": 18, "condition": "Limited"})
+        d6doc.append("armaments", {"armament": armaments["m1a1m"], "quantity": 42, "condition": "Serviceable"})
+        d6doc.append("armaments", {"armament": armaments["bmp1"],  "quantity": 80, "condition": "Serviceable"})
+        d6doc.append("armaments", {"armament": armaments["m198"],  "quantity": 18, "condition": "Limited"})
     _append_evidence(d6doc, sources["iiss"], claim="Established 2005; composition")
     d6doc.save(ignore_permissions=True)
 
@@ -489,8 +512,8 @@ def seed_demo_data():
     }, unit_name=f"22nd Mechanised Brigade (demo) {TAG}")
     b22 = frappe.get_doc("Military Unit", units["bde22"])
     if not b22.armaments:
-        b22.append("armaments", {"armament_name": "BMP-1 IFV (demo)", "quantity": 45, "condition": "Serviceable"})
-        b22.append("armaments", {"armament_name": "M113 APC (demo)", "quantity": 60, "condition": "Serviceable"})
+        b22.append("armaments", {"armament": armaments["bmp1"],  "quantity": 45, "condition": "Serviceable"})
+        b22.append("armaments", {"armament": armaments["m113"],  "quantity": 60, "condition": "Serviceable"})
     _append_evidence(b22, sources["iiss"], claim="Brigade garrison and commander")
     b22.save(ignore_permissions=True)
 
@@ -518,7 +541,7 @@ def seed_demo_data():
     }, unit_name=f"24th Motorised Brigade (demo) {TAG}")
 
     # ------------------------------------------------------------------
-    # 8. Operational Deployment
+    # 9. Operational Deployment
     # ------------------------------------------------------------------
     deploys = {}
     dep_start = today - _dt.timedelta(days=90)
@@ -542,7 +565,7 @@ def seed_demo_data():
     ddoc.save(ignore_permissions=True)
 
     # ------------------------------------------------------------------
-    # 9. Training Exercise
+    # 10. Training Exercise
     # ------------------------------------------------------------------
     t_start = today - _dt.timedelta(days=21)
     t_end = today - _dt.timedelta(days=14)
@@ -567,7 +590,7 @@ def seed_demo_data():
     }, exercise_name=f"Joint Readiness Exercise 'Eagle Resolve' (DEMO) {TAG}")
 
     # ------------------------------------------------------------------
-    # 10. Mission
+    # 11. Mission
     # ------------------------------------------------------------------
     missions = {}
     missions["op_baghdad"] = _add("Mission", {
@@ -584,7 +607,7 @@ def seed_demo_data():
     }, mission_name=f"Operation Baghdad Shield (DEMO) {TAG}")
 
     # ------------------------------------------------------------------
-    # 11. Research Events
+    # 12. Research Events
     # ------------------------------------------------------------------
     events = {}
     events["announce"] = _add("Research Event", {
@@ -637,7 +660,7 @@ def seed_demo_data():
     }, title_en=f"Founding of First Military College (DEMO) {TAG}")
 
     # ------------------------------------------------------------------
-    # 12. Relationships — power the Explorer network view
+    # 13. Relationships — power the Explorer network view
     # ------------------------------------------------------------------
     rel_count = 0
 
@@ -737,8 +760,10 @@ def teardown_demo_data():
         "Training Exercise": "exercise_name",
         "Mission": "mission_name",
         "Research Event": "title_en",
-        "Military Unit": "unit_name",       # FK → Division, Region, Person, Source, Classification
-        "Military Division": "division_name",  # FK → Region
+        "Unit Armament Holding": "name",   # child rows (Military Unit will cascade, but be safe)
+        "Military Unit": "unit_name",
+        "Armament": "armament_name",       # FK from Military Unit.armaments
+        "Military Division": "division_name",
         "Person": "name_en",
         "Institution": "name_en",
         "Source": "title",
