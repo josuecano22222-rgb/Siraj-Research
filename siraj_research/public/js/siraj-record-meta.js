@@ -107,3 +107,7 @@
 	window.sirajColours = colours;
 	window.sirajIcons = { types: GLYPHS, tools: TOOLS, svg: (n,o)=>svg(GLYPHS,n,o), toolSvg: (n,o)=>svg(TOOLS,n,o), pin, swatch, colour };
 })();
+
+// Build stamp — bump on every bundle change so stale caches are obvious in the console.
+window.SIRAJ_BUILD = '2026-11-16.maplibre-foundation.2';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| engines: maplibre (preferred), leaflet (compat)'); } catch (_) {}

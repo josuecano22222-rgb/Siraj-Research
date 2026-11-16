@@ -119,14 +119,18 @@ class SirajExplorer {
 		return {search, select};
 	}
 	async geography(data, renderId) {
-		// Global assets (siraj-record-meta, siraj-map-kit, siraj-map-toolbar,
-		// siraj-icons.css) are loaded via app_include_js/css so we only pull in
-		// the page-specific Leaflet/TopoJSON/vendor bits here.
+		// Explicitly require shared map assets here. In page contexts (like
+		// /app/siraj-explorer) app_include_js load order is not guaranteed to
+		// have completed by the time page JS runs, so we list them explicitly.
 		await frappe.require([
 			'/assets/siraj_research/vendor/leaflet/leaflet.css',
 			'/assets/siraj_research/vendor/leaflet/leaflet.js',
 			'/assets/siraj_research/vendor/leaflet-markercluster/leaflet.markercluster.js',
 			'/assets/siraj_research/vendor/topojson/topojson-client.min.js',
+			'/assets/siraj_research/js/siraj-map-kit.js',
+			'/assets/siraj_research/js/siraj-map-toolbar.js',
+			'/assets/siraj_research/css/siraj-map-toolbar.css',
+			'/assets/siraj_research/css/siraj-icons.css',
 			'/assets/siraj_research/css/siraj_explorer.css',
 		]);
 		if (renderId !== this.renderId) return;
