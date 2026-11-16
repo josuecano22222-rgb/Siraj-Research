@@ -96,3 +96,7 @@ The owner supplied successful fast-forwards to `39f77f9` and `d660c42` and post-
 ### Owner-reported a871a1c application and fixture tests
 
 The supplied output shows fetch and fast-forward `d660c42..a871a1c` succeeded, and post-merge status still listed the workspace JSON modification. The owner reported 4 Event journal, 5 coordinate transition, 3 permission assertion and 2 performance summary fixture tests passed, plus the Node DOM-stub viewer suite. No site operations or real Frappe acceptance were reported. Existing prototypes are not complete application features; all migration, security, permission, performance and imagery blockers remain open.
+
+### Owner-reported be01970 application and fixtures
+
+The owner supplied successful `a871a1c..be01970` fast-forward output and post-merge status showing the workspace JSON modification. Event integrity, coordinate shared, imagery inventory and imagery asset fixtures passed 4/4, 4/4, 4/4 and 3/3; the Node coordinate parser and offline viewer scripts passed. No failures or skips were shown. This is local fixture evidence only; no site migration, role testing, imagery licensing review or real-record export was run.
