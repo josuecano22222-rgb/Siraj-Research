@@ -17,8 +17,20 @@ LOOKUPS = (
     "Person Classification", "Person Status", "Place Type", "Relationship Type",
     "Source Reliability", "Source Type", "Specialization",
 )
-# Presence of ANY operational record stops the fixture; this check is intentionally
-# not limited to records visible to the calling user's list permissions.
+ARABIC_LOOKUPS = {
+    "Authentication Level": "مستوى التحقق", "Documentation Level": "مستوى التوثيق",
+    "Event Type": "نوع الحدث", "Expertise Area": "مجال الخبرة", "Governance System": "نظام الحوكمة",
+    "Institution Subcategory": "الفئة الفرعية للمؤسسة", "Institution Type": "نوع المؤسسة",
+    "Leadership Level": "مستوى القيادة", "Leadership Quality": "صفة قيادية",
+    "Military Branch": "الفرع العسكري", "Military Service Status": "حالة الخدمة العسكرية",
+    "Person Category": "فئة الشخص", "Person Classification": "تصنيف الشخص",
+    "Person Status": "حالة الشخص", "Place Type": "نوع المكان", "Relationship Type": "نوع العلاقة",
+    "Source Reliability": "موثوقية المصدر", "Source Type": "نوع المصدر", "Specialization": "التخصص",
+}
+FOLD_CLASSIFICATIONS = 16
+FOLD_RECORDS = 52
+
+# All sample operational records are marked; they are not access-isolated.
 OPERATIONAL_TYPES = (
     "Armament", "Command Appointment", "Command Region", "Event", "Institution",
     "Military Division", "Military Unit", "Mission", "Operational Deployment", "Person",
@@ -50,6 +62,8 @@ def _guard():
     # proof. Never overwrite an existing matching name OR unique code.
     fixed = [(doctype, "TEST " + doctype, "TEST_" + doctype.upper().replace(" ", "_")) for doctype in LOOKUPS]
     fixed += [("Relationship Type", "TEST Symmetric Relationship", "TEST_RELATIONSHIP_SYMMETRIC")]
+    fixed += [("Person Classification", f"TEST Fold Class {i:02}", f"TEST_FOLD_CLASS_{i:02}")
+              for i in range(1, FOLD_CLASSIFICATIONS + 1)]
     for doctype, name, code in fixed:
         if frappe.db.exists(doctype, name) or frappe.db.exists(doctype, {"code": code}):
             raise RuntimeError("Sample identifier already exists in " + doctype + "; no records were inserted.")
@@ -87,8 +101,11 @@ def seed_test_data():
         lookup = {}
         for doctype in LOOKUPS:
             label = "TEST " + doctype
-            lookup[doctype] = add(doctype, label_en=label, label_ar="اختبار " + doctype,
+            lookup[doctype] = add(doctype, label_en=label, label_ar="اختبار " + ARABIC_LOOKUPS[doctype],
                                   code="TEST_" + doctype.upper().replace(" ", "_"), is_system=0)
+        fold_classes = [add("Person Classification", label_en=f"TEST Fold Class {i:02}",
+                            label_ar=f"اختبار تصنيف مطوي {i:02}", code=f"TEST_FOLD_CLASS_{i:02}", is_system=0)
+                        for i in range(1, FOLD_CLASSIFICATIONS + 1)]
         symmetric_type = add("Relationship Type", label_en="TEST Symmetric Relationship", label_ar="اختبار علاقة متبادلة", code="TEST_RELATIONSHIP_SYMMETRIC", is_symmetric=1, is_system=0)
         scheme = add("External ID Scheme", code="TEST_SCHEME", label_ar="اختبار معرف", label_en="TEST Scheme")
         platform = add("Social Platform", code="TEST_PLATFORM", label_ar="اختبار منصة", label_en="TEST Platform")
@@ -104,9 +121,40 @@ def seed_test_data():
         institution = add("Institution", name_ar="اختبار مؤسسة", name_en="TEST Institution", display_name="TEST Institution", institution_type=lookup["Institution Type"], institution_subcategory=lookup["Institution Subcategory"], governance_system=lookup["Governance System"], country="Iraq", place=place, latitude=33.31, longitude=44.31, expertise=[{"expertise": lookup["Expertise Area"]}], social_accounts=[{"platform": platform, "handle": "test-only"}], evidence=evidence)
         person = add("Person", name_ar="اختبار شخص", name_en="TEST Person", display_name="TEST Person", nationality="Iraq", birthplace=place, category="Military", classification=lookup["Person Classification"], person_status=lookup["Person Status"], branch=lookup["Military Branch"], latitude=33.32, longitude=44.32, positions=[{"title_ar": "اختبار منصب", "title_en": "TEST Position", "institution": institution, "place": place}], specializations=[{"specialization": lookup["Specialization"]}], leadership_assessments=[{"quality": lookup["Leadership Quality"], "level": lookup["Leadership Level"], "evidence_note": "Fictional assessment"}], evidence=evidence)
         other_person = add("Person", name_ar="اختبار شخص ثان", name_en="TEST Second Person", display_name="TEST Second Person", nationality="Iraq", birthplace=place, category=lookup["Person Category"], latitude=33.34, longitude=44.34)
+        # Sparse records still satisfy required fields: "incomplete" means
+        # optional research information is absent, not invalid database rows.
+        add("Source", title="اختبار مصدر محدود البيانات", source_type=lookup["Source Type"])
+        add("Place", name_ar="اختبار مكان بلا إحداثيات", place_type=lookup["Place Type"])
+        add("Institution", name_ar="اختبار مؤسسة محدودة البيانات", name_original="TEST 研究機関",
+            institution_type=lookup["Institution Type"])
+        add("Person", name_ar="اختبار شخص عربي فقط", birthplace_as_stated="غير معروف",
+            birth_date_as_stated="نحو ١٩٨٠", birth_date_precision="approximate")
+        mixed = add("Person", name_ar="اختبار اسم متعدد اللغات", name_en="TEST Élodie O'Neil & Noor",
+                    name_original="تاقیکردنەوە — آزمایش — 研究者", birthplace=place,
+                    latitude=0, longitude=20, geo_precision="uncertain", geo_uncertainty_m=1000)
+        add("Person", name_ar="اختبار اسم بالخط السيريلي", name_en="TEST Амина Новак",
+            name_original="TEST Амина Новак", birthplace=place, birth_date="1980-01-01", birth_date_precision="year",
+            latitude=-33.4, longitude=-70.6, geo_precision="approximate")
+        add("Person", name_ar="اختبار اسم بالخط الديفاناغاري", name_original="TEST अनाम शोधकर्ता",
+            birthplace_as_stated="غير محدد", latitude=0, longitude=0)
+        for index, classification_name in enumerate(fold_classes, 1):
+            add("Person", name_ar=f"اختبار شخص تصنيف {index:02}", name_en=f"TEST Class Person {index:02}",
+                birthplace=place, nationality="Iraq", classification=classification_name)
+        for index in range(1, FOLD_RECORDS + 1):
+            add("Person", name_ar=f"اختبار شخص دفعة {index:02}", name_en=f"TEST Batch Person {index:02}",
+                birthplace=place, nationality="Iraq", classification=lookup["Person Classification"])
         event = add("Event", title_ar="اختبار حدث", title_en="TEST Event", display_name="TEST Event", event_type=lookup["Event Type"], place=place, latitude=33.33, longitude=44.33, evidence=evidence)
         for index, (source_type, source_name, dest_type, dest_name) in enumerate((("Person", person, "Institution", institution), ("Institution", institution, "Place", place), ("Place", place, "Event", event), ("Event", event, "Source", source), ("Person", other_person, "Person", person))):
             add("Relationship", relationship_type=symmetric_type if index == 4 else lookup["Relationship Type"], subject_type=source_type, subject=source_name, object_type=dest_type, object=dest_name, evidence=[] if index == 4 else evidence, end_date="2020-12-31" if index == 4 else None, is_current=int(index != 4))
+        # Parallel and self relationships exercise the inspector and matrix;
+        # the isolated Arabic-only person deliberately has no relationship.
+        add("Relationship", relationship_type=lookup["Relationship Type"], subject_type="Person", subject=other_person,
+            object_type="Person", object=person,
+            evidence=[{"source": source, "support_type": "contradicts", "supported_claim": "TEST disputed claim"},
+                      {"source": source, "support_type": "contextualizes", "supported_claim": "TEST context"}])
+        add("Relationship", relationship_type=lookup["Relationship Type"], subject_type="Person", subject=mixed,
+            object_type="Person", object=mixed)
+        add("Event", title_ar="اختبار حدث ناقص البيانات", event_type=lookup["Event Type"])
         region = add("Command Region", region_name="TEST Region", country="Iraq", is_group=1, region_type="Region")
         subregion = add("Command Region", region_name="TEST Subregion", country="Iraq", parent_region=region, region_type="Area")
         division = add("Military Division", division_name="TEST Division", region=subregion)
@@ -114,9 +162,12 @@ def seed_test_data():
         armament = add("Armament", armament_name="TEST Equipment", category="Support", evidence=evidence)
         unit = add("Military Unit", unit_name="TEST Parent Unit", echelon="Brigade", status="Active", direct_personnel=50, is_group=1, region=subregion, division=division, classification=classification, commander=person, latitude=33.35, longitude=44.35, armaments=[{"armament": armament, "quantity": 2}])
         child = add("Military Unit", unit_name="TEST Child Unit", echelon="Company", status="Training", direct_personnel=20, parent_unit=unit, region=subregion, classification=classification)
+        add("Military Unit", unit_name="TEST Unassigned Unit", echelon="Detachment", status="Standby", direct_personnel=0)
         deployment = add("Operational Deployment", deployment_name="TEST Deployment", unit=unit, start_date="2020-01-01", status="Planned", latitude=33.36, longitude=44.36)
         add("Mission", mission_name="TEST Mission", unit=child, deployment=deployment, start_date="2020-01-02", status="Planned")
+        add("Mission", mission_name="TEST Ongoing Mission", unit=unit, start_date="2020-03-01", status="Ongoing")
         add("Training Exercise", exercise_name="TEST Exercise", unit=child, start_date="2020-02-01", end_date="2020-02-03", participant_count=10)
+        add("Training Exercise", exercise_name="TEST Single-day Exercise", unit=unit, start_date="2020-04-01", end_date="2020-04-01", participant_count=5, assessment="Needs Improvement")
         add("Command Appointment", unit=unit, commander=person, role="Commanding Officer", assigned_date="2020-01-01")
         missing = [doctype for doctype in (*LOOKUPS, *OPERATIONAL_TYPES, *CHILD_TYPES, "Governorate", "District", "Municipality", "Village", "Community", "External ID Scheme", "Social Platform") if not created[doctype]]
         if missing:

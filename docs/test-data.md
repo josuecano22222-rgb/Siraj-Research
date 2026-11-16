@@ -12,7 +12,17 @@ The intended dataset covers all **50 currently bundled SIRAJ DocTypes**: synthet
 
 Top-level sample records use `TEST` in their labels/codes where the schema permits; each operational record also has `TEST SAMPLE — fictional data, not a real record.` in its researcher notes. Child rows are identified through their sample parents and links; they do not all have a visible TEST label. The command reports counts and the newly created **parent** document IDs by DocType; retain that report securely for review. This is a convenient marker, **not an access-control boundary, unique ownership proof, or reliable automatic deletion rule**. Samples remain visible wherever the user's ordinary permissions permit. Do not delete records based only on a prefix or marker; records may later be edited or linked to real data. There is no sample-only cleanup command.
 
-The graph contains both evidenced directed relationships and a symmetric ended relationship without evidence; the military records include a region hierarchy, parent and child unit, and operations. All names, descriptions and coordinates are fictional examples, not claims about actual people or organizations. The fixture is small and is not a substitute for scale, security or migration testing.
+### Scenario inventory
+
+| Scenario | Included examples |
+| --- | --- |
+| Languages and scripts | Arabic-only records, bilingual Arabic/English records, French accents, Kurdish/Persian text, Japanese, Cyrillic and Devanagari. Other-language samples use original-name text; the fixture does not assign a Frappe Language link or claim complete language/locale coverage. Lookup labels have Arabic and English text. |
+| Completeness | An evidence-backed Person, Institution, Place and Event, plus sparse but schema-valid Person, Institution, Place, Event and Source records with optional fields omitted. Mandatory Arabic names are retained where the schema requires them. “Incomplete” does not mean deliberately inserting invalid records. |
+| Dates and geography | Approximate and year-precision dates; missing coordinates, `(0, 0)`, one zero coordinate, an uncertainty radius, and a point in the southern and western hemispheres. The map deliberately excludes `(0, 0)` as ambiguous. Coordinates are illustrative, not claims about real places. |
+| Relationships | Directed and symmetric, ongoing and ended; evidenced and without evidence; supporting, contradicting and contextualizing evidence; parallel links, a self-link and isolated records. |
+| Structures | Parent/child region and unit hierarchies, an unassigned unit, operations with differing statuses, 16 synthetic person classifications, and 52 additional records in one classification. The latter exercise folded group counts and the 48-record leaf limit. |
+
+With the current definitions, a successful run would create approximately **146 parent records plus 19 child rows** (including 74 People), alongside the existing settings singleton. Counts can change as the fixture evolves. All values are fictional examples, not claims about actual people or organizations. The fixture is not a substitute for permission/role, large-scale, migration, translation-quality, accessibility, invalid-input or concurrency testing. Test those separately; it does not create users or grant roles.
 
 ## Safety checks and failures
 

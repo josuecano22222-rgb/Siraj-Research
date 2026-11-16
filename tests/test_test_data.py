@@ -39,6 +39,8 @@ class FakeDoc:
             val = self.values.get(name, field.get('default'))
             if field.get('reqd') and (val is None or val == ''):
                 raise AssertionError(f'{self.doctype}: missing {name}')
+            if isinstance(val, str) and field.get('length') and len(val) > field['length']:
+                raise AssertionError(f'{self.doctype}: {name} exceeds length')
             if val and field['fieldtype'] == 'Select' and val not in field.get('options', '').splitlines():
                 raise AssertionError(f'{self.doctype}: invalid {name}={val}')
             if val and field['fieldtype'] == 'Link' and not self.api.exists(field['options'], val):
@@ -62,11 +64,17 @@ class FakeDoc:
 class FakeChild:
     def __init__(self, api, doctype, values):
         self.doctype = doctype
+        self.values = dict(values)
         fields = {f.get('fieldname'): f for f in SCHEMAS[doctype]['fields']}
         assert not (set(values) - set(fields)), (doctype, values)
         for key, field in fields.items():
             if field.get('reqd') and values.get(key, field.get('default')) in (None, ''):
                 raise AssertionError(f'{doctype}: missing {key}')
+            val = values.get(key, field.get('default'))
+            if val and field['fieldtype'] == 'Select' and val not in field.get('options', '').splitlines():
+                raise AssertionError(f'{doctype}: invalid select {key}')
+            if isinstance(val, str) and field.get('length') and len(val) > field['length']:
+                raise AssertionError(f'{doctype}: {key} exceeds length')
             if values.get(key) and field['fieldtype'] == 'Link' and not api.exists(field['options'], values[key]):
                 raise AssertionError(f'{doctype}: missing link {key}')
 
@@ -117,11 +125,94 @@ class FixtureTest(unittest.TestCase):
     def test_coverage_links_and_repeat_guard(self):
         result = self.module.seed_test_data()
         self.assertEqual(set(result['created']) | {result['existing_singleton']}, set(SCHEMAS))
-        self.assertEqual(result['created']['Relationship'], 5)
-        self.assertEqual(result['created']['Military Unit'], 2)
+        self.assertEqual(result['created']['Relationship'], 7)
+        self.assertEqual(result['created']['Military Unit'], 3)
+        self.assertEqual(result['created']['Person'], 6 + self.module.FOLD_CLASSIFICATIONS + self.module.FOLD_RECORDS)
         self.assertTrue(all(result['created'][name] for name in self.module.CHILD_TYPES))
         with self.assertRaisesRegex(RuntimeError, 'Sample identifier already exists'):
             self.module.seed_test_data()
+
+    def test_multilingual_sparse_and_relationship_scenarios(self):
+        result = self.module.seed_test_data()
+        people = [self.frappe.records['Person'][name] for name in result['created_names']['Person']]
+        sparse = next(p for p in people if p.values.get('name_ar') == 'اختبار شخص عربي فقط')
+        self.assertFalse(sparse.values.get('name_en'))
+        self.assertFalse(sparse.values.get('latitude'))
+        self.assertEqual(sparse.values.get('birth_date_precision'), 'approximate')
+        self.assertEqual(sparse.values.get('birthplace_as_stated'), 'غير معروف')
+        mixed = next(p for p in people if p.values.get('name_en') == "TEST Élodie O'Neil & Noor")
+        self.assertIn('研究者', mixed.values['name_original'])
+        self.assertIn('آزمایش', mixed.values['name_original'])
+        self.assertEqual((mixed.values['latitude'], mixed.values['longitude']), (0, 20))
+        devanagari = next(p for p in people if 'अनाम' in p.values.get('name_original', ''))
+        self.assertEqual((devanagari.values['latitude'], devanagari.values['longitude']), (0, 0))
+        cyrillic = next(p for p in people if 'Новак' in p.values.get('name_original', ''))
+        self.assertLess(cyrillic.values['latitude'], 0)
+        self.assertEqual(cyrillic.values['birth_date_precision'], 'year')
+        full = next(p for p in people if p.values.get('name_en') == 'TEST Person')
+        self.assertTrue(full.values.get('evidence'))
+        self.assertTrue(full.values.get('leadership_assessments'))
+        edges = [self.frappe.records['Relationship'][name].values for name in result['created_names']['Relationship']]
+        self.assertFalse(any(sparse.name in (edge['subject'], edge['object']) for edge in edges))
+        self.assertTrue(any(edge['subject'] == edge['object'] == mixed.name for edge in edges))
+        pairs = [(edge['subject_type'], edge['subject'], edge['object_type'], edge['object']) for edge in edges]
+        self.assertLess(len(set(pairs)), len(pairs))
+        self.assertTrue(any(edge.get('end_date') and not edge.get('evidence') for edge in edges))
+        self.assertTrue(any(edge.get('evidence') for edge in edges))
+        supports = {child.values['support_type'] for edge in edges for child in edge.get('evidence', [])}
+        self.assertEqual(supports, {'supports', 'contradicts', 'contextualizes'})
+        for doctype in self.module.LOOKUPS:
+            record = self.frappe.records[doctype]['TEST ' + doctype]
+            self.assertIn('اختبار', record.values['label_ar'])
+            self.assertNotIn(doctype, record.values['label_ar'])
+
+    def test_fixture_exercises_folded_group_and_record_counts(self):
+        from test_visualization import FakeFrappe as VisualizationFrappe, load_visualization
+        self.module.seed_test_data()
+        rows = []
+        for name, doc in self.frappe.records['Person'].items():
+            values = doc.values
+            rows.append({'name': name, 'nationality': values.get('nationality'),
+                         'classification': values.get('classification'), 'workflow_state': 'Draft',
+                         'display_name': values.get('display_name') or values.get('name_en') or values.get('name_ar')})
+        viz = load_visualization(VisualizationFrappe())
+        dimensions = ('nationality', 'classification', 'workflow_state')
+        counted = viz._structure_counts(rows, dimensions, 'display_name')
+        children = viz._structure_children(counted, dimensions)
+        iraq = next(child for child in children if child['key'] == 'Iraq')
+        folded_groups = next(child for child in iraq['children'] if child.get('folded_groups'))
+        self.assertGreater(folded_groups['folded_groups'], 0)
+        self.assertEqual(sum(child['count'] for child in iraq['children']), iraq['count'])
+        common = next(child for child in iraq['children'] if child['label'] == 'TEST Person Classification')
+        workflow = common['children'][0]
+        self.assertGreater(workflow['count'], viz.STRUCTURE_MAX_LEAVES)
+        self.assertGreater(workflow['children'][-1]['folded_records'], 0)
+        self.assertEqual(sum(child['count'] for child in workflow['children']), workflow['count'])
+
+    def test_fixture_explorer_graph_and_coordinate_cases(self):
+        from test_visualization import FakeFrappe as VisualizationFrappe, load_visualization
+        result = self.module.seed_test_data()
+        types_to_copy = ('Person', 'Institution', 'Place', 'Event', 'Source', 'Military Unit', 'Operational Deployment', 'Relationship')
+        rows = {doctype: [{'name': name, **doc.values} for name, doc in self.frappe.records[doctype].items()] for doctype in types_to_copy}
+        viz = load_visualization(VisualizationFrappe(rows))
+        graph = viz.relationship_data()
+        self.assertEqual(len(graph['nodes']), sum(result['created'][dt] for dt in ('Person', 'Institution', 'Place', 'Event', 'Source')))
+        self.assertEqual(len(graph['edges']), result['created']['Relationship'])
+        points = viz.geographic_data()['points']
+        point_ids = {(point['doctype'], point['name']) for point in points}
+        people = self.frappe.records['Person']
+        zero = next(doc for doc in people.values() if 'अनाम' in doc.values.get('name_original', ''))
+        single_zero = next(doc for doc in people.values() if doc.values.get('name_en') == "TEST Élodie O'Neil & Noor")
+        sparse = next(doc for doc in people.values() if doc.values.get('name_ar') == 'اختبار شخص عربي فقط')
+        self.assertNotIn(('Person', zero.name), point_ids)
+        self.assertNotIn(('Person', sparse.name), point_ids)
+        self.assertIn(('Person', single_zero.name), point_ids)
+
+    def test_fold_class_collision_is_detected_before_writes(self):
+        self.frappe.records['Person Classification'] = {'existing': {'code': 'TEST_FOLD_CLASS_16'}}
+        with self.assertRaisesRegex(RuntimeError, 'Person Classification'):
+            self.module.seed_test_data()
+        self.assertNotIn('Authentication Level', self.frappe.records)
 
     def test_collision_blocks_seeding_before_writes(self):
         self.module._assert_event_safe = self.real_event_guard
