@@ -843,16 +843,22 @@ def seed_demo_data():
         # Social accounts
         persons[key] = _add("Person", vals, name_en=f"{en} {TAG}")
         pdoc = frappe.get_doc("Person", persons[key])
-        for plat, handle in soc.items():
-            url_tpl = {"twitter":"https://x.com/","facebook":"https://facebook.com/",
-                       "telegram":"https://t.me/","youtube":"https://youtube.com/@",
-                       "instagram":"https://instagram.com/"}.get(plat,"")
-            pdoc.append("social_accounts", {
-                "platform": plats.get(plat),
-                "handle": handle,
-                "url": f"{url_tpl}{handle}" if url_tpl else None,
-                "verified": 1 if plat == "twitter" else 0,
-            })
+        for code, val in soc.items():
+            if code in schemes:
+                pdoc.append("external_identifiers", {
+                    "scheme": schemes[code],
+                    "identifier_value": val,
+                })
+            elif code in plats:
+                url_tpl = {"twitter":"https://x.com/","facebook":"https://facebook.com/",
+                           "telegram":"https://t.me/","youtube":"https://youtube.com/@",
+                           "instagram":"https://instagram.com/"}.get(code,"")
+                pdoc.append("social_accounts", {
+                    "platform": plats[code],
+                    "handle": val,
+                    "url": f"{url_tpl}{val}" if url_tpl else None,
+                    "verified": 1 if code == "twitter" else 0,
+                })
         # Evidence
         _ev(pdoc, sources["mod_press"], claim="Active posting")
         pdoc.save(ignore_permissions=True)
