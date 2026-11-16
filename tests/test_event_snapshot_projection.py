@@ -1,7 +1,7 @@
 """In-memory fixtures, not real Frappe records or migration tests."""
 import copy
 import unittest
-from siraj_research.setup.event_snapshot_projection import PlanError, project, rollback_projection
+from siraj_research.setup.event_snapshot_projection import PlanError, project, rollback_projection, inspect_projection
 
 
 def row(dt, name, **values): return {'doctype': dt, 'name': name, 'values': values}
@@ -58,6 +58,22 @@ class ProjectionTests(unittest.TestCase):
             with self.subTest(badrows=badrows), self.assertRaises(PlanError): project(self.events,self.refs,badrows)
         with self.assertRaises(PlanError):
             project(self.events,self.refs + [ref('Event','r','t','n','c','calendar')],self.rows)
+
+    def test_pre_post_report_detects_missing_extra_and_changed_rows(self):
+        result = project(self.events, self.refs, self.rows)
+        ok = inspect_projection(self.events, self.refs, self.rows, result['rows'])
+        self.assertTrue(ok['model_matches'])
+        self.assertEqual(ok['pre']['research_events'], 1)
+        changed = copy.deepcopy(result['rows'])
+        changed = [r for r in changed if (r['doctype'], r['name']) != ('File', 'file')]
+        next(r for r in changed if (r['doctype'], r['name']) == ('Evidence','child'))['values']['idx'] = 2
+        changed.append(row('Person','extra'))
+        report = inspect_projection(self.events, self.refs, self.rows, changed)
+        self.assertFalse(report['model_matches'])
+        self.assertEqual(report['post']['missing'], [{'doctype':'File','name':'file'}])
+        self.assertEqual(report['post']['unexpected'], [{'doctype':'Person','name':'extra'}])
+        self.assertEqual(report['post']['changed'], [{'doctype':'Evidence','name':'child'}])
+        self.assertIn('not a real-site integrity report', report['warning'])
 
     def test_typed_comparison_does_not_equate_boolean_and_integer(self):
         result = project(self.events, self.refs, self.rows)

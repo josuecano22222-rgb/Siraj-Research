@@ -125,3 +125,27 @@ def rollback_projection(rows, journal):
         row = copy.deepcopy(pair['before'])
         current[(row['doctype'], row['name'])] = row
     return [current[key] for key in sorted(current)]
+
+
+def inspect_projection(events, references, before, after):
+    """Compare supplied projected JSON rows with an independently recomputed plan.
+
+    This is not a site inventory or database integrity audit. The expected state
+    intentionally retains legacy Event rows. Output contains row identifiers and
+    must be treated as sensitive. A matching result proves only that supplied
+    snapshots match the prototype's narrow model, not that a migration is safe.
+    """
+    result = project(events, references, before)
+    expected = _index(result['rows'])
+    observed = _index(after)
+    expected_keys, observed_keys = set(expected), set(observed)
+    missing = sorted(expected_keys - observed_keys)
+    unexpected = sorted(observed_keys - expected_keys)
+    changed = sorted(key for key in expected_keys & observed_keys if not _same(expected[key], observed[key]))
+    def identities(keys):
+        return [{'doctype': dt, 'name': name} for dt, name in keys]
+    return {'pre': result['counts'],
+            'post': {'expected_rows': len(expected), 'observed_rows': len(observed),
+                     'missing': identities(missing), 'unexpected': identities(unexpected), 'changed': identities(changed)},
+            'model_matches': not (missing or unexpected or changed),
+            'warning': 'Only the supplied JSON snapshots were compared; this is not a real-site integrity report or migration approval.'}

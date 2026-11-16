@@ -26,3 +26,5 @@ It has only fake-Frappe tests and must first be validated in an authorized isola
 ## Current delivery boundary
 
 The Event metadata inventory delivery does not change any coordinate schema, values, picker behavior or migration hooks. Keep the six Float-to-Data worktree edits out of deployment until the independent typed-value backup, null/default handling, conversion, reverse recovery and Event/patch dependencies above have been implemented and rehearsed. No coordinate migration or real coordinate audit has been run.
+
+No coordinate record-level preview or reversible migration is added by the snapshot/security milestone. The aggregate audit remains read-only and mock-tested; a safe record-level exception mechanism and its sensitive-output handling are still required before migration can be prepared.

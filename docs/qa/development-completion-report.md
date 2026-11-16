@@ -53,3 +53,9 @@ The owner applied `f44f779` and passed both inventory stub tests; they did not r
 ## Owner-reported 13dd69e tests and new prototypes
 
 The owner applied `13dd69e` and passed six pure planner tests and the synthetic load test; neither exercised a real site. This delivery adds in-memory Event snapshot projection/reversal with comparison guards and an offline read-only local snapshot panel. They are prototypes tested on synthetic fixtures; neither is a database migration, site rollback, authorized record exporter or synchronization mechanism. Viewer files are unencrypted; permission/revocation and local customization remain unresolved. Delivery state: **IMPLEMENTED and UPLOADED on push; AWAITING LOCAL TESTING**. No migration, database operation or actual performance test was performed.
+
+## Owner-reported 1bc767d tests and security components
+
+The owner applied `1bc767d` and passed five Event projection and three offline-package fixture tests. `test_offline_records.js` failed to start because `jsdom` was not installed; no DOM test result was produced. It is replaced with a Node-only DOM stub test in this delivery. No real Frappe test is implied.
+
+This delivery adds a non-whitelisted current-session candidate collector and HMAC/expiry prototype (`offline-snapshot-security.md`), a synthetic Event projection integrity comparison, and an isolated bench-only SQL-call counter (`link-query-performance.md`). They are partial components, not a production offline export, asymmetric offline verification, real migration/rollback or measured performance optimization. The v1 viewer remains unverified; the Event collision, actual site permissions and real environment behavior remain open. **IMPLEMENTED and UPLOADED on push; AWAITING LOCAL TESTING**. No actual records, migration, load test or database change was performed.

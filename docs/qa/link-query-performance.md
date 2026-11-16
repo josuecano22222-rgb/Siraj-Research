@@ -20,3 +20,33 @@ await sirajLoadProbe('place_tree_parent', 1, 1, 'EXISTING-PLACE-NAME')
 The report endpoint has an `ignore_prepared_report=1` request flag but site overrides/customizations must be reviewed; failures may cause server-side Error Log writes. Parent identifiers may be retained by browser/proxy/server logs, though the probe's summary omits them. HTTP 200 is not proof of security or identical data. Verify the result privately and capture only aggregate metrics and pass/fail. The probe stops scheduling new calls on first non-200/network/size error; concurrent calls already sent and server processing can continue. Its bounds are client-only. Review the safety plan and test smaller representative workloads before increasing requests. This measures current code; a security-equivalent optimized implementation does not yet exist, so no optimized measurement or comparison can honestly be reported.
 
 The Explorer relationship map (`visualization.relationship_data`) builds a permission-visible Source/node set and checks membership per edge; the 60c2809 primary-source correction itself adds no per-edge `can_read_link` list query. The **separate Entity Relationship Graph report** uses `can_read_link` for endpoint checks, with a per-report cache, and selected-parent Place tree expansion uses it once per request. Relationship-map scans and document permission checks can still be expensive; measure them separately instead of attributing their total latency to the report/tree change.
+
+## Optional server-side SQL-call counter (fixture-tested only)
+
+`link_query_probe.measure` is non-whitelisted, directly invokes the report or tree once to three times as an existing user and counts calls through the current process's `frappe.db.sql`, cumulative SQL-call wall time, function elapsed time and result row counts. The required confirmation string does not prove a site is isolated. It temporarily wraps that process's database method and restores it and the original session user in `finally`. It never returns SQL text, parameter values, record names or response rows. User lookup, session switching and the preliminary report-permission check occur outside the timed SQL wrapper; other database pathways, lazy iteration, query plans, cache effects and server resources may not be counted; timings include instrumentation overhead and are **not HTTP**. The report invocation checks report permission but does not reproduce every query-report wrapper, site override or frontend operation. An error can be logged or have hook side effects. `bench execute` commits on success and Frappe's exception fallback may repeat a failed call; capture the first sanitized error and stop. This helper has only stub tests.
+
+Only on an existing explicitly authorized isolated environment, after review of all effective hooks and agreement on thresholds, the operator can run (replace locally; do not report identifiers):
+
+```bash
+bench --site ISOLATED-SITE execute siraj_research.setup.link_query_probe.measure --kwargs '{"user":"EXISTING-USER","workload":"relationship_report","repetitions":1,"confirm":"ISOLATED-TEST-APPROVED"}'
+bench --site ISOLATED-SITE execute siraj_research.setup.link_query_probe.measure --kwargs '{"user":"EXISTING-USER","workload":"place_tree","repetitions":1,"parent":"EXISTING-PLACE","confirm":"ISOLATED-TEST-APPROVED"}'
+```
+
+Protect shell history, error logs and output; these commands contain account/record identifiers and the row counts may be sensitive. No accounts or records should be created for the test on the working site. Start with one call; do not scale without separate approval. Capture revisions, matching dataset/cache/role/topology, per-run count/time/row count and external CPU/memory/DB telemetry; row-count equality alone does not establish identical authorized results. Stop on error or agreed limits. For baseline comparison, use equivalent separately isolated copies with approved revisions `e42ba8f` and `60c2809`; the helper did not exist in those revisions. An operator may supply the exact same reviewed probe module via a protected external `PYTHONPATH` in both environments without changing either checkout, but this arrangement and module path must first be tested on the isolated copies. Never downgrade or switch the working checkout. The browser probe measures HTTP time separately. No results or optimization claims exist yet.
+
+To make the **same** probe importable in both authorized isolated revisions without switching a checkout, an operator can prepare a fresh private temporary module directory on each isolated host from the reviewed `link_query_probe.py` (the source is this delivery, not the older revision):
+
+```bash
+PROBE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/siraj-probe-XXXXXXXX")
+cp /home/frappe/frappe-bench/apps/siraj_research/siraj_research/setup/link_query_probe.py "$PROBE_DIR/siraj_link_query_probe.py"
+sha256sum "$PROBE_DIR/siraj_link_query_probe.py"
+```
+
+Verify both printed digests match before comparing. In each isolated bench, substitute its site and existing account/parent **locally**, and run the same commands with the same `PROBE_DIR` on that host:
+
+```bash
+PYTHONPATH="$PROBE_DIR${PYTHONPATH:+:$PYTHONPATH}" bench --site ISOLATED-SITE execute siraj_link_query_probe.measure --kwargs '{"user":"EXISTING-USER","workload":"relationship_report","repetitions":1,"confirm":"ISOLATED-TEST-APPROVED"}'
+PYTHONPATH="$PROBE_DIR${PYTHONPATH:+:$PYTHONPATH}" bench --site ISOLATED-SITE execute siraj_link_query_probe.measure --kwargs '{"user":"EXISTING-USER","workload":"place_tree","repetitions":1,"parent":"EXISTING-PLACE","confirm":"ISOLATED-TEST-APPROVED"}'
+```
+
+The example source path must refer to the reviewed new probe file, not an older copy; adjust it locally if necessary. `mktemp`/copy create files and Python may write a bytecode cache in the temporary directory; use protected storage under the approved isolated host's policy. No baseline commands should be run on the working site, and no actual results have been collected.

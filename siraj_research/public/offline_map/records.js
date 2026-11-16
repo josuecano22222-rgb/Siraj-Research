@@ -50,7 +50,7 @@
         for (const node of matching.slice(0, MAX_RESULTS)) {
             const li = document.createElement('li'); li.append(button(node.doctype + ': ' + node.name, () => open(node))); results.append(li);
         }
-        el('record-state').textContent = 'Disconnected, read-only snapshot (claimed date: ' + snapshot.created_at + '). ' + matching.length + ' matching records; showing at most ' + MAX_RESULTS + '. Permissions are not rechecked.';
+        el('record-state').textContent = 'UNVERIFIED disconnected read-only snapshot (claimed date: ' + snapshot.created_at + '). ' + matching.length + ' matching records; showing at most ' + MAX_RESULTS + '. Permissions are not rechecked.';
     }
     function reset(message) {
         snapshot = null; nodes = new Map();
