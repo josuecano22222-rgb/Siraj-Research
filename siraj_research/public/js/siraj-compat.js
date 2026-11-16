@@ -65,42 +65,122 @@
 	 */
 	function sirajStylizeMapViewMarkers() {
 		if (!window.L || !window.frappe || !frappe.views || !frappe.views.MapView) return;
-		const MV = frappe.views.MapView.prototype;
-		if (MV._sirajStyled) return;
-		MV._sirajStyled = true;
-		const origSetup = MV.setup_view || function () {};
-		MV.setup_view = function () {
+		const MV = frappe.views.MapView;
+		if (MV.prototype._sirajStyled) return;
+		MV.prototype._sirajStyled = true;
+		const origSetup = MV.prototype.setup_view || function () {};
+		MV.prototype.setup_view = function () {
 			const mv = this;
+			// Remove any pre-existing OSM tile layers Frappe adds during setup by
+			// hooking tilelayer creation BEFORE calling the original. The default
+			// must be zero external requests (offline Natural Earth basemap), with
+			// OSM an explicit opt-in per user.
+			const nativeTileLayer = L.tileLayer;
+			let offlineLayer = null, onlineLayer = null, basemapBtn = null;
+			L.tileLayer = function (url, opts) {
+				// Intercept the OSM tile URL Frappe uses and swap it for a placeholder;
+				// we add the real (offline/online) layers below.
+				if (typeof url === 'string' && /openstreetmap|osm|tile\.openstreetmap/i.test(url)) {
+					const layer = new L.LayerGroup();
+					layer._sirajPlaceholder = true;
+					return layer;
+				}
+				return nativeTileLayer.call(this, url, opts);
+			};
 			const result = origSetup.apply(mv, arguments);
+			L.tileLayer = nativeTileLayer;        // restore
 			try {
 				const map = mv.map;
 				if (!map) return result;
-				// Replace default blue markers with doctype-coloured SIRAJ pins
-				// the moment they are added, so the list Map view matches the
-				// Explorer and form maps.
+				// Add the offline Natural Earth basemap (same topojson the Explorer
+				// uses). We fetch it once per page load and cache on the window.
+				const addOffline = () => {
+					if (offlineLayer) { offlineLayer.addTo(map); return; }
+					offlineLayer = new L.LayerGroup();
+					// If the world-atlas topojson is already cached, draw it now.
+					if (window._sirajOfflineLayer) {
+						window._sirajOfflineLayer.addTo(offlineLayer);
+						offlineLayer.addTo(map);
+					} else {
+						fetch('/assets/siraj_research/vendor/world-atlas/countries-110m.json')
+							.then(r => r.json())
+							.then(world => {
+								if (!window.topojson) return;
+								const gj = topojson.feature(world, world.objects.countries);
+								window._sirajOfflineLayer = L.geoJSON(gj, { interactive:false, style:{color:'#a4b4a8',weight:0.7,fillColor:'#e8e4cf',fillOpacity:1} });
+								window._sirajOfflineLayer.addTo(offlineLayer);
+							}).catch(()=>{});
+						offlineLayer.addTo(map);
+					}
+				};
+				const goOffline = () => {
+					if (onlineLayer) { map.removeLayer(onlineLayer); onlineLayer = null; }
+					addOffline();
+					if (basemapBtn) basemapBtn.innerHTML = '<span style="padding:2px 4px;font-size:10px">☁ Offline</span>';
+				};
+				const goOnline = () => {
+					if (offlineLayer) { map.removeLayer(offlineLayer); }
+					if (!onlineLayer) {
+						onlineLayer = nativeTileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+							maxZoom:19, attribution:'&copy; OpenStreetMap contributors',
+						});
+					}
+					onlineLayer.addTo(map);
+					if (basemapBtn) basemapBtn.innerHTML = '<span style="padding:2px 4px;font-size:10px">🌐 Online</span>';
+				};
+				addOffline();
+				// A small basemap toggle in the top-left of the map (not a toolbar dock
+				// because MapView does not include our toolbar infrastructure by default).
+				const SirajBasemap = L.Control.extend({
+					onAdd: function (m) {
+						const c = L.DomUtil.create('div', 'leaflet-bar');
+						basemapBtn = L.DomUtil.create('button', '', c);
+						basemapBtn.type = 'button';
+						basemapBtn.title = __('Basemap (click to toggle online tiles — sends requests to OpenStreetMap)');
+						L.DomEvent.disableClickPropagation(c);
+						L.DomEvent.on(basemapBtn, 'click', e => {
+							L.DomEvent.stopPropagation(e); L.DomEvent.preventDefault(e);
+							if (onlineLayer) goOffline(); else goOnline();
+						});
+						goOffline();
+						return c;
+					},
+				});
+				new SirajBasemap({ position: 'topleft' }).addTo(map);
+
+				// Restyle markers to SIRAJ pins.
 				map.on('layeradd', ev => {
 					const layer = ev.layer;
 					if (!layer || !layer.options || !(layer instanceof L.Marker) || layer.options._sirajStyled) return;
 					const icon = layer.options.icon;
-					if (icon && icon.options && /default-icon|leaflet-zoom|-blue/i.test(String(icon.options.className || '') + (icon.options.iconUrl || ''))) {
+					if (!icon || !icon.options) return;
+					const isDefault = /default-icon|leaflet-zoom|-blue/i.test(String(icon.options.className||'') + (icon.options.iconUrl||''));
+					const isBlue  = icon.options.iconUrl && /marker-icon/i.test(icon.options.iconUrl);
+					if (isDefault || isBlue) {
 						const dt = mv.doctype || (frappe.get_route && frappe.get_route()[1]);
 						const color = (window.sirajColours && window.sirajColours[dt]) || '#3577c0';
 						if (window.sirajIcons && window.sirajIcons.pin) {
 							layer.setIcon(L.divIcon({
-								className: 'sx-pin-wrapper', iconSize:[32,32], iconAnchor:[16,16],
-								html: window.sirajIcons.pin(dt || 'Person', color, 32)
+								className:'sx-pin-wrapper', iconSize:[32,32], iconAnchor:[16,16],
+								html: window.sirajIcons.pin(dt || 'Person', color, 32),
 							}));
 						}
 						layer.options._sirajStyled = true;
 					}
 				});
-			} catch (_) { /* never break the map view because styling failed */ }
+				// Add a "Mapped N of total" status line so the pagination (20/100/500/2500) is obvious.
+				if (mv.$paging_area && mv.data && mv.data.length) {
+					const total = mv.total_count || mv.data.length;
+					const note = $('<div class="text-muted small" style="padding:4px 8px"></div>')
+						.text(__('Showing {0} of {1} records on the map.', [mv.data.length, total]));
+					mv.$wrapper.find('.map-container').after(note);
+				}
+			} catch (err) { console.warn('[SIRAJ] Map view styling failed:', err); }
 			return result;
 		};
 	}
 	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sirajStylizeMapViewMarkers, { once: true });
 	else sirajStylizeMapViewMarkers();
-	// Re-attempt after each route change because MapView is constructed on demand.
 	$(document).on('page_change list_view_rendered', () => setTimeout(sirajStylizeMapViewMarkers, 100));
 
 	/* ---------- 2) BaseChart ResizeObserver lifecycle fix ----------
