@@ -88,3 +88,7 @@ The supplied terminal output shows a successful fetch and fast-forward from `4cf
 ### Current fixture-only implementation milestones
 
 `410ece9` adds supplied-corpus Event candidate discovery, explicit unverified classifications and non-mutating preflight/postflight/rollback model gates. `fcb4144` hardens experimental signed-body parsing and payload validation, with synthetic rotation/replay/context cases. The Place-tree synthetic suite adds per-user/owner/share/hook models and a reproducible stub-call benchmark. **UPLOADED on push / AWAITING OWNER LOCAL FIXTURE TESTS**. These are not a complete real-site reference inventory, real Frappe permission or performance evidence, authenticated key policy, current authorization, migration or database rollback. Threat model and Event specification remain **PROPOSALS**. No real-record export, key provisioning, database operation or deployment is enabled or authorized by these milestones.
+
+### Owner-reported d660c42 application and tests
+
+The owner supplied successful fast-forwards to `39f77f9` and `d660c42` and post-merge status showing the workspace JSON modification still present. The seven Python fixture suites (8/6/6/5/5/3/2) and all three Node scripts passed; scanner and synthetic benchmark completed. See `completion-matrix.md` for exact scope and measured stub-only results. No site migration, real export, real permission test or real benchmark is implied.

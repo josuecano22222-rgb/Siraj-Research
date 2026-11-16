@@ -1,6 +1,6 @@
 # Development completion report — audit in progress
 
-This is a living report, not a production readiness certificate. Definition of done is **not met**. The working Frappe environment exists locally on the owner's machine but is not directly accessible to the development agent. Real-environment testing must therefore be coordinated with the owner. The owner reported applying `bf55664`, building assets, clearing cache and restarting services; this is not verification of functionality. The agent has not directly run production migration, reinstall, sample insertion, destructive operations or load tests.
+For the current requirement-level status and owner-reported `d660c42` evidence, see `completion-matrix.md`. This is a living report, not a production readiness certificate. Definition of done is **not met**. The working Frappe environment exists locally on the owner's machine but is not directly accessible to the development agent. Real-environment testing must therefore be coordinated with the owner. The owner reported applying `bf55664`, building assets, clearing cache and restarting services; this is not verification of functionality. The agent has not directly run production migration, reinstall, sample insertion, destructive operations or load tests.
 
 | Work item | Status | Evidence this audit | Remaining blocker / risk |
 | --- | --- | --- | --- |
