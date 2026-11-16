@@ -44,3 +44,9 @@ The owner operates the existing local environment. The agent commits and pushes 
 ### Owner evidence: Administrator probe
 
 The owner reported a successful fast-forward to `e42ba8f` and ran the Administrator DocType-level probe against `frappe.com`. All eight DocTypes returned SIRAJ module, non-submittable metadata and all-true Administrator permission booleans. This is a partial real-environment observation, not general permission verification or a CRUD test. `Event` remains owned by SIRAJ. An unrelated local workspace JSON modification was present before the merge; it must be preserved. No real non-Administrator, document-level or load test was reported.
+
+### Owner-reported 60c2809 deployment and next milestone
+
+The owner reported fast-forwarding `e42ba8f..60c2809` and successfully restarting the web, Socket.IO, scheduler and workers. The workspace JSON remained locally modified before the fast-forward and must be preserved. No functional/privacy test result was provided. Security corrections: **CORRECTIONS UPLOADED; AWAITING LOCAL TESTING**. A restart is not permission or application acceptance.
+
+The next delivery adds a non-whitelisted expanded Event metadata-reference inventory and stub tests, a transition design and permission/performance rehearsal procedures. **IMPLEMENTED (diagnostic only), UPLOADED on push, AWAITING LOCAL TESTING**; no real inventory run or migration is claimed. Event split and data migration remain **IN PROGRESS / BLOCKED**. Hook assessment is static version-tag review, not a review of every actual site customization. Load measurements and offline record functionality remain **NOT RUN / NOT IMPLEMENTED**, imagery pack rights await owner evidence, and coordinate conversion remains **BLOCKED**. None is VERIFIED. See `event-transition-plan.md`, `permission-rehearsal.md`, and `link-query-performance.md`.
