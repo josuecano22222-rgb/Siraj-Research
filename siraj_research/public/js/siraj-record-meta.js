@@ -65,6 +65,29 @@
 		radius:     '<circle cx="12" cy="12" r="9"/><path d="M12 12l6-3"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M18 9l-1.5-1M18 9l.5 1.8"/>',
 		bearing:    '<path d="M4 20l14-8-14-2 5 2Z"/>',
 		pick:       '<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11Z"/><path d="M12 10l2 2"/><path d="M8 14l-2 4 4-2"/>',
+		ego:        '<circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>',
+		link_add:   '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 1 0-5.7-5.7L11.5 7"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 1 0 5.7 5.7L12.5 17"/><path d="M18 6l-4 4"/><path d="M15 6h3v3"/>',
+		link_chain: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 1 0-5.7-5.7L11.5 7"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 1 0 5.7 5.7L12.5 17"/>',
+		path:       '<circle cx="5" cy="17" r="1.5" fill="currentColor"/><circle cx="12" cy="7" r="1.5" fill="currentColor"/><circle cx="19" cy="14" r="1.5" fill="currentColor"/><path d="M5 17c3-5 4-5 7-10s4 7 7 7"/>',
+		hop1:       '<circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="7" fill="none"/>',
+		hop2:       '<circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="5" fill="none"/><circle cx="12" cy="12" r="9" fill="none"/>',
+		hop3:       '<circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="4" fill="none"/><circle cx="12" cy="12" r="7" fill="none"/><circle cx="12" cy="12" r="10" fill="none"/>',
+		isolate:    '<circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M3 3l4 4M21 3l-4 4M3 21l4-4M21 21l-4-4" opacity=".6"/>',
+		pin_sel:    '<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11Z"/><path d="M9 8l6 8M15 8l-6 8"/>',
+		arrow:      '<path d="M5 12h13M13 7l5 5-5 5"/>',
+		inferred:   '<circle cx="12" cy="12" r="5" fill="none" stroke-dasharray="2 2"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/>',
+		halo:       '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" fill="none" stroke-dasharray="2 3" opacity=".7"/>',
+		edge_filter:'<path d="m4 7 4 5 4-5M12 7h8M4 12h8m4 0l4-5-4-5M4 17l4-5 4 5M12 17h8"/>',
+		edges_off:  '<path d="m4 7 5 5 5-7 6 8"/><path d="M3 3l18 18" opacity=".7"/>',
+		edge_expand:'<circle cx="7" cy="12" r="2"/><circle cx="17" cy="12" r="2"/><path d="M9 12h6M4 20l3-3M20 20l-3-3"/>',
+		undo:       '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+		time:       '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>',
+		funnel:     '<path d="M3 4h18l-7 9v6l-4-2v-4Z"/>',
+		help:       '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5"/><circle cx="12" cy="17" r="0.8" fill="currentColor"/>',
+		list:       '<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/>',
+		card:       '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 4v16M4 9h16"/>',
+		eraser:     '<path d="M14 3a2 2 0 0 1 3 3l-9 12H4l-1-5Z"/><path d="M10 13l6-6"/><path d="M4 20h12"/>',
+		back:       '<path d="M15 6l-6 6 6 6"/>',
 	};
 
 	// Server may have overridden/extended at boot time (future-proofing).
@@ -109,5 +132,5 @@
 })();
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
-window.SIRAJ_BUILD = '2026-11-16.maplibre-foundation.2';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| engines: maplibre (preferred), leaflet (compat)'); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-16.connections.3';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| engines: maplibre (preferred), leaflet (compat) | ego network + link tools'); } catch (_) {}

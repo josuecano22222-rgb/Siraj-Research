@@ -351,7 +351,18 @@
 		{ id:'export',       group:__('Data'),     kind:'app-fn',   icon:'export',    mode:'momentary', tooltip:__('Export GeoJSON') },
 		{ id:'download',     group:__('Data'),     kind:'app-fn',   icon:'download',  mode:'popover',   tooltip:__('Download offline tiles') },
 		{ id:'legend',       group:__('Data'),     kind:'app-fn',   icon:'info',      mode:'toggle',    tooltip:__('Legend') },
-		{ id:'about',        group:__('Data'),     kind:'app-fn',   icon:'info',      mode:'popover',   tooltip:__('About') },
+		{ id:'about',        group:__('Data'),     kind:'app-fn',   icon:'help',      mode:'popover',   tooltip:__('About & hotkeys') },
+		// Selection / relationship tools (activate only when something is selected).
+		{ id:'sel_ego',      group:__('Selection'),kind:'map-tool', icon:'ego',       mode:'momentary', hotkey:'S', tooltip:__('Show connections of selected') },
+		{ id:'sel_depth1',   group:__('Selection'),kind:'map-tool', icon:'hop1',      mode:'momentary', hotkey:'1', tooltip:__('Direct connections') },
+		{ id:'sel_depth2',   group:__('Selection'),kind:'map-tool', icon:'hop2',      mode:'momentary', hotkey:'2', tooltip:__('Two hops') },
+		{ id:'sel_depth3',   group:__('Selection'),kind:'map-tool', icon:'hop3',      mode:'momentary', hotkey:'3', tooltip:__('Three hops') },
+		{ id:'sel_isolate',  group:__('Selection'),kind:'map-tool', icon:'isolate',   mode:'toggle',    hotkey:'I', tooltip:__('Isolate selection') },
+		{ id:'sel_path',     group:__('Selection'),kind:'map-tool', icon:'path',      mode:'momentary', hotkey:'T', tooltip:__('Path to another entity') },
+		{ id:'sel_back',     group:__('Selection'),kind:'map-tool', icon:'back',      mode:'momentary', hotkey:'Backspace', tooltip:__('Back to previous selection') },
+		{ id:'sel_clear',    group:__('Selection'),kind:'map-tool', icon:'eraser',    mode:'momentary', hotkey:'Esc', tooltip:__('Clear selection') },
+		{ id:'link_add',     group:__('Selection'),kind:'map-tool', icon:'link_add',  mode:'momentary', hotkey:'L', tooltip:__('Add relationship to selected') },
+		{ id:'edge_filter',  group:__('Selection'),kind:'map-tool', icon:'edge_filter',mode:'popover',   tooltip:__('Filter relationship types') },
 	];
 
 	window.SirajMapKit = { Geodesic: { distance, area: ringArea, bearing, destination, fmtLength, fmtArea, compass }, MeasureTool, RelLayer, TOOL_SPEC };

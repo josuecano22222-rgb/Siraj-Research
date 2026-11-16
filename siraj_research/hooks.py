@@ -55,7 +55,9 @@ app_include_js = [
 	"/assets/siraj_research/js/siraj-record-meta.js",
 	# 2) Engine abstraction (MapLibre/Leaflet adapter). New surfaces use this.
 	"/assets/siraj_research/js/siraj-map/siraj-map.js",
-	# 3) Measurement / relationship / geodesic primitives used by all maps.
+	# 3) Pure graph module (ego network, shortest path, cluster aggregation).
+	"/assets/siraj_research/js/siraj-map/siraj-graph.js",
+	# 4) Measurement / relationship / geodesic primitives used by all maps.
 	"/assets/siraj_research/js/siraj-map-kit.js",
 	# 4) Shared in-map toolbar control (Leaflet-only; retained during migration).
 	"/assets/siraj_research/js/siraj-map-toolbar.js",

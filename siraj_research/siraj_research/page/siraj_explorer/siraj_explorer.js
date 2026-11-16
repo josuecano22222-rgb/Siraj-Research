@@ -168,9 +168,12 @@ class SirajExplorer {
 			className: 'sx-pin-wrapper', iconSize:[36,36], iconAnchor:[18,18],
 			html: window.sirajIcons.pin(p.doctype, this.colors[p.doctype], 36)
 		});
-		const itemGlyph = doctype => {
+		const itemGlyph = (doctype, size) => {
 			const c = this.colors[doctype] || '#6a7a7e';
-			return `<span class="sx-item-glyph" style="background:${c}">${(window.sirajIcons ? window.sirajIcons.svg(doctype,{size:12}) : '')}</span>`;
+			const s = size || 12;
+			const pad = Math.ceil(s/3);
+			const g = (window.sirajIcons && window.sirajIcons.svg) ? window.sirajIcons.svg(doctype, {size: Math.round(s*0.7)}) : '';
+			return `<span class="sx-item-glyph" style="background:${c};width:${s+pad}px;height:${s+pad}px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff">${g}</span>`;
 		};
 		const types = [...new Set(data.points.map(p => p.doctype))];
 		this.showLegend(types, window.sirajIcons ? window.sirajIcons.types : null);
@@ -207,13 +210,259 @@ class SirajExplorer {
 		// Close button so the panel can be dismissed.
 		$('<button type="button" class="close" style="position:absolute;top:6px;right:8px" aria-label="' + __('Close panel') + '">×</button>').prependTo(appPanel).on('click', () => appPanel.hide());
 
-		const selectPoint = p => {
-			if (selectedCircle) { map.removeLayer(selectedCircle); selectedCircle = null; }
-			const r = Number(p.geo_uncertainty_m);
-			if (Number.isFinite(r) && r>0 && r<=1000000) selectedCircle = L.circle([p.latitude,p.longitude],{radius:r,color:this.colors[p.doctype],fillOpacity:0.1,interactive:false}).addTo(map);
-			this.showDetails(p.label, [[__('Type'),__(p.doctype)],[__('ID'),p.name],[__('Latitude'),p.latitude],[__('Longitude'),p.longitude],[__('DMS'),dms(p.latitude,true)+' / '+dms(p.longitude,false)],[__('Coordinate precision'),p.geo_precision],[__('Method'),p.geocoding_method],[__('Uncertainty radius (m)'),p.geo_uncertainty_m],[__('Source'),p.geometry_source]],p);
-			if (this.relLayer && this.relLayer.setEgo) { this.relLayer.setEgo(this.id(p)); }
+		// --- Selection + ego network state ---
+		let selectedNode = null;        // currently selected record {doctype,name,label,...}
+		const selectionTrail = [];      // back-breadcrumb trail
+		let egoDepth = 1;
+		let egoData = null;             // last network response
+		let egoEdgesLayer = L.featureGroup().addTo(map);
+		let egoNodesLayer = L.featureGroup().addTo(map);
+		let egoLoading = false, egoRequestSeq = 0;
+		let isolateSelected = false;
+		const clearSelectionVisuals = () => {
+			egoEdgesLayer.clearLayers(); egoNodesLayer.clearLayers();
+			if (selectedCircle) { map.removeLayer(selectedCircle); selectedCircle=null; }
 		};
+		const egoMarker = (node, extra) => {
+			const dt = node.doctype, color = this.colors[dt] || '#6a7a7e';
+			const inferred = node.location_source && String(node.location_source).startsWith('inferred');
+			const size = node.hops === 0 ? 38 : (node.hops === 1 ? 32 : 26);
+			const ring = inferred ? `<span class="siraj-pin-halo-ring" style="position:absolute;inset:-4px;border:2px dashed ${color};border-radius:50%;opacity:.7"></span>` : '';
+			const halo = node.hops === 0 ? `<span class="siraj-pin-pulse" style="position:absolute;inset:-8px;border:2px solid ${color};border-radius:50%;opacity:.6;animation:siraj-pulse 1.6s ease-out infinite"></span>` : '';
+			const glyphHTML = (window.sirajIcons && window.sirajIcons.svg) ? window.sirajIcons.svg(dt, {size:Math.round(size*0.58)}) : '';
+			const html = `<span class="sx-map-pin siraj-pin" data-doctype="${dt}" style="position:relative;background:${color};width:${size}px;height:${size}px;${node.hops===0?'box-shadow:0 0 0 4px '+color+'33, 0 2px 8px #263c4066':''}">${glyphHTML}${ring}${halo}</span>`;
+			const icon = L.divIcon({ className:'sx-pin-wrapper', iconSize:[size,size], iconAnchor:[size/2,size/2], html });
+			const m = L.marker([Number(node.latitude),Number(node.longitude)],{icon,interactive:true});
+			if (extra && extra.restricted) m.setOpacity(0.4);
+			return m;
+		};
+		const styleDim = on => { markers.eachLayer(l => { const el = l.getElement && l.getElement(); if (el) el.style.opacity = (on && selectedNode && isolateSelected) ? '0.25' : ''; }); };
+		const renderEgo = () => {
+			egoEdgesLayer.clearLayers(); egoNodesLayer.clearLayers();
+			if (!selectedNode || !egoData) return;
+			const nodeMap = new Map(egoData.nodes.map(n => [this.id(n), n]));
+			egoData.edges.forEach(e => {
+				const a = nodeMap.get(this.id({doctype:e.source[0],name:e.source[1]})),
+					  b = nodeMap.get(this.id({doctype:e.target[0],name:e.target[1]}));
+				if (!a || !b || a.latitude == null || b.latitude == null) return;
+				const meta = (egoData.types && egoData.types[e.type]) || {};
+				const isDirected = meta.is_symmetric === false;
+				const A = [Number(a.latitude),Number(a.longitude)], B = [Number(b.latitude),Number(b.longitude)];
+				const pairKey = [this.id(a),this.id(b)].sort().join('|');
+				// Parallel edge offset — count duplicates of this pair
+				const parallels = egoData.edges.filter(x => [this.id({doctype:x.source[0],name:x.source[1]}),this.id({doctype:x.target[0],name:x.target[1]})].sort().join('|') === pairKey);
+				const idx = parallels.indexOf(e);
+				const ctrl = parallels.length > 1 ? (window.SirajGraph ? window.SirajGraph.offsetEdge({lat:A[0],lng:A[1]},{lat:B[0],lng:B[1]},idx,parallels.length) : null) : null;
+				const latlngs = ctrl ? [A, [ctrl.lat, ctrl.lng], B] : [A,B];
+				const line = L.polyline(latlngs,{
+					color: meta.color || '#536b78',
+					weight: e.type ? 2.5 : 1.8,
+					opacity: a.restricted || b.restricted ? 0.4 : 0.8,
+					dashArray: isDirected ? null : '6 5',
+					interactive:true,
+				});
+				line.bindTooltip(
+					(e.type || __('Relationship')) + (meta.is_symmetric===false ? ' ' + __('(directed)') : '') + (a.label?' · '+a.label+' → '+b.label:''),
+					{sticky:true,direction:'top',className:'siraj-edge-tooltip'});
+				line.on('click', () => {
+					this.showDetails(e.type || __('Relationship'),[
+						[__('Subject'), a.restricted ? __('Restricted') : (a.label||'')],
+						[__('Object'),  b.restricted ? __('Restricted') : (b.label||'')],
+						[__('Direction'), e.direction],[__('Start'),e.start_date],[__('End'),e.end_date],[__('Description'),e.description],
+					], {doctype:'Relationship', name:e.name});
+				});
+				egoEdgesLayer.addLayer(line);
+				// Arrowhead for directed edges.
+				if (isDirected) {
+					const tip = B, tail = ctrl ? [ctrl.lat,ctrl.lng] : A;
+					const arrow = L.polygon([tip,
+						window.SirajMapKit.Geodesic.destination({lat:tip[0],lng:tip[1]}, window.SirajMapKit.Geodesic.bearing({lat:tail[0],lng:tail[1]},{lat:tip[0],lng:tip[1]})+150, Math.max(8, 40)),
+						window.SirajMapKit.Geodesic.destination({lat:tip[0],lng:tip[1]}, window.SirajMapKit.Geodesic.bearing({lat:tail[0],lng:tail[1]},{lat:tip[0],lng:tip[1]})-150, Math.max(8, 40)),
+					],{color:meta.color||'#536b78',fillColor:meta.color||'#536b78',fillOpacity:0.9,weight:0,interactive:false});
+					egoEdgesLayer.addLayer(arrow);
+				}
+			});
+			// Add inferred/unmapped node markers (distinct from the main cluster markers).
+			egoData.nodes.forEach(n => {
+				if (n.restricted) return;
+				if (n.latitude == null || n.longitude == null) return;
+				// Skip the selected node itself (already has a marker in the cluster layer).
+				if (selectedNode && n.doctype === selectedNode.doctype && n.name === selectedNode.name) return;
+				const m = egoMarker(n).addTo(egoNodesLayer);
+				m.on('click', () => selectNode(n));
+			});
+			// Uncertainty circle on center.
+			if (selectedNode) {
+				const r = Number(selectedNode.geo_uncertainty_m);
+				if (Number.isFinite(r) && r>0 && r<=1000000) {
+					selectedCircle = L.circle([Number(selectedNode.latitude),Number(selectedNode.longitude)],{radius:r,color:this.colors[selectedNode.doctype],fillOpacity:0.1,interactive:false}).addTo(map);
+				}
+				styleDim(true);
+			}
+		};
+		const addRelationship = (counterpart) => {
+			// Open a SIRAJ-styled dialog to add a relationship from selectedNode to counterpart.
+			const counterpartEntityTypes = ['Person','Institution','Place','Research Event','Source'];
+			const dlg = new frappe.ui.Dialog({
+				title: __('Add relationship from {0}', [selectedNode.label]),
+				fields: [
+					{ fieldname:'relationship_type', label:__('Relationship type'), fieldtype:'Link', options:'Relationship Type', reqd:1 },
+					{ fieldname:'direction', label:__('Direction'), fieldtype:'Select', options:'Directed\nSymmetric', default:'Directed' },
+					{ fieldname:'target_type', label:__('Counterpart type'), fieldtype:'Select', options:counterpartEntityTypes.join('\n'), reqd:1, default: counterpart && counterpart.doctype, read_only: !!counterpart },
+					{ fieldname:'target',      label:__('Counterpart'), fieldtype:'Link', options: (counterpart && counterpart.doctype) || 'Person', reqd:1, default: counterpart && counterpart.name, read_only: !!counterpart },
+					{ fieldname:'start_date', label:__('Start date'), fieldtype:'Date' },
+					{ fieldname:'end_date', label:__('End date'), fieldtype:'Date' },
+					{ fieldname:'description', label:__('Note'), fieldtype:'Small Text' },
+				],
+				primary_action_label: __('Save'),
+				primary_action: async vals => {
+					try {
+						// Validate DocType matches.
+						if (!counterpartEntityTypes.includes(vals.target_type)) { frappe.msgprint(__('Invalid counterpart type')); return; }
+						const doc = frappe.model.get_new_doc('Relationship');
+						doc.subject_type = selectedNode.doctype; doc.subject = selectedNode.name;
+						doc.object_type = vals.target_type; doc.object = vals.target;
+						doc.relationship_type = vals.relationship_type;
+						doc.direction = vals.direction;
+						doc.start_date = vals.start_date; doc.end_date = vals.end_date;
+						doc.description = vals.description;
+						await frappe.call({ method:'frappe.client.insert', args:{doc} });
+						frappe.show_alert({message:__('Relationship created'),indicator:'green'});
+						dlg.hide();
+						// Bust cache and reload.
+						relData = null; egoData = null;
+						loadEgo(egoDepth);
+					} catch(e) {
+						frappe.msgprint(__('Could not save: {0}', [e.message || String(e)]));
+					}
+				}
+			});
+			// When target_type changes, refresh the Link options.
+			const tField = dlg.get_field('target_type');
+			if (tField && tField.$input) tField.$input.on('change', () => {
+				const dt = dlg.get_value('target_type');
+				if (dt && dlg.fields_dict.target) { dlg.fields_dict.target.df.options = dt; dlg.fields_dict.target.refresh(); }
+			});
+			dlg.show();
+		};
+		const loadEgo = async (depth) => {
+			if (!selectedNode) return;
+			egoDepth = depth;
+			egoLoading = true;
+			const seq = ++egoRequestSeq;
+			const statusText = {1:__('Direct connections'),2:__('Two hops'),3:__('Three hops')}[depth] || '';
+			mapStatus(__('Loading {0}…',[statusText]));
+			try {
+				const res = await frappe.call({ method:'siraj_research.api.map_relations.get_entity_network',
+					args:{ doctype:selectedNode.doctype, name:selectedNode.name, depth, limit_nodes:400, limit_edges:600 } });
+				if (seq !== egoRequestSeq) return;
+				egoData = res.message || {nodes:[],edges:[],unmapped:[],truncated:false,types:{}};
+				// Register type colours with RelLayer.
+				Object.entries(egoData.types || {}).forEach(([t,meta]) => this.relLayer.registerType(t, meta.color || '#53706b', meta.is_symmetric ? null : '6 4'));
+				// Also merge any unmapped nodes into the details panel listing.
+				renderEgo();
+				renderDetails();
+				// Fit bounds to union of selected + visible ego nodes.
+				const pts = [[Number(selectedNode.latitude),Number(selectedNode.longitude)]];
+				egoData.nodes.forEach(n => { if (n.latitude!=null && !n.restricted) pts.push([Number(n.latitude),Number(n.longitude)]); });
+				if (pts.length > 1) map.fitBounds(L.latLngBounds(pts).pad(0.2),{maxZoom:13});
+				mapStatus(egoData.truncated ? __('Showing {0} connections (capped). Refine with type filters.', [egoData.edges.length]) : __('Showing {0} connections.', [egoData.edges.length]));
+			} catch(e) {
+				if (seq !== egoRequestSeq) return;
+				console.error('[SIRAJ] ego network failed:', e);
+				mapStatus(__('Could not load connections: {0}',[e.message || String(e)]), true);
+				frappe.log_error && frappe.log_error({message: e && e.stack});
+			} finally {
+				if (seq === egoRequestSeq) egoLoading = false;
+			}
+		};
+		const selectNode = p => {
+			if (!p) { clearSelection(); return; }
+			clearSelectionVisuals();
+			if (selectedNode) selectionTrail.push({doctype:selectedNode.doctype, name:selectedNode.name, label:selectedNode.label});
+			selectedNode = p;
+			pointsById.set(this.id(p), p);
+			markers.eachLayer(m => {
+				// Bring matching marker to front; no-op for now.
+			});
+			map.panTo([Number(p.latitude),Number(p.longitude)]);
+			loadEgo(egoDepth);
+		};
+		const clearSelection = () => {
+			selectedNode = null;
+			egoData = null;
+			clearSelectionVisuals();
+			styleDim(false);
+			this.showDetails(__('Geographic map'),[[__('About this view'),__('Map tools are docked on the right edge. Click a pin to see its connections.')]]);
+			mapStatus('');
+			// Deactivate toggle buttons.
+			isolateSelected = false;
+			this.toolbar.find('button[data-siraj-key=sel_isolate]').removeClass('is-active');
+		};
+		const renderDetails = () => {
+			if (!selectedNode) return;
+			const p = selectedNode;
+			const rows = [
+				[__('Type'), __(p.doctype)], [__('ID'), p.name],
+				[__('Latitude'), p.latitude],[__('Longitude'), p.longitude],
+				p.geo_precision ? [__('Coordinate precision'), p.geo_precision] : null,
+				p.geocoding_method ? [__('Method'), p.geocoding_method] : null,
+			].filter(Boolean);
+			this.aside.empty();
+			const head = $('<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"></div>').appendTo(this.aside);
+			head.append(itemGlyph(p.doctype, 24));
+			$('<h4 style="margin:0"></h4>').text(p.label).appendTo(head);
+			$('<button type="button" class="btn btn-link btn-sm" style="margin-inline-start:auto"></button>').text(__('Open record')).on('click', () => frappe.set_route('Form', p.doctype, p.name)).appendTo(head);
+			if (selectionTrail.length) {
+				const back = this.button('↩ ' + __('Back to {0}',[selectionTrail[selectionTrail.length-1].label]), () => {
+					const prev = selectionTrail.pop();
+					const n = pointsById.get(this.id(prev));
+					if (n) selectNode(n); else { selectionTrail.length=0; clearSelection(); }
+				}).addClass('btn-default btn-sm').appendTo(this.aside);
+			}
+			const dl = $('<dl></dl>').appendTo(this.aside);
+			rows.forEach(([k,v]) => { $('<dt></dt>').text(k).appendTo(dl); $('<dd></dd>').text(v==null?'':String(v)).appendTo(dl); });
+			// Connections section
+			if (egoData) {
+				$('<h5 style="margin-top:14px"></h5>').text(__('Connections ({0})',[egoData.edges.length])).appendTo(this.aside);
+				const depthRow = $('<div style="display:flex;gap:4px;margin-bottom:6px"></div>').appendTo(this.aside);
+				[1,2,3].forEach(d => {
+					const btn = $('<button type="button" class="btn btn-xs"></button>').addClass(d===egoDepth?'btn-primary':'btn-default').text(d).on('click',()=>{ depthRow.find('button').removeClass('btn-primary').addClass('btn-default'); btn.removeClass('btn-default').addClass('btn-primary'); loadEgo(d); });
+					depthRow.append(btn);
+				});
+				const byType = {};
+				egoData.edges.forEach(e => { byType[e.type||__('Unspecified')] = (byType[e.type||__('Unspecified')]||0)+1; });
+				Object.entries(byType).slice(0,8).forEach(([t,c]) => {
+					const meta = (egoData.types && egoData.types[t]) || {};
+					const row = $('<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12px"></div>').appendTo(this.aside);
+					$('<span class="sd-swatch siraj-swatch"></span>').css('background', meta.color||'#53706b').appendTo(row);
+					$('<span style="flex:1"></span>').text(t).appendTo(row);
+					$('<span style="color:var(--text-muted)"></span>').text(c).appendTo(row);
+				});
+				// Unmapped connections.
+				if (egoData.unmapped && egoData.unmapped.length) {
+					$('<h5 style="margin-top:10px"></h5>').text(__('Unmapped connections ({0})',[egoData.unmapped.length])).appendTo(this.aside);
+					egoData.unmapped.slice(0,20).forEach(u => {
+						const r = $('<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12px"></div>').appendTo(this.aside);
+						r.append(itemGlyph(u.doctype, 16));
+						$('<span style="flex:1"></span>').text(u.label + ' (' + __(u.doctype) + ')').appendTo(r);
+						this.button(__('Place'), () => {
+							const meas = measure;
+							if (!meas || !meas.activate) return;
+							meas.activate('pick');
+							meas.onPick = latlng => {
+								frappe.new_doc(u.doctype, { latitude: Number(latlng.lat).toFixed(6), longitude: Number(latlng.lng).toFixed(6), geocoding_method:'map_pick' });
+								meas.onPick = null;
+							};
+							frappe.show_alert({message:__('Click the map to place {0}',[u.label]),indicator:'blue'});
+						}).addClass('btn-xs btn-default').appendTo(r);
+					});
+				}
+				// Add relationship button.
+				this.button(__('Add relationship…'), () => addRelationship(null), this.aside).addClass('btn-primary btn-sm').css('margin-top','8px');
+			}
+		};
+		const selectPoint = selectNode; // backward alias used by markers/renderList
 		const renderList = () => {
 			recordHeading.text(__('Mapped records ({0})',[currentPoints.length]));
 			recordList.empty();
@@ -424,6 +673,14 @@ class SirajExplorer {
 				catch { mapStatus(__('Unable to load relationship lines.'),true); }
 				finally { btn.prop('disabled',false); }
 			}.bind(this)});
+
+		// Selection group (shown in dock; actions act on the selected entity).
+		const selGroup = this.toolbar.group(__('Selection'));
+		selGroup.add({ icon:'ego', label:__('Connections'), key:'sel_ego', action: () => { if (!selectedNode) { mapStatus(__('Select a record first.'),true); return; } loadEgo(egoDepth); }});
+		selGroup.add({ icon:'isolate', label:__('Isolate'), key:'sel_isolate', active:false, action: function() { isolateSelected=!isolateSelected; $(this).toggleClass('is-active',isolateSelected); if(selectedNode) renderEgo(); } });
+		selGroup.add({ icon:'link_add', label:__('Link'), key:'link_add', action: () => { if(!selectedNode){mapStatus(__('Select a record first.'),true);return;} addRelationship(null); }});
+		selGroup.add({ icon:'back', label:__('Back'), key:'sel_back', action: function() { if (selectionTrail.length) { const prev = selectionTrail.pop(); const n = pointsById.get(this.id(prev)); if(n) selectNode(n); else { selectionTrail.length=0; clearSelection(); } } else clearSelection(); }.bind(this) });
+		selGroup.add({ icon:'eraser', label:__('Clear'), key:'sel_clear', action: clearSelection });
 
 		// Empty the legacy top strip (we now use appPanel + in-canvas dock).
 		this.tools.empty();
