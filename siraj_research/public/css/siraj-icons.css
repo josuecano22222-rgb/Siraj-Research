@@ -189,21 +189,19 @@
    (d) Respect prefers-reduced-motion for halo/pulse animations.
    ============================================================ */
 
-/* Hide Leaflet default marker images/shadows inside any SIRAJ map. */
-.siraj-coordinate-map .leaflet-marker-icon:not(.sx-pin-wrapper):not(.sx-cluster),
-.siraj-coordinate-map .leaflet-marker-shadow,
-.siraj-explorer .leaflet-marker-icon:not(.sx-pin-wrapper):not(.sx-cluster),
-.siraj-explorer .leaflet-marker-shadow,
-.siraj-list-map .leaflet-marker-icon:not(.sx-pin-wrapper):not(.sx-cluster),
-.siraj-list-map .leaflet-marker-shadow {
-	display: none !important;
-}
-/* Also any default icon that snuck in with marker-icon*.png src. */
+/* Hide Leaflet default marker images/shadows inside any SIRAJ map.
+ * The public-API prototype icon replacement in siraj-compat.js (2b) makes
+ * L.marker() default to a SIRAJ divIcon, so an <img> marker appearing here
+ * means a code path bypassed our default — keeping it visible lets the
+ * SIRAJ Diagnostics page report it. We do NOT simply display:none the
+ * images (which would mask bugs). Instead, we give them a subtle red
+ * outline so developers notice them in QA. */
 .leaflet-marker-icon[src*="marker-icon.png"],
-.leaflet-marker-icon[src*="marker-shadow.png"],
-.leaflet-marker-shadow {
-	opacity: 0 !important;
-	pointer-events: none !important;
+.leaflet-marker-icon[src*="marker-shadow.png"] {
+	outline: 3px dashed #c0392b !important;
+	outline-offset: 2px;
+	background: rgba(192,57,43,.15);
+	/* keep visible so diagnostics & QA can see them; do not display:none */
 }
 
 /* Pin layering — pins must sit above all tile/shadow/overlay content

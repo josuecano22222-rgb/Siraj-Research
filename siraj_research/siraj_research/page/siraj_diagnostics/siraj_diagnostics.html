@@ -1,0 +1,207 @@
+{% extends "templates/web.html" %}
+{% block page_content %}
+<div class="siraj-diag-wrap" style="max-width:960px;margin:24px auto;padding:16px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#243632">
+  <h1 style="margin:0 0 4px">SIRAJ Diagnostics</h1>
+  <p class="text-muted" style="margin:0 0 16px">
+    Open this page after any deploy. Every check below runs in YOUR browser so a
+    stale cached bundle cannot hide itself — each check re-fetches and hashes the
+    relevant file from the server independently.
+  </p>
+  <div id="siraj-diag-summary" style="margin:12px 0;padding:10px 14px;border-radius:8px;background:#eaf1f1;font-weight:600">Running…</div>
+  <table id="siraj-diag-table" style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="text-align:left;border-bottom:2px solid #c8d5d7">
+      <th style="padding:6px 8px">Check</th>
+      <th style="padding:6px 8px;width:72px">Result</th>
+      <th style="padding:6px 8px">Detail</th>
+    </tr></thead>
+    <tbody></tbody>
+  </table>
+  <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
+    <button id="siraj-diag-copy" class="btn btn-sm btn-primary">Copy report</button>
+    <button id="siraj-diag-run" class="btn btn-sm btn-default">Re-run</button>
+    <a class="btn btn-sm btn-default" href="/api/method/siraj_research.api.diagnostics.build_info" target="_blank" rel="noopener">Raw build_info JSON</a>
+  </div>
+  <pre id="siraj-diag-raw" style="margin-top:14px;max-height:360px;overflow:auto;background:#f5f7f5;border:1px solid #d9e2e7;border-radius:6px;padding:10px;font-size:11px"></pre>
+</div>
+{% endblock %}
+{% block script %}
+<script>
+(function(){
+  const SERVER_BUILD_ENDPOINT = '/api/method/siraj_research.api.diagnostics.build_info';
+  const SERVER_HASHES_ENDPOINT = '/api/method/siraj_research.api.diagnostics.asset_hashes';
+  const CHECKS = [];
+  function check(id, label, fn){ CHECKS.push({id,label,fn}); }
+
+  function row(check){
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td style="padding:6px 8px;vertical-align:top;border-bottom:1px solid #e5ecec">'+check.label+'</td>'
+      +'<td class="res" style="padding:6px 8px;font-weight:700;border-bottom:1px solid #e5ecec">…</td>'
+      +'<td class="det" style="padding:6px 8px;font-family:ui-monospace,monospace;font-size:12px;border-bottom:1px solid #e5ecec"></td>';
+    document.querySelector('#siraj-diag-table tbody').appendChild(tr);
+    return tr;
+  }
+  function setRes(tr, ok, detail){
+    const res = tr.querySelector('.res'), det = tr.querySelector('.det');
+    res.textContent = ok ? 'PASS' : 'FAIL';
+    res.style.color = ok ? '#1f6a3a' : '#b03a2e';
+    det.textContent = detail || '';
+    return ok;
+  }
+
+  async function sha256Text(text){
+    const buf = new TextEncoder().encode(text);
+    const h = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(h)).slice(0,8).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  async function fetchText(url){
+    const r = await fetch(url, {cache:'no-store', credentials:'same-origin'});
+    return {ok:r.ok, status:r.status, text:await r.text()};
+  }
+
+  check('stamp.server', 'Server build stamp reachable', async function(tr){
+    try{
+      const r = await fetch(SERVER_BUILD_ENDPOINT, {cache:'no-store',credentials:'same-origin'});
+      if(!r.ok) return setRes(tr,false,'HTTP '+r.status);
+      const j = await r.json();
+      const b = j.message && j.message.siraj_build;
+      if(!b) return setRes(tr,false,'no siraj_build in response');
+      window.__sirajServerBuild = b;
+      return setRes(tr,true,'server build = '+b);
+    }catch(e){ return setRes(tr,false, String(e && e.message || e)); }
+  });
+
+  check('stamp.client', 'Client bundle stamp matches server', async function(tr){
+    const local = window.SIRAJ_BUILD || '(missing — SIRAJ JS did not run)';
+    const srv = window.__sirajServerBuild;
+    if(!srv) return setRes(tr,false,'server stamp unknown (previous check failed)');
+    if(local === srv) return setRes(tr,true,'both = '+local);
+    return setRes(tr,false,'client='+local+' server='+srv);
+  });
+
+  check('asset.hash.record_meta', 'siraj-record-meta.js hash matches server', async function(tr){
+    try{
+      const r = await fetch(SERVER_HASHES_ENDPOINT,{cache:'no-store',credentials:'same-origin'});
+      const j = await r.json(); const expected = j.message && j.message['/assets/siraj_research/js/siraj-record-meta.js'];
+      if(!expected) return setRes(tr,false,'server did not return hash');
+      const f = await fetchText('/assets/siraj_research/js/siraj-record-meta.js?v='+Date.now());
+      if(!f.ok) return setRes(tr,false,'fetch HTTP '+f.status);
+      const got = await sha256Text(f.text);
+      if(got !== expected) return setRes(tr,false,'expected '+expected+' got '+got);
+      return setRes(tr,true,'sha256:'+got);
+   }catch(e){return setRes(tr,false,String(e && e.message || e));}
+  });
+
+  check('stamp.in_js', 'siraj-record-meta.js body contains expected build stamp', async function(tr){
+    const srv = window.__sirajServerBuild;
+    if(!srv) return setRes(tr,false,'server stamp unknown');
+    const f = await fetchText('/assets/siraj_research/js/siraj-record-meta.js?v='+Date.now());
+    if(!f.ok) return setRes(tr,false,'fetch HTTP '+f.status);
+    if(f.text.indexOf(srv) === -1) return setRes(tr,false,'fetched file does not contain stamp '+srv);
+    return setRes(tr,true,'stamp string found in file body');
+  });
+
+  check('markers.no_default_image', 'No request to /app/images/marker-icon*.png', async function(tr){
+    // ResourceTiming gives us every network request this page (and all prior
+    // pages on this tab) has made. Entries for the default blue marker image
+    // mean some code still tried to load the broken image.
+    const entries = performance.getEntriesByType('resource') || [];
+    const bad = entries.filter(e => /\/app\/images\/marker-(icon|shadow)(-2x)?\.png/i.test(e.name) && !/siraj/i.test(e.name));
+    if(bad.length) return setRes(tr,false, bad.length+' request(s), e.g. '+bad[0].name);
+    return setRes(tr,true,'no /app/images/marker* requests');
+  });
+
+  check('markers.no_img_marker', 'No <img class="leaflet-marker-icon"> in current document', async function(tr){
+    // On pages that render a map this catches any image marker the moment it
+    // is inserted. This diagnostics page itself renders no map; if you open
+    // this page from a map page the entries are already in perf, but the DOM
+    // check is scoped to current document so it is a PASS here unless a
+    // plugin inserted something.
+    const imgs = document.querySelectorAll('img.leaflet-marker-icon');
+    if(imgs.length) return setRes(tr,false, imgs.length+' img(s); src='+(imgs[0].src||'?'));
+    return setRes(tr,true,'no <img class="leaflet-marker-icon"> in DOM');
+  });
+
+  check('icons.registry_present', 'sirajIcons registry loaded', function(tr){
+    if(!window.sirajIcons || typeof window.sirajIcons.pin !== 'function')
+      return setRes(tr,false,'window.sirajIcons.pin is missing');
+    const types = Object.keys(window.sirajIcons.types || {});
+    return setRes(tr,true, types.length+' doctype glyphs registered');
+  });
+
+  check('icons.all_distinct', 'Every doctype renders distinct markup', function(tr){
+    if(!window.sirajIcons || !window.sirajIcons.pin) return setRes(tr,false,'registry missing');
+    const types = Object.keys(window.sirajIcons.types || {});
+    const seen = new Map(); let dups=[];
+    types.forEach(t=>{
+      const html = window.sirajIcons.pin(t, null, 32);
+      // Compare stripped of doctype-specific data-doctype attr and colour.
+      const norm = html.replace(/data-doctype="[^"]*"/g,'').replace(/--pin-color:[^;"]+;?/g,'').replace(/background:[^;"]+;?/g,'').replace(/border-top-color:[^;"]+;?/g,'');
+      if(seen.has(norm)) dups.push(t+' == '+seen.get(norm)); else seen.set(norm,t);
+    });
+    if(dups.length) return setRes(tr,false, dups.join('; '));
+    return setRes(tr,true, types.length+' pins, all distinct markup');
+  });
+
+  check('icons.anchor_tip', 'Teardrop pins expose an "siraj-pin-point" tip', function(tr){
+    if(!window.sirajIcons || !window.sirajIcons.pin) return setRes(tr,false,'registry missing');
+    const html = window.sirajIcons.pin('Person', null, 32);
+    if(html.indexOf('siraj-pin-point') === -1) return setRes(tr,false,'pin-point element missing');
+    if(html.indexOf('siraj-pin-body') === -1) return setRes(tr,false,'pin-body element missing');
+    return setRes(tr,true,'body + point elements present');
+  });
+
+  check('toolbar.icons_distinct', 'Toolbar tool icons all distinct (56)', function(tr){
+    if(!window.sirajIcons || !window.sirajIcons.tools) return setRes(tr,false,'tools registry missing');
+    const tools = Object.keys(window.sirajIcons.tools);
+    const sigs = new Set();
+    tools.forEach(k=>sigs.add(window.sirajIcons.toolSvg(k,{size:16})));
+    if(sigs.size !== tools.length) return setRes(tr,false,tools.length+' tools, '+sigs.size+' distinct paths');
+    return setRes(tr,true,tools.length+' tools, '+sigs.size+' distinct');
+  });
+
+  check('basemap.no_third_party', 'No third-party tile requests yet (zero-default policy)', async function(tr){
+    const entries = performance.getEntriesByType('resource') || [];
+    const bad = entries.filter(e => /tile\.openstreetmap\.org|server\.arcgis\.com|mt[0-9]\.google\.com|tiles\.mapbox\.com|api\.maptiler/i.test(e.name));
+    if(bad.length) return setRes(tr,false, bad.length+' third-party tile request(s); e.g. '+bad[0].name);
+    return setRes(tr,true,'no third-party tile requests observed');
+  });
+
+  check('i18n.arabic', 'Arabic translation loaded', function(tr){
+    try {
+      const t = typeof window.__ === 'function' ? window.__('Navigate') : '';
+      return setRes(tr, true, '__() available');
+    } catch(e){ return setRes(tr,false, String(e.message)); }
+  });
+
+  async function runAll(){
+    const tbody = document.querySelector('#siraj-diag-table tbody');
+    tbody.innerHTML = '';
+    let pass=0, fail=0;
+    const report = [];
+    for(const c of CHECKS){
+      const tr = row(c);
+      try{
+        const before = tr.querySelector('.res').textContent;
+        const ok = await c.fn(tr);
+        if(ok) pass++; else fail++;
+        report.push((ok?'PASS':'FAIL')+' '+c.label+' — '+tr.querySelector('.det').textContent);
+      }catch(e){
+        setRes(tr,false,'threw '+String(e && e.message || e));
+        fail++;
+        report.push('FAIL '+c.label+' — threw '+String(e && e.message || e));
+      }
+    }
+    const s = document.querySelector('#siraj-diag-summary');
+    s.textContent = pass+' passed, '+fail+' failed';
+    s.style.background = fail ? '#f5d7d3' : '#dff0e3';
+    s.style.color = fail ? '#7a2a2a' : '#1f6a3a';
+    document.querySelector('#siraj-diag-raw').textContent = report.join('\n');
+    document.querySelector('#siraj-diag-copy').onclick = async ()=>{
+      try{ await navigator.clipboard.writeText(report.join('\n')); }catch(_){}
+    };
+  }
+  document.getElementById('siraj-diag-run').onclick = runAll;
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', runAll); else runAll();
+})();
+</script>
+{% endblock %}

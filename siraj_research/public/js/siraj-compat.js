@@ -85,51 +85,75 @@
 	}
 	setInterval(installDefaultIconPath, 2000);
 
-	/* ---------- 2b) Global Leaflet default-marker override ----------
-	 * Any code that creates L.marker(latlng) without an explicit icon (e.g.
-	 * the coordinate map in old cached bundles, third-party plugins, future
-	 * MapView variants) falls back to Leaflet's stock blue marker-icon.png
-	 * which visually clashes with SIRAJ's pin system and often has no
-	 * shadow/retina assets in offline deploys.
+	/* ---------- 2b) Global Leaflet default-marker icon (public API) ----------
+	 * Any code that calls L.marker(latlng) without providing an icon gets a
+	 * SIRAJ teardrop divIcon instead of Leaflet's default image pin. We set
+	 * this through the public options prototype (NOT by patching _initIcon)
+	 * so upgrades to Leaflet's internal rendering don't silently break us.
 	 *
-	 * We patch L.Icon.Default.prototype to return a SIRAJ teardrop pin
-	 * divIcon instead of the image pin. This is a global default: explicit
-	 * divIcons and our own styled markers are untouched. */
-	function installDefaultPinOverride() {
-		if (!window.L || !L.Marker || L.Marker.prototype._sirajDefaultPatched) return;
-		L.Marker.prototype._sirajDefaultPatched = true;
-		const _initIcon = L.Marker.prototype._initIcon;
-		L.Marker.prototype._initIcon = function () {
-			// Only touch markers that would otherwise use the default blue image.
-			const isPlainDefault = !this.options.icon
-				|| (this.options.icon instanceof L.Icon.Default)
-				|| (this.options.icon && this.options.icon.options
-					&& /marker-icon\.png|default-icon/i.test(String(this.options.icon.options.iconUrl || '') + ' ' + String(this.options.icon.options.className || '')));
-			if (isPlainDefault && window.sirajIcons && window.sirajIcons.pin) {
-				// Try to divine a doctype from context (list view / form).
-				let dt = null;
-				try { dt = (frappe.get_route && frappe.get_route()[1]) || (cur_frm && cur_frm.doctype) || 'Place'; } catch (_) { dt = 'Place'; }
-				const color = (window.sirajColours && window.sirajColours[dt]) || '#3577c0';
-				const s = 32, h = Math.round(s * 1.15);
-				this.options.icon = L.divIcon({
-					className: 'sx-pin-wrapper',
-					iconSize: [s, h],
-					iconAnchor: [s/2, h],
-					popupAnchor: [0, -Math.round(s*0.8)],
-					tooltipAnchor: [0, -Math.round(s*0.5)],
-					html: window.sirajIcons.pin(dt, color, s),
-				});
-				this.options._sirajStyled = true;
-			}
-			return _initIcon.apply(this, arguments);
-		};
+	 * The heuristic: if a caller passes an explicit icon option (any kind:
+	 * L.Icon.Default, L.divIcon, a custom icon, etc.) Leaflet's constructor
+	 * assigns it to this.options.icon before _initIcon runs and our default
+	 * on the prototype is shadowed. Explicit callers always win.
+	 *
+	 * L.Marker.mergeOptions is called on the prototype AFTER Leaflet loads,
+	 * which replaces the default Icon.Default with our divIcon. */
+	function installDefaultPinIcon() {
+		if (!window.L || !L.Marker || L.Marker.prototype._sirajDefaultIconSet) return;
+		if (!window.sirajIcons || !window.sirajIcons.pin) return;  // too early; retry later
+		L.Marker.prototype._sirajDefaultIconSet = true;
+		function defaultSirajIcon() {
+			// Defer doctype lookup to call time so the icon reflects the list/form
+			// context it's rendered in (e.g. Person list → Person pin).
+			var dt = 'Place';
+			try { dt = (window.cur_frm && cur_frm.doctype) || (frappe.get_route && frappe.get_route()[1]) || 'Place'; } catch (_) {}
+			var color = (window.sirajColours && window.sirajColours[dt]) || '#3577c0';
+			var s = 32, h = Math.round(s*1.15);
+			return L.divIcon({
+				className: 'sx-pin-wrapper',
+				iconSize: [s, h],
+				iconAnchor: [s/2, h],
+				popupAnchor: [0, -Math.round(s*0.8)],
+				tooltipAnchor: [0, -Math.round(s*0.5)],
+				html: window.sirajIcons.pin(dt, color, s),
+			});
+		}
+		// Evaluate lazily per instance so doctype resolution happens at addTo()
+		// time (cur_frm is reliable then).
+		try {
+			// Setting a getter on the prototype means `this.options.icon` resolves
+			// to our divIcon for any marker whose options did not set icon.
+			Object.defineProperty(L.Marker.prototype.options, 'icon', {
+				configurable: true, enumerable: true,
+				get: function() {
+					if (this.__sirajDefaultIcon) return this.__sirajDefaultIcon;
+					this.__sirajDefaultIcon = defaultSirajIcon();
+					return this.__sirajDefaultIcon;
+				},
+				set: function(v) {
+					// Caller passed an explicit icon (L.marker(x,{icon:...})) — stop
+					// returning the default on future gets.
+					Object.defineProperty(this, 'icon', { value:v, configurable:true, writable:true, enumerable:true });
+				}
+			});
+		} catch (e) {
+			// Fallback: if Object.defineProperty fails (very old browsers) just
+			// set the option directly; still works.
+			try { L.Marker.mergeOptions({ icon: defaultSirajIcon() }); } catch (_) {}
+		}
 	}
-	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installDefaultPinOverride, { once: true });
-	else installDefaultPinOverride();
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installDefaultPinIcon, { once: true });
+	else installDefaultPinIcon();
 	if (window.frappe && frappe.router && frappe.router.on) {
-		frappe.router.on('change', () => setTimeout(installDefaultPinOverride, 50));
+		frappe.router.on('change', () => setTimeout(installDefaultPinIcon, 50));
 	}
-	setInterval(installDefaultPinOverride, 2000);
+	setInterval(installDefaultPinIcon, 2000);
+
+	/* ---------- 2c) Remove old private-API _initIcon monkey patch guard. ----------
+	 * Earlier versions of this file overrode _initIcon. We no longer do; any
+	 * previously-injected override from a stale bundle is harmless because our
+	 * setIcon-on-prototype approach wins before _initIcon runs. If the old
+	 * override is present from a stale bundle, this is a no-op. */
 
 	/* ---------- 3) Frappe MapView markers: use the SIRAJ pin registry ----------
 	 * When Frappe renders its list Map view it uses L.marker(...) with the

@@ -117,6 +117,63 @@ pages.
 
 ---
 
+## D-08  Production caching & staleness detection
+
+**Problem:** Frappe v15 serves `/assets/<app>/js/*.js` at fixed URLs with
+long `Cache-Control: max-age` headers in most nginx/proxy setups. After
+`bench build --app siraj_research` the files on disk are new but the
+browser may keep using cached JS for hours/days, producing exactly the
+"owner sees old UI after deploy" class of bug.
+
+**Options:**
+1. Switch to hashed bundles via Frappe's esbuild pipeline. **Rejected
+   for this release**: this sandbox has no bench/esbuild and
+   retrofitting would require vendoring esbuild or restructuring the
+   app around `public/dist/bundle.*`; possible once we can test against
+   a live bench.
+2. Append a build-stamp query string to asset URLs (`?v=STAMP`). This
+   works iff nginx includes `$args` in `proxy_cache_key`. **Adopted**
+   in a future commit; requires an nginx-side change on the owner's
+   bench (documented below).
+3. **Independent server truth** (adopted now): the whitelisted endpoint
+   `api/method/siraj_research.api.diagnostics.build_info` returns the
+   server's build stamp and asset manifest from a non-cached URL
+   (API responses carry `Cache-Control: no-store`). The SIRAJ
+   Diagnostics Desk Page fetches it, re-fetches each JS file with
+   `cache:'no-store'`, hashes the body with SHA-256, and compares — so
+   staleness is PROVABLE from inside the owner's browser regardless of
+   caching. A stale browser is not expected to run new code (which is
+   why the in-bundle banner alone is unreliable); instead the
+   diagnostics page is opened from a fresh URL or from the Desk
+   sidebar and reports the truth.
+
+**Required nginx snippet for the owner's bench** (place in the
+`location /assets/` block to include query string in cache key):
+
+```
+location /assets/ {
+    proxy_cache_key "$scheme$proxy_host$request_uri$args";
+    expires 7d;
+    add_header Cache-Control "public, max-age=604800, immutable";
+    try_files $uri =404;
+}
+```
+
+After this change, deploying with `?v=BUILD` appended to URLs in
+`app_include_js` will bust all caches. Until then, after every deploy
+the owner should open the Diagnostics page and verify the hash table
+shows PASS — a hard refresh (Ctrl/Cmd+Shift+R) is sufficient to clear
+the per-browser asset cache even without the nginx change.
+
+**Shims removed:** earlier versions of siraj-compat monkey-patched
+`L.Marker.prototype._initIcon` (private Leaflet API) and hid default
+image markers with `display:none !important` in CSS. Both removed in
+commit 8e4b532-followup. The default SIRAJ pin is now supplied through
+the public options prototype via `Object.defineProperty(L.Marker.prototype.options, 'icon', …)`, and any stray image marker is rendered with a
+dashed red outline so QA can see it instead of being masked.
+
+---
+
 ## D-07  Geo-resolve (auto-fill on click)
 
 Single whitelisted server method `siraj_research.api.geo_resolve.resolve_point(lat, lon)`
