@@ -1216,3 +1216,13 @@ radius {0},نصف قطر {0}
 records,سجلات
 showing {0} of {1},عرض {0} من أصل {1}
 Toolbar hidden — press \\ to show.,شريط الأدوات مخفي — اضغط \ لإظهاره.
+Place (HQ location),المكان (موقع القيادة)
+Could not update:,تعذّر التحديث:
+No relationships defined for {0},لا توجد علاقات معرَّفة لـ {0}
+Not permitted to read {0} {1},غير مسموح بقراءة {0} {1}
+Record not found or not readable: {0} {1},السجل غير موجود أو غير مقروء: {0} {1}
+Relationship name is required,اسم العلاقة مطلوب
+Relationship {0} not found,العلاقة {0} غير موجودة
+"Row {0}: a leadership assessment needs a basis — an assessor, a date or evidence.",السطر {0}: تقييم القيادة يحتاج إلى مستند — مُقيِّم أو تاريخ أو دليل.
+{0} {1} not found,{0} {1} غير موجود
+{0}: restricted,{0}: مقيَّد

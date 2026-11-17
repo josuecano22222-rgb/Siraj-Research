@@ -130,5 +130,5 @@
 })();
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
-window.SIRAJ_BUILD = '2026-11-16.i18n-ar-complete.12';
+window.SIRAJ_BUILD = '2026-11-16.i18n-detail-fields.13';
 try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| engines: maplibre (preferred), leaflet (compat) | complete Arabic translation coverage (all 3 tabs: Geographic map, Relationship map, Structures — every button, label, heading, hotkey hint, section header, status/tooltip/error message); advanced structure filter bar; military units + deployments/missions/exercises structures; inline add-relationship button; shift+drag link creation; self-test retries'); } catch (_) {}
