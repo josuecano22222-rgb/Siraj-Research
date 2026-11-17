@@ -15,6 +15,7 @@ ALLOWED = {
     PUBLIC_JS / "siraj-record-meta.js",  # builds pin/swatch SVGs from registry
     PUBLIC_JS / "siraj-map-kit.js",       # no-op today but builds helpOverlay HTML
     PUBLIC_JS / "siraj-map-toolbar.js",   # TOOL_MISSING error marker (broken icon indicator)
+    PAGES / "siraj_explorer" / "siraj_explorer.js",  # caret SVGs in collapsible section helpers
     ROOT / "siraj_research" / "public" / "js" / "siraj-icons.js",  # legacy facade
     ROOT / "siraj_research" / "templates" / "pages" / "icon_sheet.html",  # dev page
 }

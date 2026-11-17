@@ -132,5 +132,5 @@
 })();
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
-window.SIRAJ_BUILD = '2026-11-16.icons-hashfix.5';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| engines: maplibre (preferred), leaflet (compat) | toolbar icons fixed; no URL hash; int-arg coerce; or-filter fix; entity-profile permlevel; military+deployment relatable'); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-16.icons-hashfix.6';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| engines: maplibre (preferred), leaflet (compat) | toolbar icons fixed; no URL hash; int-arg coerce; or-filter fix; entity-profile permlevel; military+deployment relatable; collapsible profile panel'); } catch (_) {}

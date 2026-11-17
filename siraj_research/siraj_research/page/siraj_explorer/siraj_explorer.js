@@ -89,15 +89,30 @@ class SirajExplorer {
 		return '';
 	}
 	showDetails(title, rows, target) {
-		this.aside.empty();
-		$('<h4></h4>').text(title).appendTo(this.aside);
-		const dl = $('<dl></dl>').appendTo(this.aside);
+		this.aside.removeClass('sx-panel-hidden').empty();
+		const head = $('<div class="sx-panel-head"></div>').appendTo(this.aside);
+		$('<h4 style="margin:0"></h4>').text(title).appendTo(head);
+		const actions = $('<div class="sx-panel-actions"></div>').appendTo(head);
+		$('<button type="button" class="sx-panel-close" aria-label="Close panel">&times;</button>')
+			.on('click', () => { this.aside.addClass('sx-panel-hidden'); })
+			.appendTo(actions);
+		const body = $('<div class="sx-panel-body"></div>').appendTo(this.aside);
+		const sec = $('<details class="sx-section" open="open"></details>').appendTo(body);
+		const sum = $('<summary></summary>').appendTo(sec);
+		sum.append('<span class="sx-section-caret"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>');
+		sum.append($('<span class="sx-section-label"></span>').text(title));
+		const sbody = $('<div class="sx-section-body"></div>').appendTo(sec);
+		const dl = $('<dl></dl>').appendTo(sbody);
 		rows.forEach(([label, value]) => {
 			if (value === null || value === undefined || value === '') return;
 			$('<dt></dt>').text(label).appendTo(dl);
 			$('<dd></dd>').text(value).appendTo(dl);
 		});
-		if (target) this.button(__('Open record'), () => frappe.set_route('Form', target.doctype, target.name), true).addClass('sx-open').appendTo(this.aside);
+		if (target) $('<div style="margin-top:10px"></div>')
+			.append(this.button(__('Open record'), () => frappe.set_route('Form', target.doctype, target.name), true).addClass('btn-primary btn-sm'))
+			.appendTo(sbody);
+		// Collapsible toggle
+		sum.on('click', (ev) => { ev.preventDefault(); sec.attr('open') ? sec.removeAttr('open') : sec.attr('open','open'); });
 	}
 	showLegend(types, icons = null) {
 		types.forEach(type => {
@@ -451,11 +466,12 @@ class SirajExplorer {
 			egoData = null;
 			clearSelectionVisuals();
 			styleDim(false);
+			$(document).off('keydown.sxPanel');
 			this.showDetails(__('Geographic map'),[[__('About this view'),__('Map tools are docked on the right edge. Click a pin to see its connections.')]]);
 			mapStatus('');
 			// Deactivate toggle buttons.
 			isolateSelected = false;
-			this.toolbar.find('button[data-siraj-key=sel_isolate]').removeClass('is-active');
+			this.toolbar.find('button[data-siraj-key=sel_isolate]').removeClass('is-active btn-primary').addClass('btn-default');
 		};
 		// Format a single field value returned by get_entity_profile.
 		const fmtProfileValue = v => {
@@ -480,195 +496,438 @@ class SirajExplorer {
 			return document.createTextNode(fmtProfileValue(v));
 		};
 		let profileReqSeq = 0;
+		/* ---------- Persistent panel state (per record, per user) ---------- */
+		const PANEL_STATE_KEY = (dt, nm) => 'siraj.panel.v1.' + dt + '.' + encodeURIComponent(nm);
+		const loadPanelState = (dt, nm) => {
+			try { return JSON.parse(localStorage.getItem(PANEL_STATE_KEY(dt, nm)) || '{}'); } catch(_) { return {}; }
+		};
+		const savePanelState = (dt, nm, st) => {
+			try { localStorage.setItem(PANEL_STATE_KEY(dt, nm), JSON.stringify(st)); } catch(_) {}
+		};
+		const CARET_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+
 		const renderDetails = async () => {
 			if (!selectedNode) return;
 			const p = selectedNode;
-			this.aside.empty();
-			// Header (render immediately from map payload).
-			const head = $('<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"></div>').appendTo(this.aside);
-			head.append(itemGlyph(p.doctype, 24));
-			$('<h4 style="margin:0"></h4>').text(p.label || p.name).appendTo(head);
-			$('<span style="font-size:11px;color:var(--text-muted);padding:2px 6px;border-radius:999px;background:#eaf1f1;margin-inline-start:6px"></span>').text(__(p.doctype)).appendTo(head);
-			$('<button type="button" class="btn btn-link btn-sm" style="margin-inline-start:auto"></button>').text(__('Open record')).on('click', () => frappe.set_route('Form', p.doctype, p.name)).appendTo(head);
+			const pState = Object.assign({ tab: 'overview', sections: {} }, loadPanelState(p.doctype, p.name));
+
+			this.aside.removeClass('sx-panel-hidden').empty();
+
+			/* ---------- Header ---------- */
+			const head = $('<div class="sx-panel-head"></div>').appendTo(this.aside);
+			const title = $('<div class="sx-panel-title"></div>').appendTo(head);
+			title.append(itemGlyph(p.doctype, 28));
+			$('<h4></h4>').attr('title', p.label || p.name).text(p.label || p.name).appendTo(title);
+			$('<span class="sx-type-chip"></span>').text(__(p.doctype)).appendTo(title);
+			const actions = $('<div class="sx-panel-actions"></div>').appendTo(head);
+			$('<button type="button" class="btn btn-link btn-sm"></button>')
+				.text(__('Open record'))
+				.on('click', () => frappe.set_route('Form', p.doctype, p.name))
+				.appendTo(actions);
+			$('<button type="button" class="sx-panel-close" aria-label="Close details">&times;</button>')
+				.on('click', () => clearSelection())
+				.appendTo(actions);
+
+			/* ---------- Toolbar row: back button ---------- */
 			if (selectionTrail.length) {
-				this.button('↩ ' + __('Back'), () => {
-					const prev = selectionTrail.pop();
-					const n = pointsById.get(this.id(prev));
-					if (n) selectNode(n); else { selectionTrail.length=0; clearSelection(); }
-				}).addClass('btn-default btn-xs').appendTo(this.aside);
+				const tb = $('<div class="sx-panel-toolbar"></div>').appendTo(this.aside);
+				$('<button type="button" class="btn btn-xs btn-default sx-back-btn"></button>')
+					.html('&larr; ' + __('Back'))
+					.on('click', () => {
+						const prev = selectionTrail.pop();
+						const n = pointsById.get(this.id(prev));
+						if (n) selectNode(n); else { selectionTrail.length = 0; clearSelection(); }
+					}).appendTo(tb);
 			}
-			// Tabs
-			const tabBar = $('<div style="display:flex;gap:2px;border-bottom:1px solid var(--sx-line,#d4dfe0);margin-bottom:8px"></div>').appendTo(this.aside);
-			const tabs = ['overview','fields','connections','location','activity'];
-			const tabLabels = { overview:__('Overview'), fields:__('Fields'), connections:__('Connections'), location:__('Location'), activity:__('Activity') };
-			const tabBody = $('<div></div>').appendTo(this.aside);
-			let activeTab = 'overview';
-			const switchTab = id => {
-				activeTab = id;
-				tabBar.find('button').removeClass('btn-primary').addClass('btn-default');
-				tabBar.find('button[data-tab="'+id+'"]').removeClass('btn-default').addClass('btn-primary');
+
+			/* ---------- Tab bar ---------- */
+			const TABS = [
+				{ id:'overview',    label: __('Overview')    },
+				{ id:'fields',      label: __('Fields')      },
+				{ id:'connections', label: __('Connections') },
+				{ id:'location',    label: __('Location')    },
+				{ id:'activity',    label: __('Activity')    },
+			];
+			const tabBar = $('<div class="sx-panel-tabs" role="tablist"></div>').appendTo(this.aside);
+			const tabBody = $('<div class="sx-panel-body" role="tabpanel"></div>').appendTo(this.aside);
+
+			const switchTab = (id) => {
+				pState.tab = id; savePanelState(p.doctype, p.name, pState);
+				tabBar.find('button').removeClass('btn-primary').addClass('btn-default').attr('aria-selected','false');
+				tabBar.find('button[data-tab="'+id+'"]').removeClass('btn-default').addClass('btn-primary').attr('aria-selected','true');
 				renderTab(id);
 			};
-			tabs.forEach(id => $('<button type="button" class="btn btn-xs"></button>').addClass(id===activeTab?'btn-primary':'btn-default').text(tabLabels[id]).attr('data-tab',id).on('click',()=>switchTab(id)).appendTo(tabBar));
+			TABS.forEach(t => $('<button type="button" class="btn btn-xs" role="tab"></button>')
+				.addClass(pState.tab===t.id?'btn-primary':'btn-default')
+				.attr({'data-tab':t.id, 'aria-selected': pState.tab===t.id ? 'true':'false'})
+				.html(t.label + '<span class="sx-tab-badge" data-tab-badge="'+t.id+'"></span>')
+				.on('click', () => switchTab(t.id))
+				.appendTo(tabBar));
 
-			// Ego depth controls (persistent, above tabs body).
-			const egoRow = $('<div style="display:flex;gap:4px;margin:6px 0 8px;align-items:center"></div>').appendTo(this.aside);
-			$('<small style="color:var(--text-muted)"></small>').text(__('Network depth')).appendTo(egoRow);
-			[1,2,3].forEach(d => $('<button type="button" class="btn btn-xs"></button>').addClass(d===egoDepth?'btn-primary':'btn-default').text(d).on('click',()=>{egoRow.find('button').removeClass('btn-primary').addClass('btn-default');$(this).removeClass('btn-default').addClass('btn-primary');loadEgo(d);}).appendTo(egoRow));
-			$('<button type="button" class="btn btn-xs btn-default" style="margin-inline-start:auto"></button>').text(__('Isolate')).on('click',()=>{isolateSelected=!isolateSelected;$(this).toggleClass('btn-primary',isolateSelected).toggleClass('btn-default',!isolateSelected);if(selectedNode)renderEgo();}).appendTo(egoRow);
+			/* ---------- Ego depth row (always visible below tabs) ---------- */
+			const egoRow = $('<div class="sx-ego-row"></div>').appendTo(this.aside);
+			$('<small></small>').text(__('Network depth')).appendTo(egoRow);
+			[1,2,3].forEach(d => $('<button type="button" class="btn btn-xs"></button>')
+				.addClass(d===egoDepth?'btn-primary':'btn-default').text(String(d))
+				.on('click', (e) => {
+					egoRow.find('button.depth').removeClass('btn-primary').addClass('btn-default');
+					$(e.currentTarget).removeClass('btn-default').addClass('btn-primary');
+					loadEgo(d);
+				}).addClass('depth').appendTo(egoRow));
+			$('<span class="sx-spacer"></span>').appendTo(egoRow);
+			const isoBtn = $('<button type="button" class="btn btn-xs"></button>')
+				.addClass(isolateSelected?'btn-primary':'btn-default')
+				.text(__('Isolate'))
+				.on('click', (e) => {
+					isolateSelected = !isolateSelected;
+					$(e.currentTarget).toggleClass('btn-primary', isolateSelected).toggleClass('btn-default', !isolateSelected);
+					if (selectedNode) renderEgo();
+				}).appendTo(egoRow);
 
-			const renderTab = (id) => {
-				tabBody.empty();
-				if (id === 'overview' || id === 'fields' || id === 'connections' || id === 'location' || id === 'activity') {
-					tabBody.append($('<div class="siraj-profile-loading"></div>').text(__('Loading…')));
-					const seq = ++profileReqSeq;
-					frappe.call({ method:'siraj_research.api.entity_profile.get_entity_profile',
-						args:{ doctype:p.doctype, name:p.name } })
-						.then(r => {
-							if (seq !== profileReqSeq || !selectedNode || selectedNode.name !== p.name) return;
-							tabBody.empty();
-							renderProfileTab(id, r.message, tabBody);
-						})
-						.catch(e => {
-							if (seq !== profileReqSeq) return;
-							tabBody.empty();
-							const err = $('<div class="siraj-profile-error" style="color:var(--red,#c0392b);font-size:12px"></div>').appendTo(tabBody);
-							err.text(__('Could not load details: {0}',[e.message || String(e)]));
-							$('<button type="button" class="btn btn-xs btn-default"></button>').text(__('Retry')).on('click',()=>renderTab(id)).appendTo(err);
-						});
+			/* ---------- Collapsible section builder ---------- */
+			// key identifies the section inside a tab; sections that don't have a
+			// stored open/closed state default to open.
+			const section = (tabId, key, titleHTML, countNode) => {
+				const secKey = tabId + ':' + key;
+				const stored = pState.sections[secKey];
+				const isOpen = stored == null ? true : !!stored;
+				const sec = $('<details class="sx-section"></details>').attr('data-sx-section', secKey);
+				if (isOpen) sec.attr('open','open');
+				const sum = $('<summary></summary>').appendTo(sec);
+				sum.append($('<span class="sx-section-caret">' + CARET_SVG + '</span>'));
+				const lbl = $('<span class="sx-section-label"></span>');
+				if (typeof titleHTML === 'string') lbl.html(titleHTML); else lbl.append(titleHTML);
+				sum.append(lbl);
+				if (countNode != null) {
+					const c = $('<span class="sx-section-count"></span>');
+					if (typeof countNode === 'function') c.data('__fill', countNode);
+					else c.text(String(countNode));
+					sum.append(c);
 				}
+				const body = $('<div class="sx-section-body"></div>').appendTo(sec);
+				sum.on('click', (ev) => {
+					ev.preventDefault();
+					const opening = !sec.attr('open');
+					if (opening) sec.attr('open','open'); else sec.removeAttr('open');
+					pState.sections[secKey] = opening;
+					savePanelState(p.doctype, p.name, pState);
+				});
+				return sec;
+			};
+			const setBadge = (tabId, text) => {
+				const b = tabBar.find('.sx-tab-badge[data-tab-badge="'+tabId+'"]');
+				if (text == null || text === '' || text === 0) { b.text('').hide(); }
+				else b.text(String(text)).show();
 			};
 
-			const renderProfileTab = (id, prof, el) => {
+			/* ---------- Tab loader (lazy, cached for the session) ---------- */
+			const tabCache = {};
+			const setTabCount = (id, n) => setBadge(id, n);
+			const renderTab = (id) => {
+				tabBody.empty();
+				if (tabCache[id]) { mountTab(id, tabCache[id]); return; }
+				const loading = $('<div class="sx-panel-loading"></div>')
+					.html('<span>⏳</span> ' + __('Loading…'))
+					.appendTo(tabBody);
+				const seq = ++profileReqSeq;
+				frappe.call({ method:'siraj_research.api.entity_profile.get_entity_profile',
+					args:{ doctype:p.doctype, name:p.name } })
+					.then(r => {
+						if (seq !== profileReqSeq || !selectedNode || selectedNode.name !== p.name) return;
+						tabCache[id] = r.message || {};
+						mountTab(id, tabCache[id]);
+					})
+					.catch(e => {
+						if (seq !== profileReqSeq) return;
+						tabBody.empty();
+						const err = $('<div class="sx-panel-error"></div>').appendTo(tabBody);
+						$('<div></div>').text(__('Could not load details: {0}', [e.message || String(e)])).appendTo(err);
+						$('<button type="button" class="btn btn-xs btn-default"></button>')
+							.text(__('Retry'))
+							.on('click', () => { delete tabCache[id]; renderTab(id); })
+							.appendTo(err);
+					});
+			};
+
+			/* When one tab finishes loading we cache the payload but also prime
+			 * the other tabs' caches (the endpoint returns everything at once). */
+			const primeCache = (prof) => {
+				TABS.forEach(t => { if (!tabCache[t.id]) tabCache[t.id] = prof; });
+			};
+
+			const mountTab = (id, prof) => {
+				tabBody.empty();
 				if (!prof) return;
+				primeCache(prof);
+				const pane = $('<div class="sx-tab-pane" data-tab-pane="'+id+'"></div>').appendTo(tabBody);
+
 				if (id === 'overview') {
-					// Mini summary — status, owner, modified, network summary.
-					const dl = $('<dl></dl>').appendTo(el);
-					if (prof.header.status) $('<dt></dt>').text(__('Status')).appendTo(dl), $('<dd></dd>').text(prof.header.status).appendTo(dl);
-					$('<dt></dt>').text(__('Modified')).appendTo(dl); $('<dd></dd>').text(prof.header.modified).appendTo(dl);
-					$('<dt></dt>').text(__('Owner')).appendTo(dl); $('<dd></dd>').text(prof.header.owner).appendTo(dl);
+					// Core metadata section (status/modified/owner)
+					const metaRows = [];
+					if (prof.header && prof.header.status) metaRows.push([__('Status'), prof.header.status]);
+					metaRows.push([__('Modified'), prof.header && prof.header.modified]);
+					metaRows.push([__('Owner'), prof.header && prof.header.owner]);
+					if (prof.permissions) {
+						const perms = [];
+						if (prof.permissions.can_write)  perms.push(__('can edit'));
+						if (prof.permissions.can_create) perms.push(__('can link'));
+						if (perms.length) metaRows.push([__('Permissions'), perms.join(', ')]);
+					}
+					const sec = section('overview', 'meta', __('Record details'), null).appendTo(pane);
+					const dl = $('<dl></dl>').appendTo(sec.find('.sx-section-body'));
+					metaRows.forEach(([k,v]) => {
+						if (v == null || v === '') return;
+						$('<dt></dt>').text(k).appendTo(dl);
+						$('<dd></dd>').text(String(v)).appendTo(dl);
+					});
+
+					// Network summary
 					const ns = prof.network_summary || {};
-					$('<h5 style="margin-top:10px"></h5>').text(__('Network summary')).appendTo(el);
-					const sm = $('<div style="display:flex;gap:6px;flex-wrap:wrap"></div>').appendTo(el);
-					$('<span class="siraj-chip is-on" style="--chip-color:#53706b"></span>').html('<span class="siraj-chip-label">'+__('Relationships')+'</span><span class="siraj-chip-count">'+(ns.relationship_count||0)+'</span>').appendTo(sm);
-					$('<span class="siraj-chip is-on" style="--chip-color:#6a7a7e"></span>').html('<span class="siraj-chip-label">'+__('Outbound links')+'</span><span class="siraj-chip-count">'+(ns.outbound_count||0)+'</span>').appendTo(sm);
-					$('<span class="siraj-chip is-on" style="--chip-color:#6a7a7e"></span>').html('<span class="siraj-chip-label">'+__('Inbound links')+'</span><span class="siraj-chip-count">'+(ns.inbound_count||0)+'</span>').appendTo(sm);
-					$('<div style="margin-top:10px"></div>').append(this.button(__('Add relationship…'),()=>addRelationship(null)).addClass('btn-primary btn-sm')).appendTo(el);
+					const sumChips = [
+						{ label: __('Relationships'), n: ns.relationship_count || 0, color:'#53706b' },
+						{ label: __('Outbound'),      n: ns.outbound_count     || 0, color:'#6a7a7e' },
+					{ label: __('Inbound'),       n: ns.inbound_count      || 0, color:'#6a7a7e' },
+				];
+				const nsSec = section('overview','network',__('Network summary'), ()=>String((ns.relationship_count||0)+(ns.outbound_count||0)+(ns.inbound_count||0))).appendTo(pane);
+					const chipRow = $('<div class="sx-chip-row"></div>').appendTo(nsSec.find('.sx-section-body'));
+					sumChips.forEach(c => $('<span class="siraj-chip is-on" style="--chip-color:'+c.color+'"></span>')
+						.html('<span class="siraj-chip-label">'+c.label+'</span><span class="siraj-chip-count">'+c.n+'</span>')
+						.appendTo(chipRow));
+
+					// Quick actions
+					if (prof.permissions && prof.permissions.can_create) {
+						const act = section('overview', 'actions', __('Quick actions'), null).appendTo(pane);
+						$('<div style="display:flex;gap:6px;flex-wrap:wrap"></div>')
+							.append(this.button(__('Add relationship…'), () => addRelationship(null)).addClass('btn-primary btn-sm'))
+							.appendTo(act.find('.sx-section-body'));
+					}
+
 				} else if (id === 'fields') {
-					(prof.sections||[]).forEach(sec => {
-						$('<h5 style="margin-top:8px"></h5>').text(sec.heading).appendTo(el);
-						const dl = $('<dl></dl>').appendTo(el);
-						sec.fields.forEach(f => {
+					let fieldCount = 0;
+					(prof.sections||[]).forEach(secDef => {
+						const fields = secDef.fields || [];
+						if (!fields.length) return;
+						fieldCount += fields.length;
+						const sec = section('fields', 'fld_'+secDef.heading, secDef.heading || __('Fields'), String(fields.length)).appendTo(pane);
+						const body = sec.find('.sx-section-body');
+						const dl = $('<dl></dl>').appendTo(body);
+						fields.forEach(f => {
 							$('<dt></dt>').text(f.label).appendTo(dl);
-							const dd = $('<dd></dd>').appendTo(dl);
-							dd.append(renderValueCell(f.value));
+							$('<dd></dd>').append(renderValueCell(f.value)).appendTo(dl);
 						});
 					});
 					// Child tables
 					Object.entries(prof.children||{}).forEach(([fn, tbl]) => {
 						if (!tbl.rows || !tbl.rows.length) return;
-						$('<h5 style="margin-top:10px"></h5>').text(tbl.label + (tbl.truncated?' ('+__('showing 50 of {0}',[tbl.total])+')':'')).appendTo(el);
+						const total = tbl.total || tbl.rows.length;
+						const label = tbl.label + (tbl.truncated ? ' (' + __('showing {0} of {1}', [tbl.rows.length, total]) + ')' : '');
+						const sec = section('fields', 'ctbl_'+fn, label, String(total)).appendTo(pane);
+						const body = sec.find('.sx-section-body');
 						const keys = Object.keys(tbl.rows[0]);
-						const t = $('<table class="table table-condensed" style="font-size:11px"></table>').appendTo(el);
+						const wrap = $('<div class="sx-table-wrap"></div>').appendTo(body);
+						const t = $('<table class="table table-condensed"></table>').appendTo(wrap);
 						const thead = $('<thead></thead>').appendTo(t), trh=$('<tr></tr>').appendTo(thead);
-						keys.forEach(k=>$('<th></th>').text(tbl.rows[0][k].label).appendTo(trh));
+						keys.forEach(k => $('<th></th>').text(tbl.rows[0][k].label).appendTo(trh));
 						const tbody = $('<tbody></tbody>').appendTo(t);
-						tbl.rows.forEach(row => { const tr=$('<tr></tr>').appendTo(tbody); keys.forEach(k=>{$('<td></td>').text(fmtProfileValue(row[k].value)).appendTo(tr);}); });
-					});
-				} else if (id === 'connections') {
-					// Authored relationships
-					const rels = (prof.connections && prof.connections.relationships) || [];
-					$('<h5></h5>').text(__('Relationships ({0})',[rels.length])).appendTo(el);
-					if (!rels.length) $('<div style="color:var(--text-muted);font-size:12px"></div>').text(__('No authored relationships.')).appendTo(el);
-					rels.slice(0,50).forEach(r => {
-						const row = $('<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px;border-bottom:1px dashed var(--sx-line,#d4dfe0)"></div>').appendTo(el);
-						const dirGlyph = r.direction_relative === 'outbound' ? '→' : (r.direction_relative === 'inbound' ? '←' : '↔');
-						$('<span style="color:var(--text-muted);width:18px;text-align:center"></span>').text(dirGlyph).appendTo(row);
-						row.append(itemGlyph(r.counterpart_doctype,16));
-						const lbl = $('<button type="button" class="btn btn-link btn-xs" style="padding:0;text-align:start"></button>').text(r.counterpart_title + (r.relationship_type?' · '+r.relationship_type:'')).appendTo(row);
-						lbl.on('click', () => {
-							if (r.counterpart_restricted) return;
-							const key = this.id({doctype:r.counterpart_doctype, name:r.counterpart_name});
-							const n = pointsById.get(key);
-							if (n && n.latitude != null) selectNode(n);
-							else frappe.set_route('Form', r.counterpart_doctype, r.counterpart_name);
+						tbl.rows.forEach(row => {
+							const tr=$('<tr></tr>').appendTo(tbody);
+							keys.forEach(k => $('<td></td>').text(fmtProfileValue(row[k].value)).appendTo(tr));
 						});
-						$('<span style="margin-inline-start:auto;color:var(--text-muted);font-size:11px"></span>').text(r.start_date || '').appendTo(row);
-					});
-					// Outbound links
-					const ob = (prof.connections && prof.connections.outbound_links) || [];
-					$('<h5 style="margin-top:12px"></h5>').text(__('Outbound links ({0})',[ob.length])).appendTo(el);
-					ob.forEach(l => {
-						const row = $('<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12px"></div>').appendTo(el);
-						row.append(itemGlyph(l.doctype, 14));
-						$('<span style="color:var(--text-muted);font-size:11px"></span>').text(l.label).appendTo(row);
-						const b = $('<button type="button" class="btn btn-link btn-xs" style="padding:0"></button>').text(l.title).appendTo(row);
-						b.on('click',()=>{ if (l.restricted) return; frappe.set_route('Form', l.doctype, l.name); });
-					});
-					// Inbound links
-					const ib = (prof.connections && prof.connections.inbound_links) || [];
-					$('<h5 style="margin-top:12px"></h5>').text(__('Inbound links')).appendTo(el);
-					ib.forEach(l => {
-						const row = $('<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12px"></div>').appendTo(el);
-						if (l.restricted) { $('<span style="color:var(--text-muted)"></span>').text(__('{0}: restricted',[__(l.doctype)])).appendTo(row); return; }
-						$('<span class="siraj-chip is-on" style="--chip-color:#6a7a7e"></span>').html('<span class="siraj-chip-label">'+__(l.doctype)+'</span><span class="siraj-chip-count">'+(l.count||0)+'</span>').appendTo(row);
-						if (l.sample && l.sample.length) {
-							const sm = $('<span style="color:var(--text-muted);font-size:11px;flex:1"></span>').appendTo(row);
-							sm.text(l.sample.map(s=>s.title).join(', '));
+						if (tbl.truncated) {
+							$('<button type="button" class="btn btn-link btn-xs sx-show-all"></button>')
+								.text(__('Open full record →'))
+								.on('click', () => frappe.set_route('Form', p.doctype, p.name))
+								.appendTo(body);
 						}
-						$('<button type="button" class="btn btn-link btn-xs"></button>').text(__('View all')).on('click',()=>frappe.set_route('List', l.doctype)).appendTo(row);
 					});
-					// Ego data (unmapped list) from network call
-					if (egoData && egoData.unmapped && egoData.unmapped.length) {
-						$('<h5 style="margin-top:12px"></h5>').text(__('Unmapped connections ({0})',[egoData.unmapped.length])).appendTo(el);
-						egoData.unmapped.slice(0,20).forEach(u => {
-							const r = $('<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12px"></div>').appendTo(el);
+					if (!fieldCount && (!prof.children || !Object.keys(prof.children).length)) {
+						$('<div class="sx-empty"></div>').text(__('No field data available.')).appendTo(pane);
+					}
+					setTabCount('fields', fieldCount || null);
+
+				} else if (id === 'connections') {
+					const rels = (prof.connections && prof.connections.relationships) || [];
+					const ob   = (prof.connections && prof.connections.outbound_links)  || [];
+					const ib   = (prof.connections && prof.connections.inbound_links)   || [];
+					const unm  = (egoData && egoData.unmapped) || [];
+
+					// Authored relationships
+					const relSec = section('connections','rels',__('Relationships'), String(rels.length)).appendTo(pane);
+					if (!rels.length) {
+						$('<div class="sx-empty"></div>').text(__('No authored relationships.')).appendTo(relSec.find('.sx-section-body'));
+					} else {
+						const list = $('<ul class="sx-conn-list"></ul>').appendTo(relSec.find('.sx-section-body'));
+						const showAll = $('<button type="button" class="btn btn-link btn-xs sx-show-all" style="display:none"></button>')
+							.text(__('Show all'))
+							.on('click', () => { list.removeClass('sx-collapsed'); showAll.hide(); })
+							.appendTo(relSec.find('.sx-section-body'));
+						rels.slice(0,50).forEach((r, i) => {
+							if (i === 8 && rels.length > 8) { list.addClass('sx-collapsed'); showAll.show(); }
+							const row = $('<li class="sx-conn"></li>').appendTo(list);
+							const dirGlyph = r.direction_relative === 'outbound' ? '→' : (r.direction_relative === 'inbound' ? '←' : '↔');
+							$('<span class="sx-conn-dir"></span>').text(dirGlyph).appendTo(row);
+							row.append(itemGlyph(r.counterpart_doctype, 16));
+							const lbl = $('<button type="button" class="sx-conn-name"></button>')
+								.text(r.counterpart_title + (r.relationship_type ? ' · ' + r.relationship_type : ''))
+								.attr('title', r.counterpart_title + (r.relationship_type ? ' · ' + r.relationship_type : ''))
+								.on('click', () => {
+									if (r.counterpart_restricted) return;
+									const key = this.id({doctype:r.counterpart_doctype, name:r.counterpart_name});
+									const n = pointsById.get(key);
+									if (n && n.latitude != null) selectNode(n);
+									else frappe.set_route('Form', r.counterpart_doctype, r.counterpart_name);
+								}).appendTo(row);
+							$('<span class="sx-conn-meta"></span>').text(r.start_date || '').appendTo(row);
+						});
+						if (prof.permissions && prof.permissions.can_create) {
+							$('<button type="button" class="btn btn-primary btn-xs" style="margin-top:6px"></button>')
+								.text(__('Add relationship…'))
+								.on('click', () => addRelationship(null))
+								.appendTo(relSec.find('.sx-section-body'));
+						}
+					}
+
+					// Outbound links
+					if (ob.length) {
+						const obSec = section('connections','out',__('Outbound links'), String(ob.length)).appendTo(pane);
+						const list = $('<ul class="sx-conn-list"></ul>').appendTo(obSec.find('.sx-section-body'));
+						ob.forEach(l => {
+							const row = $('<li class="sx-conn"></li>').appendTo(list);
+							row.append(itemGlyph(l.doctype, 14));
+							$('<span class="sx-conn-meta" style="margin-inline-start:0"></span>').text(l.label).appendTo(row);
+							const b = $('<button type="button" class="sx-conn-name"></button>').text(l.title).appendTo(row);
+							b.on('click', () => { if (l.restricted) return; frappe.set_route('Form', l.doctype, l.name); });
+						});
+					}
+
+					// Inbound links
+					if (ib.length) {
+						const ibSec = section('connections','in',__('Inbound links'), String(ib.length)).appendTo(pane);
+						const body = ibSec.find('.sx-section-body');
+						ib.forEach(l => {
+							const row = $('<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px"></div>').appendTo(body);
+							if (l.restricted) { $('<span class="sx-empty"></span>').text(__('{0}: restricted', [__(l.doctype)])).appendTo(row); return; }
+							$('<span class="siraj-chip is-on" style="--chip-color:#6a7a7e"></span>')
+								.html('<span class="siraj-chip-label">'+__(l.doctype)+'</span><span class="siraj-chip-count">'+(l.count||0)+'</span>')
+								.appendTo(row);
+							if (l.sample && l.sample.length) {
+								$('<span style="color:var(--text-muted);font-size:11px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>')
+									.text(l.sample.map(s=>s.title).join(', '))
+									.appendTo(row);
+							}
+							$('<button type="button" class="btn btn-link btn-xs"></button>')
+								.text(__('View all'))
+								.on('click', ()=>frappe.set_route('List', l.doctype))
+								.appendTo(row);
+						});
+					}
+
+					// Unmapped connections
+					if (unm.length) {
+						const umSec = section('connections','unmapped',__('Unmapped connections'), String(unm.length)).appendTo(pane);
+						const body = umSec.find('.sx-section-body');
+						unm.slice(0,20).forEach(u => {
+							const r = $('<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px"></div>').appendTo(body);
 							r.append(itemGlyph(u.doctype,16));
-							$('<span style="flex:1"></span>').text(u.label + ' (' + __(u.doctype) + ')').appendTo(r);
+							$('<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>')
+								.text(u.label + ' (' + __(u.doctype) + ')').appendTo(r);
 							this.button(__('Place'), () => {
 								const meas = measure; if (!meas || !meas.activate) return; meas.activate('pick');
-								meas.onPick = latlng => { frappe.new_doc(u.doctype,{latitude:Number(latlng.lat).toFixed(6),longitude:Number(latlng.lng).toFixed(6),geocoding_method:'map_pick'}); meas.onPick=null; };
-								frappe.show_alert({message:__('Click the map to place {0}',[u.label]),indicator:'blue'});
+								meas.onPick = latlng => {
+									frappe.new_doc(u.doctype, {latitude:Number(latlng.lat).toFixed(6), longitude:Number(latlng.lng).toFixed(6), geocoding_method:'map_pick'});
+									meas.onPick = null;
+								};
+								frappe.show_alert({message:__('Click the map to place {0}', [u.label]), indicator:'blue'});
 							}).addClass('btn-xs btn-default').appendTo(r);
 						});
 					}
+					setTabCount('connections', String(rels.length + ob.length + ib.length + unm.length));
+
 				} else if (id === 'location') {
 					const loc = prof.location || {};
-					const dl = $('<dl></dl>').appendTo(el);
-					[['latitude',__('Latitude')],['longitude',__('Longitude')],['precision',__('Precision')],['method',__('Method')],['uncertainty_m',__('Uncertainty (m)')],['source',__('Source')],['location_source',__('Provenance')]].forEach(([k,label])=>{
+					const rows = [];
+					[['latitude',__('Latitude')],['longitude',__('Longitude')],['precision',__('Precision')],['method',__('Method')],['uncertainty_m',__('Uncertainty (m)')],['source',__('Source')],['location_source',__('Provenance')]].forEach(([k,label]) => {
 						if (loc[k] == null || loc[k] === '') return;
-						$('<dt></dt>').text(label).appendTo(dl);
-						$('<dd></dd>').text(String(loc[k])).appendTo(dl);
+						rows.push([label, String(loc[k])]);
 					});
-					if (loc.latitude != null && loc.longitude != null) {
-						this.button(__('Fly to'), () => map.flyTo([Number(loc.latitude),Number(loc.longitude)], 14)).addClass('btn-xs btn-default').appendTo(el);
+					const hasCoords = loc.latitude != null && loc.longitude != null;
+					const lSec = section('location', 'coords', __('Coordinates'), hasCoords ? '✓' : null).appendTo(pane);
+					if (!rows.length) {
+						$('<div class="sx-empty"></div>').text(__('No coordinates on this record.')).appendTo(lSec.find('.sx-section-body'));
 					} else {
-						$('<div style="color:var(--text-muted);font-size:12px"></div>').text(__('No coordinates on this record.')).appendTo(el);
+						const dl = $('<dl></dl>').appendTo(lSec.find('.sx-section-body'));
+						rows.forEach(([k,v]) => { $('<dt></dt>').text(k).appendTo(dl); $('<dd></dd>').text(v).appendTo(dl); });
 					}
+					if (hasCoords) {
+						$('<div style="margin-top:8px"></div>').append(
+							this.button(__('Fly to'), () => map.flyTo([Number(loc.latitude), Number(loc.longitude)], 14)).addClass('btn-xs btn-default')
+						).appendTo(lSec.find('.sx-section-body'));
+					} else {
+						$('<div style="margin-top:8px"></div>').append(
+							this.button(__('Place on map'), () => {
+								const meas = measure; if (!meas || !meas.activate) return; meas.activate('pick');
+								meas.onPick = latlng => {
+									frappe.call({ method:'frappe.client.set_value', args: {
+										doctype:p.doctype, name:p.name, fieldname:{latitude:Number(latlng.lat).toFixed(6), longitude:Number(latlng.lng).toFixed(6), geocoding_method:'map_pick'}
+									} }).then(() => { delete tabCache.location; renderTab('location'); meas.onPick=null; meas.deactivate && meas.deactivate(); });
+								};
+								frappe.show_alert({message:__('Click the map to place {0}', [p.label || p.name]), indicator:'blue'});
+							}).addClass('btn-xs btn-default')
+						).appendTo(lSec.find('.sx-section-body'));
+					}
+
 				} else if (id === 'activity') {
 					const a = prof.activity || {};
-					$('<h5></h5>').text(__('Attachments ({0})',[(a.attachments||[]).length])).appendTo(el);
-					(a.attachments||[]).forEach(f => {
-						$('<div style="font-size:12px;padding:2px 0"></div>').append(
-							$('<a target="_blank" rel="noopener"></a>').attr('href',f.file_url||'').text(f.file_name||f.name)
-						).appendTo(el);
-					});
-					$('<h5 style="margin-top:10px"></h5>').text(__('Comments ({0})',[(a.comments||[]).length])).appendTo(el);
-					(a.comments||[]).forEach(c => {
-						$('<div style="font-size:12px;padding:4px 0;border-bottom:1px dashed var(--sx-line,#d4dfe0)"></div>')
-							.text((c.comment_by||c.comment_email||'') + ' · ' + (c.content||'').replace(/<[^>]+>/g,'')).appendTo(el);
-					});
-					$('<h5 style="margin-top:10px"></h5>').text(__('Recent changes ({0})',[(a.versions||[]).length])).appendTo(el);
-					(a.versions||[]).forEach(v => {
-						$('<div style="font-size:12px;padding:2px 0;color:var(--text-muted)"></div>').text((v.owner||'')+' · '+v.creation).appendTo(el);
-					});
+					const atts = a.attachments || [];
+					const comments = a.comments || [];
+					const versions = a.versions || [];
+					if (atts.length) {
+						const s = section('activity','atts',__('Attachments'), String(atts.length)).appendTo(pane);
+						const list = $('<ul class="sx-conn-list"></ul>').appendTo(s.find('.sx-section-body'));
+						atts.forEach(f => $('<li class="sx-conn"></li>').append(
+							$('<a target="_blank" rel="noopener" class="sx-conn-name" style="padding:0"></a>')
+								.attr('href', f.file_url || '').text(f.file_name || f.name)
+						).appendTo(list));
+					}
+					if (comments.length) {
+						const s = section('activity','cmt',__('Comments'), String(comments.length)).appendTo(pane);
+						const body = s.find('.sx-section-body');
+						comments.forEach(c => $('<div style="font-size:12px;padding:4px 0;border-bottom:1px dashed var(--sx-line,#d4dfe0)"></div>')
+							.text((c.comment_by || c.comment_email || '') + ' · ' + String(c.content||'').replace(/<[^>]+>/g,''))
+							.appendTo(body));
+					}
+					if (versions.length) {
+						const s = section('activity','ver',__('Recent changes'), String(versions.length)).appendTo(pane);
+						const body = s.find('.sx-section-body');
+						versions.slice(0,30).forEach(v => $('<div style="font-size:12px;padding:2px 0;color:var(--text-muted)"></div>')
+							.text((v.owner||'') + ' · ' + v.creation)
+							.appendTo(body));
+					}
+					if (!atts.length && !comments.length && !versions.length) {
+						$('<div class="sx-empty"></div>').text(__('No activity recorded.')).appendTo(pane);
+					}
+					setTabCount('activity', String(atts.length + comments.length + versions.length));
 				}
-				// Add relationship button (visible on all tabs).
-				if (prof.permissions && prof.permissions.can_create) {
-					$('<div style="margin-top:10px"></div>').append(this.button(__('Add relationship…'),()=>addRelationship(null)).addClass('btn-primary btn-sm')).appendTo(el);
+
+				// Add relationship button at the bottom of every tab
+				if (prof.permissions && prof.permissions.can_create && id !== 'connections') {
+					$('<div style="margin-top:10px"></div>')
+						.append(this.button(__('Add relationship…'), () => addRelationship(null)).addClass('btn-primary btn-sm btn-block'))
+						.appendTo(pane);
 				}
 			};
-			switchTab(activeTab);
+
+			switchTab(pState.tab);
+
+			// Keyboard: Esc closes the panel (same as the × button)
+			const onKey = (e) => {
+				if (e.key === 'Escape' && selectedNode && selectedNode.name === p.name) {
+					// Only close if focus isn't inside an input/textarea.
+					const tag = (document.activeElement && document.activeElement.tagName) || '';
+					if (!/INPUT|TEXTAREA|SELECT/.test(tag)) clearSelection();
+				}
+			};
+			$(document).off('keydown.sxPanel').on('keydown.sxPanel', onKey);
 		};
 		const selectPoint = selectNode; // backward alias used by markers/renderList
 		const renderList = () => {
