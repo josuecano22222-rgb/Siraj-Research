@@ -28,8 +28,10 @@
  */
 (() => {
 	'use strict';
-	const SIRAJ_MAP_BUILD = '2026-11-16.maplibre-foundation.1';
-	console.info('%c[SIRAJ Map]', 'color:#0c5e5b;font-weight:bold', 'build', SIRAJ_MAP_BUILD, '| default engine: maplibre');
+	// Map engine build tag — mirrors window.SIRAJ_BUILD from siraj-record-meta.js
+	// so diagnostic lines in the console agree on the deployed revision.
+	const SIRAJ_MAP_BUILD = (window.SIRAJ_BUILD) || '2026-11-16.add-rel-draglink.10';
+	console.info('%c[SIRAJ Map]', 'color:#0c5e5b;font-weight:bold', 'build', SIRAJ_MAP_BUILD, '| engine: maplibre');
 
 	const engines = { maplibre: null, leaflet: null };
 	let loaded = { maplibre: false, leaflet: false };
