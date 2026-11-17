@@ -9,6 +9,14 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
+    # Geospatial stack for boundary import + geo_resolve (Phase 2/3).
+    # These are OPTIONAL: geo_import.deps_ok() and the "Check dependencies"
+    # button on Boundary Dataset tell the admin what to install if they
+    # are missing. We list them as comments rather than hard dependencies
+    # so the app boots on benches without a C toolchain.
+    # "shapely>=2.0",
+    # "pyproj>=3.6",
+    # "pyogrio>=0.7",   # preferred over fiona
 ]
 
 [build-system]

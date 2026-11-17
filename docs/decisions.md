@@ -297,3 +297,16 @@ edited into the shipped DocType JSON, so existing user data is not
 disturbed. Admin Boundary child table holds a `geometries` Table
 field.
 
+
+---
+
+## D-12  Geospatial dependencies are optional at boot (Phase 2)
+
+`pyogrio`, `shapely`, and `pyproj` are heavy compiled dependencies.
+The import job and geo_resolve import them lazily inside functions,
+and `geo_import.deps_ok()` returns the missing list so the admin UI
+can tell the user what to pip-install. If the packages are missing,
+opening the Boundary Dataset form does not crash; the "Check
+dependencies" button displays the exact `./env/bin/pip install`
+command. This avoids blocking first deployment on a C toolchain.
+

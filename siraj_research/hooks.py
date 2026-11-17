@@ -91,7 +91,9 @@ boot_session = "siraj_research.record_icons.boot_session"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+	"Boundary Dataset": "public/js/boundary_dataset.js",
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # Standard per-DocType tree scripts live beside their DocType JSON files.
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
