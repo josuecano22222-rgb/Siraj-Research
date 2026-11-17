@@ -13,18 +13,45 @@ import frappe
 from frappe import _
 
 # Entity DocTypes that can be endpoints of a Relationship. Must match the
-# Select options on Relationship.subject_type / object_type.
-RELATABLE_DOCTYPES: tuple[str, ...] = ("Person", "Institution", "Place", "Research Event", "Source")
+# Baseline set of DocTypes that can participate in relationships. At runtime we
+# also read whatever Relationship.subject_type/object_type Select options have
+# been extended to (so adding new doctypes to the Select doesn't require code
+# changes). Only DocTypes that actually exist + are readable by the current
+# user are used — unknown/permission-denied endpoints are returned as
+# restricted nodes instead of crashing with "Relationships are not defined
+# for {doctype}".
+_BASE_RELATABLE: tuple[str, ...] = ("Person", "Institution", "Place", "Research Event", "Source",
+									"Military Unit", "Operational Deployment")
+
+def _relatable_doctypes() -> set[str]:
+	types: set[str] = set(_BASE_RELATABLE)
+	try:
+		meta = frappe.get_meta("Relationship")
+		for fn in ("subject_type", "object_type"):
+			df = meta.get_field(fn)
+			if df and df.options:
+				for opt in (df.options or "").splitlines():
+					opt = opt.strip()
+					if opt:
+						types.add(opt)
+	except Exception:
+		pass
+	# Prune DocTypes that don't actually exist on this site.
+	existing: set[str] = set()
+	for dt in types:
+		try:
+			if frappe.db.exists("DocType", dt):
+				existing.add(dt)
+		except Exception:
+			pass
+	return existing or set(_BASE_RELATABLE)
 
 # Where to look for an entity's location if it has no direct latitude/longitude
-# of its own. Order matters: Place wins over a Unit or Deployment because it
-# is the entity's own declared location link.
+# of its own. Only Place (linked_place) is used as an inferred location;
+# Military Unit / Operational Deployment now carry their own coordinates.
 INFERENCE_CHAINS: dict[str, tuple[tuple[str, str], ...]] = {
 	"Person": (("linked_place", "Place"),),
 	"Institution": (("linked_place", "Place"),),
-	# We intentionally do not cross into Military Unit / Deployment because
-	# those DocTypes are not currently relatable endpoints on the Relationship
-	# DocType; see RELATABLE_DOCTYPES.
 }
 
 DEFAULT_NODES_CAP = 500
@@ -60,10 +87,21 @@ def get_entity_network(doctype: str, name: str, depth: int = 1, types: str | Non
 		limit_edges = DEFAULT_EDGES_CAP
 	limit_nodes = max(1, min(limit_nodes, MAX_NODES_HARD))
 	limit_edges = max(1, min(limit_edges, MAX_EDGES_HARD))
-	if doctype not in RELATABLE_DOCTYPES:
-		frappe.throw(_("Relationships are not defined for {0}").format(doctype))
-	if not frappe.has_permission(doctype, "read", name):
-		frappe.throw(_("You do not have permission to read {0}").format(doctype), frappe.PermissionError)
+	RELATABLE_DOCTYPES = _relatable_doctypes()
+	# If the seed DocType isn't relatable OR the user can't read it, return an
+	# empty network instead of throwing — Explorer handles an empty result
+	# gracefully and a throw surfaces as an error banner on every click.
+	if doctype not in RELATABLE_DOCTYPES or not frappe.has_permission(doctype, "read", name):
+		return {
+			"center": [doctype, name],
+			"nodes": [],
+			"edges": [],
+			"unmapped": [],
+			"truncated": False,
+			"total": 0,
+			"types": {},
+			"notice": _("No relationships defined for {0}").format(doctype) if doctype not in RELATABLE_DOCTYPES else None,
+		}
 
 	allowed_types = None
 	if types:
@@ -209,18 +247,29 @@ def get_entity_network(doctype: str, name: str, depth: int = 1, types: str | Non
 
 def _node_record(doctype: str, name: str, restricted: set, unmapped: list, hops: int) -> dict | None:
 	"""Return a node dict with coordinates when possible, or add to unmapped."""
+	# Build a field list that only includes columns this DocType actually has,
+	# so get_cached_value doesn't raise on e.g. 'linked_place' for Military Unit.
+	want = ["name", "latitude", "longitude", "geo_precision", "geocoding_method", "geo_uncertainty_m"]
+	label_fields = ["display_name", "label", "title"]
+	link_fields = ["linked_place"]
+	available = {f.fieldname for f in frappe.get_meta(doctype).fields}
+	present_want = [f for f in want if f == "name" or f in available]
+	present_label = [f for f in label_fields if f in available]
+	present_links = [f for f in link_fields if f in available]
+	fetch_fields = list(dict.fromkeys(present_want + present_label + present_links))
 	try:
-		doc = frappe.get_cached_value(
-			doctype, name,
-			["name", "display_name", "label", "title", "latitude", "longitude",
-			 "linked_place", "geo_precision", "geocoding_method", "geo_uncertainty_m"],
-			as_dict=True,
-		)
+		if "name" not in fetch_fields:
+			fetch_fields.insert(0, "name")
+		doc = frappe.get_cached_value(doctype, name, fetch_fields, as_dict=True)
 	except Exception:
 		return None
 	if not doc:
 		return None
-	label = doc.get("display_name") or doc.get("label") or doc.get("title") or name
+	label = name
+	for lf in label_fields:
+		if doc.get(lf):
+			label = doc.get(lf)
+			break
 	lat = doc.get("latitude")
 	lon = doc.get("longitude")
 	location_source = "direct" if (lat is not None and lon is not None) else None
@@ -228,15 +277,19 @@ def _node_record(doctype: str, name: str, restricted: set, unmapped: list, hops:
 	# Inferred-location chains: only follow links that exist on this DocType.
 	if location_source is None:
 		for field, link_doctype in INFERENCE_CHAINS.get(doctype, ()):
+			if field not in available:
+				continue
 			link_name = doc.get(field)
 			if not link_name:
 				continue
 			if not frappe.has_permission(link_doctype, "read", link_name):
 				continue
-			link = frappe.get_cached_value(
-				link_doctype, link_name,
-				["latitude", "longitude"], as_dict=True,
-			)
+			try:
+				link = frappe.get_cached_value(
+					link_doctype, link_name, ["latitude", "longitude"], as_dict=True,
+				)
+			except Exception:
+				link = None
 			if link and link.latitude is not None and link.longitude is not None:
 				lat, lon = link.latitude, link.longitude
 				location_source = f"inferred:{link_doctype}"
