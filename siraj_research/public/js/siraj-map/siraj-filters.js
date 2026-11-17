@@ -231,7 +231,7 @@
 	}
 
 	window.SirajFilters = {
-		BUILTIN_PRESETS,
+		BUILTIN_PRESETS, HASH_KEY,
 		initialState, reduce,
 		isTypeVisible, isRelTypeVisible, isStatusVisible, isEdgeVisible,
 		visibleTypes, visibleRelTypes, visibleTypeCount, typeCount,

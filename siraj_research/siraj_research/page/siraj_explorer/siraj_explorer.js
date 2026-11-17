@@ -911,7 +911,8 @@ class SirajExplorer {
 			if (!Kit.helpOverlay) return;
 			const node = Kit.helpOverlay();
 			const dlg = new frappe.ui.Dialog({ title: __('Map tools & hotkeys'), primary_action_label: __('Close'), primary_action: () => dlg.hide() });
-			dlg.body.append(node); dlg.show();
+			$(dlg.body).append(node);
+			dlg.show();
 		}});
 
 		// Hotkey handler (driven by TOOL_SPEC hotkey field).
