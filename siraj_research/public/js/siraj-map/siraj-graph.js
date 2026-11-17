@@ -129,16 +129,27 @@
 	}
 
 	/* ---------- Self-test: run on boot in dev; visible in the console ----------
-	 * Defer via requestIdleCallback so TOOL_SPEC (loaded after graph per bundle
-	 * order) is populated before we check icon coverage. Retries a few times
-	 * if the kit hasn't arrived yet, to avoid false-positive FAILs.
+	 * Defer via requestIdleCallback + retry so both siraj-record-meta (icons)
+	 * and siraj-map-kit (TOOL_SPEC) are loaded before checking coverage,
+	 * regardless of bundle order. We also accept the case where the kit is
+	 * absent (e.g. pages that only pull in the pure graph module) — in that
+	 * case we only exercise the pure functions.
 	 */
 	function runSelfTest(retriesLeft) {
 		const missing = [];
 		const spec = (window.SirajMapKit && window.SirajMapKit.TOOL_SPEC) || [];
 		const tools = (window.sirajIcons && window.sirajIcons.tools) || {};
-		if (!spec.length && retriesLeft > 0) { setTimeout(() => runSelfTest(retriesLeft - 1), 50); return; }
-		spec.forEach(t => { if (!tools[t.icon]) missing.push('tool:' + t.id + ' -> ' + t.icon); });
+		// Wait until both the icon registry and the kit (if present on this
+		// page) have initialised. If the kit never arrives after many retries,
+		// skip the icon-coverage assertion instead of emitting a false FAIL.
+		const haveIcons = window.sirajIcons && tools && Object.keys(tools).length > 20;
+		if ((!haveIcons || (window.SirajMapKit === undefined && retriesLeft > 2)) && retriesLeft > 0) {
+			setTimeout(() => runSelfTest(retriesLeft - 1), 120);
+			return;
+		}
+		if (spec.length && haveIcons) {
+			spec.forEach(t => { if (!tools[t.icon]) missing.push('tool:' + t.id + ' -> ' + t.icon); });
+		}
 		const edges = [
 			{name:'e1', source:['Person','A'], target:['Person','B'], type:'knows', direction:'Symmetric'},
 			{name:'e2', source:['Person','A'], target:['Place','P'],  type:'located at', direction:'Directed'},
@@ -154,9 +165,9 @@
 		}
 		return missing;
 	}
-	function selfTest() { runSelfTest(10); }
+	function selfTest() { runSelfTest(20); }
 	if (typeof window !== 'undefined' && window.requestIdleCallback) window.requestIdleCallback(selfTest);
-	else setTimeout(selfTest, 200);
+	else setTimeout(selfTest, 300);
 
 	window.SirajGraph = { buildAdjacency, egoNetwork, shortestPath, offsetEdge, aggregateByCluster, nodeId, edgeId, selfTest };
 })();

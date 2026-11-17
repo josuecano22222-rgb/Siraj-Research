@@ -1037,3 +1037,23 @@ Could not load details: {0},تعذّر تحميل التفاصيل: {0}
 Retry,إعادة المحاولة
 No field data available.,لا تتوفر بيانات حقلية.
 Showing first 50 entries. Open the record for the full list.,يُعرض أول 50 مدخل. افتح السجل للاطلاع على القائمة الكاملة.
+Add relationship,إضافة علاقة
+"+ Add relationship","+ إضافة علاقة"
+Add related,إضافة مرتبطة
+Add relationship from {0},إضافة علاقة من {0}
+Add relationship: {0} → {1},إضافة علاقة: {0} ← {1}
+To,إلى
+From,من
+From type,نوع الطرف الأول
+To type,نوع الطرف الثاني
+Ongoing,جارية
+Note,ملاحظة
+Save relationship,حفظ العلاقة
+Could not save: {0},تعذّر الحفظ: {0}
+A record cannot relate to itself.,لا يجوز للسجل أن يرتبط بنفسه.
+Invalid endpoint type,نوع طرف غير صالح
+Relationship created,تم إنشاء العلاقة
+Tip: hold Shift and drag one node onto another to create a relationship.,نصيحة: اضغط Shift واسحب عقدة فوق أخرى لإنشاء علاقة.
+Suggested connections,اقتراحات الربط
+No visible connections in this view.,لا توجد اتصالات ظاهرة في هذا العرض.
+Connections ({0}),الصلات ({0})

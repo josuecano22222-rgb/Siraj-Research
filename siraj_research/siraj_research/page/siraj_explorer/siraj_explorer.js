@@ -137,6 +137,85 @@ class SirajExplorer {
 	}
 
 	/**
+	 * Open a polished "Add relationship" dialog that works from ANY surface
+	 * (map, network graph, record panel). Pre-fills subject/object when
+	 * supplied so drag-link and right-click flows can jump straight to the
+	 * type + direction step. Supports all relatable DocTypes (not just the
+	 * original Person/Institution/Place/Event/Source pentad).
+	 */
+	openAddRelationshipDialog(subject, object, opts = {}) {
+		const ENDPOINT_TYPES = ['Person','Institution','Place','Research Event','Source','Military Unit','Operational Deployment'];
+		const makeNode = (ref) => ref && ref.doctype && ref.name ? ref : null;
+		const subj = makeNode(subject);
+		const obj  = makeNode(object);
+		const prefType = opts.prefillType || '';
+
+		const fields = [
+			{ fieldname:'subject_type', label:__('From type'), fieldtype:'Select',
+				options: ENDPOINT_TYPES.join('\n'), reqd:1, default: subj && subj.doctype, read_only: !!subj },
+			{ fieldname:'subject', label:__('From'), fieldtype:'Link',
+				options: (subj && subj.doctype) || 'Person', reqd:1, default: subj && subj.name, read_only: !!subj },
+			{ fieldname:'relationship_type', label:__('Relationship type'), fieldtype:'Link', options:'Relationship Type', reqd:1, default: prefType },
+			{ fieldname:'direction', label:__('Direction'), fieldtype:'Select',
+				options:'Directed\nSymmetric', default:'Directed' },
+			{ fieldname:'object_type', label:__('To type'), fieldtype:'Select',
+				options: ENDPOINT_TYPES.join('\n'), reqd:1, default: obj && obj.doctype, read_only: !!obj },
+			{ fieldname:'object', label:__('To'), fieldtype:'Link',
+				options: (obj && obj.doctype) || 'Person', reqd:1, default: obj && obj.name, read_only: !!obj },
+			{ fieldname:'is_current', label:__('Ongoing'), fieldtype:'Check', default:1 },
+			{ fieldname:'start_date', label:__('Start date'), fieldtype:'Date' },
+			{ fieldname:'end_date', label:__('End date'), fieldtype:'Date' },
+			{ fieldname:'description', label:__('Note'), fieldtype:'Small Text' },
+		];
+		const dlg = new frappe.ui.Dialog({
+			title: subj && obj
+				? __('Add relationship: {0} → {1}', [subj.label || subj.name, obj.label || obj.name])
+				: (subj ? __('Add relationship from {0}', [subj.label || subj.name]) : __('Add relationship')),
+			fields,
+			primary_action_label: __('Save relationship'),
+			primary_action: async vals => {
+				try {
+					if (!ENDPOINT_TYPES.includes(vals.subject_type) || !ENDPOINT_TYPES.includes(vals.object_type)) {
+						frappe.msgprint(__('Invalid endpoint type')); return;
+					}
+					if (vals.subject === vals.object && vals.subject_type === vals.object_type) {
+						frappe.msgprint(__('A record cannot relate to itself.')); return;
+					}
+					const doc = frappe.model.get_new_doc('Relationship');
+					doc.subject_type = vals.subject_type; doc.subject = vals.subject;
+					doc.object_type  = vals.object_type;  doc.object  = vals.object;
+					doc.relationship_type = vals.relationship_type;
+					doc.direction = vals.direction;
+					doc.is_current = vals.is_current ? 1 : 0;
+					doc.start_date = vals.start_date; doc.end_date = vals.end_date;
+					doc.description = vals.description;
+					await frappe.call({ method:'frappe.client.insert', args:{doc} });
+					frappe.show_alert({ message:__('Relationship created'), indicator:'green' });
+					dlg.hide();
+					if (typeof opts.onSaved === 'function') opts.onSaved(doc);
+				} catch(e) {
+					frappe.msgprint(__('Could not save: {0}', [e.message || String(e)]));
+				}
+			}
+		});
+		// Wire Link→Options refresh when the type Select changes.
+		const wireType = (typeField, linkField) => {
+			const tf = dlg.get_field(typeField);
+			if (tf && tf.$input) tf.$input.on('change', () => {
+				const dt = dlg.get_value(typeField);
+				if (dt && dlg.fields_dict[linkField]) {
+					dlg.fields_dict[linkField].df.options = dt;
+					dlg.fields_dict[linkField].refresh();
+				}
+			});
+		};
+		wireType('subject_type','subject');
+		wireType('object_type','object');
+		dlg.show();
+		return dlg;
+	}
+
+	/**
 	 * Build a searchable multi-select "center on records" combobox.
 	 *
 	 * Drop-in replacement for the plain <select> that used to list only
@@ -565,50 +644,12 @@ class SirajExplorer {
 				styleDim(true);
 			}
 		};
+		// Thin wrapper around the Explorer-level dialog; busts the local map caches
+		// after a successful save so the new edge appears on the map.
 		const addRelationship = (counterpart) => {
-			// Open a SIRAJ-styled dialog to add a relationship from selectedNode to counterpart.
-			const counterpartEntityTypes = ['Person','Institution','Place','Research Event','Source'];
-			const dlg = new frappe.ui.Dialog({
-				title: __('Add relationship from {0}', [selectedNode.label]),
-				fields: [
-					{ fieldname:'relationship_type', label:__('Relationship type'), fieldtype:'Link', options:'Relationship Type', reqd:1 },
-					{ fieldname:'direction', label:__('Direction'), fieldtype:'Select', options:'Directed\nSymmetric', default:'Directed' },
-					{ fieldname:'target_type', label:__('Counterpart type'), fieldtype:'Select', options:counterpartEntityTypes.join('\n'), reqd:1, default: counterpart && counterpart.doctype, read_only: !!counterpart },
-					{ fieldname:'target',      label:__('Counterpart'), fieldtype:'Link', options: (counterpart && counterpart.doctype) || 'Person', reqd:1, default: counterpart && counterpart.name, read_only: !!counterpart },
-					{ fieldname:'start_date', label:__('Start date'), fieldtype:'Date' },
-					{ fieldname:'end_date', label:__('End date'), fieldtype:'Date' },
-					{ fieldname:'description', label:__('Note'), fieldtype:'Small Text' },
-				],
-				primary_action_label: __('Save'),
-				primary_action: async vals => {
-					try {
-						// Validate DocType matches.
-						if (!counterpartEntityTypes.includes(vals.target_type)) { frappe.msgprint(__('Invalid counterpart type')); return; }
-						const doc = frappe.model.get_new_doc('Relationship');
-						doc.subject_type = selectedNode.doctype; doc.subject = selectedNode.name;
-						doc.object_type = vals.target_type; doc.object = vals.target;
-						doc.relationship_type = vals.relationship_type;
-						doc.direction = vals.direction;
-						doc.start_date = vals.start_date; doc.end_date = vals.end_date;
-						doc.description = vals.description;
-						await frappe.call({ method:'frappe.client.insert', args:{doc} });
-						frappe.show_alert({message:__('Relationship created'),indicator:'green'});
-						dlg.hide();
-						// Bust cache and reload.
-						relData = null; egoData = null;
-						loadEgo(egoDepth);
-					} catch(e) {
-						frappe.msgprint(__('Could not save: {0}', [e.message || String(e)]));
-					}
-				}
+			this.openAddRelationshipDialog(selectedNode, counterpart, {
+				onSaved: () => { relData = null; egoData = null; loadEgo(egoDepth); }
 			});
-			// When target_type changes, refresh the Link options.
-			const tField = dlg.get_field('target_type');
-			if (tField && tField.$input) tField.$input.on('change', () => {
-				const dt = dlg.get_value('target_type');
-				if (dt && dlg.fields_dict.target) { dlg.fields_dict.target.df.options = dt; dlg.fields_dict.target.refresh(); }
-			});
-			dlg.show();
 		};
 		const loadEgo = async (depth) => {
 			if (!selectedNode) return;
@@ -1488,6 +1529,22 @@ class SirajExplorer {
 				this.button(edge.type || __('Relationship'), () => showEdge(edge)).addClass('sx-edge-link').appendTo(row);
 				this.button(neighbor.label, () => showNode(this.id(neighbor))).addClass('sx-neighbor-link').appendTo(row);
 			});
+
+			// Suggested partners — quick "+" chips for likely missing edges.
+			const suggestions = suggestPartners(id);
+			if (suggestions.length) {
+				$('<h5 class="sx-neighbors-heading"></h5>').text(__('Suggested connections')).appendTo(this.aside);
+				const chipRow = $('<div class="sx-suggest-row"></div>').appendTo(this.aside);
+				suggestions.forEach(other => {
+					const chip = $('<button type="button" class="btn btn-xs btn-default sx-suggest-chip"></button>')
+						.append(itemGlyph(other.doctype, 14))
+						.append($('<span></span>').text(other.label))
+						.on('click', () => {
+							this.openAddRelationshipDialog(node, other, { onSaved: () => refreshGraph() });
+						})
+						.appendTo(chipRow);
+				});
+			}
 		};
 		const edgeCache = {};
 		let edgeSeq = 0;
@@ -1520,6 +1577,13 @@ class SirajExplorer {
 				$('<span class="sx-status-chip sx-status-ended"></span>').text(__('Ended')).appendTo(title);
 			}
 			const actions = $('<div class="sx-panel-actions"></div>').appendTo(head);
+			$('<button type="button" class="btn btn-link btn-sm"></button>')
+				.text(__('Add related'))
+				.on('click', () => {
+					const a = all.get(JSON.stringify(edge.source)), b = all.get(JSON.stringify(edge.target));
+					this.openAddRelationshipDialog(a, null, { onSaved: () => refreshGraph() });
+				})
+				.appendTo(actions);
 			$('<button type="button" class="btn btn-link btn-sm"></button>')
 				.text(__('Open record'))
 				.on('click', () => frappe.set_route('Form', 'Relationship', edge.name))
@@ -1871,7 +1935,7 @@ class SirajExplorer {
 			const suffix = activeCenters.length
 				? ' ' + __('Centered on {0} record(s).', [activeCenters.length])
 				: '';
-			this.note.text(__('Showing {0} records and {1} relationships. Only visible records and links are included.', [nodes.length, currentEdges.length]) + suffix + ' ' + this.warning(data) + (evidenceOnly && data.edges.some(e => e.evidence_count == null) ? ' ' + __('Evidence counts are unavailable for some relationships.') : ''));
+			this.note.text(__('Showing {0} records and {1} relationships. Only visible records and links are included.', [nodes.length, currentEdges.length]) + suffix + ' ' + this.warning(data) + (evidenceOnly && data.edges.some(e => e.evidence_count == null) ? ' ' + __('Evidence counts are unavailable for some relationships.') : '') + ' ' + __('Tip: hold Shift and drag one node onto another to create a relationship.'));
 			this.showDetails(__('Relationship map'), [[__('About this view'), __('Select one or more records (via the Centre picker or by clicking a node) to walk out N degrees. Drag nodes to rearrange the network. Click an edge to inspect the relationship.')]]);
 		};
 		this.network.on('selectNode', event => showNode(event.nodes[0]));
@@ -1938,6 +2002,121 @@ class SirajExplorer {
 		this.button(__('Back'), () => {
 			while (history.length) { const id = history.pop(); if (nodeSet.get(id)) { showNode(id, false); return; } }
 		}).appendTo(this.tools);
+
+		// ---------- Advanced relationship authoring ----------
+		// "Add relationship" — works with zero, one, or two pre-filled endpoints.
+		// With a selected node it pre-fills the subject; with drag-link (see below)
+		// it pre-fills both subject and object.
+		const addBtn = this.button(__('+ Add relationship'), () => {
+			const sel = currentId ? all.get(currentId) : null;
+			this.openAddRelationshipDialog(sel, null, {
+				onSaved: () => { refreshGraph(); },
+			});
+		}).addClass('btn-primary btn-sm').appendTo(this.tools);
+
+		// Drag-link mode: hold Shift and drag from one node onto another to
+		// immediately open the add-relationship dialog with both endpoints
+		// pre-filled. A visual connector line follows the cursor during the drag.
+		let dragLink = null; // {from:id}
+		let ghostLine = null;
+		const $canvas = $(graphHost);
+		this.network.on('dragStart', params => {
+			if (!params.nodes || !params.nodes.length) return;
+			if (!(params.event && params.event.srcEvent && params.event.srcEvent.shiftKey)) return;
+			dragLink = { from: params.nodes[0] };
+			this.network.setOptions({ interaction: { dragNodes: false } });
+		});
+		this.network.on('dragging', params => {
+			if (!dragLink) return;
+			const dom = params.event && params.event.center;
+			if (!dom) return;
+			if (!ghostLine) {
+				ghostLine = $('<div class="sx-link-ghost" aria-hidden="true"></div>').appendTo($canvas);
+			}
+			const a = this.network.getPositions([dragLink.from])[dragLink.from];
+			if (!a) return;
+			const ap = this.network.canvasToDOM({x:a.x, y:a.y});
+			ghostLine.css({
+				left: ap.x, top: ap.y,
+				width: Math.hypot(dom.x - ap.x, dom.y - ap.y),
+				transform: `rotate(${Math.atan2(dom.y - ap.y, dom.x - ap.x)}rad)`,
+			});
+		});
+		this.network.on('dragEnd', params => {
+			if (!dragLink) return;
+			this.network.setOptions({ interaction: { dragNodes: true } });
+			if (ghostLine) { ghostLine.remove(); ghostLine = null; }
+			const targetId = params.nodes && params.nodes.length ? params.nodes[params.nodes.length - 1] : null;
+			// If the drop landed on a different node, open the dialog pre-filled.
+			if (targetId && targetId !== dragLink.from && all.get(targetId)) {
+				this.openAddRelationshipDialog(all.get(dragLink.from), all.get(targetId), {
+					onSaved: () => refreshGraph(),
+				});
+			}
+			dragLink = null;
+		});
+
+		// Suggested-connections hint: when a single node is selected, scan the
+		// node set for same-type/places-in-common/commander-parent partners that
+		// aren't yet linked and surface up to 5 as one-click chips in the panel.
+		function suggestPartners(nodeId) {
+			if (!nodeId) return [];
+			const n = all.get(nodeId);
+			if (!n) return [];
+			const existing = new Set();
+			data.edges.forEach(e => {
+				const a = JSON.stringify(e.source), b = JSON.stringify(e.target);
+				if (a === nodeId) existing.add(b);
+				if (b === nodeId) existing.add(a);
+			});
+			const score = new Map();
+			data.nodes.forEach(other => {
+				const oid = JSON.stringify([other.doctype, other.name]);
+				if (oid === nodeId || existing.has(oid)) return;
+				let s = 0;
+				// Same place or shared linked_place/birthplace → small boost.
+				const nPlace = (n.details && n.details['Place (HQ location)']) || (n.details && n.details.Place) || n.place || n.birthplace;
+				const oPlace = (other.details && other.details['Place (HQ location)']) || (other.details && other.details.Place) || other.place || other.birthplace;
+				if (nPlace && oPlace && nPlace === oPlace) s += 5;
+				// Same echelon or type → boost.
+				if (n.doctype === other.doctype) s += 2;
+				if (n.doctype === 'Military Unit' && other.doctype === 'Military Unit') {
+					if (n.details && other.details && n.details.Echelon === other.details.Echelon) s += 3;
+				}
+				// Persons sharing a unit / institution → boost.
+				if (s > 0) score.set(oid, s);
+			});
+			return [...score.entries()].sort((a,b) => b[1] - a[1]).slice(0, 5).map(([id]) => all.get(id)).filter(Boolean);
+		}
+
+		// refreshGraph: refetch relationship data (so the new edge appears).
+		const refreshGraph = async () => {
+			try {
+				const res = await frappe.call({ method: 'siraj_research.visualization.relationship_data', args: { include_evidence: evidenceLoaded ? 1 : 0 } });
+				if (res && res.message) {
+					// Preserve any previously-loaded evidence counts.
+					const oldCounts = new Map(data.edges.map(e => [e.name, e.evidence_count]));
+					data = res.message;
+					if (!Array.isArray(data.nodes)) data.nodes = [];
+					if (!Array.isArray(data.edges)) data.edges = [];
+					if (evidenceLoaded) {
+						data.edges.forEach(e => {
+							if (oldCounts.has(e.name)) e.evidence_count = oldCounts.get(e.name);
+						});
+					}
+					data.edges.forEach(e => edgeLookup.set(e.name, e));
+					data.nodes.forEach(n => all.set(this.id(n), n));
+					// Refresh the center picker items with any new nodes.
+					centerItems.length = 0;
+					data.nodes.filter(n => CENTERABLE_TYPES.indexOf(n.doctype) >= 0)
+						.map(n => ({ id: this.id(n), label: n.label, sub: n.name, doctype: n.doctype }))
+						.sort((a, b) => a.label.localeCompare(b.label))
+						.forEach(it => centerItems.push(it));
+				}
+			} catch (e) { /* ignore: offline or perm */ }
+			update();
+			if (currentId && nodeSet.get(currentId)) showNode(currentId, false);
+		};
 		this.button(__('Export SVG'), () => {
 			const ns = 'http://www.w3.org/2000/svg';
 			const make = (tag, attrs, text) => {

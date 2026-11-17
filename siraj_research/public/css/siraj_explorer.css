@@ -453,3 +453,23 @@
 
 /* Ensure glyphs inside panel work */
 .sx-item-glyph svg { width: 60%; height: 60%; }
+
+/* ====== Relationship graph: authoring tools ====== */
+.sx-link-ghost{
+  position:absolute; top:0; left:0; height:2px; pointer-events:none;
+  background: repeating-linear-gradient(90deg,#267b77 0 8px,transparent 8px 14px);
+  transform-origin:0 50%; z-index: 450; border-radius: 1px;
+}
+.sx-suggest-row { display:flex; flex-wrap:wrap; gap:6px; padding:4px 0 8px; }
+.sx-suggest-chip {
+  display:inline-flex; align-items:center; gap:6px;
+  background:#f3f7f7; border:1px dashed #94b2b0; color:#234; border-radius:14px;
+  padding:2px 8px 2px 4px; font-size:12px; max-width:100%;
+}
+.sx-suggest-chip:hover { background:#e3eeee; border-style:solid; color:#114d4a; }
+.sx-suggest-chip .sx-item-glyph { width:20px; height:20px; }
+.sx-suggest-chip span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;}
+
+/* "+ Add relationship" primary emphasis */
+.btn.btn-primary.sx-edge-link,
+button.sx-edge-link.btn-primary { background:#267b77; border-color:#267b77; }
