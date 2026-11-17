@@ -93,7 +93,7 @@ class SirajExplorer {
 		const head = $('<div class="sx-panel-head"></div>').appendTo(this.aside);
 		$('<h4 style="margin:0"></h4>').text(title).appendTo(head);
 		const actions = $('<div class="sx-panel-actions"></div>').appendTo(head);
-		$('<button type="button" class="sx-panel-close" aria-label="Close panel">&times;</button>')
+		$('<button type="button" class="sx-panel-close"></button>').attr('aria-label', __('Close panel')).html('&times;')
 			.on('click', () => { this.aside.addClass('sx-panel-hidden'); })
 			.appendTo(actions);
 		const body = $('<div class="sx-panel-body"></div>').appendTo(this.aside);
@@ -524,7 +524,7 @@ class SirajExplorer {
 				.text(__('Open record'))
 				.on('click', () => frappe.set_route('Form', p.doctype, p.name))
 				.appendTo(actions);
-			$('<button type="button" class="sx-panel-close" aria-label="Close details">&times;</button>')
+			$('<button type="button" class="sx-panel-close"></button>').attr('aria-label', __('Close details')).html('&times;')
 				.on('click', () => clearSelection())
 				.appendTo(actions);
 
@@ -1386,11 +1386,11 @@ class SirajExplorer {
 		$('<h5></h5>').text(__('Filters')).appendTo(this.rail);
 		const filters = this.filterControls(types, (search, type) => { searchTerm = search; selectedType = type; centerId = null; trail = []; centerSelect.val(''); update(); }, this.rail);
 		$('<h5></h5>').text(__('Arrangement')).appendTo(this.rail);
-		const layoutSelect = $('<select class="form-control input-sm" aria-label="Relationship layout"></select>').appendTo(this.rail);
+		const layoutSelect = $('<select class="form-control input-sm"></select>').attr('aria-label', __('Relationship layout')).appendTo(this.rail);
 		[['force', __('Force')], ['orbit', __('Orbit')], ['matrix', __('Matrix')]].forEach(([id, title]) => $('<option></option>').val(id).text(title).appendTo(layoutSelect));
 		layoutSelect.on('change', () => { const selected = currentId; layout = layoutSelect.val(); update(); if (selected && nodeSet.get(selected)) showNode(selected, false); if (layout !== 'matrix') this.network.fit({animation: true}); });
 		$('<h5></h5>').text(__('Relationship type')).appendTo(this.rail);
-		const edgeSelect = $('<select class="form-control input-sm" aria-label="Relationship type"></select>').appendTo(this.rail);
+		const edgeSelect = $('<select class="form-control input-sm"></select>').attr('aria-label', __('Relationship type')).appendTo(this.rail);
 		$('<option value=""></option>').text(__('All relationship types')).appendTo(edgeSelect);
 		[...new Set(data.edges.map(e => e.type).filter(Boolean))].sort().forEach(type => $('<option></option>').val(type).text(type).appendTo(edgeSelect));
 		edgeSelect.on('change', () => { edgeType = edgeSelect.val(); update(); });
@@ -1417,13 +1417,13 @@ class SirajExplorer {
 			}
 			evidenceOnly = evidenceCheck.prop('checked'); update();
 		});
-		const depthSelect = $('<select class="form-control input-sm" aria-label="Relationship depth"></select>').appendTo(this.tools);
+		const depthSelect = $('<select class="form-control input-sm"></select>').attr('aria-label', __('Relationship depth')).appendTo(this.tools);
 		[[1, __('Direct relationships')], [2, __('Two degrees')], [3, __('Three degrees')]].forEach(([value, title]) => $('<option></option>').val(value).text(title).appendTo(depthSelect));
 		depthSelect.on('change', () => {
 			maxDistance = Number(depthSelect.val()); update();
 			if (centerId) { showNode(centerId, false); if (layout !== 'matrix') this.network.fit({animation: true}); }
 		});
-		const centerSelect = $('<select class="form-control input-sm sx-center-select" aria-label="Center on a person or organization"></select>').appendTo(this.tools);
+		const centerSelect = $('<select class="form-control input-sm sx-center-select"></select>').attr('aria-label', __('Center on a person or organization')).appendTo(this.tools);
 		$('<option value=""></option>').text(__('Center on a person or organization')).appendTo(centerSelect);
 		['Person', 'Institution'].forEach(type => {
 			const group = $('<optgroup></optgroup>').attr('label', __(type)).appendTo(centerSelect);
@@ -1533,7 +1533,7 @@ class SirajExplorer {
 		if (renderId !== this.renderId) return;
 		this.canvas.removeClass('sx-canvas');
 		const choices = [['people', __('Person')], ['institutions', __('Institution')], ['places', __('Place')], ['events', __('Research Event')], ['relationships', __('Relationship')], ['sources', __('Source')], ['units', __('Units — command hierarchy')], ['regions', __('Regions — command hierarchy')], ['regions-units', __('Regions × Units')], ['units-ops', __('Units × Operations')], ['forces', __('Forces — echelon, status, classification')]];
-		const select = $('<select class="form-control input-sm" aria-label="Structure source"></select>').appendTo(this.tools);
+		const select = $('<select class="form-control input-sm"></select>').attr('aria-label', __('Structure source')).appendTo(this.tools);
 		choices.forEach(([id, title]) => $('<option></option>').val(id).text(title).appendTo(select));
 		let request = 0;
 		const load = async () => {
