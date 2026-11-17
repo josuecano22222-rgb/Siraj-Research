@@ -1,5 +1,3 @@
-# Arabic translations for Siraj Research
-"# Auto-generated; UTF-8, comma-separated."
 "'Professor of History', 'Chairman' — the wording the source uses for this connection.",'أستاذ التاريخ'، 'رئيس' — صياغة المصدر لهذه الصلة.
 "'Subject → type → object', computed on save.",'فاعل ← نوع ← مفعول به'، تُحسب عند الحفظ.
 'local' draws the offline vector pack shipped with the app; the rest are public tile services whose attribution must stay visible.,'local' يرسم حزمة المتجهات المحلية المشحونة مع التطبيق؛ وما عداها خدمات مربعات عامة يجب أن يبقى إسنادها ظاهراً.
@@ -151,7 +149,7 @@ Coordinate precision,دقة الإحداثيات
 Coordinates,الإحداثيات
 Core Research Registry,السجل البحثي الأساسي
 Could not update the coordinate fields.,تعذر تحديث حقلي الإحداثيات.
-Counting {0} visible records.,عَدّ {0} سجلاً مرئياً.
+Counting {0} visible records.,جرد {0} سجل مرئي.
 Country,الدولة
 Country of origin,بلد المنشأ
 Counts include only records you can read. Folded branches retain their record and group counts.,الأعداد تشمل فقط السجلات التي يمكنك قراءتها.
@@ -273,7 +271,7 @@ Enter coordinates or select a point on the map.,أدخل الإحداثيات أ
 Entity,الكيان
 Entity Relationship Graph,رسم العلاقات بين الكيانات
 Entity Type,نوع الكيان
-Equipment,المعدات
+Equipment,العتاد
 Estimate tiles,تقدير المربعات
 Event,حدث تقويمي
 Event Date,تاريخ الحدث
@@ -506,7 +504,7 @@ Mechanized,ميكانيكي
 Mechanized / Armored / Infantry / Artillery / Support / Airborne — `vocab.DIVISION_TYPES`.,ميكانيكي/مدرع/مشاة/مدفعية/إسناد/محمول جواً — `vocab.DIVISION_TYPES`.
 Medium,متوسط
 Merged,مدمج
-Military,عسكري
+Military,العسكري
 Military & Operations,العسكريات والعمليات
 Military / Civilian / Other. The category decides which attributes apply.,عسكري/مدني/آخر. الفئة تحدد السمات.
 "Military / Civilian / Other. The category decides which attributes apply: a military person shows rank, branch, commission date, service status and military biography; a civilian shows the career fields. This is the 2026 update that folded the separate `commander` (Leader) table into Person (migration 020).",عسكري/مدني/آخر. تحديث 2026 دمج `commander` في Person (تهجير 020).
@@ -573,7 +571,7 @@ One degree,درجة واحدة
 "One row per (unit, armament) with quantity and condition — the source's `unit_armament` table, which is genuinely data a unit owns, so it is a child table here.",سطر لكل (وحدة، تسليح) مع الكمية والحالة؛ جدول فرعي هنا.
 "One row per claim: which source says what, where in the source, whether it supports or contradicts, and who verified it. Not copied with the record: a claim is evidence about one specific record.",سطر لكل مزعم: أي مصدر قال ماذا وأين، وهل يؤيد أم يناقض.
 "One row per post, with its own dates, institution, place and verification state. This is the single home of a person's affiliations — there is deliberately no second 'current institution' field to fall out of step with it. Not copied with the record: a duplicate person is a new person, not a second copy of someone's career.",سطر لكل منصب؛ الموضع الوحيد لانتماءات الشخص.
-Ongoing,جاري
+Ongoing,جارية
 Online map tiles are optional; enabling them shares your IP address and viewed area with OpenStreetMap.,خرائط الإنترنت اختيارية؛ تفعيلها يشارك عنوان IP والمنطقة المعروضة مع OpenStreetMap.
 Online tiles disclose your IP address and viewed area to OpenStreetMap.,مربعات الإنترنت تكشف عنوان IP والمنطقة المعروضة لـ OpenStreetMap.
 Online: OpenStreetMap,عبر الإنترنت: OpenStreetMap
@@ -720,7 +718,7 @@ Reorganizing,قيد إعادة التنظيم
 Report,تقرير
 Reports & Analytics,التقارير والتحليلات
 Require a source before publishing,اشتراط مصدر قبل النشر
-Research,بحث
+Research,الأبحاث
 Research Event,حدث بحثي
 Research significance,الأهمية البحثية
 Researcher's notes,ملاحظات الباحث
@@ -1038,7 +1036,7 @@ Retry,إعادة المحاولة
 No field data available.,لا تتوفر بيانات حقلية.
 Showing first 50 entries. Open the record for the full list.,يُعرض أول 50 مدخل. افتح السجل للاطلاع على القائمة الكاملة.
 Add relationship,إضافة علاقة
-"+ Add relationship","+ إضافة علاقة"
++ Add relationship,+ إضافة علاقة
 Add related,إضافة مرتبطة
 Add relationship from {0},إضافة علاقة من {0}
 Add relationship: {0} → {1},إضافة علاقة: {0} ← {1}
@@ -1046,8 +1044,6 @@ To,إلى
 From,من
 From type,نوع الطرف الأول
 To type,نوع الطرف الثاني
-Ongoing,جارية
-Note,ملاحظة
 Save relationship,حفظ العلاقة
 Could not save: {0},تعذّر الحفظ: {0}
 A record cannot relate to itself.,لا يجوز للسجل أن يرتبط بنفسه.
@@ -1055,26 +1051,168 @@ Invalid endpoint type,نوع طرف غير صالح
 Relationship created,تم إنشاء العلاقة
 Tip: hold Shift and drag one node onto another to create a relationship.,نصيحة: اضغط Shift واسحب عقدة فوق أخرى لإنشاء علاقة.
 Suggested connections,اقتراحات الربط
-No visible connections in this view.,لا توجد اتصالات ظاهرة في هذا العرض.
-Connections ({0}),الصلات ({0})
 Search structure views,البحث في هياكل البيانات
 Search datasets or filter content…,ابحث في مجموعات البيانات أو صفِّ المحتوى…
 Entities,الكيانات
-Military,العسكري
-Research,الأبحاث
 Military Units,الوحدات العسكرية
 Forces (echelon),القوى (الرُتب)
-Command hierarchy,التسلسل القيادي
-Units × Operations,الوحدات × العمليات
 Deployments,الانتشارات
-Equipment,العتاد
 Missions,المهام
 Training exercises,التمارين التدريبية
 Source:,المصدر:
 No matching views,لا توجد طرق عرض مطابقة
-Counting {0} visible records.,جرد {0} سجل مرئي.
 Add relationship from this record,إضافة علاقة من هذا السجل
 No authored relationships. Use + Add to create one from this record.,لا توجد علاقات مسجَّلة. استخدم + إضافة لإنشاء علاقة من هذا السجل.
 No visible connections in this view. Use + Add to create one from this record.,لا توجد صلات مرئية في هذا العرض. استخدم + إضافة لإنشاء صلة من هذا السجل.
 + Add,+ إضافة
 Add,إضافة
+(directed),(موجَّه)
+About & hotkeys,حول واختصارات لوحة المفاتيح
+Activity,النشاط
+Add relationship to selected,إضافة علاقة إلى العنصر المحدَّد
+Add relationship…,إضافة علاقة…
+All,الكل
+Area: {0},المساحة: {0}
+Back to previous selection,العودة إلى التحديد السابق
+Basemap,الخريطة الأساسية
+Basemap (click to toggle online tiles — sends requests to OpenStreetMap),الخريطة الأساسية (انقر لتفعيل/إيقاف البلاطات الإلكترونية — يرسل طلبات إلى OpenStreetMap)
+Bearing,الاتجاه
+Clear measurements,مسح القياسات
+Clear selection,مسح التحديد
+Click a point to link it to a record.,انقر على نقطة لربطها بسجل.
+Click a point to link it to an existing or new record.,انقر على نقطة لربطها بسجل موجود أو سجل جديد.
+"Click once for the centre, then again to set the radius.",انقر مرة واحدة لتحديد المركز، ثم مرة أخرى لضبط نصف القطر.
+Click the map to place {0},انقر على الخريطة لوضع {0}
+"Click to place vertices; the polygon follows your cursor. Double-click, Enter or click the start point to close.",انقر لوضع الرؤوس؛ يتبع المضلع مؤشرك. انقر مرتين، أو اضغط Enter، أو انقر على نقطة البداية للإغلاق.
+Click two points to measure; click more to chain. Double-click or Esc to finish.,انقر على نقطتين للقياس؛ واصل النقر لإضافة نقاط. انقر مرتين أو اضغط Esc للإنهاء.
+Click two points to read bearing and distance.,انقر على نقطتين لقراءة الاتجاه والمسافة.
+Close,إغلاق
+Close details,إغلاق التفاصيل
+Close panel,إغلاق اللوحة
+Cluster markers,تجميع العلامات
+Comments,التعليقات
+Connections,الصلات
+Coordinates updated for {0},تم تحديث إحداثيات {0}
+Could not load connections: {0},تعذّر تحميل الصلات: {0}
+Could not update: ,تعذّر التحديث: 
+Data,البيانات
+Direct connections,صلات مباشرة
+Distance,المسافة
+Download offline tiles,تنزيل البلاطات للاستخدام دون اتصال
+Events and operations,الأحداث والعمليات
+Export GeoJSON,تصدير GeoJSON
+Family,العائلة
+Fields,الحقول
+Filter by type,فلترة حسب النوع
+Filter relationship types,فلترة أنواع العلاقات
+Fit data,ملاءمة البيانات
+Fit data to view,ملاءمة البيانات للعرض
+Fit to data,الانتقال إلى البيانات
+Fly to,الانتقال السريع إلى
+Go to coordinates,الذهاب إلى إحداثيات
+Help,المساعدة
+Help & hotkeys,المساعدة واختصارات لوحة المفاتيح
+Hide toolbar,إخفاء شريط الأدوات
+Home view,العرض الرئيسي
+Inbound,واردة
+Inbound links,روابط واردة
+Institutions,المؤسسات
+Invert,عكس
+Isolate,عزل
+Isolate selection,عزل التحديد
+Keep connectors,الإبقاء على الروابط
+Lat,خط العرض
+Leave blank to create a new record after saving.,اتركه فارغًا لإنشاء سجل جديد بعد الحفظ.
+Link a record to this point,ربط سجل بهذه النقطة
+Loading {0}…,جارٍ تحميل {0}…
+Lon,خط الطول
+Map shell is ready but data failed to load.,إطار الخريطة جاهز لكن تعذّر تحميل البيانات.
+Map tools,أدوات الخريطة
+Map tools & hotkeys,أدوات الخريطة واختصارات لوحة المفاتيح
+"Map tools (navigate, basemap, measure, pick, overlays, selection) live in the dock on the right edge of the map. Records, filters, and export live in the panel at the upper left. Press ? or the Help button for the full hotkey list.",أدوات الخريطة (التنقل، الخريطة الأساسية، القياس، الالتقاط، الطبقات، التحديد) في الركن الأيمن من الخريطة. السجلات والفلاتر والتصدير في اللوحة العلوية اليسرى. اضغط ? أو زر المساعدة لعرض قائمة الاختصارات كاملة.
+Map tools are docked on the right edge. Click a pin to see its connections.,أدوات الخريطة مثبَّتة على الحافة اليمنى. انقر على دبوس لعرض صلاته.
+Marker clusters,تجميعات العلامات
+Measure,قياس
+Measure bearing,قياس الاتجاه
+Measure radius,قياس نصف القطر
+Membership,العضوية
+Method,الطريقة
+Modified,آخر تعديل
+My location,موقعي
+Navigate,التنقل
+Network depth,عمق الشبكة
+Network summary,ملخّص الشبكة
+No,لا
+No activity recorded.,لا يوجد نشاط مسجَّل.
+No coordinates on this record.,لا توجد إحداثيات على هذا السجل.
+None,لا شيء
+Offline,بدون اتصال
+Online tiles disclose your IP to OpenStreetMap.,البلاطات الإلكترونية تكشف عنوان IP الخاص بك لـ OpenStreetMap.
+Online: OSM,متصل: OSM
+Open full record →,فتح السجل كاملاً ←
+Open selected record,فتح السجل المحدَّد
+Outbound,صادرة
+Outbound links,روابط صادرة
+Owner,المالك
+Panels,اللوحات
+Participation,المشاركة
+Path to another entity,مسار إلى كيان آخر
+People,الأشخاص
+People + Institutions,الأشخاص + المؤسسات
+Permissions,الصلاحيات
+Pick,التقاط
+Pick a point to link a record,التقط نقطة لربط سجل
+Pick point to link,التقط نقطة للربط
+Place on map,وضع على الخريطة
+Places,الأماكن
+Quick actions,إجراءات سريعة
+Radius,نصف القطر
+Radius: {0},نصف القطر: {0}
+Recent changes,التغييرات الأخيرة
+Record,سجل
+Record data could not be loaded.,تعذّر تحميل بيانات السجل.
+Record details,تفاصيل السجل
+Record type,نوع السجل
+Relationship depth,عمق العلاقات
+Relationship layout,تخطيط العلاقات
+Relationship lines,خطوط العلاقات
+Relationships,العلاقات
+Research events,الأحداث البحثية
+Reset view,إعادة ضبط العرض
+Restricted,مقيَّد
+Select a record first.,اختر سجلاً أولاً.
+Selection,التحديد
+Set coordinates,تعيين الإحداثيات
+Show all,عرض الكل
+Show connections,عرض الصلات
+Show connections of selected,عرض صلات العنصر المحدَّد
+Show my location,عرض موقعي
+Show/hide toolbar,إظهار/إخفاء شريط الأدوات
+Showing all {0} types · {1} records,عرض جميع الأنواع {0} · {1} سجل
+Showing {0} connections (capped). Refine with type filters.,عرض {0} صلة (العدد محدود). صفِّ النتائج باستخدام فلاتر الأنواع.
+Showing {0} connections.,عرض {0} صلة.
+Showing {0} of {1} records on the map.,عرض {0} من أصل {1} سجل على الخريطة.
+Showing {0} of {1} types · {2} records,عرض {0} من أصل {1} نوع · {2} سجل
+Showing {0} record points.,عرض {0} نقطة سجل.
+Some local tiles are unavailable.,بعض البلاطات المحلية غير متاحة.
+Sources,المصادر
+Structural,هيكلي
+Three hops,ثلاث درجات
+Toolbar,شريط الأدوات
+Toolbar hidden — press \ to show.,شريط الأدوات مخفي — اضغط \ لإظهاره.
+Total: {0},المجموع: {0}
+Two hops,درجتان
+Unable to load the explorer.,تعذّر تحميل المستكشف.
+Uncertainty (m),عدم اليقين (م)
+Unmapped connections,صلات غير معيَّنة على الخريطة
+View all,عرض الكل
+Yes,نعم
+area {0},مساحة {0}
+can edit,يمكن التعديل
+can link,يمكن الربط
+groups,مجموعات
+perimeter {0},محيط {0}
+radius {0},نصف قطر {0}
+records,سجلات
+showing {0} of {1},عرض {0} من أصل {1}
+Toolbar hidden — press \\ to show.,شريط الأدوات مخفي — اضغط \ لإظهاره.

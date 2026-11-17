@@ -130,5 +130,5 @@
 })();
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
-window.SIRAJ_BUILD = '2026-11-16.structure-filters.11';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| engines: maplibre (preferred), leaflet (compat) | advanced structure filter bar (searchable multi-select chips, grouped by domain, in-deck live find); military units + deployments/equipment/missions/exercises added as structures; inline add-relationship button in entity context; shift+drag link creation; self-test retries; full i18n wrap'); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-16.i18n-ar-complete.12';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| engines: maplibre (preferred), leaflet (compat) | complete Arabic translation coverage (all 3 tabs: Geographic map, Relationship map, Structures — every button, label, heading, hotkey hint, section header, status/tooltip/error message); advanced structure filter bar; military units + deployments/missions/exercises structures; inline add-relationship button; shift+drag link creation; self-test retries'); } catch (_) {}
