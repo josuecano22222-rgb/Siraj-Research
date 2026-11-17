@@ -94,11 +94,33 @@
 		state.lat.$input?.off('.sirajCoordinates');
 		state.lon.$input?.off('.sirajCoordinates');
 		if (state.tabObserver) { state.tabObserver.disconnect(); state.tabObserver = null; }
-		if (state.resizeObserver) state.resizeObserver.disconnect();
+		if (state.resizeObserver) { state.resizeObserver.disconnect(); }
 		if (state.measure) { state.measure.deactivate(); }
+		if (state.uncertaintyCircle) { try { state.map.removeLayer(state.uncertaintyCircle); } catch(_){} state.uncertaintyCircle = null; }
+		if (state.ghostMarker)    { try { state.map.removeLayer(state.ghostMarker); }    catch(_){} state.ghostMarker = null; }
 		if (state.map) state.map.remove();
-		state.box.remove();
+		if (state.group) state.group.remove();
+		else if (state.box) state.box.remove();
 		states.delete(frm);
+	}
+
+	function drawUncertainty(state, lat, lon) {
+		if (state.uncertaintyCircle) { try { state.map.removeLayer(state.uncertaintyCircle); } catch(_){} state.uncertaintyCircle = null; }
+		const r = Number(state.frm && state.frm.doc && state.frm.doc.geo_uncertainty_m);
+		if (!Number.isFinite(r) || r <= 0) return;
+		const c = (window.sirajColours && window.sirajColours[state.frm.doctype]) || '#267b77';
+		state.uncertaintyCircle = L.circle([lat, lon], {
+			radius: r, color: c, weight: 1, opacity: 0.7, fillColor: c, fillOpacity: 0.08,
+			dashArray: '4 3', interactive: false,
+		}).addTo(state.map);
+	}
+
+	function syncLinkedGhost(state) {
+		const head = state.box.find('.siraj-coord-linked-ghost').empty();
+		const doc = state.frm && state.frm.doc;
+		if (!doc) return;
+		const link = doc.linked_place || doc.place;
+		if (link) $('<span class="siraj-coord-chip"></span>').text(link).appendTo(head);
 	}
 
 	function pinIcon(doctype, color, size) {
@@ -148,6 +170,9 @@
 				state.marker.setLatLng([lat, lon]);
 				state.marker.setIcon(pinIcon(dt, null, 34));
 			}
+			if (state.marker?.bringToFront) state.marker.bringToFront();
+			drawUncertainty(state, lat, lon);
+			syncLinkedGhost(state);
 			if (center) state.map.setView([lat, lon], Math.max(state.map.getZoom(), 6));
 			state.status.text((lat === 0 && lon === 0)
 				? t('Zero pair shown; legacy zero may also mean unknown. Confirm before interpreting.')
@@ -188,26 +213,37 @@
 		const current = controls(frm);
 		if (frm.docname !== docname || !current || current.lat !== fields.lat || current.lon !== fields.lon || states.has(frm)) return;
 
-		// Mount inside the Position section, right after the longitude wrapper.
-		// This makes the map a natural child of the "Position & evidence" group.
-		const box = $('<div class="siraj-coordinate-map"></div>').css({ margin: '10px 0', clear: 'both' });
-		const heading = $('<div class="siraj-coord-heading" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"></div>').appendTo(box);
+		// Mount as a real Frappe .form-group row inside the Position column so
+		// the map participates in section collapse/expand, RTL layout, print
+		// styles and the form's dirty/refresh lifecycle. Insert after the
+		// longitude field's .form-group so it sits below lat/lon like any
+		// other field.
+		const $sectionBody = fields.lon.$wrapper.closest('.form-section').find('.section-body').first();
+		const $anchor = fields.lon.$wrapper.closest('.frappe-control').addBack().last();
+		const box = $('<div class="siraj-coordinate-map"></div>');
+		// Wrap in a .form-group so Frappe's column/flex layout treats it as
+		// a full-width field row.
+		const group = $('<div class="frappe-control siraj-coord-group" data-fieldname="__coordinate_map"></div>').append(box);
+		const heading = $('<div class="siraj-coord-head"></div>').appendTo(box);
 		$('<strong></strong>').text(t('Coordinate map')).appendTo(heading);
-		const help = $('<div style="margin-bottom:6px;font-size:12px;color:var(--text-muted)"></div>').text(t('Click the map to place the pin, or drag the pin to move it. Tools live in the dock on the right edge of the map.')).appendTo(box);
-		const canvas = $('<div role="region" class="siraj-coord-canvas"></div>').attr('aria-label', t('Coordinate map')).css({
-			height: '380px', width: '100%', background: '#dce8ed', borderRadius: '8px',
-			border: '1px solid var(--border-color,#d9e2e7)', position: 'relative', overflow:'hidden',
-		}).appendTo(box);
-		const status = $('<div role="status" aria-live="polite" style="margin-top:6px;font-size:12px;color:var(--text-muted)"></div>').appendTo(box);
-		fields.lon.$wrapper.after(box);
+		$('<span class="siraj-coord-linked-ghost"></span>').appendTo(heading);
+		const help = $('<div class="siraj-coord-help"></div>').text(t('Click the map to place the pin, or drag the pin to move it. Tools live in the dock on the right edge of the map.')).appendTo(box);
+		const canvas = $('<div role="region" class="siraj-coord-canvas"></div>').attr('aria-label', t('Coordinate map')).appendTo(box);
+		const status = $('<div role="status" aria-live="polite" class="siraj-coord-status"></div>').appendTo(box);
+		// Insert after longitude's frappe-control, falling back to the wrapper
+		// if the structure is slightly different (read-only Float, custom field).
+		if ($anchor.length) $anchor.after(group);
+		else if ($sectionBody.length) $sectionBody.append(group);
+		else fields.lon.$wrapper.after(box);
 
 		const map = L.map(canvas[0], { maxZoom: 22, scrollWheelZoom: false, zoomControl: false }).setView([33.3152, 44.3661], 4);
 		L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 		if (map.attributionControl) map.attributionControl.addAttribution('Natural Earth');
 
 		const state = {
-			lat: fields.lat, lon: fields.lon, docname, box, map, status, marker: null,
+			lat: fields.lat, lon: fields.lon, docname, box, group, map, status, marker: null,
 			tileLayer: null, offlineLayer: null, packLayer: null, editable: current.editable,
+			uncertaintyCircle: null, ghostMarker: null, frm,
 		};
 		states.set(frm, state);
 

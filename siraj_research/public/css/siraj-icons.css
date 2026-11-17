@@ -346,9 +346,25 @@
 /* --- Structure deck swatches should actually show their glyphs --- */
 .sd-swatch.siraj-swatch svg { display:block; width:10px; height:10px; fill:none; stroke:#fff; stroke-width:2; }
 
-/* --- Form coordinate map container lives INSIDE the field wrapper --- */
-.siraj-coordinate-map { position:relative; }
+/* --- Form coordinate map lives inside a real .form-group wrapper --- */
+.siraj-coordinate-map { position:relative; margin: 10px 0; clear: both; }
+.siraj-coordinate-map .siraj-coord-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.siraj-coordinate-map .siraj-coord-head strong { font-weight:600; }
+.siraj-coordinate-map .siraj-coord-help { margin-bottom:6px; font-size:12px; color:var(--text-muted); }
+.siraj-coordinate-map .siraj-coord-status { margin-top:6px; font-size:12px; color:var(--text-muted); min-height:16px; }
+.siraj-coordinate-map .siraj-coord-canvas {
+	height: 380px; width: 100%; background: #dce8ed; border-radius: 8px;
+	border: 1px solid var(--border-color,#d9e2e7); position: relative; overflow: hidden;
+}
 .siraj-coordinate-map .siraj-toolbar { z-index: 600; }
+.siraj-coord-chip { display:inline-flex; align-items:center; gap:4px; padding:1px 8px; border-radius:999px; background:#eaf1f1; color:#234; font-size:11px; margin-inline-start:6px; }
+.siraj-coord-chip.is-warn { background:#fce8e6; color:#8a2525; }
+.siraj-coord-chip.is-ok { background:#e2f0e6; color:#1f6a3a; }
+.siraj-coord-linked-ghost {
+	position:relative; display:inline-flex; align-items:center; gap:4px;
+	margin-inline-start:8px; font-size:11px; color:var(--text-muted);
+}
+
 
 /* --- SIRAJ pin teardrop variant (used by form picker and MapView override) --- */
 .siraj-teardrop { position:relative; width:28px; height:36px; }

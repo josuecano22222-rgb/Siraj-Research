@@ -170,8 +170,8 @@
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-17.diagnostics-p0.18';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| SIRAJ Diagnostics page; public-API default icon (no _initIcon patch); real build_info endpoint; per-doctype teardrop pins; toolbar'); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.19';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| form map in .form-group field wrapper; uncertainty circle; linked-place chip; diagnostics page; public-API default icon; per-doctype teardrop pins; toolbar'); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------
 // Compare the JS-built stamp with the server stamp delivered at boot time.
