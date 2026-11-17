@@ -12,7 +12,8 @@ from siraj_research.report_access import can_read_link, readable_rows
 TREE_FIELDS = {
 	"Place": ("parent_place", "display_name"),
 	"Military Unit": ("parent_unit", "unit_name"),
-	"Command Region": ("parent_region", "region_name"),
+	# Command Region removed 2026-11: command areas are Place records with
+	# place_type="Command Region"; the Place tree already covers the hierarchy.
 }
 
 

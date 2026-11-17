@@ -19,11 +19,9 @@
 		'Research Event':      '<path d="M12 2l2.5 6 6.5.5-5 4 1.5 6.5-5.5-3.5L6.5 19 8 12.5l-5-4L9.5 8Z"/>',
 		'Source':              '<path d="M6 3h9l3 3v15H6Z"/><path d="M15 3v4h3"/><path d="M9 10h6M9 14h6M9 18h4"/>',
 		'Military Unit':       '<path d="M12 2 20 5v6c0 5-3 8-8 11-5-3-8-6-8-11V5Z"/><path d="M12 7v10M7 12h10"/>',
-		'Military Division':   '<path d="M4 20V4l8 3 8-3v16"/><path d="M4 20h16"/><path d="M8 8h8M8 12h8"/>',
 		'Operational Deployment': '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>',
 		'Training Exercise':   '<path d="M12 3l9 4-9 4-9-4Z"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4"/>',
 		'Mission':             '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
-		'Command Region':      '<path d="M12 2 3 7v5c0 5 4 8 9 10 5-2 9-5 9-10V7Z"/><circle cx="12" cy="12" r="2"/>',
 		'Unit Classification':'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
 		'Armament':            '<path d="M3 14h6l3-3 7 1v3l-7-1-3 3H5Z"/><path d="M14 7l3-3 3 3-3 3"/>',
 		'Command Appointment': '<path d="M6 8h12v3l-6 4-6-4Z"/><path d="M8 11v8h8v-8"/>',
@@ -94,9 +92,9 @@
 	const boot = (frappe.boot && frappe.boot.siraj_record_meta) || {};
 	const colours = Object.assign({
 		'Person':'#3577c0','Institution':'#8262b0','Place':'#188c7e','Research Event':'#d08733',
-		'Source':'#aa6b85','Military Unit':'#c3564b','Military Division':'#923d39',
+		'Source':'#aa6b85','Military Unit':'#c3564b',
 		'Operational Deployment':'#867e45','Training Exercise':'#4f8a65','Mission':'#b56d2c',
-		'Command Region':'#3e6d8e','Unit Classification':'#6f6a8a','Armament':'#5b6c46',
+		'Unit Classification':'#6f6a8a','Armament':'#5b6c46',
 		'Command Appointment':'#7b4c79','Relationship':'#53706b',
 		'Country':'#2f6f83','Governorate':'#5c8699','District':'#82a2b0','Municipality':'#a4bcc6',
 		'Village':'#c4d6dd','Community':'#dde8ec',

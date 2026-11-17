@@ -6,7 +6,11 @@
 	const DOCTYPE_BY_SOURCE = {
 		people:'Person', institutions:'Institution', places:'Place', events:'Research Event',
 		relationships:'Relationship', sources:'Source', units:'Military Unit',
-		regions:'Command Region', 'regions-units':'Command Region', 'units-ops':'Operational Deployment', forces:'Military Unit',
+		// 'regions' and 'regions-units' removed 2026-11: command areas are Place
+		// records (place_type="Command Region"); the Places deck already shows
+		// the full administrative/command hierarchy. 'units-ops' now uses
+		// Military Unit as the root (deployments attach via the unit Link).
+		'units-ops':'Military Unit', forces:'Military Unit',
 	};
 	function colorFor(node, source) {
 		if (window.sirajColours) {

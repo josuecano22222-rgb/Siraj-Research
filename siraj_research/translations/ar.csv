@@ -127,7 +127,6 @@ Combat / Support / Reserve / Training ⇒ `vocab.CLASS_CATEGORIES`.,قتال/إ�
 "Comma-separated overlay ids drawn over the base map ('place_hierarchy', 'relationships').",معرّفات تراكبات مفصولة بفواصل تُرسم على الخريطة الأساسية.
 Command,قيادة
 Command Appointment,تعيين قيادي
-Command Region,منطقة قيادة
 Command hierarchy,التسلسل القيادي
 Commander,القائد
 Commanding Officer,الضابط الآمر
@@ -512,7 +511,6 @@ Military & Operations,العسكريات والعمليات
 Military / Civilian / Other. The category decides which attributes apply.,عسكري/مدني/آخر. الفئة تحدد السمات.
 "Military / Civilian / Other. The category decides which attributes apply: a military person shows rank, branch, commission date, service status and military biography; a civilian shows the career fields. This is the 2026 update that folded the separate `commander` (Leader) table into Person (migration 020).",عسكري/مدني/آخر. تحديث 2026 دمج `commander` في Person (تهجير 020).
 Military Branch,الفرع العسكري
-Military Division,الفرقة العسكرية
 Military Force Structure,هيكل القوة العسكرية
 Military Service Status,حالة الخدمة العسكرية
 Military Unit,وحدة عسكرية
@@ -541,7 +539,6 @@ Native `Country` master (the source keeps a vocabulary code).,جدول `Country`
 Native `Country` master — the source keeps this as a vocabulary code.,جدول `Country` الأصلي — المصدر يُبقيه كرمز مفردات.
 Native `Language` doctype — not a free-text language code.,نوع DocType `Language` الأصلي — ليس رمز لغة نصاً حراً.
 "Native tree. The source maintains `path`/`depth` by hand in `rules.compute_path`; NestedSet gives the same subtree semantics, plus a tree view and `treeview` reports.",شجرة أصلية؛ NestedSet تضيف عرض شجرة.
-"Native tree: `Command Region` is a NestedSet, so a region carries `lft`/`rgt` instead of the source's `path`/`depth` text columns. A region cannot be its own ancestor.",شجرة أصلية: `Command Region` هي NestedSet.
 Navy,بحرية
 Needs Improvement,بحاجة لتحسين
 Needs Update,بحاجة لتحديث

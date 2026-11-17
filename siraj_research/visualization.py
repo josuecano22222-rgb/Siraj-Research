@@ -22,7 +22,8 @@ ENTITIES = {
 	"Source": "display_name",
 	"Military Unit": "unit_name",
 	"Operational Deployment": "deployment_name",
-	"Command Region": "region_name",
+	# Command Region removed 2026-11: command areas live as Place records with
+	# place_type="Command Region"; Place is already listed above.
 	"Mission": "mission_name",
 	"Training Exercise": "exercise_name",
 }
@@ -52,7 +53,7 @@ DETAIL_FIELDS = {
 		"workflow_state",
 	),
 	"Source": ("source_type", "publisher", "source_reliability", "workflow_state"),
-	"Military Unit": ("echelon", "status", "region", "division", "direct_personnel", "workflow_state"),
+	"Military Unit": ("echelon", "status", "classification", "linked_place", "direct_personnel", "workflow_state"),
 	"Relationship": (
 		"relationship_type",
 		"direction",
@@ -60,7 +61,8 @@ DETAIL_FIELDS = {
 		"authentication_level",
 		"workflow_state",
 	),
-	"Command Region": ("region_type", "country", "workflow_state"),
+	# Command Region fields removed (now Place with place_type="Command Region";
+	# the Place detail set covers it).
 	"Operational Deployment": ("deployment_type", "status", "location", "workflow_state"),
 	"Mission": ("mission_type", "status", "area", "workflow_state"),
 	"Training Exercise": ("training_type", "assessment", "location", "workflow_state"),
@@ -434,43 +436,33 @@ def _hierarchy(doctype, title_field, parent_field):
 def _composite(source):
 	"""Count each readable record once, including records with no visible parent.
 
-	Region/unit and unit/operation links are never shown when their parent is
-	unreadable. Such children are placed in an anonymous unassigned branch.
+	Child rows (operations attached to a unit) are placed under their parent
+	unit when readable; otherwise they fall into an anonymous unassigned
+	branch. (Command Region was removed in 2026-11; command areas are Place
+	records and appear under the Places deck.)
 	"""
-	regions = source == "regions-units"
-	main = "Command Region" if regions else "Military Unit"
-	main_title, main_parent = ("region_name", "parent_region") if regions else ("unit_name", "parent_unit")
+	del source  # only one composite view now: units-ops
+	main = "Military Unit"
+	main_title, main_parent = "unit_name", "parent_unit"
 	if not frappe.has_permission(main, "read"):
 		frappe.throw(_("Not permitted to read {0}").format(_(main)), frappe.PermissionError)
-	main_rows = _hierarchy_rows(main, main_title, (main_parent,))
+	main_rows = _hierarchy_rows(main, main_title, (main_parent, "linked_place"))
 	main_nodes, tops, _indexed_main = _forest(main, main_rows, main_title, main_parent)
 	unassigned = []
 	unavailable = []
-	if regions:
-		if frappe.has_permission("Military Unit", "read"):
-			rows = _hierarchy_rows("Military Unit", "unit_name", ("parent_unit", "region"))
-			_unit_nodes, unit_tops, indexed = _forest(
-				"Military Unit", rows, "unit_name", "parent_unit", "region"
-			)
-			for node in unit_tops:
-				region = indexed[node["name"]].get("region")
-				(main_nodes[region]["children"] if region in main_nodes else unassigned).append(node)
-		else:
-			unavailable.append("Military Unit")
-	else:
-		for doctype, title in (
-			("Operational Deployment", "deployment_name"),
-			("Mission", "mission_name"),
-			("Training Exercise", "exercise_name"),
-		):
-			if not frappe.has_permission(doctype, "read"):
-				unavailable.append(doctype)
-				continue
-			rows = _hierarchy_rows(doctype, title, ("unit",))
-			_attached_nodes, attached, indexed = _forest(doctype, rows, title, None)
-			for node in attached:
-				unit = indexed[node["name"]].get("unit")
-				(main_nodes[unit]["children"] if unit in main_nodes else unassigned).append(node)
+	for doctype, title, link_field in (
+		("Operational Deployment", "deployment_name", "unit"),
+		("Mission", "mission_name", "unit"),
+		("Training Exercise", "exercise_name", "unit"),
+	):
+		if not frappe.has_permission(doctype, "read"):
+			unavailable.append(doctype)
+			continue
+		rows = _hierarchy_rows(doctype, title, (link_field,))
+		_attached_nodes, attached, indexed = _forest(doctype, rows, title, None)
+		for node in attached:
+			unit = indexed[node["name"]].get(link_field)
+			(main_nodes[unit]["children"] if unit in main_nodes else unassigned).append(node)
 	if unassigned:
 		tops.append(
 			{
@@ -483,7 +475,7 @@ def _composite(source):
 	root = _finalize_forest({"count": 0, "children": tops})
 	return {
 		"doctype": main,
-		"label": _("Regions × Units") if regions else _("Units × Operations"),
+		"label": _("Units × Operations"),
 		"dimensions": [_("Command hierarchy")],
 		"count": root["count"],
 		"truncated": False,
@@ -500,12 +492,11 @@ def structure_data(source="people"):
 	This synchronous scan can be expensive for large sites or custom permission
 	hooks. Counts represent the current user's visible records, not global totals.
 	"""
-	if source in ("regions-units", "units-ops"):
+	if source == "units-ops":
 		return _composite(source)
 	if source == "units":
 		return _hierarchy("Military Unit", "unit_name", "parent_unit")
-	if source == "regions":
-		return _hierarchy("Command Region", "region_name", "parent_region")
+	# 'regions' / 'regions-units' removed 2026-11 (now Places / Units × Operations).
 	if source not in STRUCTURES:
 		frappe.throw(_("Unknown structure source"), frappe.ValidationError)
 	doctype, dimensions = STRUCTURES[source]

@@ -9,11 +9,13 @@
 Relationship.subject_type/object_type Select options in this turn.
 
 **Why:**
-- Military Unit, Operational Deployment, Mission, Training Exercise, Command
-  Region, Military Division and the administrative hierarchy (Governorate →
-  District → Municipality → Village/Community) already encode their connections
-  through ordinary Link fields. Adding them as Relationship endpoints would
-  duplicate information that already has a single source of truth.
+- Military Unit (including Division-level rows via `echelon='Division'`),
+  Operational Deployment, Mission, Training Exercise, and the Place hierarchy
+  (Governorate → District → Municipality → Village/Community, plus command areas
+  represented as Place records with `place_type="Command Region"`) already encode
+  their connections through ordinary Link fields (`parent_unit`, `linked_place`,
+  `parent_place`). Adding them as Relationship endpoints would duplicate
+  information that already has a single source of truth.
 - Derived edges are computed on-the-fly in `get_entity_network` and in the new
   `get_entity_profile` endpoint by walking DocType meta (the `fields` list).
   They are marked `structural: true` and rendered with a muted dashed style

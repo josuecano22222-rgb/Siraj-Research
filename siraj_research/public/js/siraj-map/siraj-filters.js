@@ -26,7 +26,7 @@
 		{ id:'people',      label:__('People'),                  types:['Person'] },
 		{ id:'inst',        label:__('Institutions'),            types:['Institution'] },
 		{ id:'ppl_inst',    label:__('People + Institutions'),   types:['Person','Institution'] },
-		{ id:'military',    label:__('Military'),                types:['Military Unit','Operational Deployment','Mission','Training Exercise','Military Division','Command Region'] },
+		{ id:'military',    label:__('Military'),                types:['Military Unit','Operational Deployment','Mission','Training Exercise'] },
 		{ id:'places',      label:__('Places'),                  types:['Place'] },
 		{ id:'events',      label:__('Events and operations'),   types:['Research Event','Operational Deployment','Mission','Training Exercise'] },
 		{ id:'sources',     label:__('Sources'),                 types:['Source'] },

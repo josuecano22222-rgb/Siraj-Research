@@ -60,10 +60,8 @@ FOLD_RECORDS = 52
 OPERATIONAL_TYPES = (
 	"Armament",
 	"Command Appointment",
-	"Command Region",
 	"Research Event",
 	"Institution",
-	"Military Division",
 	"Military Unit",
 	"Mission",
 	"Operational Deployment",
@@ -478,16 +476,26 @@ def seed_test_data():
 		)
 		add("Research Event", title_ar="اختبار حدث ناقص البيانات", event_type=lookup["Event Type"])
 		region = add(
-			"Command Region", region_name="TEST Region", country="Iraq", is_group=1, region_type="Region"
+			"Place", place_name="TEST Region Place", place_type=lookup["Place Type"],
+			country="Iraq", is_group=1,
+			latitude=33.34, longitude=44.34, geo_precision="approximate",
+			geocoding_method="test", geo_uncertainty_m=5000,
 		)
 		subregion = add(
-			"Command Region",
-			region_name="TEST Subregion",
+			"Place",
+			place_name="TEST Subregion Place",
+			place_type=lookup["Place Type"],
 			country="Iraq",
-			parent_region=region,
-			region_type="Area",
+			parent_place=region,
+			latitude=33.345, longitude=44.345, geo_precision="approximate",
+			geocoding_method="test", geo_uncertainty_m=2000,
 		)
-		division = add("Military Division", division_name="TEST Division", region=subregion)
+		division = add(
+			"Military Unit", unit_name="TEST Division Unit", echelon="Division",
+			status="Active", is_group=1, linked_place=subregion,
+			classification=add("Unit Classification",
+				classification_name="TEST Div Class", category="Line"),
+		)
 		classification = add(
 			"Unit Classification",
 			classification_name="TEST Unit Classification",
@@ -502,8 +510,8 @@ def seed_test_data():
 			status="Active",
 			direct_personnel=50,
 			is_group=1,
-			region=subregion,
-			division=division,
+			linked_place=subregion,
+			parent_unit=division,
 			classification=classification,
 			commander=person,
 			latitude=33.35,
@@ -517,7 +525,7 @@ def seed_test_data():
 			status="Training",
 			direct_personnel=20,
 			parent_unit=unit,
-			region=subregion,
+			linked_place=subregion,
 			classification=classification,
 		)
 		add(

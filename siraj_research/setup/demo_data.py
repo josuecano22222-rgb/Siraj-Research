@@ -22,13 +22,13 @@ Dataset coverage:
         journalists/historians), including a retired officer, a deceased
         historical figure, and an active commander chain from CoS down to
         battalion level, with careers spanning multiple postings.
-  6 Command Regions spanning Iraq
-  1 Military Division record
+  6 Command Region Places spanning Iraq
+  4 Division-level Military Units (ISF + KRG)
   3 Unit Classifications (Mechanized Infantry, Armored, Special Operations)
   10 Armament systems across all categories (Weapons/Vehicles/Artillery/
         Aircraft/Communications)
   14 Military Units (group nodes + leaf brigades/battalions across multiple
-        regions and statuses: Active/Training/Standby/Reserve/Reorganizing/
+        linked_places (command-region Places) and statuses: Active/Training/Standby/Reserve/Reorganizing/
         Stand-down/Mobilized/Disbanded/Attached)
   8 Operational Deployments (Active/Completed/Suspended/Planned, including
         historical/ISIS-era ones)
@@ -161,7 +161,8 @@ def seed_demo_data():
              for c in ["country", "region", "city", "town", "village", "district",
                        "neighbourhood", "mosque", "shrine", "church", "school",
                        "library", "archive", "museum", "building",
-                       "archaeological_site", "natural_site", "other"]}
+                       "archaeological_site", "natural_site",
+                       "military_base", "command_region", "area", "other"]}
     ITYPE = {c: _gf("Institution Type", code=c)
              for c in ["university", "college", "research_center", "institute",
                        "ministry", "government_body", "library", "archive",
@@ -340,60 +341,61 @@ def seed_demo_data():
             "workflow_state": _ws("Published"),
         }, classification_name=f"{name} {TAG}")
 
-    # Military Divisions (master)
-    divisions = {}
-    div_data = [
-        ("div6", "6th Mechanised Division", "Mechanized", "1959-01-01",
-         "Camp Rashid, Baghdad"),
-        ("div9", "9th Armoured Division", "Armored", "1975-01-01",
-         "Camp Taji, Baghdad"),
-        ("div17", "17th Commando Division", "Mechanized", "2000-01-01",
-         "Habbaniyah, Anbar"),
-        ("iso", "Iraqi Special Operations Forces", "Mechanized", "2005-01-01",
-         "Victory Base Complex, Baghdad"),
-    ]
-    for key, name, div_type, formed, hq in div_data:
-        # Division requires region; link to a placeholder region that we create first
-        region_key = {
-            "div6": "baghdad_ops",
-            "div9": "baghdad_ops",
-            "div17": "anbar_ops",
-            "iso": "ct_cmd",
-        }[key]
-        # Will be created below; placeholder
-        divisions[key] = f"PENDING-{key}"
-
-    # Command Regions
+    # Command Regions — represented as Place records (place_type=Command Region).
+    # This replaces the removed Command Region doctype; Place already carries
+    # parent_place hierarchy, lat/lng and full geo fields.
     regions = {}
     rdata = [
-        ("baghdad_ops", "Baghdad Operations Command", "Region"),
-        ("ninawa_ops", "Nineveh Operations Command", "Region"),
-        ("anbar_ops", "Anbar Operations Command", "Region"),
-        ("basra_ops", "Basra Operations Command", "Region"),
-        ("ct_cmd", "Counter-Terrorism Command", "Region"),
-        ("kurdistan", "Kurdistan Regional Guard Command", "Region"),
+        ("baghdad_ops", "Baghdad Operations Command", PTYPE["command_region"], 33.3152, 44.3661),
+        ("ninawa_ops", "Nineveh Operations Command", PTYPE["command_region"], 36.3400, 43.1300),
+        ("anbar_ops", "Anbar Operations Command", PTYPE["command_region"], 33.3800, 43.2000),
+        ("basra_ops", "Basra Operations Command", PTYPE["command_region"], 30.5080, 47.7810),
+        ("ct_cmd", "Counter-Terrorism Command", PTYPE["command_region"], 33.3000, 44.3800),
+        ("kurdistan", "Kurdistan Regional Guard Command", PTYPE["command_region"], 36.2000, 44.0000),
     ]
-    for key, name, rtype in rdata:
-        regions[key] = _add("Command Region", {
-            "naming_series": "MIL-REG-.####",
-            "region_name": f"{name} {TAG}",
-            "region_type": rtype,
+    for key, name, ptype, lat, lng in rdata:
+        regions[key] = _add("Place", {
+            "place_name": f"{name} {TAG}",
+            "place_type": ptype,
             "country": country_iq,
+            "latitude": lat, "longitude": lng,
+            "geo_precision": "approximate",
+            "geocoding_method": "gazetteer",
+            "geo_uncertainty_m": 4000,
             "description": f"{TAG} Synthetic command for demo dataset.",
             "workflow_state": _ws("Published"),
-        }, region_name=f"{name} {TAG}")
-    # Now create divisions since regions exist
-    for i, (key, name, div_type, formed, hq) in enumerate(div_data):
-        region_key = ["baghdad_ops", "baghdad_ops", "anbar_ops", "ct_cmd"][i]
-        divisions[key] = _add("Military Division", {
-            "naming_series": "MIL-DIV-.####",
-            "division_name": f"{name} {TAG}",
-            "region": regions[region_key],
-            "division_type": div_type,
+        }, place_name=f"{name} {TAG}")
+
+    # Division-level Military Units — the old standalone Military Division doctype
+    # was removed; divisions are Military Unit records with echelon='Division' and
+    # linked_place pointing at the Command Region Place above.
+    divisions = {}
+    div_data = [
+        ("div6",  "6th Mechanised Division",           "Mechanized Infantry", "1959-01-01", "Camp Rashid, Baghdad",       Geo.RASHID[0], Geo.RASHID[1], "baghdad_ops"),
+        ("div9",  "9th Armoured Division",             "Armored",             "1975-01-01", "Camp Taji, Baghdad",         Geo.TAJI[0],   Geo.TAJI[1],   "baghdad_ops"),
+        ("div17", "17th Commando Division",            "Mechanized Infantry", "2000-01-01", "Habbaniyah, Anbar",          33.3820,       43.5700,       "anbar_ops"),
+        ("iso",   "Iraqi Special Operations Forces",   "Special Operations",  "2005-01-01", "Victory Base Complex, Baghdad", Geo.VIC_GREEN[0], Geo.VIC_GREEN[1], "ct_cmd"),
+    ]
+    for key, name, uclass, formed, hq, lat, lng, rkey in div_data:
+        divisions[key] = _add("Military Unit", {
+            "naming_series": "MIL-UNIT-.####",
+            "unit_name": f"{name} {TAG}",
+            "is_group": 1,
+            "echelon": "Division",
+            "classification": uclass,
+            "linked_place": regions[rkey],
             "formation_date": _dt.date.fromisoformat(formed),
             "headquarters": f"{hq} {TAG}",
+            "latitude": lat, "longitude": lng,
+            "geo_precision": "approximate",
+            "geocoding_method": "gazetteer",
+            "geo_uncertainty_m": 800,
+            "status": "Active",
+            "direct_personnel": 0,
             "workflow_state": _ws("Published"),
-        }, division_name=f"{name} {TAG}")
+            "documentation_level": DOC["partial"],
+            "authentication_level": AUTH["single_source"],
+        }, unit_name=f"{name} {TAG}")
 
     # Armaments
     armaments = {}
@@ -1009,11 +1011,11 @@ def seed_demo_data():
     for (key, name, parent, ech, div_key, reg_key, status, pers, cls_key,
          cmdr, hq, lat, lng, alist, ws_state) in udata:
         vals = {
-            "naming_series": "MIL-UNIT-.####" if ech != "Division" else "MIL-BRG-.####",
+            "naming_series": "MIL-UNIT-.####",
             "unit_name": f"{name} {TAG}",
             "is_group": 1 if ech in ("Division",) else 0,
             "echelon": ech,
-            "region": regions[reg_key],
+            "linked_place": regions[reg_key] if reg_key and reg_key in regions else None,
             "status": status,
             "direct_personnel": pers,
             "headquarters": f"{hq} {TAG}",
@@ -1029,7 +1031,7 @@ def seed_demo_data():
         if parent:
             vals["parent_unit"] = units[parent]
         if div_key and div_key in divisions:
-            vals["division"] = divisions[div_key]
+            vals["parent_unit"] = divisions[div_key]
         if cls_key:
             vals["classification"] = uclass[cls_key]
         if cmdr:
@@ -1458,8 +1460,8 @@ def seed_demo_data():
         "sources": len(sources),
         "institutions": len(insts),
         "persons": len(persons),
-        "command_regions": len(regions),
-        "military_divisions": len(divisions),
+        "command_region_places": len(regions),
+        "division_units": len(divisions),
         "unit_classifications": len(uclass),
         "armaments": len(armaments),
         "military_units": len(units),
@@ -1497,12 +1499,12 @@ def teardown_demo_data():
         ("Research Event", "title_en"),
         ("Military Unit", "unit_name"),
         ("Armament", "armament_name"),
-        ("Military Division", "division_name"),
+
         ("Person", "name_en"),
         ("Institution", "name_en"),
         ("Source", "title"),
         ("Place", "name_en"),
-        ("Command Region", "region_name"),
+
         ("Unit Classification", "classification_name"),
     ]
     for dt, field in order:

@@ -47,11 +47,15 @@ def _relatable_doctypes() -> set[str]:
 	return existing or set(_BASE_RELATABLE)
 
 # Where to look for an entity's location if it has no direct latitude/longitude
-# of its own. Only Place (linked_place) is used as an inferred location;
-# Military Unit / Operational Deployment now carry their own coordinates.
+# of its own. Keys are fieldnames that actually exist on the DocType (verified
+# against the DocType JSON); values are the Link target doctype.
 INFERENCE_CHAINS: dict[str, tuple[tuple[str, str], ...]] = {
-	"Person": (("linked_place", "Place"),),
-	"Institution": (("linked_place", "Place"),),
+	"Person":                 (("birthplace",   "Place"),),  # Place of birth is the only Place link on Person; used as a coarse fallback when no direct coords.
+	"Institution":            (("place",        "Place"),),  # Institution.place Link → Place.
+	"Military Unit":          (("linked_place", "Place"),),  # HQ Place (garrison / command area / base).
+	"Operational Deployment": (),                              # Deployments carry their own lat/lon; no fallback link.
+	"Mission":                (("unit", "Military Unit"),),  # Missions inherit via unit → linked_place.
+	"Training Exercise":      (("unit", "Military Unit"),),  # Exercises inherit via unit → linked_place.
 }
 
 DEFAULT_NODES_CAP = 500
@@ -248,10 +252,11 @@ def get_entity_network(doctype: str, name: str, depth: int = 1, types: str | Non
 def _node_record(doctype: str, name: str, restricted: set, unmapped: list, hops: int) -> dict | None:
 	"""Return a node dict with coordinates when possible, or add to unmapped."""
 	# Build a field list that only includes columns this DocType actually has,
-	# so get_cached_value doesn't raise on e.g. 'linked_place' for Military Unit.
+	# so get_cached_value doesn't raise on fields missing from the DocType.
 	want = ["name", "latitude", "longitude", "geo_precision", "geocoding_method", "geo_uncertainty_m"]
-	label_fields = ["display_name", "label", "title"]
-	link_fields = ["linked_place"]
+	label_fields = ["display_name", "label", "title", "unit_name", "deployment_name"]
+	# Per-doctype Link-to-Place fields (used by INFERENCE_CHAINS).
+	link_fields = ["linked_place", "birthplace", "place"]
 	available = {f.fieldname for f in frappe.get_meta(doctype).fields}
 	present_want = [f for f in want if f == "name" or f in available]
 	present_label = [f for f in label_fields if f in available]
@@ -274,25 +279,51 @@ def _node_record(doctype: str, name: str, restricted: set, unmapped: list, hops:
 	lon = doc.get("longitude")
 	location_source = "direct" if (lat is not None and lon is not None) else None
 
-	# Inferred-location chains: only follow links that exist on this DocType.
+	# Inferred-location chains: follow Links transitively (e.g. Mission →
+	# Military Unit → Place). Cap at 4 hops to avoid cycles; only walk fields
+	# that actually exist on each intermediate DocType.
 	if location_source is None:
+		def _resolve(chain_doctype: str, chain_name: str, depth: int, seen: set[str]):
+			if depth > 4 or (chain_doctype, chain_name) in seen:
+				return None
+			seen.add((chain_doctype, chain_name))
+			try:
+				link_meta = frappe.get_meta(chain_doctype)
+				link_fields_available = {df.fieldname for df in (link_meta.fields or [])}
+				link_doc = frappe.get_cached_value(
+					chain_doctype, chain_name,
+					["latitude", "longitude"] + sorted(
+						{f for f, _dt in INFERENCE_CHAINS.get(chain_doctype, ()) if f in link_fields_available}
+					),
+					as_dict=True,
+				) if frappe.has_permission(chain_doctype, "read", chain_name) else None
+			except Exception:
+				link_doc = None
+			if not link_doc:
+				return None
+			if link_doc.latitude is not None and link_doc.longitude is not None:
+				return (link_doc.latitude, link_doc.longitude, chain_doctype)
+			for field, link_doctype in INFERENCE_CHAINS.get(chain_doctype, ()):
+				if not field or field not in link_doc:
+					continue
+				next_name = link_doc.get(field)
+				if not next_name:
+					continue
+				found = _resolve(link_doctype, next_name, depth + 1, seen)
+				if found:
+					return found
+			return None
+
 		for field, link_doctype in INFERENCE_CHAINS.get(doctype, ()):
 			if field not in available:
 				continue
 			link_name = doc.get(field)
 			if not link_name:
 				continue
-			if not frappe.has_permission(link_doctype, "read", link_name):
-				continue
-			try:
-				link = frappe.get_cached_value(
-					link_doctype, link_name, ["latitude", "longitude"], as_dict=True,
-				)
-			except Exception:
-				link = None
-			if link and link.latitude is not None and link.longitude is not None:
-				lat, lon = link.latitude, link.longitude
-				location_source = f"inferred:{link_doctype}"
+			found = _resolve(link_doctype, link_name, 1, {(doctype, name)})
+			if found:
+				lat, lon, via = found
+				location_source = f"inferred:{via}"
 				break
 
 	node = {

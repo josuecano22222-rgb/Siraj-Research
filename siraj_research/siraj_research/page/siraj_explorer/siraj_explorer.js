@@ -1532,7 +1532,7 @@ class SirajExplorer {
 		await frappe.require('/assets/siraj_research/js/structure_deck.js');
 		if (renderId !== this.renderId) return;
 		this.canvas.removeClass('sx-canvas');
-		const choices = [['people', __('Person')], ['institutions', __('Institution')], ['places', __('Place')], ['events', __('Research Event')], ['relationships', __('Relationship')], ['sources', __('Source')], ['units', __('Units — command hierarchy')], ['regions', __('Regions — command hierarchy')], ['regions-units', __('Regions × Units')], ['units-ops', __('Units × Operations')], ['forces', __('Forces — echelon, status, classification')]];
+		const choices = [['people', __('People')], ['institutions', __('Institutions')], ['places', __('Places')], ['events', __('Research events')], ['relationships', __('Relationships')], ['sources', __('Sources')], ['units', __('Units — command hierarchy')], ['units-ops', __('Units × Operations')], ['forces', __('Forces — echelon, status, classification')]];
 		const select = $('<select class="form-control input-sm"></select>').attr('aria-label', __('Structure source')).appendTo(this.tools);
 		choices.forEach(([id, title]) => $('<option></option>').val(id).text(title).appendTo(select));
 		let request = 0;
