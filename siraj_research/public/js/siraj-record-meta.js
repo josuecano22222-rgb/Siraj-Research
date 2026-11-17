@@ -163,15 +163,30 @@
 		return `<span class="siraj-swatch" data-doctype="${doctype}" style="display:inline-flex;align-items:center;justify-content:center;width:${s}px;height:${s}px;border-radius:3px;background:${colour(doctype)};color:#fff;vertical-align:-2px;margin-inline-end:4px">${svg(GLYPHS, doctype, {size: Math.round(s*0.7)})}</span>`;
 	}
 
+	// Per-DocType coordinate editor configuration — mirrors
+	// record_icons.COORDINATE_DOCS on the server. Fallback defaults are
+	// applied when boot metadata is not yet available (tests, print view).
+	const COORDINATE_DOCS_FALLBACK = {
+		'Person':                { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'birthplace',            silhouette:'bust' },
+		'Institution':           { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'place',                  silhouette:'building' },
+		'Place':                 { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'parent_place',           silhouette:'pin' },
+		'Research Event':        { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'place',                  silhouette:'star' },
+		'Military Unit':         { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'linked_place',           silhouette:'shield' },
+		'Operational Deployment':{ lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:null,                     silhouette:'crosshair' },
+	};
+	const coordinateDocs = Object.assign({}, COORDINATE_DOCS_FALLBACK,
+		(boot && boot.coordinate_docs) || {});
+
 	window.sirajRecordMeta = boot;
 	window.sirajColours = colours;
-	window.sirajIcons = { types: GLYPHS, tools: TOOLS, svg: (n,o)=>svg(GLYPHS,n,o), toolSvg: (n,o)=>svg(TOOLS,n,o), pin, swatch, colour };
+	window.sirajCoordinateDocs = coordinateDocs;
+	window.sirajIcons = { types: GLYPHS, tools: TOOLS, svg: (n,o)=>svg(GLYPHS,n,o), toolSvg: (n,o)=>svg(TOOLS,n,o), pin, swatch, colour, coordinateDocs };
 })();
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.19';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| form map in .form-group field wrapper; uncertainty circle; linked-place chip; diagnostics page; public-API default icon; per-doctype teardrop pins; toolbar'); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.21';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| form map in .form-group field wrapper; uncertainty circle; linked-place chip; diagnostics page; hashed esbuild bundles; per-doctype teardrop pins; toolbar'); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------
 // Compare the JS-built stamp with the server stamp delivered at boot time.

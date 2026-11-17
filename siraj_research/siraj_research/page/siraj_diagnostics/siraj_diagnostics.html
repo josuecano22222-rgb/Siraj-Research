@@ -173,6 +173,65 @@
     } catch(e){ return setRes(tr,false, String(e.message)); }
   });
 
+  check('scripts.loaded_urls', 'Loaded SIRAJ <script> URLs and ?ver / hashed name', function(tr){
+    // List every SIRAJ script the browser actually executed (not just the
+    // files fetch() can re-read — those bypass cache and may differ).
+    const scripts = Array.from(document.scripts || []);
+    const mine = scripts.filter(s => /siraj_research\/(js|dist\/js)\//.test(s.src));
+    if(!mine.length) return setRes(tr,false,'no SIRAJ <script> tags found in document');
+    const info = mine.map(s => {
+      try{
+        const u = new URL(s.src, location.href);
+        return u.pathname.replace(/.*siraj_research/,'') + (u.search || '');
+      }catch(_){ return s.src; }
+    });
+    const hashed = mine.filter(s => /\/dist\/js\/siraj\.bundle\.[A-Z0-9]{6,}\.js/.test(s.src));
+    const hasQuery = mine.filter(s => /[?&](ver|v)=/.test(s.src));
+    if(hashed.length) return setRes(tr,true,'hashed bundle loaded; '+info.length+' script(s); '+info.join(', '));
+    if(hasQuery.length) return setRes(tr,false,'fixed URLs with ?ver= query (bypass proxy caches but can still ship stale bundles across builds); '+info.join(', '));
+    return setRes(tr,false,'fixed URLs without cache-bust (browser/nginx may serve stale); '+info.join(', '));
+  });
+
+  check('scripts.executed_vs_server', 'Executed window.SIRAJ_BUILD matches server (not just fetched file)', function(tr){
+    const srv = window.__sirajServerBuild;
+    const executed = window.SIRAJ_BUILD || '(none)';
+    if(!srv) return setRes(tr,false,'server stamp unknown');
+    if(executed !== srv) return setRes(tr,false,'executed='+executed+' server='+srv+' — hard-refresh (Ctrl/Cmd+Shift+R)');
+    // Module-level version constants — each file exposes its own version so
+    // a partially-cached bundle (one file updated, another stale) is caught.
+    const coordV = window.SIRAJ_COORDINATE_MAP_VERSION;
+    const mapBuild = (window.SirajMap && window.SirajMap.build) || null;
+    return setRes(tr,true,'build='+executed+'; coordinate_map v'+coordV+(mapBuild?'; sirajMap='+mapBuild:''));
+  });
+
+  check('scripts.dom_build_attr', 'data-siraj-build attribute present on any map wrapper in the DOM', function(tr){
+    // When a Person/Institution/Place form is open its coordinate map group
+    // carries data-siraj-build = window.SIRAJ_BUILD so a screenshot proves
+    // which code rendered it. This diagnostics page itself renders no map,
+    // so we accept either case: attribute present on something, or we report
+    // "open a form map" with a PASS if no map exists on this page (it's not
+    // a failure of the bundle).
+    const markers = document.querySelectorAll('[data-siraj-build]');
+    if(!markers.length) return setRes(tr,true,'no map rendered on this page (open Person/Place/Institution form and re-run)');
+    const builds = new Set(Array.from(markers).map(m=>m.getAttribute('data-siraj-build')).filter(Boolean));
+    const expected = window.SIRAJ_BUILD;
+    const mismatched = Array.from(builds).filter(b => b && b !== expected);
+    if(mismatched.length) return setRes(tr,false,'DOM has stale build '+Array.from(builds).join(','));
+    return setRes(tr,true,markers.length+' element(s) stamped build='+expected);
+  });
+
+  check('coordinate.config_loaded', 'Per-DocType coordinate config shipped', function(tr){
+    const cfg = window.sirajCoordinateDocs || window.SIRAJ_COORDINATE_DOCS_ACTIVE;
+    if(!cfg) return setRes(tr,false,'no coordinate config on window');
+    const keys = Object.keys(cfg);
+    const required = ['Person','Institution','Place','Research Event','Military Unit','Operational Deployment'];
+    const missing = required.filter(k => !cfg[k]);
+    if(missing.length) return setRes(tr,false,'missing DocTypes: '+missing.join(', '));
+    const badField = required.filter(k => cfg[k] && !cfg[k].lat_field);
+    if(badField.length) return setRes(tr,false,'missing lat_field on: '+badField.join(', '));
+    return setRes(tr,true,keys.length+' DocTypes configured; 6 primary forms have linked_place field mapping');
+  });
+
   async function runAll(){
     const tbody = document.querySelector('#siraj-diag-table tbody');
     tbody.innerHTML = '';

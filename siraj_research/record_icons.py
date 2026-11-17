@@ -202,7 +202,58 @@ INTERNAL = {
 #: delivered in bootinfo.siraj_record_meta.build; the client compares its
 #: window.SIRAJ_BUILD against this value on boot and shows a reload banner
 #: when they differ (catches stale bundles after bench build).
-SIRAJ_BUILD = "2026-11-17.coord-field-slice-a.19"
+SIRAJ_BUILD = "2026-11-17.coord-field-slice-a.21"
+
+
+#: DocTypes that carry coordinate fields and a per-form map editor.
+#: Each entry declares the latitude/longitude/uncertainty fields (overridable
+#: if a DocType uses non-default names), the linked Place field whose
+#: coordinates the editor can copy via "use linked place", and the glyph
+#: silhouette used for the editor pin. Keys are exact DocType names.
+COORDINATE_DOCS: Dict[str, dict] = {
+	"Person": {
+		"lat_field": "latitude",
+		"lon_field": "longitude",
+		"uncertainty_field": "geo_uncertainty_m",
+		"linked_place_field": "birthplace",
+		"silhouette": "bust",
+	},
+	"Institution": {
+		"lat_field": "latitude",
+		"lon_field": "longitude",
+		"uncertainty_field": "geo_uncertainty_m",
+		"linked_place_field": "place",
+		"silhouette": "building",
+	},
+	"Place": {
+		"lat_field": "latitude",
+		"lon_field": "longitude",
+		"uncertainty_field": "geo_uncertainty_m",
+		"linked_place_field": "parent_place",
+		"silhouette": "pin",
+	},
+	"Research Event": {
+		"lat_field": "latitude",
+		"lon_field": "longitude",
+		"uncertainty_field": "geo_uncertainty_m",
+		"linked_place_field": "place",
+		"silhouette": "star",
+	},
+	"Military Unit": {
+		"lat_field": "latitude",
+		"lon_field": "longitude",
+		"uncertainty_field": "geo_uncertainty_m",
+		"linked_place_field": "linked_place",
+		"silhouette": "shield",
+	},
+	"Operational Deployment": {
+		"lat_field": "latitude",
+		"lon_field": "longitude",
+		"uncertainty_field": "geo_uncertainty_m",
+		"linked_place_field": None,   # free-text `location` only
+		"silhouette": "crosshair",
+	},
+}
 
 
 def boot_session(bootinfo):
@@ -217,5 +268,6 @@ def boot_session(bootinfo):
 		"glyphs": GLYPHS,
 		"tools": TOOLS,
 		"records": {dt: {"colour": v["colour"], "category": v["category"]} for dt, v in RECORDS.items()},
+		"coordinate_docs": COORDINATE_DOCS,
 		"build": SIRAJ_BUILD,
 	}

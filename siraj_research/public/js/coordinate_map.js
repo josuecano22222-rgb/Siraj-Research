@@ -1,26 +1,53 @@
 /* Per-DocType coordinate map editor.
  *
- * Every DocType that carries `latitude` and `longitude` fields (whether they
- * are Float or Data) gets one shared editor mounted INSIDE the Position
- * section, right after the longitude field. The editor behaves as the
- * designated "map field": clicking the map writes the coordinates (respecting
- * read-only / permission state), typing in the fields moves the pin, the
- * toolbar comes from the shared SirajMapKit/TOOL_SPEC registry so it is
- * structurally identical to the Explorer's map, and layout changes (tab
- * switch, section collapse) invalidate the Leaflet size.
+ * Every DocType declared in window.sirajCoordinateDocs (populated from
+ * record_icons.COORDINATE_DOCS on the server) gets one shared editor mounted
+ * INSIDE the Position section, right after the longitude field. Any DocType
+ * that exposes latitude/longitude Float/Data fields but is NOT in the config
+ * still gets the editor (graceful fallback) so custom DocTypes work.
  *
- * No per-doctype code is needed: any DocType exposing `latitude`/`longitude`
- * fields automatically gets the editor, whether they're Float, Data, or any
- * numeric text type.
+ * The editor is a real form field: clicking/dragging calls frm.set_value so
+ * the form shows "Not Saved", typing in the fields moves the pin, swapped
+ * lat/lon and null-island (0,0) are flagged, read-only/permissions are
+ * honoured, the toolbar comes from the shared SirajMapKit/TOOL_SPEC, and
+ * layout changes (tab/section show, collapse) invalidate Leaflet size.
+ *
+ * data-siraj-build on the wrapper lets a screenshot show which build the DOM
+ * was created by; Diagnostics reads it to verify executed-vs-server match.
  */
 (() => {
 	'use strict';
-	window.SIRAJ_COORDINATE_MAP_VERSION = 2;   // bumped for cache-bust detection
-	const states = new WeakMap();
-	const registered = new Set();
-	const t = s => __(s);
 
-	// Accept both text and numeric fieldtypes (Float, Int, Data, Small Text).
+	const MODULE_VERSION = 3;
+
+	// DocType → editor config. Merged over window.sirajCoordinateDocs (which
+	// comes from the server via boot_session) so tests/print views that lack
+	// boot metadata still have the correct per-doctype mapping.
+	const DEFAULT_COORDS = {
+		'Person':                 { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'birthplace',   silhouette:'bust' },
+		'Institution':            { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'place',         silhouette:'building' },
+		'Place':                  { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'parent_place',  silhouette:'pin' },
+		'Research Event':         { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'place',         silhouette:'star' },
+		'Military Unit':          { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'linked_place',  silhouette:'shield' },
+		'Operational Deployment': { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:null,            silhouette:'crosshair' },
+	};
+	function docConfig(doctype) {
+		const fromBoot = (window.sirajCoordinateDocs && window.sirajCoordinateDocs[doctype]) || {};
+		return Object.assign({
+			lat_field: 'latitude', lon_field: 'longitude',
+			uncertainty_field: 'geo_uncertainty_m', linked_place_field: null,
+			silhouette: 'pin',
+		}, DEFAULT_COORDS[doctype] || {}, fromBoot);
+	}
+
+	// Incrementing id so multiple forms on one page (e.g. quick-entry dialog
+	// over a detail view) do not collide.
+	let instanceCounter = 0;
+	const states = new Map();   // key: frm+cfg+docname  (handles multi-map)
+	const registered = new Set();
+	const t = s => (typeof __ === 'function' ? __(s) : s);
+
+	// Fieldtypes we can read/write numbers from/into.
 	const writableFieldTypes = new Set(['Data','Small Text','Text','Long Text','Float','Int','Currency','Percent']);
 	const readableFieldTypes = new Set([...writableFieldTypes, 'Read Only']);
 
@@ -33,8 +60,6 @@
 				'/assets/siraj_research/vendor/topojson/topojson-client.min.js',
 			])).then(() => {
 				if (window.SirajMapKit) return;
-				// Kit is loaded via app_include_js in production; this retry
-				// only fires if something odd happened with the bundle.
 				return new Promise(res => {
 					const check = () => window.SirajMapKit ? res() : setTimeout(check, 30);
 					check();
@@ -44,69 +69,78 @@
 		return assetsPromise;
 	};
 
-	/* ------- Coordinate parsing (handles Float, arabic numerals, scientific notation) ------- */
+	/* ------- Coordinate parsing (Float, eastern-arabic, scientific notation) ------- */
+	const EASTERN_DIGITS = /[٠-٩]/g;
+	const PERSIAN_DIGITS = /[۰-۹]/g;
 	function parseCoordinate(value, max) {
 		if (value === undefined || value === null || typeof value === 'boolean') return null;
 		if (typeof value === 'number') return Number.isFinite(value) && Math.abs(value) <= max ? value : null;
 		const normalized = String(value).trim()
-			.replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 0x660))
-			.replace(/[۰-۹]/g, c => String(c.charCodeAt(0) - 0x6f0))
+			.replace(EASTERN_DIGITS, c => String(c.charCodeAt(0) - 0x660))
+			.replace(PERSIAN_DIGITS, c => String(c.charCodeAt(0) - 0x6f0))
 			.replace(/٫/g, '.');
 		if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(e[+-]?\d+)?$/i.test(normalized)) return null;
-		const number = Number(normalized);
-		if (!Number.isFinite(number) || Math.abs(number) > max) return null;
-		return number;
+		const n = Number(normalized);
+		if (!Number.isFinite(n) || Math.abs(n) > max) return null;
+		return n;
 	}
 	function decimalText(number) {
-		// Float fields accept numeric strings; Frappe will coerce on save.
 		const text = String(number);
 		if (!/[eE]/.test(text)) return text;
-		const [coefficient, exponent] = text.toLowerCase().split('e');
-		const negative = coefficient.startsWith('-');
-		const unsigned = coefficient.replace(/^-/, '');
-		const [whole, fraction = ''] = unsigned.split('.');
-		const digits = whole + fraction, position = whole.length + Number(exponent);
-		const result = position <= 0 ? '0.' + '0'.repeat(-position) + digits
-			: position >= digits.length ? digits + '0'.repeat(position - digits.length)
-			: digits.slice(0, position) + '.' + digits.slice(position);
-		return (negative ? '-' : '') + result;
+		const [c, e] = text.toLowerCase().split('e');
+		const neg = c.startsWith('-');
+		const u = c.replace(/^-/, '');
+		const [w, f = ''] = u.split('.');
+		const digits = w + f, pos = w.length + Number(e);
+		const r = pos <= 0 ? '0.' + '0'.repeat(-pos) + digits
+			: pos >= digits.length ? digits + '0'.repeat(pos - digits.length)
+			: digits.slice(0, pos) + '.' + digits.slice(pos);
+		return (neg ? '-' : '') + r;
 	}
-	function controls(frm) {
+
+	function stateKey(frm, cfg) {
+		return frm.doctype + '::' + (frm.docname || 'new') + '::' + cfg.lat_field + '::' + cfg.lon_field;
+	}
+
+	function controlsFor(frm, cfg) {
 		const fields = frm.fields_dict || {};
-		const lat = fields.latitude, lon = fields.longitude;
+		const lat = fields[cfg.lat_field], lon = fields[cfg.lon_field];
 		if (!lat || !lon || typeof lat.get_status !== 'function' || typeof lon.get_status !== 'function') return null;
 		const a = lat.get_status(), b = lon.get_status();
 		if (a === 'None' || b === 'None') return null;
-		const latOk = readableFieldTypes.has(lat.df.fieldtype);
-		const lonOk = readableFieldTypes.has(lon.df.fieldtype);
-		if (!latOk || !lonOk) return null;
+		if (!readableFieldTypes.has(lat.df.fieldtype) || !readableFieldTypes.has(lon.df.fieldtype)) return null;
 		return {
-			lat, lon,
-			editable: a === 'Write' && b === 'Write' && writableFieldTypes.has(lat.df.fieldtype) && writableFieldTypes.has(lon.df.fieldtype),
+			cfg, lat, lon,
+			editable: a === 'Write' && b === 'Write'
+				&& writableFieldTypes.has(lat.df.fieldtype)
+				&& writableFieldTypes.has(lon.df.fieldtype),
 		};
 	}
+
 	function currentValue(field, doc, name) {
 		if (field.get_status() === 'Write' && field.$input && field.$input.length) return field.$input.val();
 		return doc[name];
 	}
-	function remove(frm) {
-		const state = states.get(frm); if (!state) return;
+
+	function removeState(state) {
+		if (!state) return;
 		state.lat.$input?.off('.sirajCoordinates');
 		state.lon.$input?.off('.sirajCoordinates');
 		if (state.tabObserver) { state.tabObserver.disconnect(); state.tabObserver = null; }
-		if (state.resizeObserver) { state.resizeObserver.disconnect(); }
-		if (state.measure) { state.measure.deactivate(); }
-		if (state.uncertaintyCircle) { try { state.map.removeLayer(state.uncertaintyCircle); } catch(_){} state.uncertaintyCircle = null; }
-		if (state.ghostMarker)    { try { state.map.removeLayer(state.ghostMarker); }    catch(_){} state.ghostMarker = null; }
-		if (state.map) state.map.remove();
-		if (state.group) state.group.remove();
-		else if (state.box) state.box.remove();
-		states.delete(frm);
+		if (state.sectionObserver) { state.sectionObserver.disconnect(); state.sectionObserver = null; }
+		if (state.resizeObserver) { state.resizeObserver.disconnect(); state.resizeObserver = null; }
+		if (state.measure) { try { state.measure.deactivate(); } catch (_) {} }
+		if (state.uncertaintyCircle) { try { state.map.removeLayer(state.uncertaintyCircle); } catch (_) {} state.uncertaintyCircle = null; }
+		if (state.ghostMarker)    { try { state.map.removeLayer(state.ghostMarker); }    catch (_) {} state.ghostMarker = null; }
+		if (state.marker)         { try { state.map.removeLayer(state.marker); }         catch (_) {} state.marker = null; }
+		if (state.map && !state.map._sirajRemoved) { try { state.map.remove(); state.map._sirajRemoved = true; } catch (_) {} }
+		if (state.group && state.group[0] && state.group[0].parentNode) state.group.remove();
+		states.delete(state.key);
 	}
 
 	function drawUncertainty(state, lat, lon) {
-		if (state.uncertaintyCircle) { try { state.map.removeLayer(state.uncertaintyCircle); } catch(_){} state.uncertaintyCircle = null; }
-		const r = Number(state.frm && state.frm.doc && state.frm.doc.geo_uncertainty_m);
+		if (state.uncertaintyCircle) { try { state.map.removeLayer(state.uncertaintyCircle); } catch (_) {} state.uncertaintyCircle = null; }
+		const r = Number(state.frm && state.frm.doc && state.frm.doc[state.cfg.uncertainty_field]);
 		if (!Number.isFinite(r) || r <= 0) return;
 		const c = (window.sirajColours && window.sirajColours[state.frm.doctype]) || '#267b77';
 		state.uncertaintyCircle = L.circle([lat, lon], {
@@ -115,26 +149,16 @@
 		}).addTo(state.map);
 	}
 
-	function syncLinkedGhost(state) {
-		const head = state.box.find('.siraj-coord-linked-ghost').empty();
-		const doc = state.frm && state.frm.doc;
-		if (!doc) return;
-		const link = doc.linked_place || doc.place;
-		if (link) $('<span class="siraj-coord-chip"></span>').text(link).appendTo(head);
-	}
-
 	function pinIcon(doctype, color, size) {
 		const s = size || 34;
 		const h = Math.round(s * 1.15);
-		// Editor pin is slightly larger and carries an accent ring so it reads
-		// as "you are placing this record" rather than a generic map pin.
 		return L.divIcon({
 			className: 'sx-pin-wrapper',
 			iconSize: [s, h],
 			iconAnchor: [s/2, h],   // tip anchored to the clicked coordinate
 			popupAnchor: [0, -Math.round(s*0.8)],
 			tooltipAnchor: [0, -Math.round(s*0.5)],
-			html: window.sirajIcons ? window.sirajIcons.pin(doctype || 'Place', color, s, {
+			html: (window.sirajIcons && window.sirajIcons.pin) ? window.sirajIcons.pin(doctype || 'Place', color, s, {
 				state: 'active',
 				halo: false,
 				ring: color || '#267b77',
@@ -143,95 +167,269 @@
 		});
 	}
 
-	function update(frm, center = true) {
-		const state = states.get(frm), fields = controls(frm);
-		if (!state) return;
-		if (!fields || fields.lat !== state.lat || fields.lon !== state.lon || frm.docname !== state.docname) { remove(frm); return; }
-		state.editable = fields.editable;
-		const a = currentValue(fields.lat, frm.doc, 'latitude');
-		const b = currentValue(fields.lon, frm.doc, 'longitude');
-		const lat = parseCoordinate(a, 90), lon = parseCoordinate(b, 180);
-		if (lat === null || lon === null) {
-			if (state.marker) { state.map.removeLayer(state.marker); state.marker = null; }
-			state.status.text((String(a ?? '').trim() || String(b ?? '').trim())
-				? t('Enter valid decimal coordinates: latitude −90 to 90, longitude −180 to 180.')
-				: t('Click the map to pick a point, or type coordinates above.'));
-		} else {
-			const dt = frm.doctype || 'Place';
-			if (!state.marker) {
-				state.marker = L.marker([lat, lon], { icon: pinIcon(dt, null, 34), draggable: !!fields.editable, keyboard: true }).addTo(state.map);
-				state.marker.on('dragend', () => {
-					if (!fields.editable) return;
-					const p = state.marker.getLatLng();
-					writePoint(frm, p, false);
-				});
-				state.marker.bindTooltip(__(dt), {direction:'top', offset:[0,-18]});
-			} else {
-				state.marker.setLatLng([lat, lon]);
-				state.marker.setIcon(pinIcon(dt, null, 34));
-			}
-			if (state.marker?.bringToFront) state.marker.bringToFront();
-			drawUncertainty(state, lat, lon);
-			syncLinkedGhost(state);
-			if (center) state.map.setView([lat, lon], Math.max(state.map.getZoom(), 6));
-			state.status.text((lat === 0 && lon === 0)
-				? t('Zero pair shown; legacy zero may also mean unknown. Confirm before interpreting.')
-				: t('Location shown. Click the map to move the pin, or drag the pin directly.'));
-		}
-		if (!fields.editable) state.status.text(t('Location preview (read-only).'));
+	function ghostIcon(color) {
+		// Hollow teardrop to preview where a linked place's coordinates would
+		// drop the pin, before the user accepts.
+		const s = 30, h = Math.round(s * 1.15);
+		const c = color || '#267b77';
+		return L.divIcon({
+			className: 'sx-pin-wrapper',
+			iconSize: [s, h],
+			iconAnchor: [s/2, h],
+			html: `<span class="sx-map-pin siraj-pin siraj-pin-ghost" style="--pin-color:${c};width:${s}px;height:${h}px;opacity:.55"><span class="siraj-pin-ring" style="border-color:${c};border-style:dashed"></span><span class="siraj-pin-body" style="width:${Math.round(s*.66)}px;background:transparent;border-color:${c};border-style:dashed"></span><span class="siraj-pin-point" style="border-top-color:${c};opacity:.7"></span></span>`,
+		});
 	}
 
-	async function writePoint(frm, latlng, doMove = true) {
-		const state = states.get(frm), fields = controls(frm);
-		if (!state || !fields || !fields.editable || frm.docname !== state.docname) return;
+	function linkedPlaceCoordinates(state) {
+		// Returns {lat, lon, name} if the linked-place field points to a Place
+		// doc that is in the form's locals (i.e. fetched with its doc in the
+		// same request), null otherwise. Callers must frappe.call a fetch if
+		// this returns null; we don't do that automatically to keep the click
+		// path honest about network traffic.
+		const linkField = state.cfg.linked_place_field;
+		if (!linkField) return null;
+		const doc = state.frm && state.frm.doc;
+		if (!doc) return null;
+		const linkDocname = doc[linkField];
+		if (!linkDocname) return null;
+		// Look in frappe's model cache — populated by add_fetch / link field
+		// preload. If we can find a cached Place with lat/lon, use it.
+		try {
+			const placeDoc = (frappe.get_doc && frappe.get_doc('Place', linkDocname)) || null;
+			if (placeDoc && placeDoc.latitude != null && placeDoc.longitude != null) {
+				const lat = parseCoordinate(placeDoc.latitude, 90);
+				const lon = parseCoordinate(placeDoc.longitude, 180);
+				if (lat != null && lon != null) return { lat, lon, name: linkDocname };
+			}
+		} catch (_) {}
+		// Last resort: if the Place is quick-entered inline, it may not be in
+		// the model cache. Return just the name so the UI can offer "fetch".
+		return { name: linkDocname };
+	}
+
+	function syncLinkedChip(state) {
+		const head = state.box.find('.siraj-coord-linked-ghost').empty();
+		const doc = state.frm && state.frm.doc;
+		if (!doc) return;
+		const linkField = state.cfg.linked_place_field;
+		if (!linkField) return;
+		const name = doc[linkField];
+		if (!name) return;
+		const chip = $('<span class="siraj-coord-chip"></span>')
+			.text(name)
+			.attr('title', t('Linked place') + ': ' + name)
+			.appendTo(head);
+		const coord = linkedPlaceCoordinates(state);
+		if (coord && coord.lat != null) {
+			// Place's coordinates are available — offer the copy action and
+			// show a ghost marker on the map preview.
+			$('<button type="button" class="siraj-coord-chip-use"></button>')
+				.text(t('Use coordinates'))
+				.attr('title', t('Copy coordinates from the linked place'))
+				.on('click', ev => {
+					ev.preventDefault(); ev.stopPropagation();
+					applyLinkedCoordinates(state, coord);
+				})
+				.appendTo(head);
+			// Ghost marker only when this doc has no pin yet, so it reads as
+			// a suggestion rather than duplicate geometry.
+			if (state.ghostMarker) { try { state.map.removeLayer(state.ghostMarker); } catch (_) {} state.ghostMarker = null; }
+			const a = parseCoordinate(currentValue(state.lat, doc, state.cfg.lat_field), 90);
+			const b = parseCoordinate(currentValue(state.lon, doc, state.cfg.lon_field), 180);
+			if (a === null || b === null) {
+				const c = (window.sirajColours && window.sirajColours[state.frm.doctype]) || '#267b77';
+				state.ghostMarker = L.marker([coord.lat, coord.lon], { icon: ghostIcon(c), interactive: false, keyboard: false }).addTo(state.map);
+			}
+		} else {
+			// Place exists but its coordinates aren't loaded client-side.
+			// Provide a "fetch" action that does a silent frappe.call.
+			$('<button type="button" class="siraj-coord-chip-fetch"></button>')
+				.text(t('Fetch'))
+				.attr('title', t('Fetch coordinates of linked place'))
+				.on('click', ev => {
+					ev.preventDefault(); ev.stopPropagation();
+					fetchLinkedPlace(state, name);
+				})
+				.appendTo(head);
+		}
+	}
+
+	function fetchLinkedPlace(state, name) {
+		if (!name || !state.editable) return;
+		frappe.call({
+			method: 'frappe.client.get',
+			args: { doctype: 'Place', name },
+			silent: true,
+			callback: res => {
+				const d = res && res.message;
+				if (!d || d.latitude == null || d.longitude == null) {
+					state.status.text(t('Linked place has no coordinates saved.'));
+					return;
+				}
+				applyLinkedCoordinates(state, {
+					lat: parseCoordinate(d.latitude, 90),
+					lon: parseCoordinate(d.longitude, 180),
+					name,
+				});
+			},
+		});
+	}
+
+	async function applyLinkedCoordinates(state, coord) {
+		if (!state.editable || !coord || coord.lat == null || coord.lon == null) return;
+		const values = { [state.cfg.lat_field]: decimalText(coord.lat), [state.cfg.lon_field]: decimalText(coord.lon) };
+		if (state.frm.fields_dict.geocoding_method && state.frm.fields_dict.geocoding_method.get_status() === 'Write') {
+			values.geocoding_method = 'inherited';
+		}
+		if (state.frm.fields_dict.geometry_source && state.frm.fields_dict.geometry_source.get_status() === 'Write' && !state.frm.doc.geometry_source) {
+			values.geometry_source = 'linked_place';
+		}
+		try {
+			await state.frm.set_value(values);
+			update(state.frm, false);
+			state.status.text(t('Coordinates copied from linked place.'));
+		} catch (_) {
+			state.status.text(t('Could not apply coordinates from linked place.'));
+		}
+	}
+
+	function diagnoseCoordinates(lat, lon, aText, bText) {
+		// Return a warning message (or null) describing suspicious input.
+		if (lat === null || lon === null) {
+			// Determine whether the raw input is a lat-out-of-range that would
+			// be a valid longitude (a classic swap) vs just garbage.
+			const a = parseCoordinate(String(aText ?? '').trim(), 180);
+			const b = parseCoordinate(String(bText ?? '').trim(), 90);
+			if (a !== null && Math.abs(a) > 90 && b !== null && Math.abs(b) <= 90) {
+				return t('Latitude value is outside −90…90° and looks like a longitude — fields may be swapped.');
+			}
+			if ((String(aText ?? '').trim() || String(bText ?? '').trim())) {
+				return t('Enter valid decimal coordinates: latitude −90 to 90, longitude −180 to 180.');
+			}
+			return null;
+		}
+		if (lat === 0 && lon === 0) {
+			return t('Zero pair (0,0) shown — this often means "unknown" in legacy data. Confirm before interpreting.');
+		}
+		return null;
+	}
+
+	function update(frm, center = true) {
+		// Find any state for this frm (supports multiple coordinate pairs
+		// on a single doctype, though we only ship one pair today).
+		let anyUpdated = false;
+		states.forEach(state => {
+			if (state.frm !== frm) return;
+			const fields = controlsFor(frm, state.cfg);
+			if (!fields || fields.lat !== state.lat || fields.lon !== state.lon) { removeState(state); return; }
+			state.editable = fields.editable;
+			const a = currentValue(fields.lat, frm.doc, state.cfg.lat_field);
+			const b = currentValue(fields.lon, frm.doc, state.cfg.lon_field);
+			const lat = parseCoordinate(a, 90), lon = parseCoordinate(b, 180);
+			const warning = diagnoseCoordinates(lat, lon, a, b);
+			if (lat === null || lon === null) {
+				if (state.marker) { state.map.removeLayer(state.marker); state.marker = null; }
+				if (state.uncertaintyCircle) { state.map.removeLayer(state.uncertaintyCircle); state.uncertaintyCircle = null; }
+				state.status.text(warning || t('Click the map to pick a point, or type coordinates above.'));
+				syncLinkedChip(state);
+			} else {
+				const dt = frm.doctype || 'Place';
+				if (!state.marker) {
+					state.marker = L.marker([lat, lon], { icon: pinIcon(dt, null, 34), draggable: !!fields.editable, keyboard: true }).addTo(state.map);
+					state.marker.on('dragend', () => {
+						if (!fields.editable) return;
+						const p = state.marker.getLatLng();
+						writePoint(frm, state.cfg, p, false);
+					});
+					state.marker.bindTooltip(__(dt), { direction: 'top', offset: [0, -18] });
+				} else {
+					state.marker.setLatLng([lat, lon]);
+					state.marker.setIcon(pinIcon(dt, null, 34));
+				}
+				if (state.marker.bringToFront) state.marker.bringToFront();
+				drawUncertainty(state, lat, lon);
+				syncLinkedChip(state);
+				if (center) state.map.setView([lat, lon], Math.max(state.map.getZoom(), 6));
+				if (warning) state.status.text(warning);
+				else if (!fields.editable) state.status.text(t('Location shown (read-only).'));
+				else state.status.text(t('Location shown. Click the map to move the pin, or drag the pin directly.'));
+			}
+			state.box.toggleClass('siraj-coord-readonly', !fields.editable);
+			state.box.toggleClass('siraj-coord-warning', !!warning);
+			anyUpdated = true;
+		});
+		return anyUpdated;
+	}
+
+	async function writePoint(frm, cfg, latlng, doMove = true) {
+		const state = [...states.values()].find(s => s.frm === frm && s.cfg === cfg);
+		if (!state || !state.editable) return;
 		const latitude = Number(latlng.lat), longitude = Number(latlng.lng);
 		if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return;
-		const latText = decimalText(latitude), lonText = decimalText(longitude);
+		const values = { [cfg.lat_field]: decimalText(latitude), [cfg.lon_field]: decimalText(longitude) };
+		if (frm.fields_dict.geocoding_method && frm.fields_dict.geocoding_method.get_status() === 'Write') {
+			values.geocoding_method = 'map_pick';
+		}
+		if (frm.fields_dict.geometry_source && frm.fields_dict.geometry_source.get_status() === 'Write' && !frm.doc.geometry_source) {
+			values.geometry_source = 'map_pick';
+		}
 		try {
-			await frm.set_value({ latitude: latText, longitude: lonText });
-			// Also record the geocoding method as 'map_pick' if the field is present and writable.
-			if (frm.fields_dict.geocoding_method && frm.fields_dict.geocoding_method.get_status() === 'Write') {
-				try { frm.set_value('geocoding_method', 'map_pick'); } catch (_) { /* optional */ }
-			}
+			await frm.set_value(values);
 			if (doMove && state.marker) state.marker.setLatLng([latitude, longitude]);
 			update(frm, false);
-		} catch (_) { state.status.text(t('Could not update the coordinate fields.')); }
+		} catch (_) {
+			state.status.text(t('Could not update the coordinate fields.'));
+		}
 	}
 
-	async function mount(frm) {
-		const fields = controls(frm);
-		if (!fields || !fields.lon.$wrapper?.length) { remove(frm); return; }
-		const old = states.get(frm);
-		if (old && old.docname === frm.docname && old.lat === fields.lat && old.lon === fields.lon && old.box[0].isConnected) {
-			update(frm);
-			setTimeout(() => { if (states.get(frm) === old) old.map.invalidateSize(); }, 0);
+	async function mount(frm, cfg) {
+		const key = stateKey(frm, cfg);
+		const old = states.get(key);
+		const fields = controlsFor(frm, cfg);
+		// If lat/lon disappeared (Customize Form removed them), permissions
+		// were revoked to None, or the wrapper detached, tear down any map
+		// we previously mounted for this pair.
+		if (!fields || !fields.lon.$wrapper || !fields.lon.$wrapper.length || !fields.lon.$wrapper.length) {
+			if (old) removeState(old);
 			return;
 		}
-		remove(frm);
-		const docname = frm.docname;
-		try { await assets(); } catch (_) { return; }
-		const current = controls(frm);
-		if (frm.docname !== docname || !current || current.lat !== fields.lat || current.lon !== fields.lon || states.has(frm)) return;
+		if (old && old.docname === frm.docname && old.lat === fields.lat && old.lon === fields.lon && old.box[0].isConnected) {
+			update(frm);
+			setTimeout(() => { if (states.get(key) === old) old.map.invalidateSize(); }, 0);
+			return;
+		}
+		if (old) removeState(old);
 
-		// Mount as a real Frappe .form-group row inside the Position column so
-		// the map participates in section collapse/expand, RTL layout, print
-		// styles and the form's dirty/refresh lifecycle. Insert after the
-		// longitude field's .form-group so it sits below lat/lon like any
-		// other field.
+		const docname = frm.docname || ('new-' + (++instanceCounter));
+		try { await assets(); } catch (_) { return; }
+
+		const current = controlsFor(frm, cfg);
+		if (frm.docname !== docname.replace(/^new-\d+$/, () => frm.docname) && !String(docname).startsWith('new-')) return;
+		if (!current || current.lat !== fields.lat || current.lon !== fields.lon) return;
+		if (states.has(key)) return;
+
+		// Mount as a real Frappe .form-group row inside the section so the
+		// map participates in column/flex layout, RTL, and print styles.
 		const $sectionBody = fields.lon.$wrapper.closest('.form-section').find('.section-body').first();
 		const $anchor = fields.lon.$wrapper.closest('.frappe-control').addBack().last();
-		const box = $('<div class="siraj-coordinate-map"></div>');
-		// Wrap in a .form-group so Frappe's column/flex layout treats it as
-		// a full-width field row.
-		const group = $('<div class="frappe-control siraj-coord-group" data-fieldname="__coordinate_map"></div>').append(box);
+		const box = $('<div class="siraj-coordinate-map"></div>')
+			.attr('data-siraj-build', window.SIRAJ_BUILD || '')
+			.attr('data-doctype', frm.doctype)
+			.attr('data-fieldname', '__coordinate_map_' + cfg.lat_field);
+		const group = $('<div class="frappe-control siraj-coord-group form-group"></div>')
+			.attr('data-fieldname', '__coordinate_map_' + cfg.lat_field)
+			.attr('data-siraj-build', window.SIRAJ_BUILD || '')
+			.append(box);
 		const heading = $('<div class="siraj-coord-head"></div>').appendTo(box);
 		$('<strong></strong>').text(t('Coordinate map')).appendTo(heading);
 		$('<span class="siraj-coord-linked-ghost"></span>').appendTo(heading);
-		const help = $('<div class="siraj-coord-help"></div>').text(t('Click the map to place the pin, or drag the pin to move it. Tools live in the dock on the right edge of the map.')).appendTo(box);
-		const canvas = $('<div role="region" class="siraj-coord-canvas"></div>').attr('aria-label', t('Coordinate map')).appendTo(box);
+		const help = $('<div class="siraj-coord-help"></div>')
+			.text(t('Click the map to place the pin, or drag the pin to move it. Tools live in the dock on the right edge of the map.'))
+			.appendTo(box);
+		const canvas = $('<div role="region" class="siraj-coord-canvas"></div>')
+			.attr('aria-label', t('Coordinate map'))
+			.appendTo(box);
 		const status = $('<div role="status" aria-live="polite" class="siraj-coord-status"></div>').appendTo(box);
-		// Insert after longitude's frappe-control, falling back to the wrapper
-		// if the structure is slightly different (read-only Float, custom field).
 		if ($anchor.length) $anchor.after(group);
 		else if ($sectionBody.length) $sectionBody.append(group);
 		else fields.lon.$wrapper.after(box);
@@ -241,42 +439,41 @@
 		if (map.attributionControl) map.attributionControl.addAttribution('Natural Earth');
 
 		const state = {
-			lat: fields.lat, lon: fields.lon, docname, box, group, map, status, marker: null,
-			tileLayer: null, offlineLayer: null, packLayer: null, editable: current.editable,
+			key, cfg, lat: fields.lat, lon: fields.lon, docname, box, group, map, status,
+			marker: null, tileLayer: null, offlineLayer: null, packLayer: null, editable: current.editable,
 			uncertaintyCircle: null, ghostMarker: null, frm,
+			tabObserver: null, sectionObserver: null, resizeObserver: null,
 		};
-		states.set(frm, state);
+		states.set(key, state);
 
+		// Resize when the canvas changes size, the tab shows, or the
+		// enclosing section collapses/expands. We observe attribute and
+		// class changes on ancestors so both Frappe's .tab-pane active
+		// toggle and .section.collapsed are caught.
 		if (window.ResizeObserver) {
 			state.resizeObserver = new ResizeObserver(() => {
-				if (states.get(frm) === state && canvas[0].clientWidth && canvas[0].clientHeight) map.invalidateSize();
+				if (states.get(key) === state && canvas[0].clientWidth && canvas[0].clientHeight) map.invalidateSize();
 			});
 			state.resizeObserver.observe(canvas[0]);
 		}
+		state.tabObserver = new MutationObserver(() => {
+			if (!canvas[0].isConnected) return;
+			const hidden = !canvas[0].offsetParent;
+			if (!hidden) setTimeout(() => map.invalidateSize(), 30);
+		});
+		state.tabObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class','style','hidden','aria-hidden'] });
 
-		// Invalidate when the enclosing tab/section becomes visible.
-		const watchVisibility = () => {
-			let wasHidden = !canvas[0].offsetParent;
-			state.tabObserver = new MutationObserver(() => {
-				const hidden = !canvas[0].offsetParent;
-				if (wasHidden && !hidden) { setTimeout(() => map.invalidateSize(), 30); }
-				wasHidden = hidden;
-			});
-			state.tabObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class','style','hidden'] });
-		};
-		watchVisibility();
-
-		// Register click-to-pick via the shared MeasureTool set to 'pick' mode.
+		// Click-to-pick via shared MeasureTool.
 		const Kit = window.SirajMapKit;
 		state.measure = new Kit.MeasureTool(map, {
 			onStatus: text => status.text(text),
-			onPick: latlng => { if (current.editable) writePoint(frm, latlng); },
+			onPick: latlng => { if (current.editable) writePoint(frm, cfg, latlng); },
 		});
 
-		// Default click (no tool active) places the pin directly.
+		// Default click places the pin when no tool is active.
 		map.on('click', e => {
-			if (state.measure.isActive()) return;
-			if (current.editable) writePoint(frm, e.latlng);
+			if (state.measure.isActive && state.measure.isActive()) return;
+			if (current.editable) writePoint(frm, cfg, e.latlng);
 		});
 
 		/* ------ Toolbar (shared declarative registry, form-map subset) ------ */
@@ -284,25 +481,12 @@
 		state.toolbar = toolbar;
 		const localPacks = new Map();
 
-		// Navigate
 		toolbar.group(t('Navigate'))
-			.add({ icon:'zoom_in', label:t('In'),  action: () => map.zoomIn() })
-			.add({ icon:'zoom_out',label:t('Out'), action: () => map.zoomOut() })
-			.add({ icon:'home',    label:t('Home'),action: () => map.setView([33.3152, 44.3661], 4) })
-			.add({ icon:'locate_me', label:t('My loc'), action: () => map.locate({ setView:true, maxZoom:12, enableHighAccuracy:true }) })
-			.add({ icon:'locate', label:t('Coords'), menuTitle:t('Go to coordinates'), menu: pop => {
-				const w = $('<div></div>').appendTo(pop);
-				const row = $('<div style="display:flex;gap:4px"></div>').appendTo(w);
-				const lat = $('<input type="number" step="any" min="-90" max="90" class="form-control input-sm" placeholder="' + t('Lat') + '">').appendTo(row);
-				const lon = $('<input type="number" step="any" min="-180" max="180" class="form-control input-sm" placeholder="' + t('Lon') + '">').appendTo(row);
-				$('<button type="button" class="btn btn-sm btn-primary" style="margin-top:4px">' + t('Go') + '</button>').appendTo(w).on('click', () => {
-					const la = Number(lat.val()), lo = Number(lon.val());
-					if (![la,lo].every(Number.isFinite) || Math.abs(la)>90 || Math.abs(lo)>180) return;
-					map.setView([la,lo], Math.max(8, map.getZoom()));
-				});
-			}});
+			.add({ icon: 'zoom_in',  label: t('In'),   action: () => map.zoomIn() })
+			.add({ icon: 'zoom_out', label: t('Out'),  action: () => map.zoomOut() })
+			.add({ icon: 'home',     label: t('Home'), action: () => map.setView([33.3152, 44.3661], 4) })
+			.add({ icon: 'locate_me', label: t('My loc'), action: () => map.locate({ setView: true, maxZoom: 12, enableHighAccuracy: true }) });
 
-		// Basemap (same switcher as Explorer, kept consistent)
 		const selectBasemap = val => {
 			if (state.tileLayer) { map.removeLayer(state.tileLayer); state.tileLayer = null; }
 			if (state.packLayer) { map.removeLayer(state.packLayer); state.packLayer = null; }
@@ -312,13 +496,13 @@
 				if (state.offlineLayer) map.removeLayer(state.offlineLayer);
 				map.setMinZoom(pack.minzoom);
 				state.packLayer = L.tileLayer('/api/method/siraj_research.local_maps.tile?kind=' + encodeURIComponent(pack.kind) + '&z={z}&x={x}&y={y}', {
-					minZoom: pack.minzoom, maxZoom: 22, maxNativeZoom: pack.maxzoom, attribution: pack.attribution || ''
+					minZoom: pack.minzoom, maxZoom: 22, maxNativeZoom: pack.maxzoom, attribution: pack.attribution || '',
 				}).addTo(map);
 				state.packLayer.on('tileerror', () => status.text(t('Some local tiles are unavailable at this location or zoom.')));
 			} else if (val === 'online') {
 				if (state.offlineLayer) map.removeLayer(state.offlineLayer);
 				state.tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-					maxZoom:22, maxNativeZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+					maxZoom: 22, maxNativeZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 				}).addTo(map);
 				status.text(t('Online tiles disclose your IP address and viewed area to OpenStreetMap.'));
 			} else {
@@ -329,80 +513,127 @@
 			const w = $('<div></div>').appendTo(pop);
 			const opt = (val, icon, label, active) => {
 				const b = $('<button type="button" class="siraj-toolbar-opt"></button>')
-					.html((window.sirajIcons ? window.sirajIcons.toolSvg(icon,{size:16}) : '') + '<span>' + label + '</span>');
+					.html((window.sirajIcons ? window.sirajIcons.toolSvg(icon, { size: 16 }) : '') + '<span>' + label + '</span>');
 				if (active) b.addClass('is-active');
 				b.on('click', () => { w.find('.is-active').removeClass('is-active'); b.addClass('is-active'); selectBasemap(val); });
 				b.appendTo(w); return b;
 			};
-			opt('local','offline',t('Offline basemap'),true);
-			opt('online','online',t('Online: OpenStreetMap'),false);
+			opt('local', 'offline', t('Offline basemap'), true);
+			opt('online', 'online', t('Online: OpenStreetMap'), false);
 			$('<hr>').appendTo(w);
 			$('<div style="font-size:11px;color:var(--text-muted);padding:4px"></div>').text(t('Downloaded local packs appear here.')).appendTo(w);
-			frappe.call({method:'siraj_research.local_maps.available_packs', type:'GET', silent:true}).then(res => {
-				if (states.get(frm) !== state || !Array.isArray(res.message)) return;
+			frappe.call({ method: 'siraj_research.local_maps.available_packs', type: 'GET', silent: true }).then(res => {
+				if (states.get(key) !== state || !Array.isArray(res.message)) return;
 				res.message.forEach(pack => {
-					if (pack.unavailable || !['standard','aerial'].includes(pack.kind)) return;
+					if (pack.unavailable || !['standard', 'aerial'].includes(pack.kind)) return;
 					localPacks.set(pack.kind, pack);
-					opt('pack-'+pack.kind,'layers', pack.kind==='aerial'?t('Local aerial'):t('Local standard'), false);
+					opt('pack-' + pack.kind, 'layers', pack.kind === 'aerial' ? t('Local aerial') : t('Local standard'), false);
 				});
-			}).catch(()=>{});
+			}).catch(() => {});
 		};
 		toolbar.group(t('Basemap'))
-			.add({ icon:'layers', label:t('Basemap'), menuTitle:t('Basemap'), menu: basemapMenu });
+			.add({ icon: 'layers', label: t('Basemap'), menuTitle: t('Basemap'), menu: basemapMenu });
 
 		toolbar.separator();
 
-		// Measurement group (uses the shared MeasureTool state machine)
 		toolbar.group(t('Measure'))
-			.add({ icon:'ruler',   label:t('Distance'), action: () => state.measure.activate('distance') })
-			.add({ icon:'area',    label:t('Area'),     action: () => state.measure.activate('area') })
-			.add({ icon:'radius',  label:t('Radius'),   action: () => state.measure.activate('radius') })
-			.add({ icon:'bearing', label:t('Bearing'),  action: () => state.measure.activate('bearing') })
-			.add({ icon:'clear',   label:t('Clear'),    action: () => state.measure.clear() });
+			.add({ icon: 'ruler',  label: t('Distance'), action: () => state.measure.activate('distance') })
+			.add({ icon: 'area',   label: t('Area'),     action: () => state.measure.activate('area') })
+			.add({ icon: 'radius', label: t('Radius'),   action: () => state.measure.activate('radius') })
+			.add({ icon: 'bearing',label: t('Bearing'),  action: () => state.measure.activate('bearing') })
+			.add({ icon: 'clear',  label: t('Clear'),    action: () => state.measure.clear() });
 
 		toolbar.separator();
 
-		// Point actions
 		toolbar.group(t('Point'))
-			.add({ icon:'pick',  label:t('Pick'), action: () => {
+			.add({ icon: 'pick',  label: t('Pick'), action: () => {
 				if (!current.editable) { status.text(t('You do not have write access to these coordinates.')); return; }
 				status.text(t('Click the map to place this record.'));
 				state.measure.activate('pick');
 			}})
-			.add({ icon:'clear', label:t('Clear'), action: async () => {
+			.add({ icon: 'clear', label: t('Clear'), action: async () => {
 				if (!current.editable || frm.docname !== state.docname) return;
-				try { await frm.set_value({latitude:'', longitude:''}); update(frm, false); }
+				const values = { [cfg.lat_field]: '', [cfg.lon_field]: '' };
+				try { await frm.set_value(values); update(frm, false); }
 				catch (_) { status.text(t('Could not clear the coordinate fields.')); }
 			}});
 
 		// Wire input fields for bidirectional sync.
 		for (const field of [fields.lat, fields.lon]) {
-			field.$input?.off('.sirajCoordinates').on('input.sirajCoordinates change.sirajCoordinates', () => update(frm));
+			field.$input?.off('.sirajCoordinates').on('input.sirajCoordinates change.sirajCoordinates', () => update(frm, false));
 		}
 
-		update(frm);
-		setTimeout(() => { if (states.get(frm) === state) map.invalidateSize(); }, 0);
+		update(frm, true);
+		setTimeout(() => { if (states.get(key) === state) map.invalidateSize(); }, 0);
 
-		// Load offline base layer (countries-110m topojson) the same way Explorer does.
+		// Load offline base layer (Natural Earth countries-110m topojson).
 		try {
 			const response = await fetch('/assets/siraj_research/vendor/world-atlas/countries-110m.json');
 			if (!response.ok) throw new Error('basemap');
 			const world = await response.json();
-			if (states.get(frm) !== state) return;
+			if (states.get(key) !== state) return;
 			state.offlineLayer = L.geoJSON(topojson.feature(world, world.objects.countries), {
-				style: { color:'#7793a0', weight:1, fillColor:'#eef3ed', fillOpacity:1 }, interactive:false,
+				style: { color: '#7793a0', weight: 1, fillColor: '#eef3ed', fillOpacity: 1, interactive: false },
 			});
 			if (!state.tileLayer && !state.packLayer) state.offlineLayer.addTo(map);
-			if (state.marker?.bringToFront) state.marker.bringToFront();
-		} catch (_) { if (states.get(frm) === state) status.text(t('Offline basemap could not be loaded. Online tiles remain optional.')); }
+			if (state.marker && state.marker.bringToFront) state.marker.bringToFront();
+		} catch (_) {
+			if (states.get(key) === state) status.text(t('Offline basemap could not be loaded. Online tiles remain optional.'));
+		}
 	}
 
-	$(document).on('form-refresh.sirajCoordinates', (_event, frm) => {
+	function mountAllFor(frm) {
 		if (!frm || !frm.doctype) return;
-		if (frm.fields_dict?.latitude && frm.fields_dict?.longitude && !registered.has(frm.doctype)) {
+		// Register once per doctype so native field change events (when user
+		// types into latitude/longitude) trigger update.
+		if (!registered.has(frm.doctype)) {
 			registered.add(frm.doctype);
-			frappe.ui.form.on(frm.doctype, { latitude: (f) => update(f), longitude: (f) => update(f) });
+			frappe.ui.form.on(frm.doctype, {
+				refresh(frm2) { setTimeout(() => mountAllFor(frm2), 0); },
+			});
+			// Dynamic per-field handlers are lightweight: just call update.
+			const cfg = docConfig(frm.doctype);
+			[cfg.lat_field, cfg.lon_field].forEach(fn => {
+				frappe.ui.form.on(frm.doctype, {
+					[fn](frm2) { update(frm2); },
+				});
+			});
 		}
-		setTimeout(() => mount(frm), 0);
+		// Mount an editor for every cfg whose lat/lon fields exist on the form.
+		const cfgs = [];
+		if (frm.fields_dict && frm.fields_dict[docConfig(frm.doctype).lat_field]
+			&& frm.fields_dict[docConfig(frm.doctype).lon_field]) {
+			cfgs.push(docConfig(frm.doctype));
+		}
+		// Also mount for any lat/lon pair that isn't the declared one (future
+		// multi-coordinate forms). Keyed on the pair so they don't collide.
+		if (frm.fields_dict) {
+			const fieldNames = Object.keys(frm.fields_dict);
+			for (const fn of fieldNames) {
+				const m = fn.match(/^(.+)_latitude$/);
+				if (m && fieldNames.includes(m[1] + '_longitude')) {
+					cfgs.push({
+						lat_field: fn, lon_field: m[1] + '_longitude',
+						uncertainty_field: (m[1] + '_geo_uncertainty_m'),
+						linked_place_field: null, silhouette: 'pin',
+					});
+				}
+			}
+		}
+		if (!cfgs.length) {
+			// Tear down any orphaned state for this frm (e.g. DocType whose
+			// fields changed after a Customize Form).
+			states.forEach(s => { if (s.frm === frm) removeState(s); });
+			return;
+		}
+		cfgs.forEach(c => mount(frm, c));
+	}
+
+	$(document).on('form-refresh.sirajCoordinates', (_e, frm) => {
+		setTimeout(() => mountAllFor(frm), 0);
 	});
+
+	// Expose module version + config for Diagnostics.
+	window.SIRAJ_COORDINATE_MAP_VERSION = MODULE_VERSION;
+	window.SIRAJ_COORDINATE_DOCS_ACTIVE = DEFAULT_COORDS;
 })();

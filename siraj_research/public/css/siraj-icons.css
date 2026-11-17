@@ -364,6 +364,20 @@
 	position:relative; display:inline-flex; align-items:center; gap:4px;
 	margin-inline-start:8px; font-size:11px; color:var(--text-muted);
 }
+.siraj-coord-chip-use, .siraj-coord-chip-fetch {
+	appearance:none; border:0; background:transparent; color:var(--text-colors-link,#0c5e5b);
+	cursor:pointer; font-size:11px; padding:0 4px; margin-inline-start:4px; text-decoration:underline;
+}
+.siraj-coord-chip-use:hover, .siraj-coord-chip-fetch:hover { color:#073a38; }
+.siraj-coord-map.siraj-coord-readonly .siraj-coord-status { color:#888; font-style:italic; }
+.siraj-coord-map.siraj-coord-warning .siraj-coord-status { color:#8a2525; font-weight:500; }
+
+/* Ghost marker (suggested coordinates from linked place, not yet applied) */
+.sx-map-pin.siraj-pin-ghost .siraj-pin-body {
+	background: transparent !important;
+	border-style: dashed !important;
+}
+.sx-map-pin.siraj-pin-ghost { pointer-events: none; }
 
 
 /* --- SIRAJ pin teardrop variant (used by form picker and MapView override) --- */

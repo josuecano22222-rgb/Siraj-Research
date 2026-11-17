@@ -50,33 +50,18 @@ add_to_apps_screen = [
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/siraj_research/css/siraj_research.css"
+#
+# Hashed esbuild bundles. `bench build` resolves these through
+# frappe.utils.jinja_globals.bundled_asset() and rewrites them to
+# /assets/siraj_research/dist/js/siraj.bundle.<HASH>.js, so any source
+# change changes the URL and defeats browser/nginx caching. The bundle
+# entry files live at public/js/siraj.bundle.js and public/css/siraj.bundle.css
+# and import constituent files in load order.
 app_include_js = [
-	# 1) Registry must load first so everything else can read it.
-	"/assets/siraj_research/js/siraj-record-meta.js",
-	# 2) Engine abstraction (MapLibre/Leaflet adapter). New surfaces use this.
-	"/assets/siraj_research/js/siraj-map/siraj-map.js",
-	# 3) Pure graph module (ego network, shortest path, cluster aggregation).
-	"/assets/siraj_research/js/siraj-map/siraj-graph.js",
-	# 4) Shared filter-state module (entity/relationship-type filters, presets,
-	#    Arabic/English search normalisation, URL hash) — engine-neutral.
-	"/assets/siraj_research/js/siraj-map/siraj-filters.js",
-	# 5) Measurement / relationship / geodesic primitives used by all maps.
-	"/assets/siraj_research/js/siraj-map-kit.js",
-	# 6) Shared in-map toolbar control (Leaflet-only; retained during migration).
-	"/assets/siraj_research/js/siraj-map-toolbar.js",
-	# 7) Global list/form/link/breadcrumb/dashboard decorators.
-	"/assets/siraj_research/js/siraj-list-icons.js",
-	# 8) Compatibility shims (L.control.locate polyfill, scoped BaseChart guard,
-	#    native Map view offline-by-default + SIRAJ pins).
-	"/assets/siraj_research/js/siraj-compat.js",
-	# 9) Per-form coordinate picker (reads from the registry + toolbar + kit).
-	"/assets/siraj_research/js/coordinate_map.js",
-	# 10) Thin icon facade so legacy frappe.require('...siraj-icons.js') keeps working.
-	"/assets/siraj_research/js/siraj-icons.js",
+	"siraj.bundle.js",
 ]
 app_include_css = [
-	"/assets/siraj_research/css/siraj-map-toolbar.css",
-	"/assets/siraj_research/css/siraj-icons.css",
+	"siraj.bundle.css",
 ]
 
 # Inject per-doctype metadata on every page load so the client has the same

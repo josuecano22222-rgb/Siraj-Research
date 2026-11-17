@@ -183,3 +183,72 @@ bundled with the app, augmented by any `Offline Map Package` flagged as
 boundaries). Reverse geocode is offline-only by default. A small
 client-side shim debounces clicks, fills fields, and shows the
 provenance chip + diff dialog on conflict with user-entered values.
+
+---
+
+## D-09  Hashed esbuild bundles (cache-busting)
+
+**Status:** Adopted 2026-11-17 (Slice A, commit .21).
+
+**Problem:** SIRAJ previously listed ten fixed `/assets/siraj_research/js/*.js`
+URLs in `app_include_js`. Frappe v15 only rewrites URLs that match
+`*.bundle.js` through `bundled_asset()` (which consults
+`sites/assets/assets.json` for the hashed filename). Fixed paths are emitted
+verbatim into `<script src>` tags with **no `?ver=` query string**, so
+browsers and nginx proxy caches happily serve stale copies across deploys.
+Symptom: the console printed `build 2026-11-16.maplibre-foundation.1` long
+after the server was on `.19`/`.20`, even after `bench build && clear-cache
+&& supervisorctl restart`.
+
+**Decision:** Switch to Frappe's standard esbuild pipeline:
+
+- `public/js/siraj.bundle.js` re-exports the ten entry files (in the same
+  order hooks.py used to emit `<script>` tags) using ES `import` statements
+  so esbuild concatenates them into a single bundle.
+- `public/css/siraj.bundle.css` `@import`s the two global stylesheets.
+- `hooks.py` now lists `"siraj.bundle.js"` and `"siraj.bundle.css"`
+  (bare names, not `/assets/...` paths). Frappe's desk.html template runs
+  these through `bundled_asset()`, which resolves to
+  `/assets/siraj_research/dist/js/siraj.bundle.<8-CHAR-HASH>.js` after
+  `bench build --app siraj_research`. Any source change produces a new hash
+  and therefore a new URL, which is a guaranteed cache miss.
+- The source files remain in `public/js/` and `public/css/` for readability
+  and for any page that uses `frappe.require()` for on-demand loading.
+- `siraj_explorer.css` stays on-demand (loaded by siraj_explorer.js, not in
+  the global bundle) because it is only needed on the Explorer page.
+
+**Verification:** `build_info` now returns `assets_json_keys` (from
+`frappe.utils.get_assets_json()`) so the Diagnostics page can confirm the
+server will emit a hashed URL. A new diagnostics check
+(`scripts.loaded_urls`) reads `document.scripts` and fails if the executed
+SIRAJ scripts lack `/dist/js/siraj.bundle.<HASH>.js` paths.
+
+**Manual cache-bust fallback:** if an older bench still does not produce
+hashes (e.g. esbuild not yet run), the Diagnostics page reports it
+explicitly and the existing stale-version banner still fires on
+client/server stamp mismatch.
+
+---
+
+## D-10  Per-DocType coordinate editor configuration
+
+**Status:** Adopted 2026-11-17 (Slice A, commit .21).
+
+Each located DocType declares its lat/lon/uncertainty field names, its
+linked Place field (if any), and its pin silhouette in
+`record_icons.COORDINATE_DOCS`, shipped to the browser as
+`frappe.boot.siraj_record_meta.coordinate_docs` (also on
+`window.sirajCoordinateDocs`). `coordinate_map.js` reads this declarative
+table rather than hard-coding `linked_place || place`. Verified mapping:
+
+| DocType | linked place field |
+|---|---|
+| Person | `birthplace` |
+| Institution | `place` |
+| Place | `parent_place` |
+| Research Event | `place` |
+| Military Unit | `linked_place` |
+| Operational Deployment | _(none — free-text `location` only)_ |
+
+Mission / Source / Training Exercise have no latitude/longitude fields and
+are intentionally absent from the table.

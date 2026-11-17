@@ -36,41 +36,73 @@ def build_info() -> dict:
 		"bench_build_version": _safe_call(get_build_version),
 		"apps": _app_versions(),
 		"served_assets": served,
+		"assets_json_keys": _bundled_asset_keys(),
 	}
 
 
 @frappe.whitelist()
 def asset_hashes() -> dict:
-	"""Return SHA-256 of the SIRAJ JS/CSS files the server will serve.
+	"""Return SHA-256 (first 16 hex) of the SIRAJ source and bundle files the
+	server will serve.
 
-	The diagnostics page in the browser fetches this over XHR and compares
-	it against the hash of the JS/CSS it actually executed, using
-	Resource Timing + fetch() re-requests. A mismatch means caching.
+	The diagnostics page compares the hash of the JS it fetches (with
+	cache:no-store) against this table to prove the server file matches.
+	For hashed esbuild bundles we report whichever dist/ file is
+	registered in sites/assets/assets.json for ``siraj.bundle.js`` —
+	that is the exact URL the HTML emits, so a source change there
+	implies a different URL and a guaranteed cache miss.
 	"""
 	import hashlib
 	from pathlib import Path
-	import os
 
 	out = {}
 	public_root = Path(__file__).resolve().parent.parent.parent / "public"
-	paths = [
+	# Source files (used when the bundle cannot be resolved — e.g. before
+	# the first bench build on a fresh checkout, or when ?v= cache-bust
+	# is used instead of hashed filenames).
+	source_paths = [
 		"js/siraj-record-meta.js",
 		"js/coordinate_map.js",
 		"js/siraj-compat.js",
 		"js/siraj-map/siraj-map.js",
-		"js/siraj-map-toolbar.js",
+		"js/siraj-map/siraj-graph.js",
+		"js/siraj-map/siraj-filters.js",
 		"js/siraj-map-kit.js",
+		"js/siraj-map-toolbar.js",
+		"js/siraj-list-icons.js",
+		"js/siraj-icons.js",
+		"js/siraj.bundle.js",
+		"css/siraj.bundle.css",
 		"css/siraj-icons.css",
 		"css/siraj-map-toolbar.css",
 		"css/siraj_explorer.css",
 	]
-	for rel in paths:
+	for rel in source_paths:
 		p = public_root / rel
 		if p.exists():
 			data = p.read_bytes()
 			out["/assets/siraj_research/" + rel] = hashlib.sha256(data).hexdigest()[:16]
 		else:
 			out["/assets/siraj_research/" + rel] = None
+
+	# If esbuild has emitted hashed bundles, include the actual served file
+	# (sites/assets/siraj_research/dist/js/siraj.bundle.<HASH>.js). The
+	# diagnostics page reads this so it can verify the hashed file on disk
+	# matches the URL the HTML is pointing to.
+	dist_js, dist_css = _bundled_asset_paths()
+	for label, rel in [("dist_js", dist_js), ("dist_css", dist_css)]:
+		if rel:
+			# rel is like /assets/siraj_research/dist/js/siraj.bundle.AB12CD.js
+			# Convert to filesystem path under sites/assets.
+			fs_path = _sites_assets_path(rel)
+			if fs_path and fs_path.exists():
+				out["__" + label + "__"] = {
+					"url": rel,
+					"sha256_16": hashlib.sha256(fs_path.read_bytes()).hexdigest()[:16],
+					"size": fs_path.stat().st_size,
+				}
+			else:
+				out["__" + label + "__"] = {"url": rel, "on_disk": False}
 	out["__build__"] = SIRAJ_BUILD
 	return out
 
@@ -99,11 +131,51 @@ def _safe_call(fn):
 		return None
 
 
+def _bundled_asset_keys():
+	"""Return any keys for our bundles that appear in sites/assets/assets.json."""
+	try:
+		from frappe.utils import get_assets_json
+		aj = get_assets_json() or {}
+		return {k: v for k, v in aj.items() if "siraj" in k}
+	except Exception:
+		return {}
+
+
+def _bundled_asset_paths():
+	"""Return the resolved hashed URLs for siraj.bundle.{js,css} or None."""
+	try:
+		from frappe.utils.jinja_globals import bundled_asset
+		return bundled_asset("siraj.bundle.js"), bundled_asset("siraj.bundle.css")
+	except Exception:
+		return None, None
+
+
+def _sites_assets_path(url_path):
+	"""Map an /assets/... URL to a filesystem path under sites/assets."""
+	try:
+		sites_root = Path(frappe.local.sites_path)
+		# /assets/siraj_research/foo.js → sites/assets/siraj_research/foo.js
+		# (bench build symlinks/copies them there.)
+		rel = url_path[len("/assets/"):] if url_path.startswith("/assets/") else url_path.lstrip("/")
+		return sites_root / "assets" / rel
+	except Exception:
+		return None
+
+
 def _asset_snapshot() -> dict:
 	"""Mirror of app_include_js/app_include_css from hooks.py — listed so the
-	diagnostics page can report which URLs the server intends to serve."""
+	diagnostics page can report which URLs the server intends to serve.
+
+	After switching to hashed esbuild bundles, the Jinja bundled_asset()
+	helper resolves ``siraj.bundle.js`` to
+	/assets/siraj_research/dist/js/siraj.bundle.<HASH>.js at render time.
+	We return the logical hook entries here (not the hashed URLs) so a
+	missing entry is obvious.
+	"""
 	return {
-		"js": [
+		"js": ["siraj.bundle.js"],
+		"css": ["siraj.bundle.css"],
+		"legacy_source_files": [
 			"/assets/siraj_research/js/siraj-record-meta.js",
 			"/assets/siraj_research/js/siraj-map/siraj-map.js",
 			"/assets/siraj_research/js/siraj-map/siraj-graph.js",
@@ -114,9 +186,5 @@ def _asset_snapshot() -> dict:
 			"/assets/siraj_research/js/siraj-compat.js",
 			"/assets/siraj_research/js/coordinate_map.js",
 			"/assets/siraj_research/js/siraj-icons.js",
-		],
-		"css": [
-			"/assets/siraj_research/css/siraj-map-toolbar.css",
-			"/assets/siraj_research/css/siraj-icons.css",
 		],
 	}
