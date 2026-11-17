@@ -252,3 +252,22 @@ table rather than hard-coding `linked_place || place`. Verified mapping:
 
 Mission / Source / Training Exercise have no latitude/longitude fields and
 are intentionally absent from the table.
+
+---
+
+## D-09a  CSS shipped via fixed paths with ?v= (not bundled)
+
+**Status:** Revised 2026-11-17 (build .22) after bench-build failure.
+
+Frappe's `@frappe/esbuild-plugin-postcss2` copies the bundle entry file
+(e.g. `siraj.bundle.css`) to a temp staging directory under `/tmp` before
+resolving `@import`s, but does NOT copy sibling CSS files alongside it.
+Relative `@import './siraj-icons.css'` therefore fails with ENOENT. JS
+imports go through esbuild's native resolver which walks the real
+filesystem, so the JS bundle works correctly.
+
+CSS is now served through `app_include_css` as fixed `/assets/...` URLs
+with `?v=<SIRAJ_BUILD>` appended. The query string forces a cache miss
+on every build stamp bump. JS remains a hashed bundle (stronger cache
+bust, correct because JS imports resolve properly).
+

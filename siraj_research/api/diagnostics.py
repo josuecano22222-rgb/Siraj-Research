@@ -72,7 +72,6 @@ def asset_hashes() -> dict:
 		"js/siraj-list-icons.js",
 		"js/siraj-icons.js",
 		"js/siraj.bundle.js",
-		"css/siraj.bundle.css",
 		"css/siraj-icons.css",
 		"css/siraj-map-toolbar.css",
 		"css/siraj_explorer.css",
@@ -89,8 +88,10 @@ def asset_hashes() -> dict:
 	# (sites/assets/siraj_research/dist/js/siraj.bundle.<HASH>.js). The
 	# diagnostics page reads this so it can verify the hashed file on disk
 	# matches the URL the HTML is pointing to.
-	dist_js, dist_css = _bundled_asset_paths()
-	for label, rel in [("dist_js", dist_js), ("dist_css", dist_css)]:
+	# JS is bundled; CSS is served with ?v= (see hooks.py comment) so we only
+	# report the JS bundle hash here.
+	dist_js, _dist_css = _bundled_asset_paths()
+	for label, rel in [("dist_js", dist_js)]:
 		if rel:
 			# rel is like /assets/siraj_research/dist/js/siraj.bundle.AB12CD.js
 			# Convert to filesystem path under sites/assets.
@@ -174,7 +175,10 @@ def _asset_snapshot() -> dict:
 	"""
 	return {
 		"js": ["siraj.bundle.js"],
-		"css": ["siraj.bundle.css"],
+		"css": [
+			"/assets/siraj_research/css/siraj-map-toolbar.css?v=" + SIRAJ_BUILD,
+			"/assets/siraj_research/css/siraj-icons.css?v=" + SIRAJ_BUILD,
+		],
 		"legacy_source_files": [
 			"/assets/siraj_research/js/siraj-record-meta.js",
 			"/assets/siraj_research/js/siraj-map/siraj-map.js",

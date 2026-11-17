@@ -51,17 +51,25 @@ add_to_apps_screen = [
 # include js, css files in header of desk.html
 # app_include_css = "/assets/siraj_research/css/siraj_research.css"
 #
-# Hashed esbuild bundles. `bench build` resolves these through
-# frappe.utils.jinja_globals.bundled_asset() and rewrites them to
-# /assets/siraj_research/dist/js/siraj.bundle.<HASH>.js, so any source
-# change changes the URL and defeats browser/nginx caching. The bundle
-# entry files live at public/js/siraj.bundle.js and public/css/siraj.bundle.css
-# and import constituent files in load order.
+# JS is shipped as a Frappe esbuild bundle so `bench build` rewrites it to
+# a content-hashed filename under public/dist/ (any source change → new
+# URL → guaranteed cache bust).
+#
+# CSS is served as fixed /assets paths with an explicit build-stamp query
+# string (?v=…). We can't use a CSS bundle because Frappe's postcss2
+# esbuild plugin copies only the bundle entry file to a temp directory
+# before resolving @import; sibling @import './foo.css' then fails with
+# ENOENT (observed 2026-11-17, bench 01471c4→3974662). The ?v= query
+# string forces the browser to re-request on every build, which is
+# sufficient for CSS (small files, no code split concerns).
+from siraj_research.record_icons import SIRAJ_BUILD as _SIRAJ_BUILD
+_CSS_VER = "?v=" + _SIRAJ_BUILD
 app_include_js = [
 	"siraj.bundle.js",
 ]
 app_include_css = [
-	"siraj.bundle.css",
+	"/assets/siraj_research/css/siraj-map-toolbar.css" + _CSS_VER,
+	"/assets/siraj_research/css/siraj-icons.css" + _CSS_VER,
 ]
 
 # Inject per-doctype metadata on every page load so the client has the same
