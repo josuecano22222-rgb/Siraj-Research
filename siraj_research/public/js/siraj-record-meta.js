@@ -86,6 +86,12 @@
 		card:       '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 4v16M4 9h16"/>',
 		eraser:     '<path d="M14 3a2 2 0 0 1 3 3l-9 12H4l-1-5Z"/><path d="M10 13l6-6"/><path d="M4 20h12"/>',
 		back:       '<path d="M15 6l-6 6 6 6"/>',
+		// Toolbar chrome: group collapse/expand and label-mode switcher.
+		chevrons_up:   '<path d="m6 14 6-6 6 6"/><path d="m6 10 6-6 6 6"/>',
+		chevrons_down: '<path d="m6 10 6 6 6-6"/><path d="m6 14 6 6 6-6"/>',
+		icon_only: '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/>',
+		icon_text: '<rect x="3" y="4" width="6" height="16" rx="1"/><path d="M12 8h9M12 12h9M12 16h6"/>',
+		icon_auto: '<rect x="3" y="3" width="7" height="18" rx="1"/><path d="M14 7h7M14 12h7M14 17h4"/><path d="M3 12h7" opacity=".4"/>',
 	};
 
 	// Server may have overridden/extended at boot time (future-proofing).
@@ -130,5 +136,5 @@
 })();
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
-window.SIRAJ_BUILD = '2026-11-16.i18n-detail-fields.13';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| engines: maplibre (preferred), leaflet (compat) | complete Arabic translation coverage (all 3 tabs: Geographic map, Relationship map, Structures — every button, label, heading, hotkey hint, section header, status/tooltip/error message); advanced structure filter bar; military units + deployments/missions/exercises structures; inline add-relationship button; shift+drag link creation; self-test retries'); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-16.toolbar-advanced.14';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| engines: maplibre (preferred), leaflet (compat) | advanced map toolbar (grouped sections, collapse/expand, scrollable body, icons/labels/auto label modes, keyboard nav, persistent state, RTL-friendly); complete Arabic i18n across all tabs; advanced structure filter bar; inline add-relationship; shift+drag link; self-test retries'); } catch (_) {}

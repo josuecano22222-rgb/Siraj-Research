@@ -597,7 +597,7 @@ Other,آخر
 Other recorded forms of the name,أشكال أخرى مسجلة للاسم
 Over capacity,فوق الطاقة الاستيعابية
 Overlapping appointment,تعيين متداخل
-Overlays,تراكبات
+Overlays,الطبقات
 Overview,نظرة عامة
 PER-.####,PER-.####
 PER-.YY.-.####,PER-.YY.-.####
@@ -918,7 +918,7 @@ URL template,قالب الرابط
 Unable to export: some node positions are unavailable. Try again after the layout settles.,تعذر التصدير: بعض مواضع العقد غير متاحة.
 Unable to load evidence counts.,تعذر تحميل عدّادات الأدلة.
 Unable to load record details.,تعذر تحميل تفاصيل السجل.
-Unable to load relationship lines.,تعذر تحميل خطوط العلاقات.
+Unable to load relationship lines.,تعذّر تحميل خطوط العلاقات.
 Unable to load the explorer. Check permissions and try again.,تعذر تحميل المستكشف. تحقق من الصلاحيات.
 Unable to load this structure. Check permissions.,تعذر تحميل هذا الهيكل. تحقق من الصلاحيات.
 Unassigned or inaccessible parent,أصل غير معيَّن أو يتعذر الوصول إليه
@@ -1131,7 +1131,7 @@ Map tools,أدوات الخريطة
 Map tools & hotkeys,أدوات الخريطة واختصارات لوحة المفاتيح
 "Map tools (navigate, basemap, measure, pick, overlays, selection) live in the dock on the right edge of the map. Records, filters, and export live in the panel at the upper left. Press ? or the Help button for the full hotkey list.",أدوات الخريطة (التنقل، الخريطة الأساسية، القياس، الالتقاط، الطبقات، التحديد) في الركن الأيمن من الخريطة. السجلات والفلاتر والتصدير في اللوحة العلوية اليسرى. اضغط ? أو زر المساعدة لعرض قائمة الاختصارات كاملة.
 Map tools are docked on the right edge. Click a pin to see its connections.,أدوات الخريطة مثبَّتة على الحافة اليمنى. انقر على دبوس لعرض صلاته.
-Marker clusters,تجميعات العلامات
+Marker clusters,تجميع العلامات
 Measure,قياس
 Measure bearing,قياس الاتجاه
 Measure radius,قياس نصف القطر
@@ -1162,7 +1162,7 @@ People + Institutions,الأشخاص + المؤسسات
 Permissions,الصلاحيات
 Pick,التقاط
 Pick a point to link a record,التقط نقطة لربط سجل
-Pick point to link,التقط نقطة للربط
+Pick point to link,التقاط نقطة للربط
 Place on map,وضع على الخريطة
 Places,الأماكن
 Quick actions,إجراءات سريعة
@@ -1226,3 +1226,10 @@ Relationship {0} not found,العلاقة {0} غير موجودة
 "Row {0}: a leadership assessment needs a basis — an assessor, a date or evidence.",السطر {0}: تقييم القيادة يحتاج إلى مستند — مُقيِّم أو تاريخ أو دليل.
 {0} {1} not found,{0} {1} غير موجود
 {0}: restricted,{0}: مقيَّد
+Collapse all sections,طيّ جميع الأقسام
+Expand all sections,توسيع جميع الأقسام
+Toolbar sections,أقسام شريط الأدوات
+Labels,التسميات
+Icons only,أيقونات فقط
+Auto,تلقائي
+Icons + text,أيقونات ونص
