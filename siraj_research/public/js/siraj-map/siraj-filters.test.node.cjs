@@ -74,12 +74,14 @@ function run() {
   s.relTypes['knows'] = false;
   assert(F.isEdgeVisible(s, edge, 'Person', 'Person') === false, 'relType off hides edge');
 
-  // URL hash round trip
+  // localStorage round-trip (hash persistence removed — Frappe router owns the hash).
+  const storage = sandbox.localStorage;
+  storage._d = {};
   s = F.initialState(['Person','Institution','Place']);
   s = F.reduce(s, {type:'APPLY_PRESET',id:'people'});
-  const h = F.encodeHash(s);
-  const r = F.decodeHash(h);
-  assert(r.types.Person === true && r.types.Place !== true, 'round-trip preserves Person, excludes others');
+  F.saveState(s, 'unit-test');
+  const s2 = F.initialState(['Person','Institution','Place'], 'unit-test');
+  assert(s2.types.Person === true && s2.types.Place === false, 'localStorage round-trip preserves Person, hides Place');
 
   // Arabic normalisation
   assert(F.normaliseText('أحمد') === 'احمد', 'alef normalised');

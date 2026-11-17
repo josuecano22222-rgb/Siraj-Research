@@ -21,7 +21,18 @@
 	'use strict';
 	if (!window.L) { console.warn('L.Control.SirajToolbar requires Leaflet'); return; }
 
-	const ICONS = (name, label) => (window.sirajIcons ? window.sirajIcons.svg(name, { size: 18, ariaLabel: label }) : '');
+	const TOOL_MISSING = '<svg class="siraj-ico-missing" viewBox="0 0 24 24" width="18" height="18" role="img" aria-hidden="true" fill="none" stroke="#c0392b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 2"/><path d="M8 8l8 8M16 8l-8 8"/></svg>';
+
+	function toolIcon(name, label) {
+		const si = window.sirajIcons;
+		if (!si || !si.tools) { console.error('[SIRAJ toolbar] sirajIcons.tools not ready when rendering', name); return TOOL_MISSING; }
+		if (!si.tools[name]) {
+			console.error('[SIRAJ toolbar] missing tool icon:', name);
+			return TOOL_MISSING;
+		}
+		const cls = 'siraj-ico siraj-ico-' + name;
+		return si.toolSvg(name, { size: 18, cls, ariaLabel: label });
+	}
 
 	L.Control.SirajToolbar = L.Control.extend({
 		options: { position: 'topright' },
@@ -84,10 +95,14 @@
 		_addButton(g, spec) {
 			const btn = L.DomUtil.create('button', 'siraj-toolbar-btn', this._container);
 			btn.type = 'button';
-			btn.title = spec.label || '';
-			btn.setAttribute('aria-label', spec.label || '');
-			btn.innerHTML = ICONS(spec.icon, spec.label) +
-				(spec.label ? `<span class="siraj-toolbar-label">${__(spec.label)}</span>` : '');
+			const label = spec.tooltip || spec.label || '';
+			const hotkey = spec.hotkey ? ' (' + spec.hotkey + ')' : '';
+			btn.title = label + hotkey;
+			btn.setAttribute('aria-label', label);
+			if (spec.mode === 'toggle' || spec.active) btn.setAttribute('aria-pressed', spec.active ? 'true' : 'false');
+			if (spec.key) btn.setAttribute('data-siraj-key', spec.key);
+			btn.innerHTML = toolIcon(spec.icon, label) +
+				(label ? `<span class="siraj-toolbar-label">${__(label)}</span>` : '');
 			if (spec.active) btn.classList.add('is-active');
 			g.items.push({ spec, btn });
 			L.DomEvent.on(btn, 'click', e => {
@@ -96,13 +111,12 @@
 					this._togglePopover(btn, spec);
 				} else if (typeof spec.action === 'function') {
 					this._closeAll();
-					spec.action(e);
+					const pressed = !btn.classList.contains('is-active');
+					if (spec.mode === 'toggle') { btn.classList.toggle('is-active', pressed); btn.setAttribute('aria-pressed', pressed ? 'true' : 'false'); }
+					spec.action.call(spec, e);
 				}
 			});
-			if (spec.active && typeof spec.action === 'function') {
-				// toggle-style
-			}
-			this._buttons.set(spec.key || spec.label, btn);
+			this._buttons.set(spec.key || spec.label || spec.icon, btn);
 			return btn;
 		},
 		_togglePopover(anchor, spec) {
@@ -124,7 +138,7 @@
 					if (item === '-') { L.DomUtil.create('hr', '', pop); return; }
 					const opt = L.DomUtil.create('button', 'siraj-toolbar-opt' + (item.active ? ' is-active' : ''), pop);
 					opt.type = 'button';
-					opt.innerHTML = (item.icon ? ICONS(item.icon, item.label) : '') +
+					opt.innerHTML = (item.icon ? toolIcon(item.icon, item.label) : '') +
 						`<span>${__(item.label)}</span>`;
 					L.DomEvent.on(opt, 'click', ev => {
 						L.DomEvent.stopPropagation(ev);
@@ -154,8 +168,12 @@
 		},
 		setActive(key, on) {
 			const btn = this._buttons.get(key);
-			if (btn) btn.classList.toggle('is-active', !!on);
+			if (btn) { btn.classList.toggle('is-active', !!on); btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
 		},
+		show()  { if (this._container) this._container.style.display = ''; this._hidden = false; },
+		hide()  { if (this._container) this._container.style.display = 'none'; this._hidden = true; this._closeAll(); },
+		toggle(){ this._hidden ? this.show() : this.hide(); return !this._hidden; },
+		isVisible() { return !this._hidden; },
 	});
 	L.control.sirajToolbar = options => new L.Control.SirajToolbar(options);
 })();

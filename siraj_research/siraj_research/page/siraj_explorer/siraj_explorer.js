@@ -194,12 +194,11 @@ class SirajExplorer {
 
 		// --- Shared filter state (SirajFilters) ---
 		const Filters = window.SirajFilters;
-		let filterState = Filters.initialState(types);
-		// Restore from URL hash if present.
-		try {
-			const m = (location.hash || '').match(new RegExp('[#&]' + Filters.HASH_KEY.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '=([^&]+)'));
-			if (m) { const restored = Filters.decodeHash(m[1]); if (restored) filterState = Filters.initialState(types); Object.keys(restored.types||{}).forEach(k => filterState.types[k] = !!restored.types[k]); }
-		} catch(_) {}
+		// One-time migration: strip any stale "#sf=..." hash left by the earlier
+		// buggy build so the page loads instead of "Page not found".
+		if (Filters.migrateLegacyHash) Filters.migrateLegacyHash();
+		const FILTER_PAGE = 'siraj-explorer.geography';
+		let filterState = Filters.initialState(types, FILTER_PAGE);
 		const filterStore = Filters.createStore(filterState);
 		const recSection = $('<div class="sx-app-section"></div>').appendTo(appPanel);
 		const recordHeading = $('<h5></h5>').text(__('Mapped records')).appendTo(recSection);
@@ -249,12 +248,8 @@ class SirajExplorer {
 					? __('Showing all {0} types · {1} records', [tot, visibleCount])
 					: __('Showing {0} of {1} types · {2} records', [vt, tot, visibleCount])
 			);
-			// Update URL hash
-			try {
-				const h = Filters.encodeHash(st);
-				const rest = (location.hash || '').replace(new RegExp('&?'+Filters.HASH_KEY.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'=[^&]*','g'),'').replace(/^#/,'');
-				location.replace('#' + (rest ? rest + '&' : '') + Filters.HASH_KEY + '=' + h);
-			} catch(_) {}
+			// Persist to localStorage only (never to location.hash — Frappe router owns it).
+			try { Filters.saveState(st, FILTER_PAGE); } catch(_) {}
 		};
 		searchBox.on('input', () => { filterStore.dispatch({type:'SET_SEARCH', value: searchBox.val()}); });
 
@@ -803,14 +798,14 @@ class SirajExplorer {
 
 		// Navigate
 		this.toolbar.group(__('Navigate'))
-			.add({ icon:'zoom_in',   label:__('In'),    action: () => map.zoomIn() })
-			.add({ icon:'zoom_out',  label:__('Out'),   action: () => map.zoomOut() })
-			.add({ icon:'home',      label:__('Home'),  action: () => map.setView([33.3152,44.3661],4) })
-			.add({ icon:'fit',       label:__('Fit'),   action: () => {
+			.add({ icon:'zoom_in',   label:__('Zoom in'),    key:'nav_in',    tooltip:__('Zoom in'),    hotkey:'+', action: () => map.zoomIn() })
+			.add({ icon:'zoom_out',  label:__('Zoom out'),   key:'nav_out',   tooltip:__('Zoom out'),   hotkey:'-', action: () => map.zoomOut() })
+			.add({ icon:'home',      label:__('Reset view'), key:'nav_home',  tooltip:__('Home view'),  hotkey:'H', action: () => map.setView([33.3152,44.3661],4) })
+			.add({ icon:'fit',       label:__('Fit to data'),key:'nav_fit',   tooltip:__('Fit data to view'), hotkey:'F', action: () => {
 				if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p=>[Number(p.latitude),Number(p.longitude)])).pad(0.15),{maxZoom:12});
 			}})
-			.add({ icon:'locate_me', label:__('My loc'),action: () => map.locate({setView:true,maxZoom:12,enableHighAccuracy:true}) })
-			.add({ icon:'locate',    label:__('Coords'),menuTitle:__('Go to coordinates'), menu: pop => {
+			.add({ icon:'locate_me', label:__('My location'),key:'nav_me',    tooltip:__('My location'),hotkey:'M', action: () => map.locate({setView:true,maxZoom:12,enableHighAccuracy:true}) })
+			.add({ icon:'locate',    label:__('Go to coordinates'),key:'nav_goto',tooltip:__('Go to coordinates'),hotkey:'G', mode:'popover', menuTitle:__('Go to coordinates'), menu: pop => {
 				const w=$('<div></div>').appendTo(pop);
 				const row=$('<div style="display:flex;gap:4px"></div>').appendTo(w);
 				const lat=$('<input type="number" step="any" min="-90" max="90" class="form-control input-sm" placeholder="'+__('Lat')+'">').appendTo(row);
@@ -842,7 +837,7 @@ class SirajExplorer {
 			}
 		};
 		this.toolbar.group(__('Basemap'))
-			.add({ icon:'layers', label:__('Basemap'), menuTitle:__('Basemap'), menu: pop => {
+			.add({ icon:'layers', label:__('Basemap'), key:'basemap', tooltip:__('Basemap'), hotkey:'B', mode:'popover', menuTitle:__('Basemap'), menu: pop => {
 				const w=$('<div></div>').appendTo(pop);
 				const opt=(val,icon,label,active)=>{
 					const b=$('<button type="button" class="siraj-toolbar-opt"></button>').html(window.sirajIcons.toolSvg(icon,{size:16})+'<span>'+label+'</span>');
@@ -866,48 +861,56 @@ class SirajExplorer {
 
 		// Measure group
 		this.toolbar.group(__('Measure'))
-			.add({ icon:'ruler',   label:__('Distance'), action: () => measure.activate('distance') })
-			.add({ icon:'area',    label:__('Area'),     action: () => measure.activate('area') })
-			.add({ icon:'radius',  label:__('Radius'),   action: () => measure.activate('radius') })
-			.add({ icon:'bearing', label:__('Bearing'),  action: () => measure.activate('bearing') })
-			.add({ icon:'clear',   label:__('Clear'),    action: () => measure.clear() });
+			.add({ icon:'ruler',   label:__('Measure distance'), key:'measure_dist', tooltip:__('Distance'), hotkey:'D', action: () => measure.activate('distance') })
+			.add({ icon:'area',    label:__('Measure area'),     key:'measure_area', tooltip:__('Area'),     hotkey:'A', action: () => measure.activate('area') })
+			.add({ icon:'radius',  label:__('Measure radius'),   key:'measure_rad',  tooltip:__('Radius'),   hotkey:'R', action: () => measure.activate('radius') })
+			.add({ icon:'bearing', label:__('Measure bearing'),  key:'measure_brg',  tooltip:__('Bearing'),  hotkey:'Y', action: () => measure.activate('bearing') })
+			.add({ icon:'clear',   label:__('Clear measurements'),key:'measure_clear',tooltip:__('Clear measurement'), hotkey:'C', action: () => measure.clear() });
 		this.toolbar.separator();
 
 		// Pick
 		this.toolbar.group(__('Pick'))
-			.add({ icon:'pick', label:__('Link record'), action: startPick });
+			.add({ icon:'pick', label:__('Pick point to link'), key:'pick', tooltip:__('Pick a point to link a record'), hotkey:'P', action: startPick });
 		this.toolbar.separator();
 
 		// Overlays (toggles)
 		this.toolbar.group(__('Overlays'))
-			.add({ icon:'cluster', label:__('Clusters'), active:true, key:'clusters', action: function() {
-				clustered=!clustered; toggleBtn('clusters',clustered);
+			.add({ icon:'cluster', label:__('Marker clusters'), key:'clusters', tooltip:__('Cluster markers'), hotkey:'K', mode:'toggle', active:true, action: function() {
+				clustered=!clustered; this.toolbar.setActive('clusters',clustered);
 				map.removeLayer(markers);
 				markers = clustered
 					? L.markerClusterGroup({maxClusterRadius:45,showCoverageOnHover:false,spiderfyOnMaxZoom:true,iconCreateFunction:c=>L.divIcon({className:'sx-cluster',html:'<span>'+c.getChildCount()+'</span>',iconSize:[40,40]})})
 					: L.featureGroup();
 				markers.addTo(map); draw();
-			}})
-			.add({ icon:'lines', label:__('Relationships'), key:'rel_lines', action: async function() {
+			}.bind(this)})
+			.add({ icon:'lines', label:__('Relationship lines'), key:'rel_lines', tooltip:__('Relationship lines'), hotkey:'L', mode:'toggle', action: async function() {
 				const btn=$(this);
-				if (overlayEnabled) { overlayEnabled=false; map.removeLayer(this.relLayer.layer); btn.removeClass('is-active'); return; }
+				if (overlayEnabled) { overlayEnabled=false; map.removeLayer(this.relLayer.layer); this.toolbar.setActive('rel_lines',false); return; }
 				btn.prop('disabled',true);
-				try { await ensureRelData(); overlayEnabled=true; this.relLayer.layer.addTo(map); btn.addClass('is-active'); draw(); }
+				try { await ensureRelData(); overlayEnabled=true; this.relLayer.layer.addTo(map); this.toolbar.setActive('rel_lines',true); draw(); }
 				catch { mapStatus(__('Unable to load relationship lines.'),true); }
 				finally { btn.prop('disabled',false); }
 			}.bind(this)});
 
 		// Selection group (shown in dock; actions act on the selected entity).
 		const selGroup = this.toolbar.group(__('Selection'));
-		selGroup.add({ icon:'ego', label:__('Connections'), key:'sel_ego', action: () => { if (!selectedNode) { mapStatus(__('Select a record first.'),true); return; } loadEgo(egoDepth); }});
-		selGroup.add({ icon:'isolate', label:__('Isolate'), key:'sel_isolate', active:false, action: function() { isolateSelected=!isolateSelected; $(this).toggleClass('is-active',isolateSelected); if(selectedNode) renderEgo(); } });
-		selGroup.add({ icon:'link_add', label:__('Link'), key:'link_add', action: () => { if(!selectedNode){mapStatus(__('Select a record first.'),true);return;} addRelationship(null); }});
-		selGroup.add({ icon:'back', label:__('Back'), key:'sel_back', action: function() { if (selectionTrail.length) { const prev = selectionTrail.pop(); const n = pointsById.get(this.id(prev)); if(n) selectNode(n); else { selectionTrail.length=0; clearSelection(); } } else clearSelection(); }.bind(this) });
-		selGroup.add({ icon:'eraser', label:__('Clear'), key:'sel_clear', action: clearSelection });
+		selGroup.add({ icon:'ego',      label:__('Show connections'),  key:'sel_ego',     tooltip:__('Show connections of selected'), hotkey:'S', action: () => { if (!selectedNode) { mapStatus(__('Select a record first.'),true); return; } loadEgo(egoDepth); }});
+		selGroup.add({ icon:'isolate',  label:__('Isolate selection'), key:'sel_isolate', tooltip:__('Isolate selection'), hotkey:'I', mode:'toggle', active:false, action: function() { isolateSelected=!isolateSelected; this.toolbar.setActive('sel_isolate',isolateSelected); if(selectedNode) renderEgo(); }.bind(this) });
+		selGroup.add({ icon:'link_add', label:__('Add relationship'),  key:'link_add',    tooltip:__('Add relationship to selected'), hotkey:'N', action: () => { if(!selectedNode){mapStatus(__('Select a record first.'),true);return;} addRelationship(null); }});
+		selGroup.add({ icon:'back',     label:__('Back'),              key:'sel_back',    tooltip:__('Back to previous selection'), hotkey:'Backspace', action: function() { if (selectionTrail.length) { const prev = selectionTrail.pop(); const n = pointsById.get(this.id(prev)); if(n) selectNode(n); else { selectionTrail.length=0; clearSelection(); } } else clearSelection(); }.bind(this) });
+		selGroup.add({ icon:'eraser',   label:__('Clear selection'),   key:'sel_clear',   tooltip:__('Clear selection'), hotkey:'Esc', action: clearSelection });
+
+		// Toolbar visibility toggle + help.
+		const tbarGroup = this.toolbar.group(__('Toolbar'));
+		tbarGroup.add({ icon:'panel_left', label:__('Hide toolbar'), key:'toolbar_toggle', tooltip:__('Show/hide toolbar'), hotkey:'\\', action: function() {
+			const visible = this.toolbar.toggle();
+			$(this).toggleClass('is-active', !visible);
+			mapStatus(visible ? '' : __('Toolbar hidden — press \\ to show.'));
+		}.bind(this)});
 
 		// Help / hotkeys button (generated from TOOL_SPEC — single source of truth).
 		const helpGroup = this.toolbar.group(__('Help'));
-		helpGroup.add({ icon:'help', label:__('Help'), key:'help', mode:'popover', action: function() {
+		helpGroup.add({ icon:'help', label:__('Help & hotkeys'), key:'help', tooltip:__('Help & hotkeys'), mode:'popover', action: function() {
 			if (!Kit.helpOverlay) return;
 			const node = Kit.helpOverlay();
 			const dlg = new frappe.ui.Dialog({ title: __('Map tools & hotkeys'), primary_action_label: __('Close'), primary_action: () => dlg.hide() });

@@ -6,13 +6,19 @@
  * list Map view). Pure reducer with Node tests; Leaflet/MapLibre adapters
  * subscribe via the small event bus below.
  *
+ * IMPORTANT: We do NOT write to location.hash. Frappe's Desk router owns the
+ * hash (history routing under /app/...); writing our state there causes
+ * "Page not found" errors on reload. Persistence is per-user localStorage
+ * (namespaced by user and page). A one-shot migration strips the old
+ * broken "#sf=..." hash from the URL so existing bookmarks still load.
+ *
  * Exposed as window.SirajFilters.
  */
 (function () {
 	'use strict';
 
-	const STORAGE_KEY = 'siraj.filter.v1';
-	const HASH_KEY = 'sf';  // URL hash key, short to keep URLs shareable
+	const STORAGE_KEY_PREFIX = 'siraj.filter.v1.';
+	const LEGACY_HASH_KEY = 'sf';  // removed; only used for migration
 
 	/* ---------- Preset registry (data, not code) ---------- */
 	const BUILTIN_PRESETS = [
@@ -39,33 +45,64 @@
 	}
 
 	/* ---------- Initial state ---------- */
-	function initialState(allTypes) {
+	function initialState(allTypes, page) {
 		// allTypes: string[] of DocType names currently in the registry.
 		const types = {};
 		(allTypes || []).forEach(t => { types[t] = true; });
-		return {
-			types,                       // { DocType: boolean }
-			relTypes: {},                // { RelationshipTypeName: boolean }
-			statuses: {},                // { statusValue: boolean }
+		const defaults = {
+			types,
+			relTypes: {},
+			statuses: {},
 			provenance: { direct: true, inferred: true, unmapped: false },
-			dateFrom: null,              // ISO string
+			dateFrom: null,
 			dateTo:   null,
 			search: '',
-			presets: loadUserPresets(),  // user-named presets
+			presets: loadUserPresets(page),
 			activePreset: 'all',
-			includeHiddenConnectors: true, // keep intermediate hidden-type nodes as small dots
+			includeHiddenConnectors: true,
 			includeUnlocated: false,
 		};
+		const saved = loadState(page, allTypes);
+		if (saved) return Object.assign(defaults, saved, { types: Object.assign(types, saved.types || {}) });
+		return defaults;
 	}
 
-	function loadUserPresets() {
+	function storageKey(page) { return STORAGE_KEY_PREFIX + (page || 'default'); }
+	function loadUserPresets(page) {
 		try {
-			const raw = (typeof localStorage !== 'undefined' && localStorage.getItem(STORAGE_KEY + '.presets'));
+			const raw = (typeof localStorage !== 'undefined' && localStorage.getItem(storageKey(page) + '.presets'));
 			return raw ? JSON.parse(raw) : {};
 		} catch (_) { return {}; }
 	}
-	function saveUserPresets(presets) {
-		try { if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY + '.presets', JSON.stringify(presets)); } catch (_) {}
+	function saveUserPresets(presets, page) {
+		try { if (typeof localStorage !== 'undefined') localStorage.setItem(storageKey(page) + '.presets', JSON.stringify(presets)); } catch (_) {}
+	}
+	function loadState(page, allTypes) {
+		try {
+			const raw = typeof localStorage !== 'undefined' && localStorage.getItem(storageKey(page));
+			if (!raw) return null;
+			const parsed = JSON.parse(raw);
+			if (!parsed || typeof parsed !== 'object' || !parsed.types) return null;
+			// Fill any new DocTypes that appeared since save (default-on).
+			(allTypes||[]).forEach(t => { if (!(t in parsed.types)) parsed.types[t] = true; });
+			return parsed;
+		} catch (_) { return null; }
+	}
+	function saveState(state, page) {
+		try { if (typeof localStorage !== 'undefined') localStorage.setItem(storageKey(page), JSON.stringify(state)); } catch (_) {}
+	}
+	/* Strip a stale legacy "#sf=..." hash from the URL without reloading. This
+	 * is defensive for bookmarks created while the buggy version was live. */
+	function migrateLegacyHash() {
+		try {
+			if (typeof window === 'undefined' || !window.location || !window.history) return;
+			const h = window.location.hash || '';
+			if (!h) return;
+			const re = new RegExp('&?' + LEGACY_HASH_KEY + '=[^&]*', 'g');
+			if (!re.test(h)) return;
+			const stripped = h.replace(re, '').replace(/^#&?/, '#').replace(/#$/,'');
+			window.history.replaceState(null, '', window.location.pathname + window.location.search + (stripped === '#' ? '' : stripped));
+		} catch (_) {}
 	}
 
 	/* ---------- Reducer (pure; returns new state) ---------- */
@@ -231,12 +268,12 @@
 	}
 
 	window.SirajFilters = {
-		BUILTIN_PRESETS, HASH_KEY,
+		BUILTIN_PRESETS,
 		initialState, reduce,
 		isTypeVisible, isRelTypeVisible, isStatusVisible, isEdgeVisible,
 		visibleTypes, visibleRelTypes, visibleTypeCount, typeCount,
 		matchesSearch, normaliseText,
-		encodeHash, decodeHash,
 		createStore, countByType, countByRelType,
+		saveState, migrateLegacyHash,
 	};
 })();
