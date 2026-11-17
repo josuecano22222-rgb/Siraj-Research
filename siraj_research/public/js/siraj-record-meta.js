@@ -130,5 +130,5 @@
 })();
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
-window.SIRAJ_BUILD = '2026-11-16.center-picker-edge-profile.8';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| engines: maplibre (preferred), leaflet (compat) | searchable multi-center combobox; rich edge profile panel; doctype rationalization (no Military Division/Command Region); full i18n wrap'); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-16.center-picker-edge-profile.9';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| engines: maplibre (preferred), leaflet (compat) | searchable multi-center combobox; rich edge profile panel (v15 has_permission fix); doctype rationalization (no Military Division/Command Region); full i18n wrap'); } catch (_) {}
