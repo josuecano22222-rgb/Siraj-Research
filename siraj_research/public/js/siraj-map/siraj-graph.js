@@ -128,32 +128,35 @@
 		return [...bundles.values()];
 	}
 
-	/* ---------- Self-test: run on boot in dev; visible in the console ---------- */
-	function selfTest() {
+	/* ---------- Self-test: run on boot in dev; visible in the console ----------
+	 * Defer via requestIdleCallback so TOOL_SPEC (loaded after graph per bundle
+	 * order) is populated before we check icon coverage. Retries a few times
+	 * if the kit hasn't arrived yet, to avoid false-positive FAILs.
+	 */
+	function runSelfTest(retriesLeft) {
 		const missing = [];
 		const spec = (window.SirajMapKit && window.SirajMapKit.TOOL_SPEC) || [];
 		const tools = (window.sirajIcons && window.sirajIcons.tools) || {};
+		if (!spec.length && retriesLeft > 0) { setTimeout(() => runSelfTest(retriesLeft - 1), 50); return; }
 		spec.forEach(t => { if (!tools[t.icon]) missing.push('tool:' + t.id + ' -> ' + t.icon); });
-		// Ego network smoke test.
 		const edges = [
 			{name:'e1', source:['Person','A'], target:['Person','B'], type:'knows', direction:'Symmetric'},
 			{name:'e2', source:['Person','A'], target:['Place','P'],  type:'located at', direction:'Directed'},
 		];
 		const adj = buildAdjacency(edges);
 		const net = egoNetwork(adj, nodeId(['Person','A']), 1);
-		if (net.nodes.size !== 3 || net.edges.size !== 2) missing.push('egoNetwork traversal failed');
+		if (net.nodes.size !== 3 || net.edges.size !== 2)
+			missing.push('egoNetwork traversal failed: nodes='+net.nodes.size+' edges='+net.edges.size);
 		if (missing.length) {
 			console.error('[SIRAJ graph] self-test FAIL:', missing);
-			if (typeof frappe !== 'undefined' && frappe.throw) { /* don't crash the app */ }
 		} else {
 			console.info('[SIRAJ graph] self-test OK (' + spec.length + ' tool icons, ego traversal)');
 		}
 		return missing;
 	}
-
-	// Run once DOM is ready.
-	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', selfTest, {once:true});
-	else setTimeout(selfTest, 0);
+	function selfTest() { runSelfTest(10); }
+	if (typeof window !== 'undefined' && window.requestIdleCallback) window.requestIdleCallback(selfTest);
+	else setTimeout(selfTest, 200);
 
 	window.SirajGraph = { buildAdjacency, egoNetwork, shortestPath, offsetEdge, aggregateByCluster, nodeId, edgeId, selfTest };
 })();

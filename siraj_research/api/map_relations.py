@@ -29,6 +29,8 @@ INFERENCE_CHAINS: dict[str, tuple[tuple[str, str], ...]] = {
 
 DEFAULT_NODES_CAP = 500
 DEFAULT_EDGES_CAP = 1000
+MAX_NODES_HARD = 1000
+MAX_EDGES_HARD = 2000
 
 
 @frappe.whitelist()
@@ -42,7 +44,22 @@ def get_entity_network(doctype: str, name: str, depth: int = 1, types: str | Non
 	the target DocType, the endpoint is returned as ``restricted: true`` with
 	no name or label (so edges exist without leaking).
 	"""
-	depth = max(0, min(int(depth or 1), 3))
+	# HTTP query args arrive as strings; coerce numerics defensively so defaults
+	# and arithmetic always see ints (not str+int TypeErrors).
+	try:
+		depth = max(0, min(int(depth or 1), 3))
+	except (TypeError, ValueError):
+		depth = 1
+	try:
+		limit_nodes = int(limit_nodes or DEFAULT_NODES_CAP)
+	except (TypeError, ValueError):
+		limit_nodes = DEFAULT_NODES_CAP
+	try:
+		limit_edges = int(limit_edges or DEFAULT_EDGES_CAP)
+	except (TypeError, ValueError):
+		limit_edges = DEFAULT_EDGES_CAP
+	limit_nodes = max(1, min(limit_nodes, MAX_NODES_HARD))
+	limit_edges = max(1, min(limit_edges, MAX_EDGES_HARD))
 	if doctype not in RELATABLE_DOCTYPES:
 		frappe.throw(_("Relationships are not defined for {0}", doctype))
 	if not frappe.has_permission(doctype, "read", name):
