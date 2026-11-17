@@ -1,0 +1,273 @@
+{
+ "doctype": "DocType",
+ "name": "Gazetteer Place",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "autoname": "hash",
+ "title_field": "name_en",
+ "search_fields": "name_en,name_ar,feature_code,country",
+ "show_title_field_in_link": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "field_order": [
+  "dataset",
+  "feature_code",
+  "pcode",
+  "sb_identity",
+  "name_en",
+  "name_ar",
+  "asciiname",
+  "cb_identity",
+  "country",
+  "admin1_pcode",
+  "admin2_pcode",
+  "linked_place",
+  "sb_loc",
+  "latitude",
+  "longitude",
+  "elevation_m",
+  "cb_loc",
+  "population",
+  "cc2",
+  "timezone",
+  "sb_provenance",
+  "source_id",
+  "modification_date"
+ ],
+ "fields": [
+  {
+   "fieldname": "dataset",
+   "fieldtype": "Link",
+   "label": "Dataset",
+   "options": "Boundary Dataset",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "feature_code",
+   "fieldtype": "Data",
+   "label": "Feature code",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "length": 16,
+   "set_only_once": 1,
+   "description": "Short classifier: PPL, PPLA, PPLA2, STM, HLL, etc. (GeoNames feature codes)."
+  },
+  {
+   "fieldname": "pcode",
+   "fieldtype": "Data",
+   "label": "P-Code",
+   "length": 64,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "description": "Stable place code, if the dataset provides one."
+  },
+  {
+   "fieldname": "sb_identity",
+   "fieldtype": "Section Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "name_en",
+   "fieldtype": "Data",
+   "label": "English / primary name",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "length": 200
+  },
+  {
+   "fieldname": "name_ar",
+   "fieldtype": "Data",
+   "label": "Arabic name",
+   "length": 200
+  },
+  {
+   "fieldname": "asciiname",
+   "fieldtype": "Data",
+   "label": "ASCII transliteration",
+   "length": 200
+  },
+  {
+   "fieldname": "cb_identity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "admin1_pcode",
+   "fieldtype": "Data",
+   "label": "Admin-1 P-Code",
+   "length": 64
+  },
+  {
+   "fieldname": "admin2_pcode",
+   "fieldtype": "Data",
+   "label": "Admin-2 P-Code",
+   "length": 64
+  },
+  {
+   "fieldname": "linked_place",
+   "fieldtype": "Link",
+   "label": "Linked Place",
+   "options": "Place",
+   "description": "Place record, if we have or create one for this point."
+  },
+  {
+   "fieldname": "sb_loc",
+   "fieldtype": "Section Break",
+   "label": "Location"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude",
+   "reqd": 1,
+   "in_list_view": 1,
+   "precision": 9
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude",
+   "reqd": 1,
+   "in_list_view": 1,
+   "precision": 9
+  },
+  {
+   "fieldname": "elevation_m",
+   "fieldtype": "Int",
+   "label": "Elevation (m)"
+  },
+  {
+   "fieldname": "cb_loc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "population",
+   "fieldtype": "Int",
+   "label": "Population"
+  },
+  {
+   "fieldname": "cc2",
+   "fieldtype": "Data",
+   "label": "Alternate country codes",
+   "length": 64
+  },
+  {
+   "fieldname": "timezone",
+   "fieldtype": "Data",
+   "label": "Time zone",
+   "length": 64
+  },
+  {
+   "fieldname": "sb_provenance",
+   "fieldtype": "Section Break",
+   "label": "Provenance"
+  },
+  {
+   "fieldname": "source_id",
+   "fieldtype": "Data",
+   "label": "Source feature ID",
+   "length": 80,
+   "read_only": 1
+  },
+  {
+   "fieldname": "modification_date",
+   "fieldtype": "Date",
+   "label": "Source modification date"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 0,
+   "share": 0,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 1,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "actions": [],
+ "states": [],
+ "row_format": "Default",
+ "icon": "fa fa-map-pin",
+ "description": "A named point (settlement, landmark, natural feature) loaded from a gazetteer dataset. Used to answer 'what is the nearest village to this coordinate?'"
+}

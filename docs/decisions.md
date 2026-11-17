@@ -271,3 +271,29 @@ with `?v=<SIRAJ_BUILD>` appended. The query string forces a cache miss
 on every build stamp bump. JS remains a hashed bundle (stronger cache
 bust, correct because JS imports resolve properly).
 
+
+---
+
+## D-11  Boundary storage layout (Phase 1)
+
+Admin Boundary rows carry small metadata (level, pcode, names, centroid,
+bbox, area, foreign keys) in the regular `tabAdmin Boundary` table so
+list/report queries stay fast. Full-resolution and simplified WKB
+geometries live in the child table `Admin Boundary Geom` (istable) as
+hex-encoded Long Text, one row per precision. This avoids bloating the
+main table's row size and lets us ship a simplified geometry set for
+browser downloads while keeping full precision on the server.
+
+Boundary Dataset is a release/version DocType (source, licence, release
+date, encoding, SRID, simplification tolerance, import status, feature
+count, index_version). Geo Settings (single) picks which Boundary
+Dataset is active for polygon resolution and which for gazetteer
+points. STRtree caches are keyed on (dataset, index_version) so bumping
+index_version on reimport invalidates all worker caches.
+
+P-Codes are added as Custom Fields on Governorate / District /
+Municipality / Village / Community via the v1_1 patch rather than
+edited into the shipped DocType JSON, so existing user data is not
+disturbed. Admin Boundary child table holds a `geometries` Table
+field.
+

@@ -1,0 +1,301 @@
+{
+ "doctype": "DocType",
+ "name": "Boundary Dataset",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "autoname": "field:code",
+ "naming_rule": "By fieldname",
+ "title_field": "label_en",
+ "search_fields": "code, label_en, label_ar, source",
+ "show_title_field_in_link": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "allow_import": 1,
+ "track_changes": 1,
+ "field_order": [
+  "code",
+  "label_en",
+  "label_ar",
+  "source",
+  "license_id",
+  "sb_meta",
+  "release_date",
+  "version_tag",
+  "url",
+  "cb_meta",
+  "country",
+  "level",
+  "encoding",
+  "simplification_tolerance_m",
+  "sb_status",
+  "import_status",
+  "import_progress",
+  "index_version",
+  "cb_status",
+  "feature_count",
+  "imported_at",
+  "import_log",
+  "sb_geom",
+  "geometry_column",
+  "srid"
+ ],
+ "fields": [
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "label": "Code",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "length": 64,
+   "set_only_once": 1,
+   "description": "Stable machine code, e.g. GEOB-IRQ-ADM2-COD-2024."
+  },
+  {
+   "fieldname": "label_en",
+   "fieldtype": "Data",
+   "label": "English label",
+   "in_list_view": 1,
+   "reqd": 1,
+   "length": 200
+  },
+  {
+   "fieldname": "label_ar",
+   "fieldtype": "Data",
+   "label": "Arabic label",
+   "length": 200
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Data",
+   "label": "Source",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "length": 120,
+   "description": "Short provider tag (geoBoundaries, OCHA COD-AB, OSM, custom)."
+  },
+  {
+   "fieldname": "license_id",
+   "fieldtype": "Select",
+   "label": "Licence",
+   "options": "\nCC-BY-4.0\nCC-BY-SA-4.0\nCC-BY-NC-SA-4.0\nODbL-1.0\nPublic Domain\nOther (see notes)",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Verified licence for this exact release. Must match the release's published terms."
+  },
+  {
+   "fieldname": "sb_meta",
+   "fieldtype": "Section Break",
+   "label": "Metadata"
+  },
+  {
+   "fieldname": "release_date",
+   "fieldtype": "Date",
+   "label": "Release date"
+  },
+  {
+   "fieldname": "version_tag",
+   "fieldtype": "Data",
+   "label": "Version tag",
+   "length": 64,
+   "description": "Provider version string, e.g. 'gbAdmin4-0' or 'irq_admbnda_adm2_2019.shp'."
+  },
+  {
+   "fieldname": "url",
+   "fieldtype": "Data",
+   "label": "Source URL",
+   "length": 500
+  },
+  {
+   "fieldname": "cb_meta",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "level",
+   "fieldtype": "Int",
+   "label": "Admin level",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "0=country, 1=governorate/province, 2=district, 3=municipality, 4=village/community."
+  },
+  {
+   "fieldname": "encoding",
+   "fieldtype": "Data",
+   "label": "Encoding",
+   "default": "UTF-8",
+   "length": 32,
+   "description": "Shapefile DBF encoding (UTF-8, Windows-1256, ISO-8859-6, …)."
+  },
+  {
+   "fieldname": "simplification_tolerance_m",
+   "fieldtype": "Float",
+   "label": "Simplification tolerance (m)",
+   "default": 0,
+   "description": "Douglas-Peucker tolerance in metres used when storing simplified geometry; 0 = keep full resolution."
+  },
+  {
+   "fieldname": "sb_status",
+   "fieldtype": "Section Break",
+   "label": "Import status"
+  },
+  {
+   "fieldname": "import_status",
+   "fieldtype": "Select",
+   "label": "Import status",
+   "options": "Pending\nQueued\nRunning\nComplete\nFailed",
+   "default": "Pending",
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "import_progress",
+   "fieldtype": "Percent",
+   "label": "Progress"
+  },
+  {
+   "fieldname": "index_version",
+   "fieldtype": "Int",
+   "label": "Index version",
+   "default": 0,
+   "read_only": 1,
+   "description": "Incremented every time geometry changes; worker caches keyed on (dataset, version)."
+  },
+  {
+   "fieldname": "cb_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "feature_count",
+   "fieldtype": "Int",
+   "label": "Feature count",
+   "read_only": 1
+  },
+  {
+   "fieldname": "imported_at",
+   "fieldtype": "Datetime",
+   "label": "Imported at",
+   "read_only": 1
+  },
+  {
+   "fieldname": "import_log",
+   "fieldtype": "Long Text",
+   "label": "Import log",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_geom",
+   "fieldtype": "Section Break",
+   "label": "Geometry storage"
+  },
+  {
+   "fieldname": "geometry_column",
+   "fieldtype": "Data",
+   "label": "Geometry column",
+   "default": "geom",
+   "length": 32,
+   "read_only": 1,
+   "description": "The geometry lives in a separate table keyed by (dataset, pcode); not on this DocType row."
+  },
+  {
+   "fieldname": "srid",
+   "fieldtype": "Int",
+   "label": "SRID",
+   "default": 4326,
+   "read_only": 1,
+   "description": "All geometry stored in EPSG:4326 (WGS 84 lon/lat) — server reprojects on import."
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 0,
+   "share": 0,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 1,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  }
+ ],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "row_format": "Default",
+ "editable_grid": 0,
+ "quick_entry": 1,
+ "icon": "fa fa-map-o",
+ "description": "A released set of administrative-boundary polygons from a named source, version and licence. Admin Boundary records reference their parent Boundary Dataset."
+}

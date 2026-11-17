@@ -202,7 +202,7 @@ INTERNAL = {
 #: delivered in bootinfo.siraj_record_meta.build; the client compares its
 #: window.SIRAJ_BUILD against this value on boot and shows a reload banner
 #: when they differ (catches stale bundles after bench build).
-SIRAJ_BUILD = "2026-11-17.coord-field-slice-a.22"
+SIRAJ_BUILD = "2026-11-17.coord-field-slice-a.23"
 
 
 #: DocTypes that carry coordinate fields and a per-form map editor.
