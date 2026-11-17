@@ -87,11 +87,18 @@
 		eraser:     '<path d="M14 3a2 2 0 0 1 3 3l-9 12H4l-1-5Z"/><path d="M10 13l6-6"/><path d="M4 20h12"/>',
 		back:       '<path d="M15 6l-6 6 6 6"/>',
 		// Toolbar chrome: group collapse/expand and label-mode switcher.
-		chevrons_up:   '<path d="m6 14 6-6 6 6"/><path d="m6 10 6-6 6 6"/>',
-		chevrons_down: '<path d="m6 10 6 6 6-6"/><path d="m6 14 6 6 6-6"/>',
-		icon_only: '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/>',
-		icon_text: '<rect x="3" y="4" width="6" height="16" rx="1"/><path d="M12 8h9M12 12h9M12 16h6"/>',
-		icon_auto: '<rect x="3" y="3" width="7" height="18" rx="1"/><path d="M14 7h7M14 12h7M14 17h4"/><path d="M3 12h7" opacity=".4"/>',
+		// Distinct from the single 'chevron' (which is a sideways chevron used for
+		// breadcrumbs/back). These are DOUBLE up/down chevrons for the collapse/
+		// expand-all buttons.
+		chevrons_up:   '<path d="m5 10 7-6 7 6"/><path d="m5 17 7-6 7 6"/>',
+		chevrons_down: '<path d="m5 7 7 6 7-6"/><path d="m5 14 7 6 7-6"/>',
+		// Label-mode icons — all visually distinct so they can be told apart at
+		// 14px in the footer. "Icons only" = a 3×3 grid of filled squares (dense
+		// tile), "Icons + text" = a wide sidebar icon + three text lines, "Auto" =
+		// a slider/toggle between compact and wide.
+		icon_only: '<rect x="4" y="4" width="5" height="5" rx="1"/><rect x="11" y="4" width="5" height="5" rx="1"/><rect x="18" y="4" width="2" height="5" rx="1" opacity=".4"/><rect x="4" y="11" width="5" height="5" rx="1"/><rect x="11" y="11" width="5" height="5" rx="1"/><rect x="18" y="11" width="2" height="5" rx="1" opacity=".4"/><rect x="4" y="18" width="5" height="2" rx="1" opacity=".4"/>',
+		icon_text: '<rect x="3" y="5" width="6" height="14" rx="1" fill="currentColor" fill-opacity=".2"/><path d="M12 7h8" stroke-width="2.4" stroke-linecap="round"/><path d="M12 12h8" stroke-width="2.4" stroke-linecap="round"/><path d="M12 17h5" stroke-width="2.4" stroke-linecap="round"/>',
+		icon_auto: '<rect x="3" y="8" width="18" height="8" rx="4" fill="none"/><circle cx="8" cy="12" r="2.4" fill="currentColor"/><path d="M14 9h4M14 12h4M14 15h2" stroke-linecap="round" opacity=".65"/>',
 	};
 
 	// Server may have overridden/extended at boot time (future-proofing).
@@ -136,5 +143,5 @@
 })();
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
-window.SIRAJ_BUILD = '2026-11-16.toolbar-advanced.14';
+window.SIRAJ_BUILD = '2026-11-16.toolbar-polish.15';
 try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| engines: maplibre (preferred), leaflet (compat) | advanced map toolbar (grouped sections, collapse/expand, scrollable body, icons/labels/auto label modes, keyboard nav, persistent state, RTL-friendly); complete Arabic i18n across all tabs; advanced structure filter bar; inline add-relationship; shift+drag link; self-test retries'); } catch (_) {}

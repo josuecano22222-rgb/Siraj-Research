@@ -63,8 +63,10 @@
 			this._groups = [];
 			this._current = null;
 			this._buttons = new Map();
-			this._labelMode = loadPref(STORE_KEY, 'auto'); // 'auto' | 'icons' | 'labels'
-			this._groupState = loadGroupState(); // {groupLabel: collapsed-boolean}
+			// Default to 'labels' (icon + text) so users always see what each button
+			// does on first load; mode is persisted once the user changes it.
+			this._labelMode = loadPref(STORE_KEY, 'labels'); // 'auto' | 'icons' | 'labels'
+			this._groupState = loadGroupState();
 		},
 		onAdd(map) {
 			this._map = map;
@@ -104,6 +106,7 @@
 				this._map.off('click', this._closeAll, this);
 				this._map.off('resize', this._layout, this);
 			}
+			this._destroyResizeListener();
 		},
 
 		/* ---------- Public API ---------- */
@@ -234,7 +237,7 @@
 		_togglePopover(anchor, spec) {
 			if (this._current && this._current.anchor === anchor) { this._closeAll(); return; }
 			this._closeAll();
-			const pop = L.DomUtil.create('div', 'siraj-toolbar-pop', this._container);
+			const pop = L.DomUtil.create('div', 'siraj-toolbar-pop');
 			pop.setAttribute('role', 'dialog');
 			pop.setAttribute('aria-label', spec.label || '');
 			if (spec.menuTitle) {
@@ -257,24 +260,21 @@
 					});
 				});
 			}
-			// Place popover to the LEFT of the strip when docked right, to the RIGHT when docked left.
-			// Use getBoundingClientRect to place relative to the container regardless of nesting.
-			const isRight = this._container.parentElement && this._container.parentElement.classList.contains('leaflet-right');
-			const cRect = this._container.getBoundingClientRect();
-			const aRect = anchor.getBoundingClientRect();
-			const top = Math.max(8, aRect.top - cRect.top);
-			pop.style.top = top + 'px';
-			if (isRight) {
-				pop.style.right = (cRect.width + 6) + 'px';
-				pop.style.left = 'auto';
-			} else {
-				pop.style.left = (cRect.width + 6) + 'px';
-				pop.style.right = 'auto';
-			}
+			// Append popover to the toolbar container (not to body) so it inherits
+			// the document's LTR/RTL and stays positioned relative to the bar.
+			// The container has overflow:visible so the popover is not clipped.
 			this._container.appendChild(pop);
 			anchor.classList.add('is-open');
 			this._current = { anchor, pop };
+			// Position after append so offsetHeight is measurable.
+			this._positionPop(anchor, pop);
 			L.DomEvent.on(pop, 'click', L.DomEvent.stopPropagation);
+			// Re-position if the window resizes or scrolls (rare but keeps things
+			// anchored when the mobile URL bar collapses).
+			if (!this._popRepositioner) {
+				this._popRepositioner = () => { if (this._current) this._positionPop(this._current.anchor, this._current.pop); };
+				window.addEventListener('resize', this._popRepositioner);
+			}
 		},
 		_closeAll() {
 			if (this._current) {
@@ -284,6 +284,12 @@
 				this._current = null;
 			}
 			this._container.querySelectorAll('.siraj-toolbar-btn.is-toggled').forEach(b => b.classList.remove('is-toggled'));
+		},
+		_destroyResizeListener() {
+			if (this._popRepositioner) {
+				window.removeEventListener('resize', this._popRepositioner);
+				this._popRepositioner = null;
+			}
 		},
 
 		/* ---------- Header / footer helpers ---------- */
@@ -335,21 +341,52 @@
 			const headH = this._header ? this._header.offsetHeight : 0;
 			const footH = this._footer ? this._footer.offsetHeight : 0;
 			const statusH = this._statusLine ? this._statusLine.offsetHeight : 0;
-			const avail = Math.max(200, mapH - headH - footH - statusH - 24);
+			// Reserve space for popovers so the toolbar doesn't crowd the top edge.
+			const avail = Math.max(160, mapH - headH - footH - statusH - 20);
 			this._body.style.maxHeight = avail + 'px';
 
-			// In 'auto' mode, collapse to icon-only when body's natural content
-			// would overflow the available height (i.e. many tools / short map).
+			// In 'auto' mode, collapse to icon-only when the button count or natural
+			// content height exceeds ~80% of available height. Also count buttons so
+			// that a large toolset collapses even if the groups are collapsed.
 			if (this._labelMode === 'auto' && this._body) {
-				// Measure: temporarily remove max-height to read natural height.
 				const prev = this._body.style.maxHeight;
 				this._body.style.maxHeight = 'none';
 				const natural = this._body.scrollHeight;
 				this._body.style.maxHeight = prev;
-				const dense = natural > avail + 2;
+				const totalBtns = this._container.querySelectorAll('.siraj-toolbar-btn').length;
+				const dense = natural > avail * 0.85 || totalBtns > 14;
 				this._container.classList.toggle('siraj-dense', dense);
 			} else {
 				this._container.classList.remove('siraj-dense');
+			}
+
+			// If a popover is open, reposition it to the current anchor.
+			if (this._current) this._positionPop(this._current.anchor, this._current.pop);
+		},
+		_positionPop(anchor, pop) {
+			if (!anchor || !pop || !this._container) return;
+			const isRight = this._container.parentElement && this._container.parentElement.classList.contains('leaflet-right');
+			const cRect = this._container.getBoundingClientRect();
+			const aRect = anchor.getBoundingClientRect();
+			// Popovers are absolutely positioned inside the toolbar container, but
+			// because the body scrolls, we have to add the body's scroll offset.
+			const scrollTop = this._body ? this._body.scrollTop : 0;
+			// Compute top relative to container: anchor's top within container,
+			// minus header height so the popover aligns with the button's visible
+			// top (not its scrolled-to position).
+			let top = aRect.top - cRect.top;
+			// Clamp to not go above header or below footer.
+			const headerH = this._header ? this._header.offsetHeight : 0;
+			const popH = pop.offsetHeight || 200;
+			const maxTop = cRect.height - (this._footer ? this._footer.offsetHeight : 0) - popH - 4;
+			top = Math.max(headerH + 4, Math.min(top, maxTop));
+			pop.style.top = top + 'px';
+			if (isRight) {
+				pop.style.left = 'auto';
+				pop.style.right = (cRect.width + 6) + 'px';
+			} else {
+				pop.style.right = 'auto';
+				pop.style.left = (cRect.width + 6) + 'px';
 			}
 		},
 	});

@@ -9,8 +9,12 @@
  * Three modes (applied via .siraj-mode-{icons,labels,auto}):
  *   icons  — icon-only compact column (fixed ~42px wide). Best for dense maps.
  *   labels — every button shows icon + text label (wider column).
- *   auto   — icon + label by default; collapses to icon-only when viewport is short
- *            OR when there are many groups (handled via JS adding .siraj-dense).
+ *   auto   — icon + label by default; when total tool count exceeds ~12 OR viewport
+ *            is short, JS adds .siraj-dense which collapses to icon-only.
+ *
+ * IMPORTANT: the outer container must NOT use overflow:hidden, because popovers
+ * (Basemap / Go-to-coordinates / Help) are absolutely positioned outside the
+ * toolbar boundary and would be clipped. Clipping is handled per-section instead.
  *
  * Companion JS: siraj-map-toolbar.js, siraj-icons.js (si.toolSvg) */
 
@@ -23,9 +27,9 @@
 	display: flex;
 	flex-direction: column;
 	min-width: 52px;
-	max-width: 220px;
+	max-width: 240px;
 	z-index: 800;
-	overflow: hidden;
+	overflow: visible; /* critical: popovers extend outside */
 	backdrop-filter: saturate(120%) blur(6px);
 	-webkit-backdrop-filter: saturate(120%) blur(6px);
 }
@@ -42,6 +46,11 @@
 	padding: 7px 8px 6px;
 	border-bottom: 1px solid var(--border-color, #d6e0de);
 	background: linear-gradient(180deg, #f6faf9, #eef5f3);
+	border-top-left-radius: 10px;
+	border-top-right-radius: 10px;
+	position: sticky;
+	top: 0;
+	z-index: 2;
 }
 .siraj-toolbar-title {
 	font-size: 11px;
@@ -72,17 +81,18 @@
 /* ---------- Body (scrollable) ---------- */
 .siraj-toolbar-body {
 	overflow-y: auto;
-	overflow-x: hidden;
+	overflow-x: visible; /* allow popovers to escape horizontally */
 	padding: 4px 4px 2px;
 	scrollbar-width: thin;
 	scrollbar-color: #b3c7c3 transparent;
+	position: relative;
 }
 .siraj-toolbar-body::-webkit-scrollbar { width: 6px; }
 .siraj-toolbar-body::-webkit-scrollbar-thumb { background: #b3c7c3; border-radius: 3px; }
 .siraj-toolbar-body::-webkit-scrollbar-track { background: transparent; }
 
 /* ---------- Group wrappers ---------- */
-.siraj-tbgrp { display: flex; flex-direction: column; }
+.siraj-tbgrp { display: flex; flex-direction: column; position: relative; }
 .siraj-tbgrp + .siraj-tbgrp { margin-top: 2px; }
 .siraj-tbgrp-head {
 	appearance: none;
@@ -110,9 +120,10 @@
 	width: 12px; height: 12px;
 	transition: transform .2s;
 	color: #7e9895;
+	flex: 0 0 12px;
 }
 .siraj-tbgrp.is-collapsed .siraj-tbgrp-caret { transform: rotate(-90deg); }
-.siraj-tbgrp-caret svg { display: block; }
+.siraj-tbgrp-caret svg { display: block; width: 12px; height: 12px; }
 .siraj-tbgrp-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .siraj-tbgrp-body {
 	display: flex;
@@ -121,7 +132,8 @@
 	padding: 1px 0 3px;
 	max-height: 2000px;
 	opacity: 1;
-	transition: max-height .25s ease, opacity .2s ease;
+	transition: max-height .25s ease, opacity .2s ease, padding .2s ease;
+	overflow: visible; /* allow is-open button's corner rounding + popovers */
 }
 .siraj-tbgrp.is-collapsed .siraj-tbgrp-body {
 	max-height: 0;
@@ -143,18 +155,19 @@
 	background: transparent;
 	border: 0;
 	border-radius: 6px;
-	padding: 5px 6px;
-	min-width: 40px;
+	padding: 6px 8px;
+	min-height: 34px;
+	width: 100%;
 	color: #2f4a49;
 	display: flex;
 	align-items: center;
-	gap: 7px;
+	gap: 8px;
 	cursor: pointer;
-	transition: background .15s, color .15s;
+	transition: background .15s, color .15s, border-radius .15s;
 	font-size: 12px;
 	line-height: 1.1;
 	text-align: start;
-	width: 100%;
+	white-space: nowrap;
 }
 .siraj-toolbar-btn:hover { background: #e5efec; color: #0c5e5b; }
 .siraj-toolbar-btn:focus-visible { outline: 2px solid #c69a21; outline-offset: -2px; }
@@ -163,8 +176,16 @@
 	background: #0c5e5b;
 	color: #fff;
 }
-.siraj-toolbar-btn.is-open { border-end-end-radius: 0; border-start-end-radius: 0; }
-.siraj-toolbar-btn svg { display: block; flex: 0 0 18px; width: 18px; height: 18px; }
+/* When a popover is open, square off the outward edge so the popover visibly
+   attaches to the button. */
+.leaflet-right .siraj-toolbar-btn.is-open { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.leaflet-left  .siraj-toolbar-btn.is-open { border-top-left-radius: 0;  border-bottom-left-radius: 0; }
+.siraj-toolbar-btn svg {
+	display: block;
+	flex: 0 0 18px;
+	width: 18px;
+	height: 18px;
+}
 .siraj-toolbar-label {
 	flex: 1 1 auto;
 	white-space: nowrap;
@@ -172,41 +193,43 @@
 	text-overflow: ellipsis;
 	font-weight: 500;
 	opacity: .92;
+	display: inline-block;  /* explicitly visible by default */
 }
 .siraj-toolbar-btn.is-active .siraj-toolbar-label,
 .siraj-toolbar-btn.is-open .siraj-toolbar-label { opacity: 1; }
-.siraj-toolbar-btn[aria-pressed="true"]:not(.is-active) { /* toggle pending */ }
 
 /* ---------- Label modes ---------- */
 /* Icons-only */
-.siraj-mode-icons .siraj-toolbar-title { display: none; }
 .siraj-mode-icons .siraj-toolbar-head { justify-content: center; padding: 4px; }
+.siraj-mode-icons .siraj-toolbar-title { display: none; }
 .siraj-mode-icons .siraj-tbgrp-head { display: none; }
 .siraj-mode-icons .siraj-toolbar-btn {
 	justify-content: center;
 	padding: 7px 6px;
-	min-width: 38px;
 }
-.siraj-mode-icons .siraj-toolbar-label { display: none; }
+.siraj-mode-icons .siraj-toolbar-label { display: none !important; }
 .siraj-mode-icons .siraj-toolbar-modes-label { display: none; }
 .siraj-mode-icons { min-width: 42px; max-width: 52px; }
 .siraj-mode-icons .siraj-toolbar-modes { justify-content: center; }
 
 /* Labels mode — force labels visible */
-.siraj-mode-labels .siraj-toolbar-label { display: inline; }
-.siraj-mode-labels { min-width: 180px; }
+.siraj-mode-labels .siraj-toolbar-label { display: inline-block !important; }
+.siraj-mode-labels { min-width: 190px; max-width: 240px; }
+.siraj-mode-labels .siraj-toolbar-btn { justify-content: flex-start; }
 
-/* Auto mode — labels visible but collapses on small heights (handled via JS class
-   .siraj-dense; default is labels-on). */
-.siraj-mode-auto .siraj-toolbar-label { display: inline; }
+/* Auto mode — labels visible, collapses when .siraj-dense is applied */
+.siraj-mode-auto .siraj-toolbar-label { display: inline-block; }
+.siraj-mode-auto .siraj-toolbar-btn { justify-content: flex-start; }
 .siraj-mode-auto.siraj-dense .siraj-toolbar-btn { justify-content: center; padding: 7px 6px; }
-.siraj-mode-auto.siraj-dense .siraj-toolbar-label { display: none; }
+.siraj-mode-auto.siraj-dense .siraj-toolbar-label { display: none !important; }
 .siraj-mode-auto.siraj-dense .siraj-tbgrp-head { display: none; }
+.siraj-mode-auto.siraj-dense .siraj-toolbar-title { display: none; }
+.siraj-mode-auto.siraj-dense .siraj-toolbar-head { justify-content: center; padding: 4px; }
 .siraj-mode-auto.siraj-dense .siraj-toolbar-modes-label { display: none; }
 .siraj-mode-auto.siraj-dense .siraj-toolbar-modes { justify-content: center; }
 .siraj-mode-auto.siraj-dense { min-width: 42px; max-width: 52px; }
 
-/* ---------- Custom attached nodes (cluster toggle etc.) ---------- */
+/* ---------- Custom attached nodes ---------- */
 .siraj-toolbar-custom { padding: 2px 4px; }
 .siraj-toolbar-custom .btn {
 	width: 100%; min-height: 34px; font-size: 11px; line-height: 1.15;
@@ -221,6 +244,11 @@
 	padding: 5px 6px 6px;
 	border-top: 1px solid var(--border-color, #d6e0de);
 	background: #f6faf9;
+	border-bottom-left-radius: 10px;
+	border-bottom-right-radius: 10px;
+	position: sticky;
+	bottom: 0;
+	z-index: 2;
 }
 .siraj-toolbar-modes {
 	display: inline-flex;
@@ -245,20 +273,20 @@
 	background: transparent;
 	border: 0;
 	border-radius: 4px;
-	padding: 4px;
+	padding: 5px;
 	color: #5b7976;
 	cursor: pointer;
 	display: inline-flex; align-items: center; justify-content: center;
 	flex: 1 1 0;
-	min-width: 26px;
-	transition: background .15s, color .15s;
+	min-width: 28px;
+	transition: background .15s, color .15s, box-shadow .15s;
 }
-.siraj-toolbar-mode-btn svg { display: block; width: 14px; height: 14px; }
+.siraj-toolbar-mode-btn svg { display: block; width: 16px; height: 16px; }
 .siraj-toolbar-mode-btn:hover { color: #0c5e5b; background: #fff; }
 .siraj-toolbar-mode-btn.is-active {
 	background: #fff;
 	color: #0c5e5b;
-	box-shadow: 0 1px 3px rgba(28,52,58,0.12);
+	box-shadow: 0 1px 3px rgba(28,52,58,0.15);
 }
 .siraj-toolbar-mode-btn:focus-visible { outline: 2px solid #c69a21; outline-offset: 1px; }
 
@@ -274,20 +302,23 @@
 }
 .siraj-toolbar-status.siraj-toolbar-warning { color: #a04c13; background: #fff4ea; }
 
-/* ---------- Popover panels ---------- */
+/* ---------- Popover panels — they render as direct children of the toolbar
+   container and use position:absolute. The container has overflow:visible so
+   they are NOT clipped. z-index is elevated to beat other Leaflet controls. */
 .siraj-toolbar-pop {
 	position: absolute;
-	min-width: 230px;
+	min-width: 240px;
 	max-width: 320px;
 	background: #fff;
 	border: 1px solid var(--border-color, #d6e0de);
 	border-radius: 10px;
-	box-shadow: 0 8px 28px rgba(28,52,58,0.22);
+	box-shadow: 0 10px 32px rgba(28,52,58,0.28);
 	padding: 10px;
-	z-index: 810;
-	max-height: 75vh;
+	z-index: 9000;
+	max-height: 70vh;
 	overflow: auto;
 	animation: siraj-pop-in .12s ease-out;
+	pointer-events: auto;
 }
 @keyframes siraj-pop-in {
 	from { opacity: 0; transform: translateX(4px); }
@@ -340,30 +371,31 @@
 .siraj-toolbar-pop .form-check { display: flex; align-items: center; gap: 6px; font-size: 12px; margin: 4px 0; }
 .siraj-toolbar-pop .btn { margin-top: 4px; }
 
-/* Missing-icon placeholder still draws attention during development. */
+/* Missing-icon placeholder. */
 .siraj-ico-missing rect { fill: rgba(195,86,75,0.06); }
 
-/* ---------- Small screens / short viewports: auto-collapse to icons ---------- */
+/* ---------- Responsive ---------- */
 @media (max-height: 640px) {
-	.siraj-mode-auto .siraj-toolbar-btn { justify-content: center; padding: 6px 6px; }
-	.siraj-mode-auto .siraj-toolbar-label { display: none; }
-	.siraj-mode-auto .siraj-tbgrp-head { display: none; }
-	.siraj-mode-auto .siraj-toolbar-modes-label { display: none; }
-	.siraj-mode-auto .siraj-toolbar-modes { justify-content: center; }
-	.siraj-mode-auto { min-width: 42px; max-width: 52px; }
+	.siraj-mode-auto:not(.siraj-mode-labels):not(.siraj-mode-icons) .siraj-toolbar-btn { justify-content: center; padding: 7px 6px; }
+	.siraj-mode-auto:not(.siraj-mode-labels):not(.siraj-mode-icons) .siraj-toolbar-label { display: none !important; }
+	.siraj-mode-auto:not(.siraj-mode-labels):not(.siraj-mode-icons) .siraj-tbgrp-head { display: none; }
+	.siraj-mode-auto:not(.siraj-mode-labels):not(.siraj-mode-icons) .siraj-toolbar-title { display: none; }
+	.siraj-mode-auto:not(.siraj-mode-labels):not(.siraj-mode-icons) .siraj-toolbar-head { justify-content: center; padding: 4px; }
+	.siraj-mode-auto:not(.siraj-mode-labels):not(.siraj-mode-icons) .siraj-toolbar-modes-label { display: none; }
+	.siraj-mode-auto:not(.siraj-mode-labels):not(.siraj-mode-icons) .siraj-toolbar-modes { justify-content: center; }
+	.siraj-mode-auto:not(.siraj-mode-labels):not(.siraj-mode-icons) { min-width: 42px; max-width: 52px; }
 }
 @media (max-width: 480px) {
-	/* On narrow phones, default to icons-only to avoid covering the map. */
 	.siraj-toolbar { min-width: 42px; max-width: 52px; }
 	.siraj-toolbar-btn { justify-content: center; padding: 7px 6px; }
-	.siraj-toolbar-label { display: none; }
+	.siraj-toolbar-label { display: none !important; }
 	.siraj-tbgrp-head, .siraj-toolbar-title { display: none; }
 	.siraj-toolbar-modes-label { display: none; }
 	.siraj-toolbar-modes { justify-content: center; }
 	.siraj-toolbar-head { justify-content: center; padding: 4px; }
 }
 
-/* Coordinate-map (form embed) variant: tighter, smaller icons. */
+/* Coordinate-map (form embed) variant. */
 .siraj-coordinate-map .siraj-toolbar { border-radius: 6px; box-shadow: 0 1px 4px rgba(28,52,58,.12); }
 .siraj-coordinate-map .siraj-toolbar-btn { min-width: 30px; min-height: 30px; padding: 5px; }
 .siraj-coordinate-map .siraj-toolbar-btn svg { width: 16px; height: 16px; }
