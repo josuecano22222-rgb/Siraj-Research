@@ -181,33 +181,51 @@ def _iter_features(file_path: Path, encoding: str = "utf-8") -> Iterable[dict]:
 
 
 def _iter_pyogrio(file_path: Path, encoding: str):
-    import pyogrio as _pyogrio
-    # Read raw geometries (GeoJSON-ish dict) then pass to shapely.shape.
-    meta = _pyogrio.read_info(str(file_path))
-    for df, _df_geom in _pyogrio.read_bounds(  # placeholder; we do iter_features via read_intervals
-            str(file_path)):
-        pass
-    # pyogrio 0.7+ supports iter_rows via read_dataframe in chunks; simplest
-    # for robustness: use read_dataframe with geometry as WKB.
-    from pyogrio import read_dataframe
-    gdf = read_dataframe(str(file_path), encoding=encoding,
-                         use_arrow=False, columns=None)
-    # gdf is a GeoDataFrame-like if geopandas is installed; otherwise
-    # pyogrio returns plain pandas DataFrame with geometry as wkb bytes
-    # when return_geoms=False. To keep the dep list minimal we use the
-    # raw read_info API path above and fall back to fiona if geopandas
-    # isn't available. If we got here and there's no .geometry access,
-    # use fiona.
-    try:
-        import geopandas  # noqa: F401
-        for _, row in gdf.iterrows():
-            yield {"properties": {k: row[k] for k in gdf.columns if k != "geometry"},
-                   "geometry": row.geometry}
-        return
-    except Exception:
-        pass
-    # Fiona fallback
-    yield from _iter_fiona(file_path, encoding)
+	"""Iterate features using pyogrio's low-level raw API — no geopandas
+	dependency. Returns one dict per feature with `properties` (dict) and
+	`geometry` (shapely geometry in EPSG:4326).
+	"""
+	import pyogrio as _pyogrio
+	import numpy as np
+
+	meta, flds, geom_wkb = _pyogrio.raw.read(
+		str(file_path), encoding=encoding, read_geometry=True,
+	)
+	# meta includes: 'crs', 'encoding', 'fields', 'geometry_type'
+	crs_info = meta.get("crs") or ""
+	transformer = None
+	if pyproj and crs_info and "EPSG:4326" not in str(crs_info).upper() and "WGS 84" not in str(crs_info).upper():
+		try:
+			from_srs = pyproj.CRS.from_user_input(crs_info)
+			to_srs = pyproj.CRS.from_epsg(4326)
+			transformer = pyproj.Transformer.from_crs(from_srs, to_srs, always_xy=True).transform
+		except Exception:
+			transformer = None
+	field_names = list(meta.get("fields") or [])
+	for i in range(len(geom_wkb)):
+		props = {}
+		for col_idx, name in enumerate(field_names):
+			val = flds[col_idx][i] if col_idx < len(flds) else None
+			if isinstance(val, (np.integer,)):
+				val = int(val)
+			elif isinstance(val, (np.floating,)):
+				val = float(val) if np.isfinite(val) else None
+			elif isinstance(val, bytes):
+				try:
+					val = val.decode(encoding or "utf-8", errors="replace")
+				except Exception:
+					val = None
+			props[name] = val
+		wkb = geom_wkb[i] if i < len(geom_wkb) else None
+		geom = None
+		if wkb is not None and len(wkb) > 0:
+			try:
+				geom = shapely.wkb.loads(bytes(wkb))
+				if transformer is not None:
+					geom = sh_transform(transformer, geom)
+			except Exception:
+				geom = None
+		yield {"properties": props, "geometry": geom}
 
 
 def _iter_fiona(file_path: Path, encoding: str):

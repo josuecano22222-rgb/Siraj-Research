@@ -23,13 +23,24 @@
 	// DocType → editor config. Merged over window.sirajCoordinateDocs (which
 	// comes from the server via boot_session) so tests/print views that lack
 	// boot metadata still have the correct per-doctype mapping.
+	// admin_fields maps server-returned chain keys (from geo_resolve) to the
+	// DocType's Link/Data fields that should receive them. Fields not present
+	// on the form are silently skipped. `write_mode` controls auto-fill
+	// behaviour: 'link' writes Link fields to Place/Governorate/... docs,
+	// 'text' writes Data fields like place_name/community.
 	const DEFAULT_COORDS = {
-		'Person':                 { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'birthplace',   silhouette:'bust' },
-		'Institution':            { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'place',         silhouette:'building' },
-		'Place':                  { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'parent_place',  silhouette:'pin' },
-		'Research Event':         { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'place',         silhouette:'star' },
-		'Military Unit':          { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'linked_place',  silhouette:'shield' },
-		'Operational Deployment': { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:null,            silhouette:'crosshair' },
+		'Person':                 { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'birthplace',   silhouette:'bust',
+			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', community:'community', place_name:'place_name' } },
+		'Institution':            { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'place',         silhouette:'building',
+			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', community:'community', place_name:'place_name' } },
+		'Place':                  { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'parent_place',  silhouette:'pin',
+			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', community:'community' } },
+		'Research Event':         { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'place',         silhouette:'star',
+			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', community:'community', place_name:'place_name' } },
+		'Military Unit':          { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'linked_place',  silhouette:'shield',
+			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality' } },
+		'Operational Deployment': { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:null,            silhouette:'crosshair',
+			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', place_name:'location' } },
 	};
 	function docConfig(doctype) {
 		const fromBoot = (window.sirajCoordinateDocs && window.sirajCoordinateDocs[doctype]) || {};
@@ -361,6 +372,94 @@
 		return anyUpdated;
 	}
 
+	/* ------- Admin-chain auto-fill (debounced, abortable, diff-aware) ------- */
+	let resolveAbort = null;
+	function resolveAndApply(frm, cfg, lat, lon) {
+		if (resolveAbort) { try { resolveAbort.abort(); } catch(_){} resolveAbort = null; }
+		if (!cfg.admin_fields) return;
+		if (!frm.fields_dict || !frm.fields_dict.latitude) return;
+		const controller = new AbortController();
+		resolveAbort = controller;
+		setTimeout(async () => {
+			if (controller.signal.aborted) return;
+			try {
+				const r = await frappe.xcall('siraj_research.api.geo_resolve.resolve_point',
+					{ latitude: lat, longitude: lon });
+				if (controller.signal.aborted) return;
+				applyAdminChain(frm, cfg, r);
+			} catch (e) {
+				// Silent failure — auto-fill is a convenience, never blocks saves.
+				try { console.warn('[SIRAJ coord] resolve failed:', e && e.message); } catch(_){}
+			}
+		}, 350);
+	}
+
+	function applyAdminChain(frm, cfg, res) {
+		if (!res || res.error) return;
+		const updates = {};
+		const diffs = [];
+		const fields = cfg.admin_fields || {};
+		Object.keys(fields).forEach(chainKey => {
+			const fieldname = fields[chainKey];
+			if (!fieldname || !frm.fields_dict[fieldname]) return;
+			const field = frm.fields_dict[fieldname];
+			if (field.get_status() !== 'Write') return;
+			let value = null;
+			if (chainKey === 'place_name') {
+				value = res.nearest_place ? (res.nearest_place.name_en || res.nearest_place.name_ar || null) : null;
+			} else {
+				const node = res.admin_chain && res.admin_chain[chainKey];
+				// Link fields want the linked DocType name, but the server
+				// returns pcode; if no matching Place exists locally yet we
+				// skip (a future Slice-E enhancement will create/link Place
+				// records automatically).
+				value = node && node.pcode ? node.pcode : (node ? node.name_en : null);
+			}
+			if (value == null) return;
+			const current = (field.$input && field.$input.val()) || (frm.doc && frm.doc[fieldname]) || '';
+			if (!current || String(current).trim() === '' || String(current) === value) {
+				updates[fieldname] = value;
+			} else if (String(current) !== String(value)) {
+				diffs.push({ fieldname, label: field.df.label || fieldname, current, proposed: value });
+			}
+		});
+		if (diffs.length === 0 && Object.keys(updates).length) {
+			// No conflicts — write silently.
+			Object.keys(updates).forEach(k => { try { frm.set_value(k, updates[k]); } catch(_){} });
+		} else if (diffs.length) {
+			// Show a Keep/Replace/Replace-all diff dialog. Never overwrite
+			// without user confirmation (existing values may come from human
+			// research).
+			showDiffDialog(frm, cfg, updates, diffs, res);
+		}
+	}
+
+	function showDiffDialog(frm, cfg, updates, diffs, res) {
+		const d = new frappe.ui.Dialog({
+			title: t('Administrative auto-fill'),
+			fields: [
+				{ fieldtype:'HTML', fieldname:'summary', label:'summary' },
+			],
+			primary_action_label: t('Replace with detected'),
+			secondary_action_label: t('Keep existing'),
+			primary_action() {
+				const merge = Object.assign({}, updates);
+				diffs.forEach(x => { merge[x.fieldname] = x.proposed; });
+				Object.keys(merge).forEach(k => { try { frm.set_value(k, merge[k]); } catch(_){} });
+				d.hide();
+			},
+		});
+		let html = '<div style="font-size:13px;line-height:1.5">';
+		html += '<p>' + t('The following fields already have values that differ from what the boundary dataset detected at this point:') + '</p><ul>';
+		diffs.forEach(x => { html += '<li><b>' + frappe.utils.escape_html(x.label) + '</b>: ' + frappe.utils.escape_html(String(x.current)) + ' → <code>' + frappe.utils.escape_html(String(x.proposed)) + '</code></li>'; });
+		html += '</ul><p style="color:var(--text-muted);font-size:12px">' + t('"Replace" overwrites; "Keep existing" leaves your values. New/empty fields (' + Object.keys(updates).length + ') will be filled either way.') + '</p>';
+		if (res.ambiguous) html += '<p style="color:#8a2525">⚠ ' + t('This point is near a boundary; values may be inaccurate.') + '</p>';
+		if (res.nearest_place) html += '<p>' + t('Nearest settlement') + ': <b>' + frappe.utils.escape_html(res.nearest_place.name_en || '') + '</b> — ' + Math.round(res.nearest_place.distance_m) + ' m</p>';
+		html += '</div>';
+		d.fields_dict.summary.$wrapper.html(html);
+		d.show();
+	}
+
 	async function writePoint(frm, cfg, latlng, doMove = true) {
 		const state = [...states.values()].find(s => s.frm === frm && s.cfg === cfg);
 		if (!state || !state.editable) return;
@@ -377,6 +476,8 @@
 			await frm.set_value(values);
 			if (doMove && state.marker) state.marker.setLatLng([latitude, longitude]);
 			update(frm, false);
+			// Fire admin-chain auto-fill (debounced + diff-aware).
+			resolveAndApply(frm, cfg, latitude, longitude);
 		} catch (_) {
 			state.status.text(t('Could not update the coordinate fields.'));
 		}

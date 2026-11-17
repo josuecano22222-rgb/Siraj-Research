@@ -229,7 +229,19 @@
     if(missing.length) return setRes(tr,false,'missing DocTypes: '+missing.join(', '));
     const badField = required.filter(k => cfg[k] && !cfg[k].lat_field);
     if(badField.length) return setRes(tr,false,'missing lat_field on: '+badField.join(', '));
-    return setRes(tr,true,keys.length+' DocTypes configured; 6 primary forms have linked_place field mapping');
+    const withAdmin = required.filter(k => cfg[k] && cfg[k].admin_fields);
+    return setRes(tr,true,keys.length+' DocTypes configured; 6 primary forms have linked_place mapping; '+withAdmin.length+' have admin_field auto-fill map');
+  });
+
+  check('geo.admin_fields_present', 'admin_fields configured for each located DocType', function(tr){
+    const cfg = window.sirajCoordinateDocs || window.SIRAJ_COORDINATE_DOCS_ACTIVE;
+    if(!cfg) return setRes(tr,false,'no config');
+    let ok = true, detail = [];
+    Object.keys(cfg).forEach(dt => {
+      const af = cfg[dt].admin_fields;
+      if(!af || typeof af !== 'object'){ ok=false; detail.push(dt+' missing admin_fields'); }
+    });
+    return setRes(tr, ok, ok?'all '+Object.keys(cfg).length+' DocTypes have admin_fields map':detail.join('; '));
   });
 
   async function runAll(){
