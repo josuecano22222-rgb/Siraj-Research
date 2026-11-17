@@ -1017,3 +1017,23 @@ nothing — this state is terminal,لا شيء — هذه حالة نهائية
 {0}: {1} cannot become {2}. Allowed from {3}: {4}.,{0}: لا يمكن لـ {1} أن يصبح {2}. مسموح من {3}: {4}.
 Σ direct_personnel over the whole subtree.,مجموع الأفراد المباشرين عبر الشجرة الفرعية.
 "Σ direct_personnel over the whole subtree. Read-only and recomputed on save: it is the one number a commander asks for, and it must never be typed.",مجموع الأفراد المباشرين عبر الشجرة الفرعية؛ قراءة فقط.
+"Center on a person, place or unit…",التركيز على شخص أو مكان أو وحدة…
+Clear centers,مسح المراكز
+{0} selected,{0} محدد/محددة
+No matches,لا توجد تطابقات
++{0} more,+{0} غير ذلك
+Center on records,التركيز على السجلات
+Remove {0},إزالة {0}
+Centered on {0} record(s).,متمركز حول {0} سجل/سجلات.
+Select one or more records (via the Centre picker or by clicking a node) to walk out N degrees. Drag nodes to rearrange the network. Click an edge to inspect the relationship.,اختر سجلاً أو أكثر (من خلال منتقي المركز أو بالنقر على عقدة) لاستكشاف العلاقات حتى N درجة. اسحب العقد لإعادة ترتيب الشبكة. انقر على وصلة لفحص العلاقة.
+Current,جارية
+Ended,منتهية
+Relationship details,تفاصيل العلاقة
+Endpoints,الأطراف
+No evidence attached.,لا توجد أدلة مرفقة.
+Endpoint unavailable.,الطرف غير متاح.
+Focus in network,تركيز في الشبكة
+Could not load details: {0},تعذّر تحميل التفاصيل: {0}
+Retry,إعادة المحاولة
+No field data available.,لا تتوفر بيانات حقلية.
+Showing first 50 entries. Open the record for the full list.,يُعرض أول 50 مدخل. افتح السجل للاطلاع على القائمة الكاملة.

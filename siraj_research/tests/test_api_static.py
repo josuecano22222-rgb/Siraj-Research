@@ -56,6 +56,14 @@ def test_entity_profile_endpoint_whitelisted():
     assert "doctype" in args and "name" in args
 
 
+def test_relationship_profile_endpoint_whitelisted():
+    tree = _parse("api/relationship_profile.py")
+    ok, node = _has_whitelisted(tree, "get_relationship_profile")
+    assert ok, "get_relationship_profile must be @frappe.whitelist"
+    args = [a.arg for a in node.args.args]
+    assert "name" in args, "endpoint must take 'name'"
+
+
 def test_record_icons_tools_extended():
     # Must define the 23 new tool glyphs for goal 1.
     src = (APP / "record_icons.py").read_text()

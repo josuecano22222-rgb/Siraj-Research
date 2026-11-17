@@ -339,3 +339,117 @@
   .sx-panel-head h4 { font-size: 13px; }
   .sx-panel-actions .btn-link { display:none; }
 }
+
+/* ====== Center-on-records searchable multi-select (sophisticated combobox) ====== */
+.sx-center-picker { position: relative; min-width: 260px; max-width: 360px; flex: 1 1 280px; }
+.sx-pick-control {
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  min-height: 30px; padding: 2px 28px 2px 6px;
+  background: #fff; border: 1px solid #d1d8db; border-radius: 6px;
+  cursor: text; transition: border-color .15s, box-shadow .15s;
+}
+.sx-pick-control:hover { border-color: #b0c0c3; }
+.sx-pick-control:focus-within { border-color: #267b77; box-shadow: 0 0 0 2px #267b7733; outline: none; }
+.sx-pick-tags { display: contents; }
+.sx-pick-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #eaf1f1; color: #234;
+  border-radius: 12px; padding: 1px 6px 1px 4px; font-size: 12px; line-height: 1.4;
+  max-width: 180px;
+}
+.sx-pick-tag .sx-pick-glyph { width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+.sx-pick-tag .sx-pick-glyph svg { width: 10px; height: 10px; }
+.sx-pick-tag-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sx-pick-tag-x {
+  border: none; background: transparent; color: #6a7a7e; cursor: pointer;
+  width: 16px; height: 16px; border-radius: 50%; padding: 0; font-size: 13px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.sx-pick-tag-x:hover { background: #c8d5d7; color: #233b37; }
+.sx-pick-more { font-size: 11px; color: var(--text-muted, #6a7a7e); padding: 2px 4px; }
+.sx-pick-input {
+  flex: 1 1 80px; min-width: 80px; border: none; outline: none; background: transparent;
+  font-size: 13px; padding: 2px 4px; height: 22px;
+}
+.sx-pick-clear {
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+  border: none; background: transparent; color: #91a6a9; cursor: pointer;
+  width: 20px; height: 20px; border-radius: 50%; font-size: 16px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.sx-pick-clear:hover { background: #eef3f3; color: #233b37; }
+.sx-pick-menu {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+  background: #fff; border: 1px solid #d1d8db; border-radius: 8px;
+  box-shadow: 0 8px 28px #24423f26, 0 2px 6px #24423f14;
+  max-height: 320px; overflow-y: auto; padding: 4px 0;
+}
+.sx-pick-group { padding: 4px 0; }
+.sx-pick-group + .sx-pick-group { border-top: 1px solid #eef1f1; }
+.sx-pick-group-label {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px 4px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: .05em; color: #6a7a7e; font-weight: 600;
+}
+.sx-pick-group-label .sx-pick-glyph { width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+.sx-pick-group-label .sx-pick-glyph svg { width: 10px; height: 10px; }
+.sx-pick-option {
+  display: flex; align-items: center; gap: 8px; padding: 6px 12px; cursor: pointer;
+  font-size: 13px; line-height: 1.3;
+}
+.sx-pick-option.is-active, .sx-pick-option:hover { background: #f3f7f7; }
+.sx-pick-option[aria-selected="true"] { background: #e8f0f0; }
+.sx-pick-option .sx-pick-glyph {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.sx-pick-option .sx-pick-glyph svg { width: 15px; height: 15px; }
+.sx-pick-opt-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sx-pick-opt-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sx-pick-opt-sub { font-size: 11px; color: #6a7a7e; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sx-pick-opt-check { width: 16px; text-align: center; color: #267b77; font-weight: bold; font-size: 13px; flex-shrink: 0; }
+.sx-pick-empty { padding: 14px; text-align: center; color: #6a7a7e; font-size: 12px; }
+.sx-pick-status { position: absolute; top: 100%; left: 0; right: 0; font-size: 11px; color: var(--text-muted, #6a7a7e); margin-top: 2px; text-align: right; }
+
+/* ====== Relationship edge details panel ====== */
+.sx-status-chip {
+  display: inline-flex; align-items: center; border-radius: 10px;
+  padding: 1px 8px; font-size: 11px; font-weight: 600; margin-inline-start: 6px;
+}
+.sx-status-active { background: #dff0e3; color: #1f6a3a; }
+.sx-status-ended  { background: #f1e1e1; color: #7a2a2a; }
+
+.sx-edge-banner {
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center;
+  padding: 12px 14px; background: linear-gradient(180deg, #f6f9f8, #edf3f3);
+  border-bottom: 1px solid #e1e9e9;
+}
+.sx-edge-endpoint {
+  display: flex; align-items: center; gap: 10px; padding: 6px 8px;
+  background: #fff; border: 1px solid #dce6e6; border-radius: 10px; min-width: 0;
+}
+.sx-edge-subject { justify-self: start; }
+.sx-edge-object  { justify-self: end; flex-direction: row-reverse; text-align: end; }
+.sx-edge-object .sx-edge-ep-text { align-items: flex-end; }
+.sx-edge-ep-text { display: flex; flex-direction: column; min-width: 0; }
+.sx-edge-ep-role { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #7a8a8f; font-weight: 600; }
+.sx-edge-ep-name {
+  padding: 0 !important; font-weight: 600; font-size: 13px; color: #233b37 !important;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-align: inherit;
+}
+.sx-edge-ep-name:hover { color: #267b77 !important; }
+.sx-edge-arrow {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #fff; border: 1px solid #c8d5d7; color: #267b77;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: bold; flex-shrink: 0;
+}
+
+.sx-endpoint-card { display: flex; align-items: center; gap: 10px; padding: 8px; background: #f8fbfb; border-radius: 8px; border: 1px solid #e1e9e9; }
+.sx-endpoint-text { display: flex; flex-direction: column; min-width: 0; }
+.sx-endpoint-title { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sx-endpoint-sub { font-size: 11px; color: #6a7a7e; }
+
+/* Ensure glyphs inside panel work */
+.sx-item-glyph svg { width: 60%; height: 60%; }

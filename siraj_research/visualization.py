@@ -68,7 +68,7 @@ DETAIL_FIELDS = {
 	"Training Exercise": ("training_type", "assessment", "location", "workflow_state"),
 }
 GEO_TYPES = ("Person", "Institution", "Place", "Research Event", "Military Unit", "Operational Deployment")
-GRAPH_TYPES = ("Person", "Institution", "Place", "Research Event", "Source")
+GRAPH_TYPES = ("Person", "Institution", "Place", "Research Event", "Source", "Military Unit", "Operational Deployment")
 STRUCTURES = {
 	"people": ("Person", ("nationality", "classification", "workflow_state")),
 	"institutions": ("Institution", ("institution_type", "country", "governance_system")),

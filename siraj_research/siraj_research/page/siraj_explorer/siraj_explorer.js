@@ -135,6 +135,198 @@ class SirajExplorer {
 		select.on('change', () => onChange(search.val(), select.val()));
 		return {search, select};
 	}
+
+	/**
+	 * Build a searchable multi-select "center on records" combobox.
+	 *
+	 * Drop-in replacement for the plain <select> that used to list only
+	 * Person/Institution. Supports:
+	 *   - type-ahead search across label, name, and doctype
+	 *   - grouped rendering by DocType with coloured glyphs per item
+	 *   - multi-selection (multiple centers = BFS from the union)
+	 *   - keyboard nav (arrows / Enter to select / Backspace to remove / Esc)
+	 *   - accessible: proper role=combobox/listbox/option, aria-activedescendant,
+	 *     translated placeholder/labels, focus management
+	 *
+	 * items: [{ id, label, sub, doctype }] where id is the stable string id used
+	 * in the graph (JSON.stringify([doctype,name])).
+	 *
+	 * onChange(ids: string[]) called whenever the selection changes.
+	 */
+	centerPicker(items, onChange, host = this.tools) {
+		const PLACEHOLDER = __('Center on a person, place or unit…');
+		const I18N = {
+			clear: __('Clear centers'),
+			count: n => __('{0} selected', [n]),
+			noMatches: __('No matches'),
+			nMore: n => __('+{0} more', [n]),
+		};
+		const groupOrder = ['Person', 'Institution', 'Place', 'Military Unit', 'Operational Deployment', 'Research Event', 'Source'];
+		const glyph = (doctype, size) => {
+			const c = this.colors && this.colors[doctype] ? this.colors[doctype] : '#6a7a7e';
+			const s = size || 14;
+			const g = (window.sirajIcons && window.sirajIcons.svg)
+				? window.sirajIcons.svg(doctype, {size: Math.round(s * 0.7)})
+				: '';
+			return `<span class="sx-pick-glyph" style="background:${c}">${g}</span>`;
+		};
+
+		const wrap = $('<div class="sx-center-picker" role="group" aria-label="' + __('Center on records') + '"></div>').appendTo(host);
+		const control = $('<div class="sx-pick-control" tabindex="0"></div>').attr({'aria-haspopup':'listbox','aria-expanded':'false','aria-label': PLACEHOLDER}).appendTo(wrap);
+		const tags = $('<span class="sx-pick-tags"></span>').appendTo(control);
+		const input = $('<input type="text" class="sx-pick-input" autocomplete="off">').attr('placeholder', PLACEHOLDER).appendTo(control);
+		const clearBtn = $('<button type="button" class="sx-pick-clear" aria-label="' + __('Clear centers') + '">&times;</button>').hide().appendTo(control);
+		const menu = $('<div class="sx-pick-menu" role="listbox" aria-multiselectable="true" hidden></div>').appendTo(wrap);
+		const status = $('<span class="sx-pick-status" aria-live="polite"></span>').appendTo(wrap);
+
+		const selected = new Set();
+		let term = '', activeIndex = -1, visibleItems = [];
+
+		const itemById = new Map(items.map(it => [it.id, it]));
+
+		const close = () => {
+			menu.attr('hidden', 'hidden');
+			control.attr('aria-expanded', 'false');
+			activeIndex = -1;
+		};
+		const open = () => {
+			menu.removeAttr('hidden');
+			control.attr('aria-expanded', 'true');
+			renderMenu();
+		};
+		const renderTags = () => {
+			tags.empty();
+			[...selected].slice(0, 4).forEach(id => {
+				const it = itemById.get(id);
+				if (!it) return;
+				const tag = $('<span class="sx-pick-tag"></span>')
+					.attr('data-id', id)
+					.append(glyph(it.doctype, 12))
+					.append($('<span class="sx-pick-tag-label"></span>').text(it.label))
+					.appendTo(tags);
+				$('<button type="button" class="sx-pick-tag-x" aria-label="' + __('Remove {0}', [it.label]) + '">&times;</button>')
+					.on('click', e => { e.stopPropagation(); selected.delete(id); renderTags(); fire(); input.focus(); })
+					.appendTo(tag);
+			});
+			if (selected.size > 4) {
+				$('<span class="sx-pick-more"></span>').text(I18N.nMore(selected.size - 4)).appendTo(tags);
+			}
+			clearBtn.toggle(selected.size > 0);
+			input.attr('placeholder', selected.size ? '' : PLACEHOLDER);
+			status.text(selected.size ? I18N.count(selected.size) : '');
+		};
+		const fire = () => {
+			renderTags();
+			onChange([...selected]);
+		};
+
+		const renderMenu = () => {
+			const q = term.trim().toLocaleLowerCase();
+			const filtered = q
+				? items.filter(it => (it.label + ' ' + (it.sub || '') + ' ' + it.doctype).toLocaleLowerCase().includes(q))
+				: items;
+			// Group filtered items by doctype, stable order.
+			const groups = new Map();
+			filtered.forEach(it => {
+				if (!groups.has(it.doctype)) groups.set(it.doctype, []);
+				groups.get(it.doctype).push(it);
+			});
+			menu.empty();
+			visibleItems = [];
+			const order = [...groupOrder.filter(t => groups.has(t)), ...[...groups.keys()].filter(t => !groupOrder.includes(t))];
+			order.forEach(dt => {
+				const grp = $('<div class="sx-pick-group" role="group"></div>').attr('aria-label', __(dt)).appendTo(menu);
+				$('<div class="sx-pick-group-label"></div>').html(glyph(dt, 12) + '<span>' + __(dt) + '</span>').appendTo(grp);
+				const list = $('<div class="sx-pick-list"></div>').appendTo(grp);
+				groups.get(dt).slice(0, 50).forEach(it => {
+					visibleItems.push(it.id);
+					const opt = $('<div class="sx-pick-option" role="option"></div>')
+						.attr({
+							'data-id': it.id,
+							'aria-selected': selected.has(it.id) ? 'true' : 'false',
+							'id': 'sx-pick-opt-' + visibleItems.length,
+							tabindex: '-1',
+						})
+						.append(glyph(it.doctype, 16))
+						.append($('<span class="sx-pick-opt-main"></span>')
+							.append($('<span class="sx-pick-opt-label"></span>').text(it.label))
+							.append(it.sub ? $('<span class="sx-pick-opt-sub"></span>').text(it.sub) : [])
+						)
+						.append($('<span class="sx-pick-opt-check" aria-hidden="true"></span>').html(selected.has(it.id) ? '&#10003;' : ''))
+						.on('click', e => {
+							e.stopPropagation();
+							toggle(it.id);
+							input.focus();
+						})
+						.on('mouseenter', () => setActive(visibleItems.indexOf(it.id)))
+						.appendTo(list);
+				});
+			});
+			if (!visibleItems.length) {
+				$('<div class="sx-pick-empty"></div>').text(I18N.noMatches).appendTo(menu);
+			}
+			if (activeIndex < 0 || activeIndex >= visibleItems.length) activeIndex = visibleItems.length ? 0 : -1;
+			highlight();
+		};
+		const highlight = () => {
+			menu.find('.sx-pick-option').removeClass('is-active').removeAttr('aria-selected');
+			menu.find('.sx-pick-option').each(function () {
+				const id = $(this).attr('data-id');
+				$(this).attr('aria-selected', selected.has(id) ? 'true' : 'false');
+			});
+			if (activeIndex >= 0 && visibleItems[activeIndex]) {
+				const el = menu.find('.sx-pick-option[data-id="' + cssEscape(visibleItems[activeIndex]) + '"]');
+				el.addClass('is-active');
+				control.attr('aria-activedescendant', el.attr('id'));
+				// scroll into view if needed
+				const top = el.position().top - menu.position().top;
+				if (top < 0 || top + el.outerHeight() > menu.innerHeight()) {
+					menu.scrollTop(menu.scrollTop() + top - (menu.innerHeight() - el.outerHeight()) / 2);
+				}
+			} else {
+				control.removeAttr('aria-activedescendant');
+			}
+		};
+		const cssEscape = s => String(s).replace(/([ #;?&,.+*~':"!^$[\]()=>|/@])/g, '\\$1');
+		const setActive = idx => { activeIndex = idx; highlight(); };
+		const toggle = id => {
+			if (selected.has(id)) selected.delete(id); else selected.add(id);
+			fire();
+			renderMenu();
+		};
+
+		input.on('input', () => { term = input.val(); open(); activeIndex = 0; });
+		input.on('focus', () => { if (menu.attr('hidden')) open(); });
+		input.on('keydown', e => {
+			if (e.key === 'ArrowDown') { e.preventDefault(); open(); if (activeIndex < visibleItems.length - 1) setActive(activeIndex + 1); }
+			else if (e.key === 'ArrowUp') { e.preventDefault(); if (activeIndex > 0) setActive(activeIndex - 1); }
+			else if (e.key === 'Enter') {
+				e.preventDefault();
+				if (activeIndex >= 0 && visibleItems[activeIndex]) toggle(visibleItems[activeIndex]);
+			} else if (e.key === 'Backspace' && term === '' && selected.size) {
+				const last = [...selected].pop();
+				selected.delete(last); fire(); renderMenu();
+			} else if (e.key === 'Escape') { e.preventDefault(); close(); }
+		});
+		control.on('click', () => input.focus());
+		clearBtn.on('click', e => { e.stopPropagation(); selected.clear(); fire(); renderMenu(); input.focus(); });
+		$(document).on('mousedown.sxPick' + (window.__sxPickSeq = (window.__sxPickSeq||0)+1), e => {
+			if (!wrap[0].contains(e.target)) close();
+		});
+
+		// Public API
+		return {
+			wrap,
+			get: () => [...selected],
+			set: ids => {
+				selected.clear();
+				(ids || []).filter(id => itemById.has(id)).forEach(id => selected.add(id));
+				fire();
+				if (menu.is(':visible')) renderMenu();
+			},
+			addItem: it => { if (!itemById.has(it.id)) { items.push(it); itemById.set(it.id, it); if (menu.is(':visible')) renderMenu(); } },
+		};
+	}
 	async geography(data, renderId) {
 		// Explicitly require shared map assets here. In page contexts (like
 		// /app/siraj-explorer) app_include_js load order is not guaranteed to
@@ -1219,9 +1411,19 @@ class SirajExplorer {
 		const edgeLookup = new Map(data.edges.map(e => [e.name, e]));
 		const nodeSet = new vis.DataSet();
 		const edgeSet = new vis.DataSet();
-		let currentEdges = [], currentNodes = [], history = [], trail = [], currentId = null, centerId = null;
+		let currentEdges = [], currentNodes = [], history = [], trail = [], currentId = null, centerIds = [];
 		let searchTerm = '', selectedType = '', edgeType = '', hideEnded = false, evidenceOnly = false, evidenceLoaded = false, layout = 'force', maxDistance = 1;
 		let centerButton, resetButton;
+
+		// Build a unified pool of "centerable" records covering all four map-capable
+		// core types plus other relatable endpoints so users can centre on any
+		// person, place, institution, or unit (and deployments/events/sources that
+		// appear as relationship endpoints).
+		const CENTERABLE_TYPES = ['Person', 'Institution', 'Place', 'Military Unit', 'Operational Deployment', 'Research Event', 'Source'];
+		const centerItems = data.nodes
+			.filter(n => CENTERABLE_TYPES.indexOf(n.doctype) >= 0)
+			.map(n => ({ id: this.id(n), label: n.label, sub: n.name, doctype: n.doctype }))
+			.sort((a, b) => a.label.localeCompare(b.label));
 		const graphHost = $('<div class="sx-graph-host"></div>').appendTo(this.canvas);
 		const matrixHost = $('<div class="sx-atlas-matrix"></div>').hide().appendTo(this.canvas);
 		// Generate a data-URI for each doctype so the network shows the same
@@ -1240,6 +1442,25 @@ class SirajExplorer {
 			const uri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 			nodeImageCache.set(doctype, uri);
 			return uri;
+		};
+		const itemGlyph = (doctype, size) => {
+			const c = this.colors && this.colors[doctype] ? this.colors[doctype] : '#6a7a7e';
+			const s = size || 14, pad = Math.ceil(s/3);
+			const g = (window.sirajIcons && window.sirajIcons.svg)
+				? window.sirajIcons.svg(doctype, {size: Math.round(s*0.7)})
+				: '';
+			return `<span class="sx-item-glyph" style="background:${c};width:${s+pad}px;height:${s+pad}px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0">${g}</span>`;
+		};
+		const CARET_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
+		const escapeHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+		const fmtValue = v => {
+			if (v == null || v === '') return '';
+			if (typeof v === 'object') {
+				if (v.type === 'link') return v.title || v.name;
+				if (v.type === 'attach') return v.url;
+				return JSON.stringify(v);
+			}
+			return String(v);
 		};
 		this.network = new vis.Network(graphHost[0], { nodes: nodeSet, edges: edgeSet }, {
 			interaction: { hover: true, navigationButtons: true, keyboard: true },
@@ -1268,18 +1489,267 @@ class SirajExplorer {
 				this.button(neighbor.label, () => showNode(this.id(neighbor))).addClass('sx-neighbor-link').appendTo(row);
 			});
 		};
+		const edgeCache = {};
+		let edgeSeq = 0;
 		const showEdge = edge => {
 			if (!edge) return;
 			currentId = null;
 			if (centerButton) centerButton.prop('disabled', true);
-			this.showDetails(edge.type || __('Relationship'), [[__('ID'), edge.name], [__('Direction'), edge.direction], [__('Description'), edge.description], [__('Record status'), edge.state], [__('Authentication level'), edge.authentication_level], [__('End date'), edge.end_date], [__('Primary source'), edge.primary_source], [__('Evidence'), edge.evidence_count]], { doctype: 'Relationship', name: edge.name });
-			[edge.source, edge.target].forEach((key, index) => {
+			renderEdgePanel(edge);
+		};
+		const renderEdgePanel = async edge => {
+			const E_TABS = [
+				{ id:'overview', label: __('Overview') },
+				{ id:'fields',   label: __('Details') },
+				{ id:'evidence', label: __('Evidence') },
+				{ id:'endpoints',label: __('Endpoints') },
+			];
+			const state = { tab: 'overview', sections: {} };
+
+			this.aside.removeClass('sx-panel-hidden').empty();
+
+			// Header
+			const head = $('<div class="sx-panel-head"></div>').appendTo(this.aside);
+			const title = $('<div class="sx-panel-title"></div>').appendTo(head);
+			title.append(itemGlyph('Relationship', 28));
+			const heading = $('<h4></h4>').attr('title', edge.type || edge.name).text(edge.type || __('Relationship')).appendTo(title);
+			$('<span class="sx-type-chip"></span>').text(__('Relationship')).appendTo(title);
+			if (edge.is_current || !edge.end_date) {
+				$('<span class="sx-status-chip sx-status-active"></span>').text(__('Current')).appendTo(title);
+			} else {
+				$('<span class="sx-status-chip sx-status-ended"></span>').text(__('Ended')).appendTo(title);
+			}
+			const actions = $('<div class="sx-panel-actions"></div>').appendTo(head);
+			$('<button type="button" class="btn btn-link btn-sm"></button>')
+				.text(__('Open record'))
+				.on('click', () => frappe.set_route('Form', 'Relationship', edge.name))
+				.appendTo(actions);
+			$('<button type="button" class="sx-panel-close"></button>').attr('aria-label', __('Close details')).html('&times;')
+				.on('click', () => this.aside.addClass('sx-panel-hidden'))
+				.appendTo(actions);
+
+			// Direction banner
+			const banner = $('<div class="sx-edge-banner"></div>').appendTo(this.aside);
+			[['subject', edge.source], ['object', edge.target]].forEach(([role, key]) => {
 				const id = JSON.stringify(key), node = all.get(id);
-				if (!node) return;
-				const row = $('<div class="sx-neighbor"></div>').appendTo(this.aside);
-				$('<small></small>').text(index === 0 ? __('Subject') : __('Object')).appendTo(row);
-				this.button(node.label, () => showNode(id)).addClass('sx-neighbor-link').appendTo(row);
+				const side = $('<div class="sx-edge-endpoint"></div>').addClass('sx-edge-' + role).appendTo(banner);
+				if (node) {
+					side.append(itemGlyph(node.doctype, 22));
+					const txt = $('<div class="sx-edge-ep-text"></div>').appendTo(side);
+					$('<span class="sx-edge-ep-role"></span>').text(role === 'subject' ? __('Subject') : __('Object')).appendTo(txt);
+					$('<button type="button" class="btn btn-link btn-xs sx-edge-ep-name"></button>')
+						.text(node.label)
+						.attr('title', node.label + ' · ' + node.name)
+						.on('click', () => showNode(id))
+						.appendTo(txt);
+				} else {
+					side.append(itemGlyph('Source', 22));
+					$('<div class="sx-edge-ep-text"></div>')
+						.append($('<span class="sx-edge-ep-role"></span>').text(role === 'subject' ? __('Subject') : __('Object')))
+						.append($('<span class="sx-muted"></span>').text(key[1] || ''))
+						.appendTo(side);
+				}
 			});
+			const arrow = $('<div class="sx-edge-arrow" aria-hidden="true"></div>').appendTo(banner);
+			arrow.html(/^(directed|one.way)$/i.test(edge.direction || '') ? '→' : '↔');
+
+			// Tab bar
+			const tabBar = $('<div class="sx-panel-tabs" role="tablist"></div>').appendTo(this.aside);
+			const tabBody = $('<div class="sx-panel-body" role="tabpanel"></div>').appendTo(this.aside);
+			const setBadge = (tabId, text) => {
+				const b = tabBar.find('.sx-tab-badge[data-tab-badge="'+tabId+'"]');
+				if (text == null || text === '' || text === 0) b.text('').hide(); else b.text(String(text)).show();
+			};
+			const section = (tabId, key, titleText, countNode) => {
+				const secKey = tabId + ':' + key;
+				const stored = state.sections[secKey];
+				const isOpen = stored == null ? true : !!stored;
+				const sec = $('<details class="sx-section"></details>').attr('data-sx-section', secKey);
+				if (isOpen) sec.attr('open', 'open');
+				const sum = $('<summary></summary>').appendTo(sec);
+				sum.append($('<span class="sx-section-caret">' + CARET_SVG + '</span>'));
+				sum.append($('<span class="sx-section-label"></span>').text(titleText));
+				if (countNode != null) {
+					const c = $('<span class="sx-section-count"></span>');
+					c.text(String(typeof countNode === 'function' ? '…' : countNode));
+					sum.append(c);
+				}
+				const body = $('<div class="sx-section-body"></div>').appendTo(sec);
+				sum.on('click', ev => {
+					ev.preventDefault();
+					const opening = !sec.attr('open');
+					if (opening) sec.attr('open','open'); else sec.removeAttr('open');
+					state.sections[secKey] = opening;
+				});
+				return sec;
+			};
+			const switchTab = id => {
+				state.tab = id;
+				tabBar.find('button').removeClass('btn-primary').addClass('btn-default').attr('aria-selected','false');
+				tabBar.find('button[data-tab="'+id+'"]').removeClass('btn-default').addClass('btn-primary').attr('aria-selected','true');
+				renderTab(id);
+			};
+			E_TABS.forEach(t => $('<button type="button" class="btn btn-xs" role="tab"></button>')
+				.addClass(state.tab===t.id?'btn-primary':'btn-default')
+				.attr({'data-tab':t.id, 'aria-selected': state.tab===t.id ? 'true':'false'})
+				.html(t.label + '<span class="sx-tab-badge" data-tab-badge="'+t.id+'"></span>')
+				.on('click', () => switchTab(t.id))
+				.appendTo(tabBar));
+
+			const renderTab = id => {
+				tabBody.empty();
+				if (edgeCache[edge.name]) { mountTab(id, edgeCache[edge.name]); return; }
+				const loading = $('<div class="sx-panel-loading"></div>')
+					.html('<span>⏳</span> ' + __('Loading…'))
+					.appendTo(tabBody);
+				const seq = ++edgeSeq;
+				frappe.call({ method:'siraj_research.api.relationship_profile.get_relationship_profile', args:{ name: edge.name } })
+					.then(r => {
+						if (seq !== edgeSeq) return;
+						edgeCache[edge.name] = r.message || {};
+						mountTab(id, edgeCache[edge.name]);
+					})
+					.catch(e => {
+						if (seq !== edgeSeq) return;
+						tabBody.empty();
+						const err = $('<div class="sx-panel-error"></div>').appendTo(tabBody);
+						$('<div></div>').text(__('Could not load details: {0}', [e.message || String(e)])).appendTo(err);
+						$('<button type="button" class="btn btn-xs btn-default"></button>')
+							.text(__('Retry'))
+							.on('click', () => { delete edgeCache[edge.name]; renderTab(id); })
+							.appendTo(err);
+					});
+			};
+
+			const mountTab = (id, prof) => {
+				tabBody.empty();
+				if (!prof) return;
+				const pane = $('<div class="sx-tab-pane" data-tab-pane="'+id+'"></div>').appendTo(tabBody);
+
+				if (id === 'overview') {
+					const metaRows = [];
+					if (prof.header && prof.header.status) metaRows.push([__('Status'), prof.header.status]);
+					metaRows.push([__('Direction'), (/^(directed|one.way)$/i.test((prof.header && prof.header.direction) || edge.direction || '') ? __('Directed') : __('Symmetric'))]);
+					metaRows.push([__('Ongoing'), prof.header && prof.header.is_current ? __('Yes') : __('No')]);
+					if (edge.description) metaRows.push([__('Description'), edge.description]);
+					metaRows.push([__('Modified'), prof.header && prof.header.modified]);
+					metaRows.push([__('Owner'), prof.header && prof.header.owner]);
+					if (prof.permissions) {
+						const perms = [];
+						if (prof.permissions.can_write) perms.push(__('can edit'));
+						if (prof.permissions.can_create) perms.push(__('can link'));
+						if (perms.length) metaRows.push([__('Permissions'), perms.join(', ')]);
+					}
+					const sec = section('overview', 'meta', __('Relationship details')).appendTo(pane);
+					const dl = $('<dl></dl>').appendTo(sec.find('.sx-section-body'));
+					metaRows.forEach(([k, v]) => {
+						if (v == null || v === '') return;
+						$('<dt></dt>').text(k).appendTo(dl);
+						$('<dd></dd>').text(String(v)).appendTo(dl);
+					});
+
+					const counters = prof.counters || { evidence: Number(edge.evidence_count)||0, external_identifiers: 0 };
+					const chipData = [
+						{ label: __('Evidence'), n: counters.evidence || 0, color:'#53706b' },
+						{ label: __('External IDs'), n: counters.external_identifiers || 0, color:'#6a7a7e' },
+					];
+					const nsSec = section('overview','counters',__('Summary')).appendTo(pane);
+					const chipRow = $('<div class="sx-chip-row"></div>').appendTo(nsSec.find('.sx-section-body'));
+					chipData.forEach(c => $('<span class="siraj-chip is-on" style="--chip-color:'+c.color+'"></span>')
+						.html('<span class="siraj-chip-label">'+c.label+'</span><span class="siraj-chip-count">'+c.n+'</span>')
+						.appendTo(chipRow));
+					setBadge('evidence', counters.evidence || null);
+
+				} else if (id === 'fields') {
+					let fieldCount = 0;
+					(prof.sections||[]).forEach(secDef => {
+						const fields = secDef.fields || [];
+						if (!fields.length) return;
+						fieldCount += fields.length;
+						const sec = section('fields', 'fld_'+secDef.heading, secDef.heading || __('Fields'), String(fields.length)).appendTo(pane);
+						const body = sec.find('.sx-section-body');
+						const dl = $('<dl></dl>').appendTo(body);
+						fields.forEach(f => {
+							$('<dt></dt>').text(f.label).appendTo(dl);
+							const v = f.value;
+							const dd = $('<dd></dd>').appendTo(dl);
+							if (v && typeof v === 'object' && v.type === 'link') {
+								$('<button type="button" class="btn btn-link btn-xs"></button>')
+									.text(v.title || v.name)
+									.on('click', () => frappe.set_route('Form', v.doctype, v.name))
+									.appendTo(dd);
+							} else if (v && typeof v === 'object' && v.type === 'attach') {
+								$('<a target="_blank" rel="noopener"></a>').attr('href', v.url).text(v.url).appendTo(dd);
+							} else {
+								dd.text(fmtValue(v));
+							}
+						});
+					});
+					if (!fieldCount) $('<div class="sx-empty"></div>').text(__('No field data available.')).appendTo(pane);
+					setBadge('fields', fieldCount || null);
+
+				} else if (id === 'evidence') {
+					const children = prof.children || {};
+					const ev = children.evidence;
+					const ext = children.external_identifiers;
+					if (ev && ev.rows && ev.rows.length) {
+						const sec = section('evidence','ev',__('Evidence'), String(ev.total)).appendTo(pane);
+						const wrap = $('<div class="sx-table-wrap"></div>').appendTo(sec.find('.sx-section-body'));
+						const keys = Object.keys(ev.rows[0]);
+						const t = $('<table class="table table-condensed"></table>').appendTo(wrap);
+						const thead = $('<thead></thead>').appendTo(t), trh = $('<tr></tr>').appendTo(thead);
+						keys.forEach(k => $('<th></th>').text(ev.rows[0][k].label).appendTo(trh));
+						const tbody = $('<tbody></tbody>').appendTo(t);
+						ev.rows.forEach(row => { const tr=$('<tr></tr>').appendTo(tbody); keys.forEach(k => $('<td></td>').text(fmtValue(row[k].value)).appendTo(tr)); });
+						if (ev.truncated) $('<div class="sx-muted" style="padding:6px 0"></div>').text(__('Showing first 50 entries. Open the record for the full list.')).appendTo(sec.find('.sx-section-body'));
+					} else {
+						$('<div class="sx-empty"></div>').text(__('No evidence attached.')).appendTo(pane);
+					}
+					if (ext && ext.rows && ext.rows.length) {
+						const sec = section('evidence','ext',__('External identifiers'), String(ext.total)).appendTo(pane);
+						const wrap = $('<div class="sx-table-wrap"></div>').appendTo(sec.find('.sx-section-body'));
+						const keys = Object.keys(ext.rows[0]);
+						const t = $('<table class="table table-condensed"></table>').appendTo(wrap);
+						const thead = $('<thead></thead>').appendTo(t), trh = $('<tr></tr>').appendTo(thead);
+						keys.forEach(k => $('<th></th>').text(ext.rows[0][k].label).appendTo(trh));
+						const tbody = $('<tbody></tbody>').appendTo(t);
+						ext.rows.forEach(row => { const tr=$('<tr></tr>').appendTo(tbody); keys.forEach(k => $('<td></td>').text(fmtValue(row[k].value)).appendTo(tr)); });
+					}
+
+				} else if (id === 'endpoints') {
+					const ep = prof.endpoints || {};
+					['subject','object'].forEach(role => {
+						const p = ep[role];
+						const sec = section('endpoints', role, role === 'subject' ? __('Subject') : __('Object')).appendTo(pane);
+						const body = sec.find('.sx-section-body');
+						if (!p || !p.name) {
+							$('<div class="sx-empty"></div>').text(__('Endpoint unavailable.')).appendTo(body);
+							return;
+						}
+						const card = $('<div class="sx-endpoint-card"></div>').appendTo(body);
+						card.append(itemGlyph(p.doctype || 'Source', 24));
+						const txt = $('<div class="sx-endpoint-text"></div>').appendTo(card);
+						$('<div class="sx-endpoint-title"></div>').text(p.title || p.name).appendTo(txt);
+						$('<div class="sx-endpoint-sub"></div>').text(__(p.doctype) + ' · ' + p.name).appendTo(txt);
+						const idStr = JSON.stringify([p.doctype, p.name]);
+						const btnRow = $('<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"></div>').appendTo(body);
+						if (all.get(idStr)) {
+							$('<button type="button" class="btn btn-xs btn-default"></button>')
+								.text(__('Focus in network'))
+								.on('click', () => showNode(idStr))
+								.appendTo(btnRow);
+						}
+						if (p.readable) {
+							$('<button type="button" class="btn btn-xs btn-default"></button>')
+								.text(__('Open record'))
+								.on('click', () => frappe.set_route('Form', p.doctype, p.name))
+								.appendTo(btnRow);
+						}
+					});
+				}
+			};
+
+			switchTab(state.tab);
 		};
 		const drawMatrix = (nodes, edges) => {
 			matrixHost.empty();
@@ -1328,7 +1798,8 @@ class SirajExplorer {
 			let ids = new Set(nodes.map(n => this.id(n)));
 			const eligibleEdges = data.edges.filter(e => ids.has(JSON.stringify(e.source)) && ids.has(JSON.stringify(e.target)) && (!edgeType || e.type === edgeType) && (!hideEnded || !e.end_date) && (!evidenceOnly || Number(e.evidence_count) > 0));
 			const distance = new Map();
-			if (centerId && ids.has(centerId)) {
+			const activeCenters = centerIds.filter(cid => ids.has(cid));
+			if (activeCenters.length) {
 				const neighbors = new Map();
 				eligibleEdges.forEach(e => {
 					const a = JSON.stringify(e.source), b = JSON.stringify(e.target);
@@ -1336,8 +1807,11 @@ class SirajExplorer {
 					if (!neighbors.has(b)) neighbors.set(b, []);
 					neighbors.get(a).push(b); neighbors.get(b).push(a);
 				});
-				distance.set(centerId, 0);
-				const queue = [centerId];
+				// Multi-source BFS: each center starts at distance 0; with
+				// multiple centers rings become a "union of balls" so the
+				// orbit layout places all selected records on the innermost ring.
+				const queue = [];
+				activeCenters.forEach(cid => { distance.set(cid, 0); queue.push(cid); });
 				for (let index = 0; index < queue.length; index++) {
 					const id = queue[index], depth = distance.get(id);
 					if (depth >= maxDistance) continue;
@@ -1347,44 +1821,63 @@ class SirajExplorer {
 				}
 				nodes = nodes.filter(n => distance.has(this.id(n)));
 				ids = new Set(distance.keys());
-			} else { centerId = null; }
+			}
 			currentEdges = eligibleEdges.filter(e => ids.has(JSON.stringify(e.source)) && ids.has(JSON.stringify(e.target)));
 			currentNodes = nodes;
 			edgeSet.clear(); nodeSet.clear(); history = []; currentId = null;
 			if (centerButton) centerButton.prop('disabled', true);
-			if (resetButton) resetButton.prop('disabled', !centerId);
+			if (resetButton) resetButton.prop('disabled', activeCenters.length === 0);
 			const large = nodes.length > 500;
 			this.network.setOptions({ physics: { enabled: layout === 'force' && !large } });
 			const columns = Math.ceil(Math.sqrt(nodes.length || 1));
 			const positions = new Map(), rings = new Map();
 			nodes.forEach(n => {
-				const id = this.id(n), ring = centerId ? distance.get(id) : 1;
+				const id = this.id(n), ring = activeCenters.length ? distance.get(id) : 1;
 				if (!rings.has(ring)) rings.set(ring, []);
 				rings.get(ring).push(id);
 			});
 			let previousRadius = 0;
 			[...rings.keys()].sort((a, b) => a - b).forEach(ring => {
 				const idsInRing = rings.get(ring);
-				if (ring === 0) { positions.set(idsInRing[0], {x: 0, y: 0}); return; }
-				const radius = Math.max(previousRadius + 220, idsInRing.length * 22);
+				if (ring === 0) {
+					// Lay all selected centers out on a small inner circle so
+					// multi-centre views don't collapse to a point.
+					const r = Math.max(40, idsInRing.length * 18);
+					idsInRing.forEach((id, i) => {
+						const angle = idsInRing.length === 1 ? 0 : 2 * Math.PI * i / idsInRing.length;
+						positions.set(id, {x: r * Math.cos(angle), y: r * Math.sin(angle)});
+					});
+					previousRadius = r + 140;
+					return;
+				}
+				const radius = Math.max(previousRadius + 180, idsInRing.length * 22);
 				previousRadius = radius;
 				idsInRing.forEach((id, i) => {
 					const angle = 2 * Math.PI * i / idsInRing.length;
 					positions.set(id, {x: radius * Math.cos(angle), y: radius * Math.sin(angle)});
 				});
 			});
-			nodeSet.add(nodes.map((n, i) => ({ id: this.id(n), label: n.label, image: nodeImage(n.doctype), color: { border:'#fff', background: this.colors[n.doctype] || '#6a7a7e', highlight:{border:'#fff',background: this.colors[n.doctype] || '#6a7a7e'} },
-				...(layout === 'orbit' ? positions.get(this.id(n)) : large ? { x: (i % columns) * 180, y: Math.floor(i / columns) * 110 } : {}) })));
+			// Visually distinguish center nodes with a thicker border.
+			const centerSet = new Set(activeCenters);
+			nodeSet.add(nodes.map((n, i) => {
+				const isCenter = centerSet.has(this.id(n));
+				return { id: this.id(n), label: n.label, image: nodeImage(n.doctype),
+					borderWidth: isCenter ? 6 : 3, color: { border: isCenter ? '#c69a21' : '#fff', background: this.colors[n.doctype] || '#6a7a7e', highlight:{border: isCenter ? '#c69a21' : '#fff', background: this.colors[n.doctype] || '#6a7a7e'} },
+					...(layout === 'orbit' ? positions.get(this.id(n)) : large ? { x: (i % columns) * 180, y: Math.floor(i / columns) * 110 } : {}) };
+			}));
 			graphHost.toggle(layout !== 'matrix'); matrixHost.toggle(layout === 'matrix');
 			if (layout === 'matrix') drawMatrix(nodes, currentEdges);
 			edgeSet.add(currentEdges.map(e => ({ id: e.name, from: JSON.stringify(e.source), to: JSON.stringify(e.target), label: e.type, arrows: /^(directed|one.way)$/i.test(e.direction) ? 'to' : '' })));
-			this.note.text(__('Showing {0} records and {1} relationships. Only visible records and links are included.', [nodes.length, currentEdges.length]) + ' ' + this.warning(data) + (evidenceOnly && data.edges.some(e => e.evidence_count == null) ? ' ' + __('Evidence counts are unavailable for some relationships.') : ''));
-			this.showDetails(__('Relationship map'), [[__('About this view'), __('Select a record or a connection to inspect it. Drag nodes to rearrange the network.')]]);
+			const suffix = activeCenters.length
+				? ' ' + __('Centered on {0} record(s).', [activeCenters.length])
+				: '';
+			this.note.text(__('Showing {0} records and {1} relationships. Only visible records and links are included.', [nodes.length, currentEdges.length]) + suffix + ' ' + this.warning(data) + (evidenceOnly && data.edges.some(e => e.evidence_count == null) ? ' ' + __('Evidence counts are unavailable for some relationships.') : ''));
+			this.showDetails(__('Relationship map'), [[__('About this view'), __('Select one or more records (via the Centre picker or by clicking a node) to walk out N degrees. Drag nodes to rearrange the network. Click an edge to inspect the relationship.')]]);
 		};
 		this.network.on('selectNode', event => showNode(event.nodes[0]));
 		this.network.on('selectEdge', event => showEdge(edgeLookup.get(event.edges[0])));
 		$('<h5></h5>').text(__('Filters')).appendTo(this.rail);
-		const filters = this.filterControls(types, (search, type) => { searchTerm = search; selectedType = type; centerId = null; trail = []; centerSelect.val(''); update(); }, this.rail);
+		const filters = this.filterControls(types, (search, type) => { searchTerm = search; selectedType = type; centerIds = []; trail = []; centerSelect.set([]); update(); }, this.rail);
 		$('<h5></h5>').text(__('Arrangement')).appendTo(this.rail);
 		const layoutSelect = $('<select class="form-control input-sm"></select>').attr('aria-label', __('Relationship layout')).appendTo(this.rail);
 		[['force', __('Force')], ['orbit', __('Orbit')], ['matrix', __('Matrix')]].forEach(([id, title]) => $('<option></option>').val(id).text(title).appendTo(layoutSelect));
@@ -1421,33 +1914,29 @@ class SirajExplorer {
 		[[1, __('Direct relationships')], [2, __('Two degrees')], [3, __('Three degrees')]].forEach(([value, title]) => $('<option></option>').val(value).text(title).appendTo(depthSelect));
 		depthSelect.on('change', () => {
 			maxDistance = Number(depthSelect.val()); update();
-			if (centerId) { showNode(centerId, false); if (layout !== 'matrix') this.network.fit({animation: true}); }
+			if (centerIds.length && layout !== 'matrix') this.network.fit({animation: true});
 		});
-		const centerSelect = $('<select class="form-control input-sm sx-center-select"></select>').attr('aria-label', __('Center on a person or organization')).appendTo(this.tools);
-		$('<option value=""></option>').text(__('Center on a person or organization')).appendTo(centerSelect);
-		['Person', 'Institution'].forEach(type => {
-			const group = $('<optgroup></optgroup>').attr('label', __(type)).appendTo(centerSelect);
-			data.nodes.filter(n => n.doctype === type).sort((a, b) => a.label.localeCompare(b.label)).forEach(n => $('<option></option>').val(this.id(n)).text(n.label + ' · ' + n.name).appendTo(group));
-		});
-		centerSelect.on('change', () => {
-			const id = centerSelect.val();
-			searchTerm = ''; selectedType = ''; filters.search.val(''); filters.select.val('');
-			if (centerId && id && centerId !== id) trail.push(centerId);
-			centerId = id || null; if (!id) trail = []; update();
-			if (centerId) { showNode(centerId, false); if (layout !== 'matrix') this.network.fit({animation: true}); }
-		});
+		const centerSelect = this.centerPicker(centerItems, ids => {
+			centerIds = ids.slice();
+			trail = [];
+			update();
+			if (layout !== 'matrix') this.network.fit({animation: true});
+		}, this.tools);
 		centerButton = this.button(__('Center on selected record'), () => {
 			if (!currentId) return;
-			if (centerId && centerId !== currentId) trail.push(centerId);
-			centerId = currentId;
+			// Toggle: if already a center, remove; otherwise add.
+			const set = new Set(centerIds);
+			if (set.has(currentId)) set.delete(currentId); else set.add(currentId);
+			centerIds = [...set];
+			centerSelect.set(centerIds);
+			trail = [];
 			update();
-			showNode(centerId, false);
+			showNode(currentId, false);
 			if (layout !== 'matrix') this.network.fit({animation: true});
 		}).prop('disabled', true).appendTo(this.tools);
-		resetButton = this.button(__('Show all records'), () => { centerId = null; trail = []; centerSelect.val(''); update(); }).prop('disabled', true).appendTo(this.tools);
+		resetButton = this.button(__('Show all records'), () => { centerIds = []; trail = []; centerSelect.set([]); update(); }).prop('disabled', true).appendTo(this.tools);
 		this.button(__('Back'), () => {
 			while (history.length) { const id = history.pop(); if (nodeSet.get(id)) { showNode(id, false); return; } }
-			if (trail.length) { centerId = trail.pop(); centerSelect.val(centerId); update(); if (centerId) { showNode(centerId, false); if (layout !== 'matrix') this.network.fit({animation: true}); } }
 		}).appendTo(this.tools);
 		this.button(__('Export SVG'), () => {
 			const ns = 'http://www.w3.org/2000/svg';
