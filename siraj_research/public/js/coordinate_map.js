@@ -102,12 +102,22 @@
 	}
 
 	function pinIcon(doctype, color, size) {
-		const s = size || 32;
+		const s = size || 34;
+		const h = Math.round(s * 1.15);
+		// Editor pin is slightly larger and carries an accent ring so it reads
+		// as "you are placing this record" rather than a generic map pin.
 		return L.divIcon({
 			className: 'sx-pin-wrapper',
-			// Teardrop anchor: the point is at the bottom of the pin.
-			iconSize: [s, s], iconAnchor: [s/2, s/2],
-			html: window.sirajIcons ? window.sirajIcons.pin(doctype || 'Place', color, s) : '',
+			iconSize: [s, h],
+			iconAnchor: [s/2, h],   // tip anchored to the clicked coordinate
+			popupAnchor: [0, -Math.round(s*0.8)],
+			tooltipAnchor: [0, -Math.round(s*0.5)],
+			html: window.sirajIcons ? window.sirajIcons.pin(doctype || 'Place', color, s, {
+				state: 'active',
+				halo: false,
+				ring: color || '#267b77',
+				dot: false,
+			}) : '',
 		});
 	}
 
@@ -125,14 +135,19 @@
 				? t('Enter valid decimal coordinates: latitude −90 to 90, longitude −180 to 180.')
 				: t('Click the map to pick a point, or type coordinates above.'));
 		} else {
+			const dt = frm.doctype || 'Place';
 			if (!state.marker) {
-				state.marker = L.marker([lat, lon], { icon: pinIcon('Place', null, 32), draggable: !!fields.editable }).addTo(state.map);
+				state.marker = L.marker([lat, lon], { icon: pinIcon(dt, null, 34), draggable: !!fields.editable, keyboard: true }).addTo(state.map);
 				state.marker.on('dragend', () => {
 					if (!fields.editable) return;
 					const p = state.marker.getLatLng();
 					writePoint(frm, p, false);
 				});
-			} else state.marker.setLatLng([lat, lon]);
+				state.marker.bindTooltip(__(dt), {direction:'top', offset:[0,-18]});
+			} else {
+				state.marker.setLatLng([lat, lon]);
+				state.marker.setIcon(pinIcon(dt, null, 34));
+			}
 			if (center) state.map.setView([lat, lon], Math.max(state.map.getZoom(), 6));
 			state.status.text((lat === 0 && lon === 0)
 				? t('Zero pair shown; legacy zero may also mean unknown. Confirm before interpreting.')

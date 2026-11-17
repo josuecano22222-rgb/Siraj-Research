@@ -127,9 +127,35 @@
 		return colours[doctype] || '#6a7a7e';
 	}
 
-	function pin(doctype, color, size) {
-		const s = size || 36, i = Math.round(s * 0.58), inner = Math.round(s * 0.5);
-		return `<span class="sx-map-pin siraj-pin" data-doctype="${doctype}" style="background:${color || colour(doctype)};width:${s}px;height:${s}px;border-width:${Math.max(2, Math.round(s/12))}px">${svg(GLYPHS, doctype, {size: i})}</span>`;
+	function pin(doctype, color, size, opts) {
+		// Professional teardrop map pin: a rounded body with a triangular point
+		// at the bottom. Callers should use iconAnchor:[s/2, Math.round(s*1.15)]
+		// so the point sits exactly on the geographic coordinate.
+		const s = size || 36;
+		const h = Math.round(s * 1.15);
+		const bodyW = Math.round(s * 0.76);
+		const bw = Math.max(2, Math.round(s / 14));
+		// Triangle point dimensions scale with pin size.
+		const pOuter = Math.round(s * 0.22);   // outer white triangle half-width
+		const pInner = Math.round(s * 0.14);   // inner colored triangle half-width
+		const pOuterH = Math.round(s * 0.34);  // outer triangle height
+		const pInnerH = Math.round(s * 0.28);  // inner colored triangle height
+		const c = color || colour(doctype);
+		const o = opts || {};
+		const glyph = svg(GLYPHS, doctype, {size: Math.round(bodyW * 0.55)});
+		const stateCls = o.state === 'selected' ? ' is-selected'
+		               : o.state === 'active'   ? ' is-active'
+		               : o.state === 'inactive' ? ' is-inactive' : '';
+		const dot = o.dot ? `<span class="siraj-pin-dot" style="width:${Math.max(8,Math.round(s*.28))}px;height:${Math.max(8,Math.round(s*.28))}px;background:${o.dot};top:${-Math.round(s*0.05)}px"></span>` : '';
+		const ring = o.ring
+			? (typeof o.ring === 'string'
+				? `<span class="siraj-pin-ring" style="border-color:${o.ring}"></span>`
+				: `<span class="siraj-pin-ring" style="border-color:${o.ring.color};border-style:${o.ring.style||'solid'}"></span>`)
+			: '';
+		const halo = o.halo ? `<span class="siraj-pin-halo" style="background:${o.halo}"></span>` : '';
+		const pointStyle = `border-left-width:${pOuter}px;border-right-width:${pOuter}px;border-top-width:${pOuterH}px;`;
+		const innerStyle = `left:-${pInner}px;top:-${pInnerH}px;border-left-width:${pInner}px;border-right-width:${pInner}px;border-top-width:${pInnerH}px;border-top-color:${c};`;
+		return `<span class="sx-map-pin siraj-pin${stateCls}" data-doctype="${doctype}" style="--pin-color:${c};width:${s}px;height:${h}px">${halo}${ring}<span class="siraj-pin-body" style="width:${bodyW}px;background:${c};border-width:${bw}px">${glyph}</span>${dot}<span class="siraj-pin-point" style="${pointStyle}"><span style="${innerStyle}"></span></span></span>`;
 	}
 
 	function swatch(doctype, size) {
@@ -143,5 +169,51 @@
 })();
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
-window.SIRAJ_BUILD = '2026-11-16.toolbar-polish.15';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| engines: maplibre (preferred), leaflet (compat) | advanced map toolbar (grouped sections, collapse/expand, scrollable body, icons/labels/auto label modes, keyboard nav, persistent state, RTL-friendly); complete Arabic i18n across all tabs; advanced structure filter bar; inline add-relationship; shift+drag link; self-test retries'); } catch (_) {}
+// Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
+window.SIRAJ_BUILD = '2026-11-17.basemaps-geofill.17';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| per-doctype teardrop pins; basemap layer registry; geo-resolve autofill; offline packages; version-banner staleness check'); } catch (_) {}
+
+// ---------- Stale-bundle banner ----------
+// Compare the JS-built stamp with the server stamp delivered at boot time.
+// If they differ the browser is running a cached bundle against a newer
+// server (most often the owner seeing old UI after a deploy). Show a
+// non-blocking dismissible banner urging a hard reload, and never auto-
+// reload (that can lose in-flight form edits).
+(function showVersionBanner() {
+	try {
+		const serverBuild = (frappe.boot && frappe.boot.siraj_record_meta && frappe.boot.siraj_record_meta.build) || null;
+		const localBuild = window.SIRAJ_BUILD;
+		if (!serverBuild) return;
+		const DISMISS_KEY = 'siraj_build_banner_dismissed';
+		const prevDismiss = localStorage.getItem(DISMISS_KEY);
+		if (serverBuild === localBuild) {
+			// Matches — clear any prior dismissal so next mismatch shows again.
+			if (prevDismiss) localStorage.removeItem(DISMISS_KEY);
+			return;
+		}
+		if (prevDismiss === serverBuild) return;  // already dismissed for this target version
+		// Mount banner once DOM is ready.
+		const mount = () => {
+			if (document.getElementById('siraj-build-banner')) return;
+			const bar = document.createElement('div');
+			bar.id = 'siraj-build-banner';
+			bar.setAttribute('role', 'status');
+			bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#fff3cd;color:#664d03;border-bottom:2px solid #ffecb5;padding:8px 16px;font-size:13px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.15);font-family:system-ui,sans-serif;direction:ltr;';
+			bar.innerHTML = '<strong style="flex:0 0 auto">⟳ SIRAJ</strong>'
+				+ '<span style="flex:1 1 auto">A new version of SIRAJ Research was just installed. Your browser is running build <code style="background:#00000010;padding:1px 5px;border-radius:3px">' + localBuild + '</code>; the server is at <code style="background:#00000010;padding:1px 5px;border-radius:3px">' + serverBuild + '</code>. Please hard-refresh (Ctrl/Cmd+Shift+R) to load the new maps, markers and autofill features.</span>'
+				+ '<button type="button" id="siraj-build-reload" style="background:#0c5e5b;color:#fff;border:0;padding:6px 14px;border-radius:4px;cursor:pointer;font-weight:600">Reload now</button>'
+				+ '<button type="button" id="siraj-build-dismiss" aria-label="Dismiss" style="background:transparent;border:0;font-size:18px;cursor:pointer;color:#664d03;padding:0 6px">×</button>';
+			document.body.appendChild(bar);
+			document.body.style.paddingTop = '36px';
+			bar.querySelector('#siraj-build-reload').addEventListener('click', () => { location.reload(); });
+			bar.querySelector('#siraj-build-dismiss').addEventListener('click', () => {
+				localStorage.setItem(DISMISS_KEY, serverBuild);
+				bar.remove();
+				document.body.style.paddingTop = '';
+			});
+			console.warn('%c[SIRAJ]', 'color:#c3564b;font-weight:bold', 'stale bundle detected; local=' + localBuild + ' server=' + serverBuild);
+		};
+		if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once: true });
+		else mount();
+	} catch (e) { /* never break the page over the banner */ }
+})();

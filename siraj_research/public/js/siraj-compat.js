@@ -56,6 +56,81 @@
 	}
 	setInterval(_installIfReady, 2000);  // belt-and-suspenders for lazy-loaded maps; cheap no-op after first run.
 
+	/* ---------- 2a) Point default icon assets at our vendored copy ----------
+	 * Frappe v15 serves its own /app/images/marker-icon.png but that path is
+	 * unreliable behind custom bench setups and produces broken-image icons
+	 * (visible in the owner's HTML excerpt). If Leaflet loads without our
+	 * global override below having kicked in, point its default icon at the
+	 * vendored copy we ship under public/vendor/leaflet/images/. The path
+	 * is still a no-op for any code that uses our divIcons, but it guarantees
+	 * NO request ever hits /app/images/marker-icon.png (which 404s). */
+	function installDefaultIconPath() {
+		if (!window.L || !L.Icon || !L.Icon.Default) return;
+		delete L.Icon.Default.prototype._getIconUrl;  // force imagePath-relative resolution
+		L.Icon.Default.mergeOptions({
+			iconUrl:    '/assets/siraj_research/vendor/leaflet/images/marker-icon.png',
+			iconRetinaUrl: '/assets/siraj_research/vendor/leaflet/images/marker-icon-2x.png',
+			shadowUrl:  '/assets/siraj_research/vendor/leaflet/images/marker-shadow.png',
+			iconSize:   [25, 41],
+			iconAnchor: [12, 41],
+			popupAnchor:[1, -34],
+			tooltipAnchor:[16, -28],
+			shadowSize: [41, 41],
+		});
+	}
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installDefaultIconPath, { once: true });
+	else installDefaultIconPath();
+	if (window.frappe && frappe.router && frappe.router.on) {
+		frappe.router.on('change', () => setTimeout(installDefaultIconPath, 50));
+	}
+	setInterval(installDefaultIconPath, 2000);
+
+	/* ---------- 2b) Global Leaflet default-marker override ----------
+	 * Any code that creates L.marker(latlng) without an explicit icon (e.g.
+	 * the coordinate map in old cached bundles, third-party plugins, future
+	 * MapView variants) falls back to Leaflet's stock blue marker-icon.png
+	 * which visually clashes with SIRAJ's pin system and often has no
+	 * shadow/retina assets in offline deploys.
+	 *
+	 * We patch L.Icon.Default.prototype to return a SIRAJ teardrop pin
+	 * divIcon instead of the image pin. This is a global default: explicit
+	 * divIcons and our own styled markers are untouched. */
+	function installDefaultPinOverride() {
+		if (!window.L || !L.Marker || L.Marker.prototype._sirajDefaultPatched) return;
+		L.Marker.prototype._sirajDefaultPatched = true;
+		const _initIcon = L.Marker.prototype._initIcon;
+		L.Marker.prototype._initIcon = function () {
+			// Only touch markers that would otherwise use the default blue image.
+			const isPlainDefault = !this.options.icon
+				|| (this.options.icon instanceof L.Icon.Default)
+				|| (this.options.icon && this.options.icon.options
+					&& /marker-icon\.png|default-icon/i.test(String(this.options.icon.options.iconUrl || '') + ' ' + String(this.options.icon.options.className || '')));
+			if (isPlainDefault && window.sirajIcons && window.sirajIcons.pin) {
+				// Try to divine a doctype from context (list view / form).
+				let dt = null;
+				try { dt = (frappe.get_route && frappe.get_route()[1]) || (cur_frm && cur_frm.doctype) || 'Place'; } catch (_) { dt = 'Place'; }
+				const color = (window.sirajColours && window.sirajColours[dt]) || '#3577c0';
+				const s = 32, h = Math.round(s * 1.15);
+				this.options.icon = L.divIcon({
+					className: 'sx-pin-wrapper',
+					iconSize: [s, h],
+					iconAnchor: [s/2, h],
+					popupAnchor: [0, -Math.round(s*0.8)],
+					tooltipAnchor: [0, -Math.round(s*0.5)],
+					html: window.sirajIcons.pin(dt, color, s),
+				});
+				this.options._sirajStyled = true;
+			}
+			return _initIcon.apply(this, arguments);
+		};
+	}
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installDefaultPinOverride, { once: true });
+	else installDefaultPinOverride();
+	if (window.frappe && frappe.router && frappe.router.on) {
+		frappe.router.on('change', () => setTimeout(installDefaultPinOverride, 50));
+	}
+	setInterval(installDefaultPinOverride, 2000);
+
 	/* ---------- 3) Frappe MapView markers: use the SIRAJ pin registry ----------
 	 * When Frappe renders its list Map view it uses L.marker(...) with the
 	 * default blue icon. We intercept those markers the moment the map is
@@ -148,26 +223,45 @@
 				});
 				new SirajBasemap({ position: 'topleft' }).addTo(map);
 
-				// Restyle markers to SIRAJ pins.
-				map.on('layeradd', ev => {
-					const layer = ev.layer;
-					if (!layer || !layer.options || !(layer instanceof L.Marker) || layer.options._sirajStyled) return;
+				// Restyle ANY non-SIRAJ marker (Frappe's default blue pin,
+				// other Leaflet defaults, or future marker-icon.png variants)
+				// so the list Map View always shows our teardrop pins.
+				const replaceDefaultMarker = layer => {
+					if (!layer || layer.options._sirajStyled) return;
+					if (!(layer instanceof L.Marker)) return;
 					const icon = layer.options.icon;
-					if (!icon || !icon.options) return;
-					const isDefault = /default-icon|leaflet-zoom|-blue/i.test(String(icon.options.className||'') + (icon.options.iconUrl||''));
-					const isBlue  = icon.options.iconUrl && /marker-icon/i.test(icon.options.iconUrl);
-					if (isDefault || isBlue) {
-						const dt = mv.doctype || (frappe.get_route && frappe.get_route()[1]);
-						const color = (window.sirajColours && window.sirajColours[dt]) || '#3577c0';
-						if (window.sirajIcons && window.sirajIcons.pin) {
-							layer.setIcon(L.divIcon({
-								className:'sx-pin-wrapper', iconSize:[32,32], iconAnchor:[16,16],
-								html: window.sirajIcons.pin(dt || 'Person', color, 32),
-							}));
+					// Only replace stock Leaflet/Frappe image icons, never our divIcons.
+					if (icon && icon.options && icon.options.className === 'sx-pin-wrapper') return;
+					if (icon && icon.options && icon.options.html && !icon.options.iconUrl) return;  // already a divIcon
+					// Heuristics for default markers: any iconUrl pointing at marker-icon.png,
+					// or default-icon/leaflet-zoom/-blue class names.
+					const url = String((icon && icon.options && icon.options.iconUrl) || '');
+					const cls = String((icon && icon.options && icon.options.className) || '');
+					const looksDefault = /marker-icon|default-icon|leaflet-zoom|-blue/i.test(url + ' ' + cls)
+						|| (!icon && layer.options.icon instanceof L.Icon.Default)
+						|| (L.Icon && layer.options.icon instanceof L.Icon.Default);
+					if (!looksDefault && url && !/marker-icon\.png/i.test(url)) return;
+					const dt = mv.doctype || (frappe.get_route && frappe.get_route()[1]);
+					const color = (window.sirajColours && window.sirajColours[dt]) || '#3577c0';
+					if (window.sirajIcons && window.sirajIcons.pin) {
+						const s = 32, h = Math.round(s*1.15);
+						layer.setIcon(L.divIcon({
+							className:'sx-pin-wrapper', iconSize:[s,h], iconAnchor:[s/2,h],
+							popupAnchor:[0,-Math.round(s*0.8)], tooltipAnchor:[0,-Math.round(s*0.5)],
+							html: window.sirajIcons.pin(dt || 'Person', color, s),
+						}));
+						if (layer.getTooltip && layer._tooltipContent) {
+							layer.setTooltipContent(layer._tooltipContent);
 						}
-						layer.options._sirajStyled = true;
 					}
-				});
+					layer.options._sirajStyled = true;
+				};
+				map.on('layeradd', ev => replaceDefaultMarker(ev.layer));
+				// Defensive: also sweep after a tick in case a plugin adds markers
+				// without firing layeradd synchronously.
+				setTimeout(() => {
+					try { map.eachLayer(l => replaceDefaultMarker(l)); } catch (_) {}
+				}, 200);
 				// Add a "Mapped N of total" status line so the pagination (20/100/500/2500) is obvious.
 				if (mv.$paging_area && mv.data && mv.data.length) {
 					const total = mv.total_count || mv.data.length;

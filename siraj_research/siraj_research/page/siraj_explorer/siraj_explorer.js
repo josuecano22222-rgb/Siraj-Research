@@ -117,7 +117,10 @@ class SirajExplorer {
 	showLegend(types, icons = null) {
 		types.forEach(type => {
 			const item = $('<span class="sx-legend-item"></span>').appendTo(this.legend);
-			if (window.sirajIcons && window.sirajIcons.svg) {
+			if (window.sirajIcons && window.sirajIcons.pin) {
+				// Legend swatches are rendered as body-only circles (CSS hides the point).
+				$(window.sirajIcons.pin(type, this.colors[type], 22)).addClass('sx-legend-pin').appendTo(item);
+			} else if (window.sirajIcons && window.sirajIcons.svg) {
 				const pin = $('<span class="sx-map-pin sx-legend-pin"></span>').css('background', this.colors[type]).appendTo(item);
 				pin.html(window.sirajIcons.svg(type, {size:14}));
 			} else if (icons && icons[type]) {
@@ -451,11 +454,19 @@ class SirajExplorer {
 			if (renderId !== this.renderId) return;
 			mapStatus(__('Local basemap could not be loaded. You can still use the markers or enable online tiles.'), true);
 		}
-		// Icons
-		const pointIcon = p => L.divIcon({
-			className: 'sx-pin-wrapper', iconSize:[36,36], iconAnchor:[18,18],
-			html: window.sirajIcons.pin(p.doctype, this.colors[p.doctype], 36)
-		});
+		// Icons — teardrop pin anchored at the tip (bottom center).
+		const pinH = s => Math.round(s * 1.15);
+		const pointIcon = (p, opts) => {
+			const s = 36;
+			return L.divIcon({
+				className: 'sx-pin-wrapper',
+				iconSize: [s, pinH(s)],
+				iconAnchor: [s/2, pinH(s)],  // tip sits exactly on coordinate
+				popupAnchor: [0, -Math.round(s*0.8)],
+				tooltipAnchor: [0, -Math.round(s*0.5)],
+				html: window.sirajIcons.pin(p.doctype, this.colors[p.doctype], s, opts || {}),
+			});
+		};
 		const itemGlyph = (doctype, size) => {
 			const c = this.colors[doctype] || '#6a7a7e';
 			const s = size || 12;
@@ -570,14 +581,23 @@ class SirajExplorer {
 		const egoMarker = (node, extra) => {
 			const dt = node.doctype, color = this.colors[dt] || '#6a7a7e';
 			const inferred = node.location_source && String(node.location_source).startsWith('inferred');
-			const size = node.hops === 0 ? 38 : (node.hops === 1 ? 32 : 26);
-			const ring = inferred ? `<span class="siraj-pin-halo-ring" style="position:absolute;inset:-4px;border:2px dashed ${color};border-radius:50%;opacity:.7"></span>` : '';
-			const halo = node.hops === 0 ? `<span class="siraj-pin-pulse" style="position:absolute;inset:-8px;border:2px solid ${color};border-radius:50%;opacity:.6;animation:siraj-pulse 1.6s ease-out infinite"></span>` : '';
-			const glyphHTML = (window.sirajIcons && window.sirajIcons.svg) ? window.sirajIcons.svg(dt, {size:Math.round(size*0.58)}) : '';
-			const html = `<span class="sx-map-pin siraj-pin" data-doctype="${dt}" style="position:relative;background:${color};width:${size}px;height:${size}px;${node.hops===0?'box-shadow:0 0 0 4px '+color+'33, 0 2px 8px #263c4066':''}">${glyphHTML}${ring}${halo}</span>`;
-			const icon = L.divIcon({ className:'sx-pin-wrapper', iconSize:[size,size], iconAnchor:[size/2,size/2], html });
+			const size = node.hops === 0 ? 40 : (node.hops === 1 ? 34 : 28);
+			const h = pinH(size);
+			const opts = {
+				state: node.hops === 0 ? 'selected' : (extra && extra.restricted ? 'inactive' : 'active'),
+				halo: node.hops === 0 ? color : false,
+				ring: inferred ? { color: color, style: 'dashed' } : (node.hops === 0 ? color : false),
+			};
+			const icon = L.divIcon({
+				className: 'sx-pin-wrapper',
+				iconSize: [size, h],
+				iconAnchor: [size/2, h],
+				popupAnchor: [0, -Math.round(size*0.8)],
+				tooltipAnchor: [0, -Math.round(size*0.5)],
+				html: window.sirajIcons.pin(dt, color, size, opts),
+			});
 			const m = L.marker([Number(node.latitude),Number(node.longitude)],{icon,interactive:true});
-			if (extra && extra.restricted) m.setOpacity(0.4);
+			if (extra && extra.restricted) m.setOpacity(0.5);
 			return m;
 		};
 		const styleDim = on => { markers.eachLayer(l => { const el = l.getElement && l.getElement(); if (el) el.style.opacity = (on && selectedNode && isolateSelected) ? '0.25' : ''; }); };
@@ -682,15 +702,28 @@ class SirajExplorer {
 				if (seq === egoRequestSeq) egoLoading = false;
 			}
 		};
+		const idOf = m => m && m.options && m.options._sxId;
+		const applyPinSelection = (selectedId) => {
+			markers.eachLayer(m => {
+				const el = m.getElement && m.getElement();
+				const pin = el && el.querySelector('.siraj-pin.sx-map-pin');
+				if (!pin) return;
+				if (idOf(m) === selectedId) {
+					pin.classList.add('is-selected');
+					pin.style.setProperty('--pin-color', m.options._sxColor || pin.style.getPropertyValue('--pin-color'));
+					if (m.bringToFront) m.bringToFront();
+				} else {
+					pin.classList.remove('is-selected');
+				}
+			});
+		};
 		const selectNode = p => {
 			if (!p) { clearSelection(); return; }
 			clearSelectionVisuals();
 			if (selectedNode) selectionTrail.push({doctype:selectedNode.doctype, name:selectedNode.name, label:selectedNode.label});
 			selectedNode = p;
 			pointsById.set(this.id(p), p);
-			markers.eachLayer(m => {
-				// Bring matching marker to front; no-op for now.
-			});
+			applyPinSelection(this.id(p));
 			map.panTo([Number(p.latitude),Number(p.longitude)]);
 			loadEgo(egoDepth);
 		};
@@ -698,6 +731,7 @@ class SirajExplorer {
 			selectedNode = null;
 			egoData = null;
 			clearSelectionVisuals();
+			applyPinSelection(null);
 			styleDim(false);
 			$(document).off('keydown.sxPanel');
 			this.showDetails(__('Geographic map'),[[__('About this view'),__('Map tools are docked on the right edge. Click a pin to see its connections.')]]);
@@ -1206,10 +1240,21 @@ class SirajExplorer {
 			return relData;
 		};
 
-		// Marker cluster layer
+		// Marker cluster layer — aggregate badge sized by child count.
+		const clusterIcon = c => {
+			const count = c.getChildCount();
+			const size = count < 10 ? 36 : count < 100 ? 42 : count < 1000 ? 48 : 56;
+			const fontSize = count < 100 ? 13 : count < 1000 ? 14 : 15;
+			return L.divIcon({
+				className: 'sx-cluster',
+				html: `<span style="font-size:${fontSize}px">${count >= 1000 ? (count/1000).toFixed(1)+'k' : count}</span>`,
+				iconSize: [size, size],
+				iconAnchor: [size/2, size/2],
+			});
+		};
 		let markers = L.markerClusterGroup({
 			maxClusterRadius:45, showCoverageOnHover:false, spiderfyOnMaxZoom:true,
-			iconCreateFunction: c => L.divIcon({className:'sx-cluster', html:'<span>'+c.getChildCount()+'</span>', iconSize:[40,40]})
+			iconCreateFunction: clusterIcon,
 		}).addTo(map);
 		const draw = () => {
 			if (selectedCircle && !selectedNode) { map.removeLayer(selectedCircle); selectedCircle=null; }
@@ -1227,7 +1272,9 @@ class SirajExplorer {
 			});
 			currentPoints.forEach(p => {
 				const m = L.marker([Number(p.latitude),Number(p.longitude)],{icon:pointIcon(p),title:p.label,keyboard:true});
-				m.bindTooltip(this.escape(p.label));
+				m.options._sxId = this.id(p);
+				m.options._sxColor = this.colors[p.doctype] || '#6a7a7e';
+				m.bindTooltip(this.escape(p.label), {direction:'top', offset:[0,-18]});
 				m.on('click', () => selectPoint(p));
 				markers.addLayer(m);
 			});
@@ -1381,7 +1428,7 @@ class SirajExplorer {
 				clustered=!clustered; this.toolbar.setActive('clusters',clustered);
 				map.removeLayer(markers);
 				markers = clustered
-					? L.markerClusterGroup({maxClusterRadius:45,showCoverageOnHover:false,spiderfyOnMaxZoom:true,iconCreateFunction:c=>L.divIcon({className:'sx-cluster',html:'<span>'+c.getChildCount()+'</span>',iconSize:[40,40]})})
+					? L.markerClusterGroup({maxClusterRadius:45,showCoverageOnHover:false,spiderfyOnMaxZoom:true,iconCreateFunction:clusterIcon})
 					: L.featureGroup();
 				markers.addTo(map); draw();
 			}.bind(this)})

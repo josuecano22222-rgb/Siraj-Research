@@ -17,13 +17,9 @@
 @media (max-width: 800px) { .sx-layout { grid-template-columns: 1fr; } .sx-canvas { min-height: 420px; height: 55vh; } }
 /* The offline map and its fixed, type-specific symbols work without an icon font. */
 .siraj-explorer .leaflet-container { background: #c8dfe0; }
-.sx-pin-wrapper { border: 0; background: transparent; }
-.sx-map-pin { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 3px solid #fff; border-radius: 50%; color: #fff; box-shadow: 0 2px 7px #263c4055; }
-.sx-map-pin svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .sx-legend-item { display: inline-flex; align-items: center; gap: 5px; }
-.sx-legend-pin { display: inline-flex; width: 24px; height: 24px; border-width: 2px; }
-.sx-legend-pin svg { width: 15px; height: 15px; }
-.sx-cluster { display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #fff; background: #1a6670; border: 4px solid #c4e5de; box-shadow: 0 2px 7px #263c4066; font-weight: 700; }
+.sx-legend-pin { display: inline-flex; align-items:center; justify-content:center; width: 22px; height: 22px; }
+.sx-legend-pin svg { width: 13px; height: 13px; }
 .sx-map-status { margin-top: 8px; color: var(--text-muted); font-size: 12px; }
 .sx-neighbors-heading { margin-top: 24px; } .sx-muted { color: var(--text-muted); font-size: 12px; }
 .sx-neighbor { border-top: 1px solid var(--sx-line); padding: 8px 0; }
@@ -91,8 +87,6 @@
 
 /* Ego-network & relationship overlay styles */
 @keyframes siraj-pulse { 0% { transform: scale(0.8); opacity: .7; } 100% { transform: scale(1.8); opacity: 0; } }
-.siraj-pin { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; color: #fff; font-weight: 700; box-shadow: 0 2px 8px #263c4055; cursor: pointer; }
-.siraj-pin svg { width: 60%; height: 60%; }
 .leaflet-tooltip.siraj-edge-tooltip { background: #0c3033; color: #fff; border: 0; border-radius: 4px; font-size: 11px; padding: 3px 7px; box-shadow: 0 2px 6px #0004; }
 .leaflet-tooltip.siraj-edge-tooltip::before { border-top-color: #0c3033; }
 .sx-pin-wrapper { background: transparent; border: 0; }
