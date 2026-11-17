@@ -108,12 +108,17 @@ def get_entity_profile(doctype, name, **kwargs):
             continue
         if f.hidden:
             continue
-        # permlevel — skip fields above the user's permlevel for read.
-        user_perm = frappe.permissions.get_user_perms(doctype)
-        readable_levels = {p.get("permlevel", 0) for p in (user_perm or []) if p.get("read")}
-        if readable_levels and f.permlevel and f.permlevel not in readable_levels:
-            if 0 not in readable_levels:
-                continue
+        # permlevel: skip fields at higher permlevels the user cannot read.
+        # frappe.has_permission(doctype, 'read', doc=name, permlevel=N) is the
+        # supported v15 check; fall back to allowing permlevel 0 (the common
+        # case) when anything goes wrong.
+        try:
+            if f.permlevel and f.permlevel > 0:
+                if not frappe.has_permission(doctype, "read", doc=name, permlevel=f.permlevel):
+                    continue
+        except TypeError:
+            # Older signatures don't accept permlevel= kwarg; be permissive.
+            pass
         val = _fmt_value(doc, f)
         entry = {
             "fieldname": f.fieldname,
