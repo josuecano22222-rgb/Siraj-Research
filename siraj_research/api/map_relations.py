@@ -61,9 +61,9 @@ def get_entity_network(doctype: str, name: str, depth: int = 1, types: str | Non
 	limit_nodes = max(1, min(limit_nodes, MAX_NODES_HARD))
 	limit_edges = max(1, min(limit_edges, MAX_EDGES_HARD))
 	if doctype not in RELATABLE_DOCTYPES:
-		frappe.throw(_("Relationships are not defined for {0}", doctype))
+		frappe.throw(_("Relationships are not defined for {0}").format(doctype))
 	if not frappe.has_permission(doctype, "read", name):
-		frappe.throw(_("You do not have permission to read {0}", doctype), frappe.PermissionError)
+		frappe.throw(_("You do not have permission to read {0}").format(doctype), frappe.PermissionError)
 
 	allowed_types = None
 	if types:
@@ -87,52 +87,54 @@ def get_entity_network(doctype: str, name: str, depth: int = 1, types: str | Non
 		if not frontier:
 			break
 		next_frontier: dict[tuple[str, str], int] = {}
-		# Pull all edges from the frontier in one OR query per direction.
-		subject_filters = {"subject_type": ("in", []), "subject": ("in", [])}
-		object_filters = {"object_type": ("in", []), "object": ("in", [])}
-		# We'll build OR filters using nested conditions.
-		or_groups = []
-		# Batch edges per DocType for efficient queries.
+		# Batch edges per DocType per direction and issue separate get_list calls
+		# with simple dict filters (AND semantics). This avoids Frappe's OR-list
+		# format pitfall where a nested list of 3-tuples is mis-interpreted as a
+		# single 4-tuple filter, producing "Filter must have 4 values".
 		by_subject: dict[str, list[str]] = {}
 		by_object: dict[str, list[str]] = {}
 		for (dt, nm) in frontier:
 			by_subject.setdefault(dt, []).append(nm)
 			by_object.setdefault(dt, []).append(nm)
-		for sdt, names in by_subject.items():
-			if sdt not in RELATABLE_DOCTYPES:
-				continue
-			or_groups.append([["subject_type", "=", sdt], ["subject", "in", names]])
-		for odt, names in by_object.items():
-			if odt not in RELATABLE_DOCTYPES:
-				continue
-			or_groups.append([["object_type", "=", odt], ["object", "in", names]])
-		if not or_groups:
-			break
-		filters = {"parenttype": "Relationship"}  # we query Relationship via frappe.get_list directly
-		edge_filters = []
-		for grp in or_groups:
-			f = grp[:]
-			if allowed_types is not None:
-				f.append(["relationship_type", "in", list(allowed_types)])
-			edge_filters.append(f)
-		if not edge_filters:
-			break
-		try:
-			edges = frappe.get_list(
-				"Relationship",
-				filters=edge_filters,
-				fields=["name", "subject_type", "subject", "object_type", "object",
-						"relationship_type", "direction", "start_date", "end_date",
-						"description", "display_name"],
-				limit=limit_edges + 1,
-			)
-		except Exception as exc:  # pragma: no cover - defensive
-			frappe.log_error(
-				title="siraj map_relations.get_entity_network query failed",
-				message=frappe.get_traceback(),
-			)
-			raise
 
+		edges: list[dict] = []
+		def _query(direction_field: str, dt_field: str, name_field: str, batches: dict[str, list[str]]):
+			nonlocal edges
+			for dt, names in batches.items():
+				if dt not in RELATABLE_DOCTYPES:
+					continue
+				if len(visited_edges) >= limit_edges:
+					break
+				filt = {dt_field: dt, name_field: ("in", names)}
+				if allowed_types is not None:
+					filt["relationship_type"] = ("in", list(allowed_types))
+				remaining = limit_edges - len(visited_edges) + 1  # +1 to detect truncation
+				try:
+					batch = frappe.get_list(
+						"Relationship",
+						filters=filt,
+						fields=["name", "subject_type", "subject", "object_type", "object",
+								"relationship_type", "direction", "start_date", "end_date",
+								"description", "display_name"],
+						limit=remaining,
+					)
+				except Exception:  # pragma: no cover - defensive
+					frappe.log_error(
+						title="siraj map_relations.get_entity_network query failed",
+						message=frappe.get_traceback(),
+					)
+					raise
+				edges.extend(batch)
+
+		_query("subject", "subject_type", "subject", by_subject)
+		_query("object",  "object_type",  "object",  by_object)
+
+		if not edges:
+			frontier = next_frontier
+			continue
+
+		# Truncation detection: if any batch hit limit we may have over-counted;
+		# simply flag truncated when we ended with more than limit_edges.
 		if len(edges) > limit_edges:
 			edges = edges[:limit_edges]
 			truncated = True
