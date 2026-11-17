@@ -984,10 +984,20 @@ class SirajExplorer {
 					const ib   = (prof.connections && prof.connections.inbound_links)   || [];
 					const unm  = (egoData && egoData.unmapped) || [];
 
-					// Authored relationships
+					// Authored relationships — always show an inline "+" in the section header
+					// so the add button appears IN CONTEXT of the selected entity rather
+					// than floating at the top of the panel.
 					const relSec = section('connections','rels',__('Relationships'), String(rels.length)).appendTo(pane);
+					// "+ Add" lives inside the <summary> so it sits alongside the
+					// section title (context of the clicked record, not the panel top).
+					const relHeader = relSec.find('summary');
+					if (prof.permissions && prof.permissions.can_create) {
+						$('<button type="button" class="btn btn-primary btn-xs sx-rel-add" aria-label="' + __('Add relationship from this record') + '" onclick="event.preventDefault();event.stopPropagation();">+ ' + __('Add') + '</button>')
+							.on('click', ev => { ev.preventDefault(); ev.stopPropagation(); addRelationship(null); })
+							.appendTo(relHeader);
+					}
 					if (!rels.length) {
-						$('<div class="sx-empty"></div>').text(__('No authored relationships.')).appendTo(relSec.find('.sx-section-body'));
+						$('<div class="sx-empty"></div>').text(__('No authored relationships. Use + Add to create one from this record.')).appendTo(relSec.find('.sx-section-body'));
 					} else {
 						const list = $('<ul class="sx-conn-list"></ul>').appendTo(relSec.find('.sx-section-body'));
 						const showAll = $('<button type="button" class="btn btn-link btn-xs sx-show-all" style="display:none"></button>')
@@ -1519,8 +1529,17 @@ class SirajExplorer {
 			this.network.focus(id, { scale: 1, animation: { duration: 400 } });
 			this.showDetails(node.label, [[__('Type'), __(node.doctype)], [__('ID'), node.name], ...Object.entries(node.details || {}).map(([label, value]) => [__(label), value])], node);
 			const connected = currentEdges.filter(e => JSON.stringify(e.source) === id || JSON.stringify(e.target) === id);
-			$('<h5 class="sx-neighbors-heading"></h5>').text(__('Connections ({0})', [connected.length])).appendTo(this.aside);
-			if (!connected.length) $('<p class="sx-muted"></p>').text(__('No visible connections in this view.')).appendTo(this.aside);
+			// Connections heading with an inline "+ Add" button that opens the
+			// dialog pre-filled to THIS selected node — keeps the action in the
+			// context of the item the user just clicked.
+			const connHead = $('<div class="sx-neighbors-head"></div>').appendTo(this.aside);
+			$('<h5 class="sx-neighbors-heading"></h5>').text(__('Connections ({0})', [connected.length])).appendTo(connHead);
+			$('<button type="button" class="btn btn-primary btn-xs sx-conn-add" aria-label="' + __('Add relationship from this record') + '">+ ' + __('Add') + '</button>')
+				.on('click', () => {
+					this.openAddRelationshipDialog(node, null, { onSaved: () => refreshGraph() });
+				})
+				.appendTo(connHead);
+			if (!connected.length) $('<p class="sx-muted"></p>').text(__('No visible connections in this view. Use + Add to create one from this record.')).appendTo(this.aside);
 			connected.forEach(edge => {
 				const sourceId = JSON.stringify(edge.source), targetId = JSON.stringify(edge.target);
 				const neighbor = all.get(sourceId === id ? targetId : sourceId);
@@ -2199,28 +2218,123 @@ class SirajExplorer {
 		await frappe.require('/assets/siraj_research/vendor/d3-sankey/d3-sankey.min.js');
 		await frappe.require('/assets/siraj_research/js/structure_deck.js');
 		if (renderId !== this.renderId) return;
-		this.canvas.removeClass('sx-canvas');
-		const choices = [['people', __('People')], ['institutions', __('Institutions')], ['places', __('Places')], ['events', __('Research events')], ['relationships', __('Relationships')], ['sources', __('Sources')], ['units', __('Units — command hierarchy')], ['units-ops', __('Units × Operations')], ['forces', __('Forces — echelon, status, classification')]];
-		const select = $('<select class="form-control input-sm"></select>').attr('aria-label', __('Structure source')).appendTo(this.tools);
-		choices.forEach(([id, title]) => $('<option></option>').val(id).text(title).appendTo(select));
+		this.canvas.removeClass('sx-canvas').addClass('sx-structure-host');
+
+		// ---------- Dataset registry (with groups for the multi-select chip bar) -----
+		const SOURCES = [
+			{ id: 'people',        label: __('People'),          glyph: 'Person',               group: __('Entities') },
+			{ id: 'institutions',  label: __('Institutions'),    glyph: 'Institution',          group: __('Entities') },
+			{ id: 'places',        label: __('Places'),          glyph: 'Place',                group: __('Entities') },
+			{ id: 'mil_units',     label: __('Military Units'),  glyph: 'Military Unit',        group: __('Military') },
+			{ id: 'forces',        label: __('Forces (echelon)'),glyph: 'Military Unit',        group: __('Military') },
+			{ id: 'units',         label: __('Command hierarchy'), glyph: 'Military Unit',      group: __('Military') },
+			{ id: 'units-ops',     label: __('Units × Operations'), glyph: 'Military Unit',    group: __('Military') },
+			{ id: 'deployments',   label: __('Deployments'),     glyph: 'Operational Deployment', group: __('Military') },
+			{ id: 'missions',      label: __('Missions'),        glyph: 'Mission',              group: __('Military') },
+			{ id: 'exercises',     label: __('Training exercises'), glyph: 'Training Exercise', group: __('Military') },
+			{ id: 'events',        label: __('Research events'), glyph: 'Research Event',       group: __('Research') },
+			{ id: 'relationships', label: __('Relationships'),   glyph: 'Relationship',         group: __('Research') },
+			{ id: 'sources',       label: __('Sources'),         glyph: 'Source',               group: __('Research') },
+		];
+
+		// ---------- Filter bar (search + multi-select chips + view switcher) ----------
+		const filterBar = $('<div class="sx-struct-filter" role="toolbar" aria-label="Structure filters"></div>').appendTo(this.tools);
+		const searchWrap = $('<div class="sx-struct-search"></div>').appendTo(filterBar);
+		const searchInput = $('<input type="search" class="form-control input-sm" autocomplete="off">')
+			.attr({'aria-label': __('Search structure views'), placeholder: __('Search datasets or filter content…')})
+			.appendTo(searchWrap);
+		$('<span class="sx-struct-search-icon" aria-hidden="true">⌕</span>').prependTo(searchWrap);
+
+		const activeSource = $('<div class="sx-struct-active" aria-live="polite"></div>').appendTo(filterBar);
+		const chipHost = $('<div class="sx-struct-chips"></div>').appendTo(this.tools);
+		const groupHeaders = {};
+
+		function renderChips(term = '') {
+			chipHost.empty();
+			const q = term.trim().toLocaleLowerCase();
+			const groups = new Map();
+			SOURCES.forEach(src => {
+				if (q && src.label.toLocaleLowerCase().indexOf(q) < 0 && src.group.toLocaleLowerCase().indexOf(q) < 0) return;
+				if (!groups.has(src.group)) groups.set(src.group, []);
+				groups.get(src.group).push(src);
+			});
+			if (!groups.size) {
+				$('<span class="sx-muted"></span>').text(__('No matching views')).appendTo(chipHost);
+				return;
+			}
+			for (const [group, list] of groups) {
+				const header = $('<div class="sx-struct-group-head"></div>').text(group).appendTo(chipHost);
+				const row = $('<div class="sx-struct-chip-row" role="group"></div>').attr('aria-label', group).appendTo(chipHost);
+				list.forEach(src => {
+					const chip = $('<button type="button" class="btn btn-sm sx-struct-chip"></button>')
+						.attr('aria-pressed', src.id === currentId ? 'true' : 'false')
+						.toggleClass('active', src.id === currentId)
+						.appendTo(row);
+					chip.append($('<span class="sx-struct-chip-glyph"></span>').html((window.sirajIcons && window.sirajIcons.svg(src.glyph, {size:14})) || ''));
+					chip.append($('<span class="sx-struct-chip-label"></span>').text(src.label));
+					chip.on('click', () => selectSource(src.id));
+				});
+			}
+		}
+
+		// Default starting source.
+		let currentId = 'people';
 		let request = 0;
-		const load = async () => {
-			const current = ++request;
+		let currentDeck = null;
+		const filterTerm = () => searchInput.val() || '';
+
+		const selectSource = async (id) => {
+			currentId = id;
+			activeSource.empty();
+			const src = SOURCES.find(s => s.id === id);
+			if (src) {
+				activeSource.append($('<span class="sx-struct-active-glyph"></span>').html((window.sirajIcons && window.sirajIcons.svg(src.glyph, {size:14})) || ''));
+				activeSource.append($('<strong></strong>').text(src.label));
+				activeSource.append($('<span class="sx-struct-active-group"></span>').text(src.group));
+			}
+			renderChips(filterTerm());
+			const seq = ++request;
 			this.structureDeck = null;
-			this.canvas.empty(); this.aside.empty(); this.note.removeClass('sx-warning').text(__('Loading…'));
+			this.canvas.find('.sd-bar, .sd-stage, .sd-legend, .sd-crumbs, .sd-footer, .sd-table').remove();
+			this.aside.empty();
+			this.note.removeClass('sx-warning').text(__('Loading…'));
 			try {
-				const result = await frappe.call({ method: 'siraj_research.visualization.structure_data', args: { source: select.val() } });
-				if (renderId !== this.renderId || current !== request) return;
+				const result = await frappe.call({ method: 'siraj_research.visualization.structure_data', args: { source: id } });
+				if (renderId !== this.renderId || seq !== request) return;
 				const data = result.message;
-				this.note.text(__('Counting {0} visible records.', [data.count]) + (data.unavailable_types && data.unavailable_types.length ? ' ' + __('Some record types are not readable: {0}', [data.unavailable_types.map(type => __(type)).join(', ')]) : ''));
-				new window.SirajStructureDeck(this, this.canvas, this.aside, data);
+				this.note.text(__('Counting {0} visible records.', [data.count])
+					+ ' ' + __('Source:') + ' ' + (src ? src.label : id)
+					+ (data.unavailable_types && data.unavailable_types.length ? ' ' + __('Some record types are not readable: {0}', [data.unavailable_types.map(type => __(type)).join(', ')]) : ''));
+				currentDeck = new window.SirajStructureDeck(this, this.canvas, this.aside, data);
+				// Apply in-deck search if user typed into the filter bar.
+				const t = filterTerm();
+				if (t && currentDeck) {
+					// Defer so the find input (if any) can be referenced.
+					setTimeout(() => currentDeck.find(t), 0);
+				}
 			} catch (error) {
-				if (renderId !== this.renderId || current !== request) return;
-				this.canvas.empty(); this.aside.empty(); this.note.text(__('Unable to load this structure. Check permissions.')).addClass('sx-warning');
+				if (renderId !== this.renderId || seq !== request) return;
+				this.aside.empty();
+				this.note.text(__('Unable to load this structure. Check permissions.')).addClass('sx-warning');
 				console.error(error);
 			}
 		};
-		select.on('change', load);
-		await load();
+
+		searchInput.on('input', () => {
+			const term = filterTerm();
+			renderChips(term);
+			// Live filter within the deck too (if already loaded).
+			if (currentDeck && term.length >= 2) currentDeck.find(term);
+		});
+
+		// Keyboard: focus filter bar with "/"
+		this.canvas.off('keydown.structfilter').on('keydown.structfilter', e => {
+			if (e.key === '/' && !/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) {
+				e.preventDefault(); searchInput.trigger('focus').select();
+			}
+		});
+
+		renderChips();
+		await selectSource(currentId);
 	}
 }

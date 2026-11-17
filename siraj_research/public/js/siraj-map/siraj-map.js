@@ -30,7 +30,7 @@
 	'use strict';
 	// Map engine build tag — mirrors window.SIRAJ_BUILD from siraj-record-meta.js
 	// so diagnostic lines in the console agree on the deployed revision.
-	const SIRAJ_MAP_BUILD = (window.SIRAJ_BUILD) || '2026-11-16.add-rel-draglink.10';
+	const SIRAJ_MAP_BUILD = (window.SIRAJ_BUILD) || '2026-11-16.structure-filters.11';
 	console.info('%c[SIRAJ Map]', 'color:#0c5e5b;font-weight:bold', 'build', SIRAJ_MAP_BUILD, '| engine: maplibre');
 
 	const engines = { maplibre: null, leaflet: null };

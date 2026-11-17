@@ -1057,3 +1057,24 @@ Tip: hold Shift and drag one node onto another to create a relationship.,نصي�
 Suggested connections,اقتراحات الربط
 No visible connections in this view.,لا توجد اتصالات ظاهرة في هذا العرض.
 Connections ({0}),الصلات ({0})
+Search structure views,البحث في هياكل البيانات
+Search datasets or filter content…,ابحث في مجموعات البيانات أو صفِّ المحتوى…
+Entities,الكيانات
+Military,العسكري
+Research,الأبحاث
+Military Units,الوحدات العسكرية
+Forces (echelon),القوى (الرُتب)
+Command hierarchy,التسلسل القيادي
+Units × Operations,الوحدات × العمليات
+Deployments,الانتشارات
+Equipment,العتاد
+Missions,المهام
+Training exercises,التمارين التدريبية
+Source:,المصدر:
+No matching views,لا توجد طرق عرض مطابقة
+Counting {0} visible records.,جرد {0} سجل مرئي.
+Add relationship from this record,إضافة علاقة من هذا السجل
+No authored relationships. Use + Add to create one from this record.,لا توجد علاقات مسجَّلة. استخدم + إضافة لإنشاء علاقة من هذا السجل.
+No visible connections in this view. Use + Add to create one from this record.,لا توجد صلات مرئية في هذا العرض. استخدم + إضافة لإنشاء صلة من هذا السجل.
++ Add,+ إضافة
+Add,إضافة

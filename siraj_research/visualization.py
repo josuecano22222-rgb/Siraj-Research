@@ -77,6 +77,10 @@ STRUCTURES = {
 	"relationships": ("Relationship", ("relationship_type", "direction", "authentication_level")),
 	"sources": ("Source", ("source_type", "source_reliability", "workflow_state")),
 	"forces": ("Military Unit", ("echelon", "status", "classification")),
+	"mil_units": ("Military Unit", ("echelon", "status", "classification")),
+	"deployments": ("Operational Deployment", ("deployment_type", "status", "location")),
+	"missions": ("Mission", ("mission_type", "status", "area")),
+	"exercises": ("Training Exercise", ("training_type", "assessment", "location")),
 }
 STRUCTURE_MAX_LEAVES = 48
 

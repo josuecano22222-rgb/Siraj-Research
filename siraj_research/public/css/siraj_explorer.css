@@ -473,3 +473,67 @@
 /* "+ Add relationship" primary emphasis */
 .btn.btn-primary.sx-edge-link,
 button.sx-edge-link.btn-primary { background:#267b77; border-color:#267b77; }
+
+/* ====== Structures: advanced filter bar ====== */
+.sx-structure-host { background: #fafbfa; }
+.sx-struct-filter {
+  display:flex; align-items:center; gap:10px;
+  padding:6px 8px; background:#f1f5f4; border:1px solid #d3e0dd; border-radius:8px;
+  margin-bottom:6px;
+}
+.sx-struct-search { position:relative; flex:1 1 260px; min-width:200px; }
+.sx-struct-search input { padding-inline-start:28px; }
+.sx-struct-search-icon {
+  position:absolute; left:9px; top:50%; transform:translateY(-50%);
+  color:#5f827f; font-size:14px; pointer-events:none; font-weight:bold;
+}
+.sx-struct-active {
+  display:inline-flex; align-items:center; gap:6px; flex:0 0 auto;
+  background:#fff; border:1px solid #c7d5d2; border-radius:16px; padding:3px 10px 3px 6px;
+  font-size:12px; color:#283d3a;
+}
+.sx-struct-active-glyph {
+  width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center;
+  background:#e4efee; border-radius:50%; color:#267b77;
+}
+.sx-struct-active-glyph svg { width:14px; height:14px; }
+.sx-struct-active-group { color:#688783; font-size:11px; }
+.sx-struct-active strong { font-size:13px; }
+
+.sx-struct-chips { padding:4px 2px 8px; }
+.sx-struct-group-head {
+  font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+  color:#6a8481; margin:8px 2px 4px; font-weight:600;
+}
+.sx-struct-chip-row { display:flex; flex-wrap:wrap; gap:6px; }
+.sx-struct-chip {
+  display:inline-flex; align-items:center; gap:6px; background:#fff;
+  border:1px solid #cfdcd9; border-radius:18px; padding:3px 10px 3px 4px;
+  font-size:12px; color:#244542; cursor:pointer; transition:all .15s;
+}
+.sx-struct-chip:hover { border-color:#267b77; background:#ecf5f4; color:#0f413e; }
+.sx-struct-chip.active { background:#267b77; border-color:#1f6662; color:#fff; }
+.sx-struct-chip.active .sx-struct-chip-glyph { background:#fff; color:#267b77; }
+.sx-struct-chip-glyph {
+  width:22px; height:22px; border-radius:50%; display:inline-flex;
+  align-items:center; justify-content:center; background:#e6efee; color:#267b77;
+}
+.sx-struct-chip-glyph svg { width:13px; height:13px; }
+.sx-struct-chip-label { white-space:nowrap; }
+
+/* Responsive: stacks on small screens */
+@media (max-width: 720px) {
+  .sx-struct-filter { flex-direction:column; align-items:stretch; gap:6px; }
+  .sx-struct-active { align-self:flex-start; }
+  .sx-struct-chip { font-size:11px; padding:2px 8px 2px 3px; }
+}
+
+/* Inline "+ Add relationship" in section headers — keeps the action in
+   the context of the selected entity, not at the top of the panel. */
+.sx-neighbors-head { display:flex; align-items:center; justify-content:space-between; margin-top:8px; gap:8px; }
+.sx-neighbors-head .sx-neighbors-heading { margin:0; flex:1; }
+.sx-conn-add, .sx-rel-add { white-space:nowrap; flex-shrink:0; margin-inline-start:auto; }
+.sx-section summary { display:flex; align-items:center; gap:6px; cursor:pointer; }
+.sx-section summary .sx-section-label { flex:0 1 auto; }
+.sx-section summary .sx-section-count { margin-inline-end:auto; }
+.sx-rel-add { font-size:11px; padding:1px 8px; line-height:1.4; }
