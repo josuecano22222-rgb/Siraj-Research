@@ -185,8 +185,8 @@
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.23';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| Phase 1 — Boundary Dataset / Admin Boundary / Gazetteer Place / Geo Settings; pcode custom fields; hashed JS bundle; CSS ?v=; per-doctype teardrop pins; toolbar'); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.24';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, '| Phase 1 (fixed) — robust patch for migrate; Boundary/Admin/Gazetteer/Geo DocTypes; pcode custom fields; hashed JS; CSS ?v='); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------
 // Compare the JS-built stamp with the server stamp delivered at boot time.

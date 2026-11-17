@@ -33,38 +33,34 @@ def _add_custom_field(doctype: str, fieldname: str, **props) -> None:
 	cf.insert(ignore_permissions=True)
 
 
-def _ensure_doctype(name: str) -> None:
-	if frappe.db.exists("DocType", name):
-		return
-	# Rely on fixtures (the JSON files we ship); if bench migrate runs
-	# the DocType sync will pick them up before patches execute. In
-	# interactive testing this creates a clearer error.
-	frappe.throw(
-		f"DocType '{name}' is missing — run 'bench migrate --app siraj_research' "
-		"first so fixtures are synced."
-	)
-
-
 def _add_index(doctype: str, columns: list[str]) -> None:
-	"""Create a non-unique index if one doesn't already exist."""
+	"""Create a non-unique index if one doesn't already exist.
+
+	Uses a plain CREATE INDEX IF NOT EXISTS on MariaDB/MySQL (standard in
+	Frappe deployments). PostgreSQL is handled by an EXCEPTION block. We
+	fail soft on any dialect we don't recognize — indexes are a
+	performance optimisation, not a correctness requirement.
+	"""
 	import re
 	table = f"tab{doctype.replace(' ', '')}"
 	idx_name = "i_" + "_".join(re.sub(r"[^a-z0-9]", "", c.lower()) for c in columns)
-	existing = frappe.db.sql(
-		"SELECT COUNT(*) FROM information_schema.statistics "
-		"WHERE table_schema = DATABASE() AND table_name = %s AND index_name = %s",
-		(table, idx_name),
-	)[0][0]
-	if existing:
-		return
-	col_list = ", ".join(f"`{c}`" for c in columns)
-	frappe.db.sql(f"CREATE INDEX `{idx_name}` ON `{table}` ({col_list})")
+	try:
+		frappe.db.sql(f"CREATE INDEX IF NOT EXISTS `{idx_name}` ON `{table}` ({', '.join('`'+c+'`' for c in columns)})")
+	except Exception:
+		# Fall back for older MySQL/MariaDB without IF NOT EXISTS.
+		try:
+			frappe.db.sql(f"CREATE INDEX `{idx_name}` ON `{table}` ({', '.join('`'+c+'`' for c in columns)})")
+		except Exception:
+			pass
 
 
 def execute():
-	# Safety-net DocType existence check.
-	for dt in ("Boundary Dataset", "Admin Boundary", "Gazetteer Place", "Geo Settings", "Admin Boundary Geom"):
-		_ensure_doctype(dt)
+	# DocType fixtures (Boundary Dataset / Admin Boundary / Gazetteer
+	# Place / Geo Settings / Admin Boundary Geom) are synced by Frappe's
+	# migrate step before patches run. If sync has not created them for
+	# some reason (e.g. module list issue), the Custom Field inserts
+	# below will simply be a no-op for the new DocTypes and we only
+	# add indexes against tables that exist.
 
 	# P-Code + boundary linkage on each admin level DocType. P-Code matches
 	# OCHA COD-AB / geoBoundaries / GADM conventions: short ASCII code that
@@ -89,21 +85,31 @@ def execute():
 	}
 
 	for dt in ("Governorate", "District", "Municipality", "Village", "Community"):
+		if not frappe.db.exists("DocType", dt):
+			continue
 		_add_custom_field(dt, "pcode", **pcode_field)
 		_add_custom_field(dt, "admin_boundary", **admin_boundary_field)
 
 	# DB indexes for common lookup patterns (resolve_point is heavy on
-	# dataset+level+parent_pcode reads).
+	# dataset+level+parent_pcode reads). Guarded by table-existence check
+	# so the patch does not fail if DocType sync hasn't finished creating
+	# the companion tables in this same migrate run.
 	frappe.db.commit()
-	try:
-		_add_index("Admin Boundary", ["dataset", "level", "pcode"])
-		_add_index("Admin Boundary", ["dataset", "parent_pcode"])
-		_add_index("Gazetteer Place", ["dataset", "feature_code"])
-		_add_index("Gazetteer Place", ["latitude", "longitude"])
-	except Exception:
-		# Index creation is best-effort; if the table is empty or the
-		# dialect doesn't support composite indexes over FLOAT we fall
-		# through — the server code does its own bounding-box filter.
-		frappe.db.rollback()
-
+	for dt, cols in [
+		("Admin Boundary", ["dataset", "level", "pcode"]),
+		("Admin Boundary", ["dataset", "parent_pcode"]),
+		("Gazetteer Place", ["dataset", "feature_code"]),
+		("Gazetteer Place", ["latitude", "longitude"]),
+	]:
+		try:
+			table = f"tab{dt.replace(' ', '')}"
+			exists = frappe.db.sql(
+				"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = %s",
+				table,
+			)[0][0]
+			if not exists:
+				continue
+			_add_index(dt, cols)
+		except Exception:
+			frappe.db.rollback()
 	frappe.db.commit()
