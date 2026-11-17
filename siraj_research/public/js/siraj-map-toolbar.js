@@ -258,13 +258,17 @@
 				});
 			}
 			// Place popover to the LEFT of the strip when docked right, to the RIGHT when docked left.
+			// Use getBoundingClientRect to place relative to the container regardless of nesting.
 			const isRight = this._container.parentElement && this._container.parentElement.classList.contains('leaflet-right');
-			pop.style.top = Math.max(8, anchor.offsetTop - this._body.scrollTop + this._header.offsetHeight) + 'px';
+			const cRect = this._container.getBoundingClientRect();
+			const aRect = anchor.getBoundingClientRect();
+			const top = Math.max(8, aRect.top - cRect.top);
+			pop.style.top = top + 'px';
 			if (isRight) {
-				pop.style.right = (this._container.offsetWidth + 6) + 'px';
+				pop.style.right = (cRect.width + 6) + 'px';
 				pop.style.left = 'auto';
 			} else {
-				pop.style.left = (this._container.offsetWidth + 6) + 'px';
+				pop.style.left = (cRect.width + 6) + 'px';
 				pop.style.right = 'auto';
 			}
 			this._container.appendChild(pop);
