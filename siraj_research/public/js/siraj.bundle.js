@@ -11,6 +11,7 @@ import './siraj-map/siraj-graph.js';
 import './siraj-map/siraj-filters.js';
 import './siraj-map-kit.js';
 import './siraj-map-toolbar.js';
+import './siraj-map-advanced.js';
 import './siraj-list-icons.js';
 import './siraj-compat.js';
 import './coordinate_map.js';

@@ -1,6 +1,6 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
-const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.29';
+const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.30';
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -1356,6 +1356,7 @@ class SirajExplorer {
 		this.toolbar = L.control.sirajToolbar({ position:'topright' }).addTo(map);
 		const localPacks = new Map();
 		const toggleBtn = (key, on) => { const b=this.toolbar._buttons && this.toolbar._buttons.get(key); if (b) b.classList.toggle('is-active',!!on); };
+		const getBtn = (key) => this.toolbar._buttons && this.toolbar._buttons.get(key);
 
 		// Navigate
 		this.toolbar.group(__('Navigate'))
@@ -1469,8 +1470,53 @@ class SirajExplorer {
 			mapStatus(visible ? '' : __('Toolbar hidden — press \\ to show.'));
 		}.bind(this)});
 
+		// Charts / share / palette / help — advanced overlays group.
+		const advGroup = this.toolbar.group(__('Insights'));
+		if (window.SirajMapAdvanced && window.SirajMapAdvanced.charts) {
+			advGroup.add({ icon:'area', label:__('Charts'), key:'charts', tooltip:__('Quick charts for current view'), hotkey:'Q', mode:'popover', menuTitle:__('Quick charts'), menu: pop => {
+				const wrap = $('<div class="sx-chart-card"></div>').appendTo(pop);
+				const st = filterStore.get();
+				const visible = currentPoints.filter(p => !(st.search && !(p.label||'').toLowerCase().includes(String(st.search).toLowerCase()))
+					&& !(st.types && st.types.length && !st.types.includes(p.doctype)));
+				const byType = {}; visible.forEach(p => byType[p.doctype] = (byType[p.doctype]||0)+1);
+				const palette = ['#126a68','#c69a21','#6a4fa0','#b04b5a','#2d8659','#4a7fb8'];
+				const donutParts = Object.keys(byType).map((k,i)=>({label:k, v:byType[k], color: palette[i%palette.length]}));
+				$('<h6></h6>').text(__('Records by type')).appendTo(wrap);
+				$(window.SirajMapAdvanced.charts.donutChart(donutParts)).appendTo(wrap);
+				$('<h6 style="margin-top:10px"></h6>').text(__('Top 8 record types')).appendTo(wrap);
+				const barVals = Object.keys(byType).sort((a,b)=>byType[b]-byType[a]).slice(0,8).map(k=>({label:k.split(' ')[0], v:byType[k]}));
+				$(window.SirajMapAdvanced.charts.barChart(barVals)).appendTo(wrap);
+			}});
+		}
+		advGroup.add({ icon:'share', label:__('Share / print'), key:'share', tooltip:__('Share link, copy GeoJSON, print'), mode:'popover', menuTitle:__('Share'), menu: pop => {
+			const wrap = $('<div></div>').appendTo(pop);
+			$('<div class="sx-share-grid"></div>').appendTo(wrap)
+				.append($('<button type="button"></button>').html(svgText('share')+ ' ' +__('Copy link')).on('click', () => {
+					const c = map.getCenter(); const z = map.getZoom();
+					const url = location.origin + location.pathname + '#map=' + z + '/' + c.lat.toFixed(5) + '/' + c.lng.toFixed(5);
+					navigator.clipboard && navigator.clipboard.writeText(url).then(()=>mapStatus(__('Map link copied to clipboard.')));
+				}))
+				.append($('<button type="button"></button>').html(svgText('geojson')+ ' ' +__('GeoJSON visible')).on('click', () => {
+					const st = filterStore.get();
+					const visible = currentPoints.filter(p => !(st.search && !(p.label||'').toLowerCase().includes(String(st.search).toLowerCase()))
+						&& !(st.types && st.types.length && !st.types.includes(p.doctype)));
+					const fc = { type:'FeatureCollection', features: visible.map(p => ({
+						type:'Feature', properties:{name:p.label, doctype:p.doctype}, geometry:{type:'Point', coordinates:[Number(p.longitude||p.lng||0), Number(p.latitude||p.lat||0)]},
+					}))};
+					const blob = new Blob([JSON.stringify(fc,null,2)], {type:'application/geo+json'});
+					const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'siraj-selection.geojson'; a.click();
+					URL.revokeObjectURL(a.href);
+				}))
+				.append($('<button type="button"></button>').html(svgText('print')+ ' ' +__('Print map')).on('click', () => window.print()))
+				.append($('<button type="button"></button>').html(svgText('cmd')+ ' ' +__('Commands (Ctrl-K)')).on('click', () => {
+					this.toolbar._closeAll && this.toolbar._closeAll();
+					openExplorerPalette(this);
+				}));
+		}});
+
 		// Help / hotkeys button (generated from TOOL_SPEC — single source of truth).
 		const helpGroup = this.toolbar.group(__('Help'));
+		helpGroup.add({ icon:'cmd', label:__('Command palette'), key:'palette', tooltip:__('Command palette'), hotkey:'Ctrl+K', mode:'momentary', action: () => openExplorerPalette(this) });
 		helpGroup.add({ icon:'help', label:__('Help & hotkeys'), key:'help', tooltip:__('Help & hotkeys'), mode:'popover', action: function() {
 			if (!Kit.helpOverlay) return;
 			const node = Kit.helpOverlay();
@@ -1478,6 +1524,25 @@ class SirajExplorer {
 			$(dlg.body).append(node);
 			dlg.show();
 		}});
+
+		// Helper for svg icons inside popover markup.
+		function svgText(name) { return (window.SirajMapAdvanced && window.SirajMapAdvanced.svg) ? window.SirajMapAdvanced.svg(name) : ''; }
+		function openExplorerPalette(selfRef) {
+			if (!window.SirajMapAdvanced) return;
+			const cmds = [
+				{ label:'Zoom in', icon:'zoom_in', hotkey:'+', action:() => map.zoomIn() },
+				{ label:'Zoom out', icon:'zoom_out', hotkey:'-', action:() => map.zoomOut() },
+				{ label:'Reset view', icon:'home', hotkey:'H', action:() => map.setView([33.3152,44.3661],4) },
+				{ label:'Fit data', icon:'fit', hotkey:'F', action:() => { if(currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p=>[Number(p.latitude),Number(p.longitude)])).pad(0.15),{maxZoom:12,padding:[60,60]}); } },
+			{ label:'Toggle clusters', icon:'cluster', hotkey:'K', action:() => { const b = getBtn('clusters'); b && b.click(); } },
+			{ label:'Relationship lines', icon:'lines', hotkey:'L', action:() => { const b = getBtn('rel_lines'); b && b.click(); } },
+				{ label:'Measure distance', icon:'ruler', hotkey:'D', action:() => measure.activate('distance') },
+				{ label:'Print map', icon:'print', hotkey:'Ctrl+P', action:() => window.print() },
+				{ label:'Open records panel', icon:'panel_left', action:() => { if(selfRef.records) selfRef.records.toggle(); } },
+				{ label:'Clear selection', icon:'eraser', hotkey:'Esc', action:clearSelection },
+			];
+			window.SirajMapAdvanced.openCommandPalette(map, cmds);
+		}
 
 		// Hotkey handler (driven by TOOL_SPEC hotkey field).
 		const HOTKEY_MAP = {};
@@ -1523,6 +1588,44 @@ class SirajExplorer {
 			this._geoShowHooked = true;
 			const revalidate = () => { if (this.map === map) setTimeout(()=>map.invalidateSize(), 50); };
 			$(document).on('page_change section-toggled form-refresh list_view_rendered', revalidate);
+		}
+
+		/* ----- Advanced overlays (stats, readout, minimap, box-select) ----- */
+		if (window.SirajMapAdvanced) {
+			const adv = window.SirajMapAdvanced.attach(map, {
+				getData: () => {
+					const st = filterStore.get();
+					const visible = currentPoints.filter(p => {
+						if (st.search && !(p.label||'').toLowerCase().includes(String(st.search).toLowerCase())) return false;
+						if (st.types && st.types.length && !st.types.includes(p.doctype)) return false;
+						return true;
+					});
+					const typeCounts = {};
+					visible.forEach(p => { typeCounts[p.doctype] = (typeCounts[p.doctype]||0)+1; });
+					const edgesOn = overlayLines && map.hasLayer(overlayLines);
+					return {
+						total: data.points ? data.points.length : 0,
+						visible: visible.length,
+						selected: selectedNode ? 1 : 0,
+						edges: edgesOn ? (currentEdges||[]).length : 0,
+						typeCounts,
+						truncated: !!(data && data.truncated && data.truncated.length),
+					};
+				},
+				minimap: { /* default OSM — cheap, sufficient for context */ },
+				onBoxSelect: (bounds) => {
+					const hits = currentPoints.filter(p => bounds.contains([Number(p.latitude),Number(p.longitude)]));
+					if (hits.length === 1) { selectNode(hits[0]); return; }
+					if (hits.length > 1) mapStatus(__('{0} records in selection area', [hits.length]));
+				},
+			});
+			this._adv = adv;
+			// Re-render the stats dock whenever filters or selection change.
+			const refresh = () => adv && adv.refresh && adv.refresh();
+			filterStore.subscribe(refresh);
+			map.on('layeradd layerremove zoomend moveend', refresh);
+			map.on('click', () => setTimeout(refresh, 20));
+			refresh();
 		}
 	}
 	async relationships(data, renderId) {

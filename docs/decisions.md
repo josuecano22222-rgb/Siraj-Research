@@ -344,3 +344,34 @@ document has no horizontal scrollbar. `layout.z_index_ordering` verifies
 maps stay at z-index ≤ 0 so Frappe's navbar (~1030) and dialogs (~1050)
 always render above them.
 
+
+---
+
+## D-14  Advanced map overlays: stats, readout, minimap, palette, charts (build .30)
+
+The Geographic map tab and per-record coordinate maps expose a common set
+of overlays so users can read context without leaving the canvas:
+
+- **Stats dock** — top-left chips (records / visible / selected / links +
+  per-type breakdown), refreshed on filter change, zoom, and click.
+- **Coordinate readout** — bottom-left lat/lon readout that follows the
+  cursor (form maps: click to copy to clipboard).
+- **Minimap** — bottom-right 150×100 context map with a view-rectangle
+  synced on moveend/zoomend; collapse button (– / +).
+- **Box select** — shift-drag selects all records inside the rectangle
+  (single hit auto-selects that record).
+- **Command palette** (Ctrl/Cmd-K or ?) — fuzzy search across commands,
+  opens above Frappe dialogs (z-index 2000).
+- **Charts popover** (Q) — donut by record type + top-types bar chart,
+  rendered from the current filtered dataset.
+- **Share/Print popover** — copy deep-link (#map=z/lat/lng), export visible
+  points as GeoJSON, window.print() for a clean print layout (toolbar/
+  docks hidden via @media print), and a command-palette button.
+- **Multi-select bar** — floating bottom bar appears when shift-select
+  yields >1 record, offering zoom / add-in-view / export / clear.
+- **Scalebar polish** — restyled Leaflet control to match SIRAJ palette.
+
+All overlays are attached via a single `SirajMapAdvanced.attach(map, opts)`
+call so the same code runs on Explorer, form coordinate maps, and any
+future Leaflet surface. Idempotent (guarded by `map._sirajAdvanced`).
+

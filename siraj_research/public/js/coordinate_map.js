@@ -693,6 +693,32 @@
 		} catch (_) {
 			if (states.get(key) === state) status.text(t('Offline basemap could not be loaded. Online tiles remain optional.'));
 		}
+
+		// Advanced overlays (coordinate readout + stats dock + minimap).
+		if (window.SirajMapAdvanced) {
+			const adv = window.SirajMapAdvanced.attach(map, {
+				getData: () => {
+					const c = frm.doc;
+					const hasCoord = c && isFinite(Number(c[cfg.lat_field])) && isFinite(Number(c[cfg.lon_field]));
+					return {
+						total: 1, visible: hasCoord ? 1 : 0,
+						selected: 0, edges: 0,
+						typeCounts: { [frm.doctype]: hasCoord ? 1 : 0 },
+					};
+				},
+				readout: {
+					onClick: () => {
+						const lat = frm.doc[cfg.lat_field], lon = frm.doc[cfg.lon_field];
+						if (isFinite(Number(lat)) && isFinite(Number(lon)) && navigator.clipboard) {
+							navigator.clipboard.writeText(Number(lat).toFixed(6)+', '+Number(lon).toFixed(6))
+								.then(()=>status.text(t('Coordinates copied to clipboard.')))
+								.catch(()=>{});
+						}
+					},
+				},
+			});
+			$(fields.lat.$input).add(fields.lon.$input).on('change.sirajCoordinates', () => adv.refresh());
+		}
 	}
 
 	function mountAllFor(frm) {
