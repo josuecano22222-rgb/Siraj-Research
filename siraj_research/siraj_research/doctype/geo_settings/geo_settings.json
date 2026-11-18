@@ -36,7 +36,19 @@
   "reverse_ambiguity_threshold_m",
   "cb_reverse",
   "default_country_code",
-  "sea_gap_warning_distance_km"
+  "sea_gap_warning_distance_km",
+  "sb_tile_keys",
+  "stadia_api_key",
+  "cb_tile_keys",
+  "nasa_gibs_date",
+  "sb_tile_mgmt",
+  "tile_cache_count",
+  "tile_cache_size_mb",
+  "enable_toner_layer",
+  "enable_terrain_layer",
+  "enable_watercolor_layer",
+  "enable_usgs_topo_layer",
+  "enable_nasa_modis_layer"
  ],
  "fields": [
   {
@@ -48,7 +60,7 @@
    "fieldname": "default_tile_layer",
    "fieldtype": "Select",
    "label": "Default map layer",
-   "options": "\nstandard\naerial\nhybrid",
+   "options": "\nstandard\naerial\nhybrid\ntonter\nterrain\nwatercolor\nusgs_topo\nnasa_modis",
    "default": "standard",
    "description": "Layer rendered on every map. Users do not get a switcher; this is the source of truth."
   },
@@ -87,6 +99,82 @@
    "label": "Allow server to fetch from provider",
    "default": 1,
    "description": "When off, only tiles already on disk are served (offline-safe)."
+  },
+  {
+   "fieldname": "enable_toner_layer",
+   "fieldtype": "Check",
+   "label": "Enable Stamen Toner",
+   "default": 0
+  },
+  {
+   "fieldname": "enable_terrain_layer",
+   "fieldtype": "Check",
+   "label": "Enable Stamen Terrain",
+   "default": 0
+  },
+  {
+   "fieldname": "enable_watercolor_layer",
+   "fieldtype": "Check",
+   "label": "Enable Stamen Watercolor",
+   "default": 0
+  },
+  {
+   "fieldname": "enable_usgs_topo_layer",
+   "fieldtype": "Check",
+   "label": "Enable USGS Topo (US only)",
+   "default": 0
+  },
+  {
+   "fieldname": "enable_nasa_modis_layer",
+   "fieldtype": "Check",
+   "label": "Enable NASA MODIS True-Color",
+   "default": 0
+  },
+  {
+   "fieldname": "sb_tile_keys",
+   "fieldtype": "Section Break",
+   "label": "Tile provider keys",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "stadia_api_key",
+   "fieldtype": "Data",
+   "label": "Stadia Maps API key",
+   "length": 128,
+   "description": "Free at https://client.stadiamaps.com/ \u2014 required for Toner/Terrain/Watercolor layers."
+  },
+  {
+   "fieldname": "cb_tile_keys",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nasa_gibs_date",
+   "fieldtype": "Data",
+   "label": "NASA GIBS date (YYYY-MM-DD)",
+   "default": "",
+   "length": 12,
+   "description": "Leave blank for most-recent available. MODIS True Color only: enter a date e.g. 2024-06-01."
+  },
+  {
+   "fieldname": "sb_tile_mgmt",
+   "fieldtype": "Section Break",
+   "label": "Cache management",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "tile_cache_count",
+   "fieldtype": "Int",
+   "label": "Cached tiles (read-only)",
+   "default": 0,
+   "read_only": 1,
+   "description": "Populated by the cache-stats endpoint; informational."
+  },
+  {
+   "fieldname": "tile_cache_size_mb",
+   "fieldtype": "Float",
+   "label": "Cache size (MB)",
+   "default": 0,
+   "read_only": 1
   },
   {
    "fieldname": "sb_datasets",

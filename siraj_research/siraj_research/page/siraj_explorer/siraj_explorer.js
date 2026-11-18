@@ -1,6 +1,6 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
-const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.38';
+const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.39';
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -526,13 +526,17 @@ class SirajExplorer {
 		if (renderId !== this.renderId) return;
 		if (layerCfg && layerCfg.layer && layerCfg.url) {
 			try {
+				const minZ = (layerCfg.minZoom != null) ? layerCfg.minZoom : 0;
+				const maxZ = layerCfg.maxZoom || 19;
+				map.options.minZoom = minZ;
+				map.options.maxZoom = 22;  // user can zoom past tile max; tileLayer stops requesting
 				onlineLayer = L.tileLayer(layerCfg.url, {
-					maxZoom: layerCfg.maxZoom || 19, maxNativeZoom: layerCfg.maxZoom || 19,
+					minZoom: minZ, maxZoom: maxZ, maxNativeZoom: maxZ,
 					attribution: layerCfg.attribution || '',
 				}).addTo(map);
 				if (layerCfg.overlayUrl) {
 					overlayLayer = L.tileLayer(layerCfg.overlayUrl, {
-						maxZoom: layerCfg.maxZoom||19, maxNativeZoom: layerCfg.maxZoom||19,
+						minZoom: minZ, maxZoom: maxZ, maxNativeZoom: maxZ,
 						pane: 'overlayPane',
 					}).addTo(map);
 				}

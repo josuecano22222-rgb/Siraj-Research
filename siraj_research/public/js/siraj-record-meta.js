@@ -185,8 +185,8 @@
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.38';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .28/.30 base, .31-.37 hotfixes, .38 server-cached tile proxy (OSM standard + Esri aerial/hybrid, on-disk cache, active_layer config via Geo Settings); end-user basemap switcher removed; Natural Earth always underlay"); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.39';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .28/.30 base, .31-.37 hotfixes, .38 server tile proxy; .39 adds Stamen Toner/Terrain/Watercolor (Stadia, keyed), USGS Topo, NASA MODIS TrueColor daily; cache stats+purge endpoints; per-layer zoom clamping"); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------
 // Compare the JS-built stamp with the server stamp delivered at boot time.

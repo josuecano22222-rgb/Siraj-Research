@@ -693,12 +693,15 @@
 				const r = await frappe.call({ method: 'siraj_research.tile_cache.active_layer', type: 'GET' });
 				const cfg = (r && r.message) || {};
 				if (cfg.layer && cfg.url && states.get(key) === state) {
+					const minZ = (cfg.minZoom != null) ? cfg.minZoom : 0;
+					const maxZ = cfg.maxZoom || 19;
+					map.options.minZoom = minZ;
 					state.tileLayer = L.tileLayer(cfg.url, {
-						maxZoom: cfg.maxZoom || 19, maxNativeZoom: cfg.maxZoom || 19,
+						minZoom: minZ, maxZoom: maxZ, maxNativeZoom: maxZ,
 						attribution: cfg.attribution || '',
 					}).addTo(map);
 					if (cfg.overlayUrl) {
-						L.tileLayer(cfg.overlayUrl, { maxZoom: cfg.maxZoom||19, pane:'overlayPane' }).addTo(map);
+						L.tileLayer(cfg.overlayUrl, { minZoom:minZ, maxZoom:maxZ, maxNativeZoom:maxZ, pane:'overlayPane' }).addTo(map);
 					}
 					if (cfg.attribution && map.attributionControl) map.attributionControl.addAttribution(cfg.attribution);
 				}
