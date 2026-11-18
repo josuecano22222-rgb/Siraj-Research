@@ -110,9 +110,9 @@
 
 		function _updateButtons(active) {
 			for (const [mode, btn] of state._buttons) {
+				if (!btn || !btn.classList) continue;
 				btn.classList.toggle('is-active', mode === active);
-				btn.classList.toggle('btn-primary', mode === active);
-				btn.classList.toggle('btn-default', mode !== active);
+				btn.setAttribute('aria-pressed', mode === active ? 'true' : 'false');
 			}
 		}
 
@@ -136,24 +136,28 @@
 			},
 			/** Register the offline/Natural Earth layer. */
 			setOfflineLayer(layer) { state.offlineLayer = layer; },
-			/** Append a Basemap group to a sirajToolbar instance. */
+		/** Append a Basemap group to a sirajToolbar instance.
+		 * toolbar.group(label) returns a chain API; toolbar._buttons stores the
+		 * DOM button keyed by spec.key after add() runs, so we fetch the button
+		 * from there (add() returns the group, not the button element). */
 			toolbarGroup(toolbar) {
 				const g = toolbar.group(__('Basemap'));
 				Object.keys(BASEMAPS).forEach(mode => {
 					const spec = BASEMAPS[mode];
 					const key = 'basemap_' + mode;
-					const btn = g.add({
+					g.add({
 						icon: spec.icon,
 						label: spec.label(),
 						key,
 						tooltip: spec.tooltip(),
+						mode: 'toggle',
+						active: (mode === state.mode),
 						action: () => ctrl.set(mode),
 					});
-					state._buttons.set(mode, btn);
+					const btn = toolbar._buttons && toolbar._buttons.get(key);
+					if (btn) state._buttons.set(mode, btn);
 				});
-				// Apply current mode visually now that buttons exist.
 				_updateButtons(state.mode);
-				return g;
 			},
 		};
 

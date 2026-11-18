@@ -259,12 +259,15 @@ STRUCTURE_MAX_CHILDREN = 24
 
 def _structure_counts(rows, dimensions, title_field=None):
 	"""Count all permitted rows in one streaming pass, without a record cutoff."""
-	root = {"count": 0, "groups": {}}
+	root = {"count": 0, "groups": {}, "skipped": 0}
 	for row in rows:
 		# get_list removes fields hidden by Frappe field-level permissions.
-		# Never misreport restricted values as "not recorded".
+		# Silently skip rows whose grouping field the current user can't read
+		# instead of throwing a hard PermissionError — the chart still renders
+		# for the fields they *can* see, and the skipped count is reported.
 		if any(field not in row for field in dimensions):
-			frappe.throw(_("A structure grouping field is not readable."), frappe.PermissionError)
+			root["skipped"] += 1
+			continue
 		node = root
 		node["count"] += 1
 		for field in dimensions:

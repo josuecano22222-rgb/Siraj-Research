@@ -890,26 +890,45 @@ def seed_demo_data():
         _ev(pdoc, sources["mod_press"], claim="Active posting")
         pdoc.save(ignore_permissions=True)
 
-    # Add career positions for key people
+    # Add career positions for key people. Positions are STANDARD Person
+    # Position DocTypes (parent→person back-link), not a child table on Person
+    # (the .53 relation-model fix converted Person Position to istable=0).
     def _position(pkey, title_en, title_ar, inst_key, start, *, end=None, current=0, verified=0):
-        pdoc = frappe.get_doc("Person", persons[pkey])
-        for row in pdoc.positions or []:
-            if row.institution == insts[inst_key] and (not title_en or title_en in (row.title_en or "")):
-                return
+        person_name = persons[pkey]
+        inst_name = insts[inst_key]
+        # Resolve a place for the position: prefer the institution's place,
+        # fall back to Baghdad (mod_hq) so the required field is satisfied.
+        place_name = None
+        try:
+            inst_doc = frappe.get_doc("Institution", inst_name)
+            place_name = inst_doc.place
+        except Exception:
+            place_name = None
+        if not place_name:
+            place_name = places.get("mod_hq") or places.get("baghdad_city")
+        # Skip duplicates on (person, institution, title)
+        existing = frappe.db.exists("Person Position", {
+            "person": person_name,
+            "institution": inst_name,
+            "title_en": f"{title_en} {TAG}" if title_en else None,
+        })
+        if existing:
+            return
         vals = {
+            "doctype": "Person Position",
+            "person": person_name,
+            "institution": inst_name,
+            "place": place_name,
             "title_en": f"{title_en} {TAG}" if title_en else None,
             "title_ar": f"{title_ar} {TAG}" if title_ar else None,
-            "institution": insts[inst_key],
             "start_date": start,
-            "start_date_precision": "year",
-            "is_current": current,
-            "verified": verified,
+            "end_date": end,
+            "documentation_level": DOC["partial"],
+            "authentication_level": AUTH["single_source"] if verified else AUTH["unverified"],
+            "workflow_state": _ws("Verified" if verified else "Published"),
         }
-        if end:
-            vals["end_date"] = end
-            vals["end_date_precision"] = "year"
-        pdoc.append("positions", vals)
-        pdoc.save(ignore_permissions=True)
+        doc = frappe.get_doc(vals)
+        doc.insert(ignore_permissions=True)
 
     _position("cofs", "Chief of Staff", "رئيس الأركان", "mod", _dt.date(2024,6,1), current=1, verified=1)
     _position("cofs", "Deputy CoS Ops", "نائب رئيس الأركان للعمليات", "mod", _dt.date(2020,1,1),

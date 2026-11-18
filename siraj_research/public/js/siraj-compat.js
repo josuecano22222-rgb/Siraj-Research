@@ -369,19 +369,22 @@
 			chart.container.__chart__ = chart;
 		});
 
-		/* Scoped Node.removeChild guard — ONLY fires when the node being
-		 * removed is an SVG inside a known Frappe chart container whose
-		 * parent is no longer the element doing the removing. This keeps
-		 * the fix for BaseChart.js:183 without monkey-patching arbitrary
-		 * DOM operations.
-		 */
+		/* Scoped Node.removeChild guard — defends against the NotFoundError
+		 * Frappe-charts throws when its ResizeObserver fires after the chart
+		 * container has already been detached from the DOM. We intercept the
+		 * call and no-op whenever `child` is not actually a child of `this`,
+		 * which is safe (removeChild is idempotent for detached nodes and
+		 * the chart code never inspects the return value). */
 		try {
 			const nativeRemoveChild = Node.prototype.removeChild;
 			Node.prototype.removeChild = function (child) {
-				if (child && child.tagName === 'SVG' && this !== child.parentNode && /chart/i.test((this.className && this.className.baseVal) || this.className || '')) {
+				try {
+					if (!child || child.parentNode !== this) return child;
+					return nativeRemoveChild.call(this, child);
+				} catch (err) {
+					// NotFoundError: swallow — the chart is being torn down.
 					return child;
 				}
-				return nativeRemoveChild.call(this, child);
 			};
 		} catch (_) { /* environment locks Node.prototype; accept the console error */ }
 	}
