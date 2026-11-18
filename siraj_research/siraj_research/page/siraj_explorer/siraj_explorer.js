@@ -437,6 +437,7 @@ class SirajExplorer {
 			'/assets/siraj_research/vendor/topojson/topojson-client.min.js',
 			'/assets/siraj_research/js/siraj-map-kit.js',
 			'/assets/siraj_research/js/siraj-map-toolbar.js',
+			'/assets/siraj_research/js/siraj-basemap.js',
 			'/assets/siraj_research/css/siraj-map-toolbar.css',
 			'/assets/siraj_research/css/siraj-map-advanced.css',
 			'/assets/siraj_research/css/siraj-icons.css',
@@ -510,7 +511,7 @@ class SirajExplorer {
 				if (renderId === this.renderId) {
 					offlineLayer = L.geoJSON(topojson.feature(world, world.objects.countries), {
 						interactive: false, style: { color:'#a4b4a8', weight:0.7, fillColor:'#e8e4cf', fillOpacity:1 }
-					}).addTo(map);
+					});
 					map.attributionControl.addAttribution('Natural Earth / world-atlas');
 				}
 			}
@@ -519,6 +520,7 @@ class SirajExplorer {
 		// all tile traffic is proxied + cached on the server so maps keep
 		// working when the server itself is offline from the internet.
 		let layerCfg = { layer: null };
+		let standardLayer = null, standardOverlay = null;
 		try {
 			const res = await frappe.call({ method: 'siraj_research.tile_cache.active_layer', type: 'GET' });
 			if (res && res.message) layerCfg = res.message;
@@ -529,26 +531,25 @@ class SirajExplorer {
 				const minZ = (layerCfg.minZoom != null) ? layerCfg.minZoom : 0;
 				const maxZ = layerCfg.maxZoom || 19;
 				map.options.minZoom = minZ;
-				map.options.maxZoom = 22;  // user can zoom past tile max; tileLayer stops requesting
-				onlineLayer = L.tileLayer(layerCfg.url, {
+				map.options.maxZoom = 22;
+				standardLayer = onlineLayer = L.tileLayer(layerCfg.url, {
 					minZoom: minZ, maxZoom: maxZ, maxNativeZoom: maxZ,
 					attribution: layerCfg.attribution || '',
-				}).addTo(map);
+				});
 				if (layerCfg.overlayUrl) {
-					overlayLayer = L.tileLayer(layerCfg.overlayUrl, {
+					standardOverlay = overlayLayer = L.tileLayer(layerCfg.overlayUrl, {
 						minZoom: minZ, maxZoom: maxZ, maxNativeZoom: maxZ,
 						pane: 'overlayPane',
-					}).addTo(map);
+					});
 				}
 				if (layerCfg.attribution) map.attributionControl.addAttribution(layerCfg.attribution);
-				mapStatus(__('Basemap: {0}. Tiles cached on server.', [layerCfg.layer]));
 			} catch (e) {
 				console.error('[SIRAJ] cached tile layer failed:', e);
-				mapStatus(__('Server tile layer unavailable; using offline Natural Earth.'), true);
 			}
-		} else {
-			mapStatus(__('Offline basemap: Natural Earth, low detail.'));
 		}
+		// Stash references so the basemap controller (built after toolbar
+		// init) can pick up the standard + offline layers.
+		this._basemapInit = { offlineLayer, standardLayer: standardLayer || null, standardOverlay: standardOverlay || null, statusFn: mapStatus };
 		// Icons — teardrop pin anchored at the tip (bottom center).
 		const pinH = s => Math.round(s * 1.15);
 		const pointIcon = (p, opts) => {
@@ -1466,8 +1467,13 @@ class SirajExplorer {
 				});
 			}});
 
-		// Basemap is server-managed (tile_cache.active_layer). No end-user
-		// basemap switcher is exposed.
+		// Basemap switcher (Standard / Satellite / Hybrid / Offline)
+		const basemap = window.SirajBasemap.attach(map);
+		if (this._basemapInit) {
+			if (this._basemapInit.offlineLayer) basemap.setOfflineLayer(this._basemapInit.offlineLayer);
+			basemap.setStandardLayer(this._basemapInit.standardLayer, this._basemapInit.standardOverlay);
+		}
+		basemap.toolbarGroup(this.toolbar);
 		this.toolbar.separator();
 
 		// Measure group

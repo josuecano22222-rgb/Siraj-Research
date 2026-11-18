@@ -7,7 +7,7 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "row_format": "Dynamic",
- "autoname": "field:title_en",
+ "autoname": "field:title",
  "naming_rule": "By \"Naming Series\" field",
  "editable_grid": 1,
  "track_changes": 1,

@@ -422,3 +422,30 @@
 	color: #fff;
 }
 .sx-basemap-ctrl .sx-basemap-icon { pointer-events: none; }
+
+/* List-View MapView basemap switcher (4-button radio group, top-left) */
+.sx-listview-basemap {
+	display: flex;
+	background: #fff;
+	border-radius: 4px;
+	box-shadow: 0 1px 5px rgba(0,0,0,.25);
+	overflow: hidden;
+}
+.sx-listview-basemap button {
+	appearance: none;
+	-webkit-appearance: none;
+	border: none;
+	background: #fff;
+	color: #36414C;
+	padding: 4px 8px;
+	font-size: 11px;
+	font-weight: 500;
+	cursor: pointer;
+	border-right: 1px solid #e5e5e5;
+}
+.sx-listview-basemap button:last-child { border-right: none; }
+.sx-listview-basemap button.is-active,
+.sx-listview-basemap button:hover {
+	background: #2490EF;
+	color: #fff;
+}

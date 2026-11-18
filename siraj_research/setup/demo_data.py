@@ -341,21 +341,40 @@ def seed_demo_data():
             "workflow_state": _ws("Published"),
         }, classification_name=f"{name} {TAG}")
 
+    # Ensure any Place Types we rely on that aren't in the seeded lookup data
+    # exist before we use them (military_base, command_region are not in lookups.json).
+    for _pt_code, _pt_en, _pt_ar, _pt_color, _pt_order in [
+        ("military_base", "Military Base", "قاعدة عسكرية", "red", 90),
+        ("command_region", "Command Region", "منطقة قيادة", "indigo", 91),
+    ]:
+        if not _gf("Place Type", code=_pt_code):
+            _add("Place Type", {
+                "code": _pt_code,
+                "label_en": _pt_en,
+                "label_ar": _pt_ar,
+                "color": _pt_color,
+                "sort_order": _pt_order,
+                "is_system": 0,
+            }, code=_pt_code)
+        PTYPE[_pt_code] = _gf("Place Type", code=_pt_code)
+
     # Command Regions — represented as Place records (place_type=Command Region).
     # This replaces the removed Command Region doctype; Place already carries
     # parent_place hierarchy, lat/lng and full geo fields.
     regions = {}
     rdata = [
-        ("baghdad_ops", "Baghdad Operations Command", PTYPE["command_region"], 33.3152, 44.3661),
-        ("ninawa_ops", "Nineveh Operations Command", PTYPE["command_region"], 36.3400, 43.1300),
-        ("anbar_ops", "Anbar Operations Command", PTYPE["command_region"], 33.3800, 43.2000),
-        ("basra_ops", "Basra Operations Command", PTYPE["command_region"], 30.5080, 47.7810),
-        ("ct_cmd", "Counter-Terrorism Command", PTYPE["command_region"], 33.3000, 44.3800),
-        ("kurdistan", "Kurdistan Regional Guard Command", PTYPE["command_region"], 36.2000, 44.0000),
+        ("baghdad_ops", "قيادة عمليات بغداد", "Baghdad Operations Command", PTYPE["command_region"], 33.3152, 44.3661),
+        ("ninawa_ops", "قيادة عمليات نينوى", "Nineveh Operations Command", PTYPE["command_region"], 36.3400, 43.1300),
+        ("anbar_ops", "قيادة عمليات الأنبار", "Anbar Operations Command", PTYPE["command_region"], 33.3800, 43.2000),
+        ("basra_ops", "قيادة عمليات البصرة", "Basra Operations Command", PTYPE["command_region"], 30.5080, 47.7810),
+        ("ct_cmd", "قيادة مكافحة الإرهاب", "Counter-Terrorism Command", PTYPE["command_region"], 33.3000, 44.3800),
+        ("kurdistan", "قيادة حرس إقليم كردستان", "Kurdistan Regional Guard Command", PTYPE["command_region"], 36.2000, 44.0000),
     ]
-    for key, name, ptype, lat, lng in rdata:
+    for key, name_ar, name_en, ptype, lat, lng in rdata:
         regions[key] = _add("Place", {
-            "place_name": f"{name} {TAG}",
+            "naming_series": "PLC-.####",
+            "name_ar": f"{name_ar} {TAG}",
+            "name_en": f"{name_en} {TAG}",
             "place_type": ptype,
             "country": country_iq,
             "latitude": lat, "longitude": lng,
@@ -364,7 +383,7 @@ def seed_demo_data():
             "geo_uncertainty_m": 4000,
             "description": f"{TAG} Synthetic command for demo dataset.",
             "workflow_state": _ws("Published"),
-        }, place_name=f"{name} {TAG}")
+        }, name_en=f"{name_en} {TAG}")
 
     # Division-level Military Units — the old standalone Military Division doctype
     # was removed; divisions are Military Unit records with echelon='Division' and

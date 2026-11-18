@@ -99,6 +99,11 @@
 		icon_only: '<rect x="4" y="4" width="5" height="5" rx="1"/><rect x="11" y="4" width="5" height="5" rx="1"/><rect x="18" y="4" width="2" height="5" rx="1" opacity=".4"/><rect x="4" y="11" width="5" height="5" rx="1"/><rect x="11" y="11" width="5" height="5" rx="1"/><rect x="18" y="11" width="2" height="5" rx="1" opacity=".4"/><rect x="4" y="18" width="5" height="2" rx="1" opacity=".4"/>',
 		icon_text: '<rect x="3" y="5" width="6" height="14" rx="1" fill="currentColor" fill-opacity=".2"/><path d="M12 7h8" stroke-width="2.4" stroke-linecap="round"/><path d="M12 12h8" stroke-width="2.4" stroke-linecap="round"/><path d="M12 17h5" stroke-width="2.4" stroke-linecap="round"/>',
 		icon_auto: '<rect x="3" y="8" width="18" height="8" rx="4" fill="none"/><circle cx="8" cy="12" r="2.4" fill="currentColor"/><path d="M14 9h4M14 12h4M14 15h2" stroke-linecap="round" opacity=".65"/>',
+		// Basemap switcher icons — four distinct basemap modes.
+		basemap_standard: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h6v6H3zM9 3h6v6H9zM15 9h6v6h-6zM9 15h6v6H9z" opacity=".55"/>',
+		basemap_satellite: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M4 7c2-2 4-3 8-3s6 1 8 3M4 17c2 2 4 3 8 3s6-1 8-3" opacity=".7"/>',
+		basemap_hybrid: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4" opacity=".55"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18" stroke-width="1.2" opacity=".75"/>',
+		basemap_offline: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M5 13c2-3 5-5 7-5s5 2 7 5" fill="none"/><circle cx="12" cy="13" r="1.5" fill="currentColor"/><path d="M3 8l18 8" stroke-width="1.4" opacity=".5"/>',
 	};
 
 	// Server may have overridden/extended at boot time (future-proofing).

@@ -127,6 +127,31 @@ class TestDocTypeIntegrity(unittest.TestCase):
                 self.assertIn(expected, classes,
                     f"controller must define class {expected} (have {classes})")
 
+    def test_09_autoname_field_exists(self):
+        """When autoname is 'field:xxx' or 'format:...{xxx}...', the referenced field must exist.
+        Also rejects 'title_en'-style stale references that break DocType.validate()."""
+        import re
+        for dir_name, d in self._iter_doctypes():
+            an = d.get("autoname") or ""
+            with self.subTest(doctype=d["name"]):
+                if not an:
+                    continue
+                fieldnames = {f["fieldname"] for f in d.get("fields", []) if f.get("fieldname")}
+                if an.startswith("field:"):
+                    target = an[len("field:"):].strip()
+                    self.assertTrue(target, "field: autoname has empty target")
+                    self.assertIn(target, fieldnames,
+                        f"autoname {an!r} references field {target!r} which does not exist on {d['name']}")
+                elif an.startswith("format:"):
+                    # Extract {fieldname} placeholders
+                    for m in re.finditer(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}", an[len("format:"):]):
+                        self.assertIn(m.group(1), fieldnames,
+                            f"autoname {an!r} references field {m.group(1)!r} which does not exist")
+                elif an.startswith("naming_series:"):
+                    self.assertIn("naming_series", fieldnames,
+                        f"autoname 'naming_series:' requires a 'naming_series' Select field")
+                # prompt / hash / ####-style expressions: no static field check
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -691,8 +691,10 @@
 			.add({ icon: 'home',     label: t('Home'), action: () => map.setView([33.3152, 44.3661], 4) })
 			.add({ icon: 'locate_me', label: t('My loc'), action: () => map.locate({ setView: true, maxZoom: 12, enableHighAccuracy: true }) });
 
-		// Basemap is server-managed (tile_cache.active_layer); no end-user
-		// switcher on form maps.
+		// Basemap switcher (Standard / Satellite / Hybrid / Offline) — shared
+		// Leaflet controller that adds a toolbar group and persists the choice.
+		const basemap = window.SirajBasemap.attach(map, { offlineLayer: null });
+		basemap.toolbarGroup(toolbar);
 		toolbar.separator();
 
 		toolbar.group(t('Measure'))
@@ -743,7 +745,9 @@
 		requestAnimationFrame(() => { if (states.get(key) === state) map.invalidateSize(false); });
 		setTimeout(() => { if (states.get(key) === state) map.invalidateSize(false); }, 500);
 
-		// Natural Earth land polygons (offline, always present as a base).
+		// Natural Earth land polygons (offline basemap layer). The basemap
+		// switcher decides whether this or a tile layer is visible based on
+		// the user's last choice (persisted in localStorage).
 		try {
 			const response = await fetch('/assets/siraj_research/vendor/world-atlas/countries-110m.json');
 			if (response.ok) {
@@ -752,30 +756,36 @@
 					state.offlineLayer = L.geoJSON(topojson.feature(world, world.objects.countries), {
 						style: { color: '#7793a0', weight: 1, fillColor: '#eef3ed', fillOpacity: 1, interactive: false },
 					});
-					if (!state.tileLayer && !state.packLayer) state.offlineLayer.addTo(map);
+					basemap.setOfflineLayer(state.offlineLayer);
 					if (state.marker && state.marker.bringToFront) state.marker.bringToFront();
 				}
 			}
 		} catch (err) { console.warn('[SIRAJ] coordinate map: Natural Earth failed:', err && err.message); }
-		// Server-managed cached tile layer — same endpoint as Explorer.
-		if (states.get(key) === state && !state.tileLayer) {
+		// Server-managed cached tile layer — same endpoint as Explorer; this
+		// becomes the "standard" basemap. Don't addTo(map) yet — the basemap
+		// controller decides visibility based on persisted user choice.
+		if (states.get(key) === state) {
 			try {
 				const r = await frappe.call({ method: 'siraj_research.tile_cache.active_layer', type: 'GET' });
 				const cfg = (r && r.message) || {};
-				if (cfg.layer && cfg.url && states.get(key) === state) {
-					const minZ = (cfg.minZoom != null) ? cfg.minZoom : 0;
+				if (cfg.layer && cfg.url) {
+					const minZ = (cfg.minZoom != null) ? cfg.minZ : 0;
 					const maxZ = cfg.maxZoom || 19;
 					map.options.minZoom = minZ;
 					state.tileLayer = L.tileLayer(cfg.url, {
 						minZoom: minZ, maxZoom: maxZ, maxNativeZoom: maxZ,
 						attribution: cfg.attribution || '',
-					}).addTo(map);
+					});
+					let overlay = null;
 					if (cfg.overlayUrl) {
-						L.tileLayer(cfg.overlayUrl, { minZoom:minZ, maxZoom:maxZ, maxNativeZoom:maxZ, pane:'overlayPane' }).addTo(map);
+						overlay = L.tileLayer(cfg.overlayUrl, { minZoom:minZ, maxZoom:maxZ, maxNativeZoom:maxZ, pane:'overlayPane' });
 					}
 					if (cfg.attribution && map.attributionControl) map.attributionControl.addAttribution(cfg.attribution);
+					basemap.setStandardLayer(state.tileLayer, overlay);
+				} else {
+					basemap.setStandardLayer(null, null);
 				}
-			} catch (e) { console.warn('[SIRAJ] coordinate map: cached tile layer unavailable:', e); }
+			} catch (e) { console.warn('[SIRAJ] coordinate map: cached tile layer unavailable:', e); basemap.setStandardLayer(null, null); }
 		}
 
 		// Advanced overlays (coordinate readout + stats dock + minimap).

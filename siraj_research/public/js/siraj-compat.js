@@ -175,7 +175,7 @@
 			// must be zero external requests (offline Natural Earth basemap), with
 			// OSM an explicit opt-in per user.
 			const nativeTileLayer = L.tileLayer;
-			let offlineLayer = null, onlineLayer = null, basemapBtn = null;
+			let offlineLayer = null, onlineLayer = null;
 			L.tileLayer = function (url, opts) {
 				// Intercept the OSM tile URL Frappe uses and swap it for a placeholder;
 				// we add the real (offline/online) layers below.
@@ -212,40 +212,73 @@
 						offlineLayer.addTo(map);
 					}
 				};
-				const goOffline = () => {
-					if (onlineLayer) { map.removeLayer(onlineLayer); onlineLayer = null; }
-					addOffline();
-					if (basemapBtn) basemapBtn.innerHTML = '<span style="padding:2px 4px;font-size:10px">☁ Offline</span>';
+				// Ensure the shared basemap controller is loaded (it's in the
+				// bundle but may not be present yet when MapView fires early).
+				const ensureBasemap = (done) => {
+					if (window.SirajBasemap) return done();
+					const tryNext = (attempts) => {
+						if (window.SirajBasemap) return done();
+						if (attempts > 20) return done();  // give up; leave offline-only
+						setTimeout(() => tryNext(attempts+1), 80);
+					};
+					tryNext(0);
 				};
-				const goOnline = () => {
-					if (offlineLayer) { map.removeLayer(offlineLayer); }
-					if (!onlineLayer) {
-						onlineLayer = nativeTileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-							maxZoom:19, attribution:'&copy; OpenStreetMap contributors',
+				ensureBasemap(() => {
+					try {
+						// Build standard (OSM) layer that MapView would have added.
+						let std = null;
+						try {
+							std = nativeTileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+								maxZoom:19, attribution:'&copy; OpenStreetMap contributors',
+							});
+						} catch(_) {}
+						const bm = window.SirajBasemap.attach(map, { standardLayer: std, offlineLayer: window._sirajOfflineLayer || offlineLayer });
+						// A compact 4-button basemap chooser for MapView (which lacks
+						// our toolbar infrastructure). Radio-style group in top-left.
+						const BMC = L.Control.extend({
+							onAdd: function (m) {
+								const c = L.DomUtil.create('div', 'leaflet-bar sx-listview-basemap');
+								L.DomEvent.disableClickPropagation(c);
+								L.DomEvent.disableScrollPropagation(c);
+								const modes = [
+									{ id:'standard',  label:__('Standard') },
+									{ id:'satellite', label:__('Satellite') },
+									{ id:'hybrid',    label:__('Hybrid') },
+									{ id:'offline',   label:__('Offline') },
+								];
+								modes.forEach(mode => {
+									const b = L.DomUtil.create('button', '', c);
+									b.type = 'button';
+									b.textContent = mode.label;
+									b.setAttribute('data-basemap', mode.id);
+									b.title = mode.label;
+									if (mode.id === bm.mode) b.classList.add('is-active');
+									L.DomEvent.on(b, 'click', e => {
+										L.DomEvent.stopPropagation(e); L.DomEvent.preventDefault(e);
+										bm.set(mode.id);
+										Array.from(c.querySelectorAll('button')).forEach(x => x.classList.toggle('is-active', x.getAttribute('data-basemap')===mode.id));
+									});
+								});
+								return c;
+							},
 						});
+						new BMC({ position:'topleft' }).addTo(map);
+					// If the offline (Natural Earth) topojson hasn't loaded yet,
+					// re-wire it into the basemap controller once it does.
+					const pick = () => window._sirajOfflineLayer;
+					if (pick()) bm.setOfflineLayer(pick());
+					else {
+						const iv = setInterval(() => {
+							if (pick()) { bm.setOfflineLayer(pick()); clearInterval(iv); }
+						}, 200);
+						setTimeout(()=>clearInterval(iv), 6000);
 					}
-					onlineLayer.addTo(map);
-					if (basemapBtn) basemapBtn.innerHTML = '<span style="padding:2px 4px;font-size:10px">🌐 Online</span>';
-				};
-				addOffline();
-				// A small basemap toggle in the top-left of the map (not a toolbar dock
-				// because MapView does not include our toolbar infrastructure by default).
-				const SirajBasemap = L.Control.extend({
-					onAdd: function (m) {
-						const c = L.DomUtil.create('div', 'leaflet-bar');
-						basemapBtn = L.DomUtil.create('button', '', c);
-						basemapBtn.type = 'button';
-						basemapBtn.title = __('Basemap (click to toggle online tiles — sends requests to OpenStreetMap)');
-						L.DomEvent.disableClickPropagation(c);
-						L.DomEvent.on(basemapBtn, 'click', e => {
-							L.DomEvent.stopPropagation(e); L.DomEvent.preventDefault(e);
-							if (onlineLayer) goOffline(); else goOnline();
-						});
-						goOffline();
-						return c;
-					},
+					addOffline();  // kick off the topojson fetch
+					// If the user's persisted choice is not 'standard' and the
+					// standard layer was auto-added by setStandardLayer, that's
+					// handled by bm.attach (setStandardLayer applies the choice).
+				} catch(err) { console.warn('[SIRAJ] list basemap switcher failed:', err); addOffline(); }
 				});
-				new SirajBasemap({ position: 'topleft' }).addTo(map);
 
 				// Restyle ANY non-SIRAJ marker (Frappe's default blue pin,
 				// other Leaflet defaults, or future marker-icon.png variants)
