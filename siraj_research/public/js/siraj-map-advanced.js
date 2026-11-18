@@ -98,6 +98,13 @@
 	function Minimap(map, opts) {
 		const wrap = document.createElement('div');
 		wrap.className = 'sx-minimap';
+		// Stop events so clicks/wheel on the minimap don't bubble to the main
+		// map (Leaflet interprets them via containerPointToLatLng and throws
+		// Invalid LatLng: NaN when coordinates come from a child container).
+		if (window.L && L.DomEvent) {
+			L.DomEvent.disableClickPropagation(wrap);
+			L.DomEvent.disableScrollPropagation(wrap);
+		}
 		const toggle = document.createElement('button');
 		toggle.className = 'sx-minimap-toggle';
 		toggle.type = 'button';
@@ -127,16 +134,27 @@
 		}
 		function sync() {
 			if (!miniMap) return;
+			const w = mini.clientWidth, h = mini.clientHeight;
+			if (!w || !h) return;  // container collapsed — avoid NaN LatLng
 			const z = Math.max(0, map.getZoom() - 4);
-			miniMap.setView(map.getCenter(), z, { animate: false });
-			miniRect.setBounds(map.getBounds());
+			try { miniMap.setView(map.getCenter(), z, { animate: false }); } catch(_) {}
+			try { miniRect.setBounds(map.getBounds()); } catch(_) {}
 		}
 		toggle.addEventListener('click', () => {
 			wrap.classList.toggle('is-collapsed');
 			toggle.textContent = wrap.classList.contains('is-collapsed') ? '+' : '–';
-			if (!wrap.classList.contains('is-collapsed')) { ensure(); setTimeout(sync, 50); }
+			if (!wrap.classList.contains('is-collapsed')) { ensure(); setTimeout(sync, 80); }
 		});
-		setTimeout(ensure, 800);
+		// Defer minimap init until the main canvas has a real size.
+		function initWhenReady(tries) {
+			if (map.getContainer().clientWidth > 100 && map.getContainer().clientHeight > 100) {
+				ensure();
+				setTimeout(sync, 50);
+			} else if (tries > 0) {
+				setTimeout(() => initWhenReady(tries - 1), 200);
+			}
+		}
+		initWhenReady(25);
 		return { el: wrap, sync };
 	}
 

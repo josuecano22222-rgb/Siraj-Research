@@ -1,6 +1,6 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
-const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.30';
+const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.31';
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -425,7 +425,7 @@ class SirajExplorer {
 			'/assets/siraj_research/js/siraj-map-toolbar.js',
 			'/assets/siraj_research/css/siraj-map-toolbar.css',
 			'/assets/siraj_research/css/siraj-icons.css',
-			('/assets/siraj_research/css/siraj_explorer.css?v='+SIRAJ_EXPLORER_BUILD),
+			('/assets/siraj_research/css/siraj_explorer.css'),
 		]);
 		if (renderId !== this.renderId) return;
 		const Kit = window.SirajMapKit;
@@ -1573,20 +1573,43 @@ class SirajExplorer {
 
 		draw();
 		this.showDetails(__('Geographic map'), [[__('About this view'),__('Map tools (navigate, basemap, measure, pick, overlays, selection) live in the dock on the right edge of the map. Records, filters, and export live in the panel at the upper left. Press ? or the Help button for the full hotkey list.')]]);
-		if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p=>[Number(p.latitude),Number(p.longitude)])).pad(0.15),{maxZoom:12, padding:[60,60]});
+		if (currentPoints.length) {
+			try {
+				map.fitBounds(L.latLngBounds(currentPoints.map(p=>[Number(p.latitude),Number(p.longitude)])).pad(0.15),{maxZoom:12, padding:[60,60]});
+			} catch(_) { /* invalid/empty bounds — ignore */ }
+		}
 		// Invalidate size whenever the canvas or its ancestors resize (grid
 		// reflow, sidebar open, window resize, mobile URL bar collapse) so
-		// the Leaflet viewport tracks its actual bounding box.
-		setTimeout(()=>map.invalidateSize(),0);
+		// the Leaflet viewport tracks its actual bounding box. Wait until
+		// layout has settled (grid columns can be 0 wide on first paint).
+		const tryInvalidate = delay => {
+			setTimeout(() => {
+				if (this.map !== map) return;
+				const w = this.canvas[0].clientWidth, h = this.canvas[0].clientHeight;
+				if (w > 100 && h > 100) { map.invalidateSize(); return; }
+				if (delay < 800) tryInvalidate(delay * 2);
+			}, delay);
+		};
+		tryInvalidate(50);
 		if (window.ResizeObserver && !this._geoResizeObs) {
 			this._geoResizeObs = new ResizeObserver(() => {
-				if (this.map === map && this.canvas[0].clientWidth && this.canvas[0].clientHeight) map.invalidateSize();
+				if (this.map !== map) return;
+				const w = this.canvas[0].clientWidth, h = this.canvas[0].clientHeight;
+				if (!w || !h) return;
+				const sz = map.getSize && map.getSize();
+				if (sz && Math.abs(sz.x - w) < 1 && Math.abs(sz.y - h) < 1) return;
+				map.invalidateSize();
 			});
 			this._geoResizeObs.observe(this.canvas[0]);
 		}
 		if (!this._geoShowHooked) {
 			this._geoShowHooked = true;
-			const revalidate = () => { if (this.map === map) setTimeout(()=>map.invalidateSize(), 50); };
+			const revalidate = () => {
+				if (this.map !== map) return;
+				const w = this.canvas[0].clientWidth, h = this.canvas[0].clientHeight;
+				if (!w || !h) return;
+				setTimeout(()=>{ if (this.canvas[0].clientWidth && this.canvas[0].clientHeight) map.invalidateSize(); }, 50);
+			};
 			$(document).on('page_change section-toggled form-refresh list_view_rendered', revalidate);
 		}
 
@@ -1629,7 +1652,7 @@ class SirajExplorer {
 		}
 	}
 	async relationships(data, renderId) {
-		await frappe.require(['/assets/siraj_research/vendor/vis-network/vis-network.min.js', ('/assets/siraj_research/css/siraj_explorer.css?v='+SIRAJ_EXPLORER_BUILD)]);
+		await frappe.require(['/assets/siraj_research/vendor/vis-network/vis-network.min.js', ('/assets/siraj_research/css/siraj_explorer.css')]);
 		if (renderId !== this.renderId) return;
 		this.canvas.addClass('sx-graph');
 		const types = [...new Set(data.nodes.map(n => n.doctype))];
@@ -2390,7 +2413,7 @@ class SirajExplorer {
 	}
 
 	async structures(renderId) {
-		await frappe.require(['/assets/siraj_research/vendor/d3/d3.min.js', ('/assets/siraj_research/css/siraj_explorer.css?v='+SIRAJ_EXPLORER_BUILD)]);
+		await frappe.require(['/assets/siraj_research/vendor/d3/d3.min.js', ('/assets/siraj_research/css/siraj_explorer.css')]);
 		await frappe.require('/assets/siraj_research/vendor/d3-sankey/d3-sankey.min.js');
 		await frappe.require('/assets/siraj_research/js/structure_deck.js');
 		if (renderId !== this.renderId) return;

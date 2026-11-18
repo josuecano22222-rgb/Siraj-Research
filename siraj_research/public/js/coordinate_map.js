@@ -565,14 +565,21 @@
 		// toggle and .section.collapsed are caught.
 		if (window.ResizeObserver) {
 			state.resizeObserver = new ResizeObserver(() => {
-				if (states.get(key) === state && canvas[0].clientWidth && canvas[0].clientHeight) map.invalidateSize();
+				if (states.get(key) !== state) return;
+				const w = canvas[0].clientWidth, h = canvas[0].clientHeight;
+				if (!w || !h) return;  // zero-size container → NaN LatLng from unproject
+				// Guard: only invalidate when size differs from Leaflet's cached size.
+				const sz = map.getSize && map.getSize();
+				if (sz && Math.abs(sz.x - w) < 1 && Math.abs(sz.y - h) < 1) return;
+				map.invalidateSize();
 			});
 			state.resizeObserver.observe(canvas[0]);
 		}
 		state.tabObserver = new MutationObserver(() => {
 			if (!canvas[0].isConnected) return;
-			const hidden = !canvas[0].offsetParent;
-			if (!hidden) setTimeout(() => map.invalidateSize(), 30);
+			const w = canvas[0].clientWidth, h = canvas[0].clientHeight;
+			const hidden = !canvas[0].offsetParent || !w || !h;
+			if (!hidden) setTimeout(() => { if (canvas[0].clientWidth && canvas[0].clientHeight) map.invalidateSize(); }, 30);
 		});
 		state.tabObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class','style','hidden','aria-hidden'] });
 
@@ -677,7 +684,16 @@
 		}
 
 		update(frm, true);
-		setTimeout(() => { if (states.get(key) === state) map.invalidateSize(); }, 0);
+		// Defer initial invalidateSize until the canvas has a real size
+		// (grid form sections may be 0×0 on first paint; calling it on a
+		// zero-size container produces "Invalid LatLng: NaN" from unproject).
+		const tryInv = delay => setTimeout(() => {
+			if (states.get(key) !== state) return;
+			const w = canvas[0].clientWidth, h = canvas[0].clientHeight;
+			if (w > 100 && h > 100) { map.invalidateSize(); return; }
+			if (delay < 800) tryInv(delay * 2);
+		}, delay);
+		tryInv(30);
 
 		// Load offline base layer (Natural Earth countries-110m topojson).
 		try {
