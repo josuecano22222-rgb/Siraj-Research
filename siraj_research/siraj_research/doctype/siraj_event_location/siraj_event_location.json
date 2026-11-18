@@ -12,6 +12,7 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "field_order": [
+  "event",
   "place",
   "role"
  ],

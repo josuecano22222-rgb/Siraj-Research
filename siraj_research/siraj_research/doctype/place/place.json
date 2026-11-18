@@ -53,7 +53,11 @@
   "sb_evidence_table",
   "evidence",
   "sb_identifiers",
-  "external_identifiers"
+  "external_identifiers",
+  "people",
+  "institutions",
+  "military_units",
+  "events"
  ],
  "fields": [
   {

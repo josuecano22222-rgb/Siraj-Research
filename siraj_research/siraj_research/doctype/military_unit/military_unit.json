@@ -66,7 +66,8 @@
   "events_table",
   "locations_table",
   "linked_place",
-  "place_name"
+  "place_name",
+  "command_personnel"
  ],
  "fields": [
   {

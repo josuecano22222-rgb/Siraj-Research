@@ -72,7 +72,8 @@
   "events_table",
   "military_units",
   "locations_table",
-  "place_name"
+  "place_name",
+  "people"
  ],
  "fields": [
   {

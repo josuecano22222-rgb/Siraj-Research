@@ -185,8 +185,8 @@
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.46';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .46 Permission fix: add permlevel=0 SIRAJ Administrator permissions across all core DocTypes and related types (fixes \"Permission at level 0 must be set before higher levels\" Customize Form error)"); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.47';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .47 Fix DocType 404s: rebuild field_order arrays for all 14 cross-link child tables to include the parent back-link field (missing field_order entries caused Frappe to silently skip creating the child DocTypes, breaking Person/Institution/MU/Event/Place loads); add missing Table fields to Institution/Military Unit/Place field_order"); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------
 // Compare the JS-built stamp with the server stamp delivered at boot time.

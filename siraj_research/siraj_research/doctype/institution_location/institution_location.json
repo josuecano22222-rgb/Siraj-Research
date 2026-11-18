@@ -12,6 +12,7 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "field_order": [
+  "institution",
   "place",
   "role",
   "start_date",

@@ -12,6 +12,7 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "field_order": [
+  "military_unit",
   "institution",
   "role",
   "start_date",
