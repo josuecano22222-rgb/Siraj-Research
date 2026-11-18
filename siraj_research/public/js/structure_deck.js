@@ -2,8 +2,31 @@
 (function () {
 	'use strict';
 	const NS = 'http://www.w3.org/2000/svg';
-	const palette = ['#2f6f4f', '#1f5d8b', '#8a5a1f', '#7b3f8f', '#a15143', '#597d80', '#987e31', '#59638d'];
 	const W = 1000, H = 640;
+	const DOCTYPE_BY_SOURCE = {
+		people:'Person', institutions:'Institution', places:'Place', events:'Siraj Event',
+		relationships:'Relationship', sources:'Source', units:'Military Unit',
+		// 'regions' and 'regions-units' removed 2026-11: command areas are Place
+		// records (place_type="Command Region"); the Places deck already shows
+		// the full administrative/command hierarchy. 'units-ops' now uses
+		// Military Unit as the root (deployments attach via the unit Link).
+		'units-ops':'Military Unit', forces:'Military Unit',
+	};
+	function colorFor(node, source) {
+		if (window.sirajColours) {
+			if (node.data && node.data.doctype && window.sirajColours[node.data.doctype]) return window.sirajColours[node.data.doctype];
+			const guess = DOCTYPE_BY_SOURCE[source];
+			if (guess && window.sirajColours[guess]) return window.sirajColours[guess];
+		}
+		// Fallback palette.
+		const palette = ['#2f6f4f','#1f5d8b','#8a5a1f','#7b3f8f','#a15143','#597d80','#987e31','#59638d'];
+		const roots = (node.ancestors().slice(-1)[0] || {}).children || [];
+		return palette[Math.max(0, roots.indexOf(node)) % palette.length];
+	}
+	function glyphFor(node, size) {
+		const dt = (node.data && node.data.doctype) || DOCTYPE_BY_SOURCE[node.data && node.data.source] || 'Source';
+		return (window.sirajIcons && window.sirajIcons.svg(dt, {size: size || 10})) || '';
+	}
 
 	class StructureDeck {
 		constructor(explorer, canvas, aside, data) {
@@ -81,12 +104,8 @@
 				.sum(d => Math.max(0, d.count - this.children(d).reduce((sum, child) => sum + child.count, 0)))
 				.sort((a, b) => b.value - a.value);
 		}
-		color(node) {
-			let n = node;
-			while (n.depth > 1) n = n.parent;
-			const roots = node.ancestors().slice(-1)[0].children || [];
-			return palette[Math.max(0, roots.indexOf(n)) % palette.length];
-		}
+		color(node) { return colorFor(node, this.data.source); }
+		glyph(node, size) { return glyphFor(node, size); }
 		svg(height = H, width = W) {
 			const svg = document.createElementNS(NS, 'svg');
 			svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
@@ -159,7 +178,7 @@
 				const root = this.hierarchy();
 				(root.children || []).forEach(n => {
 					const button = this.button(n.data.label + ' · ' + n.data.count, () => this.select(n.data), this.legend).addClass('sd-legend-item');
-					$('<span class="sd-swatch"></span>').css('background-color', this.color(n)).prependTo(button);
+					$('<span class="sd-swatch siraj-swatch"></span>').css('background-color', this.color(n)).html(this.glyph(n, 10)).prependTo(button);
 				});
 				if (this.mode === 'treemap') this.treemap(root);
 				else if (this.mode === 'rings') this.rings(root);

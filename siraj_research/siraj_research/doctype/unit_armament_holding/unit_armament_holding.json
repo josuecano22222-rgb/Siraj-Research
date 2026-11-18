@@ -64,5 +64,12 @@
  "istable": 1,
  "editable_grid": 1,
  "in_create": 0,
- "description": "The source's `unit_armament` table: one row per (unit, armament), with a uniqueness constraint and a positive-quantity check. Owned repeated data of a unit, so a child table — and the unique pair becomes the child-table rule in the controller."
+ "description": "The source's `unit_armament` table: one row per (unit, armament), with a uniqueness constraint and a positive-quantity check. Owned repeated data of a unit, so a child table \u2014 and the unique pair becomes the child-table rule in the controller.",
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

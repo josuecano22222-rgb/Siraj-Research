@@ -1,0 +1,397 @@
+{
+ "doctype": "DocType",
+ "name": "Siraj Event",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "row_format": "Dynamic",
+ "autoname": "field:title",
+ "naming_rule": "By \"Naming Series\" field",
+ "editable_grid": 1,
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1,
+ "quick_entry": 1,
+ "allow_rename": 1,
+ "allow_import": 1,
+ "show_title_field_in_link": 1,
+ "show_preview_popup": 1,
+ "allow_copy": 1,
+ "allow_events_in_timeline": 1,
+ "in_create": 0,
+ "title_field": "title",
+ "search_fields": "title,description,place_name,event_type",
+ "icon": "star",
+ "description": "SIRAJ-researched event connecting persons, institutions, military units and places.",
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title"
+  },
+  {
+   "fieldname": "sb_identity",
+   "fieldtype": "Section Break",
+   "label": "Identity",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "event_type",
+   "fieldtype": "Link",
+   "label": "Event type",
+   "options": "Event Type"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "\nPlanned\nOngoing\nConcluded\nCancelled"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  },
+  {
+   "fieldname": "cb_identity",
+   "fieldtype": "Column Break",
+   "label": "Cb Identity"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start date"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End date"
+  },
+  {
+   "fieldname": "sb_participants",
+   "fieldtype": "Section Break",
+   "label": "Participants",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "cb_participants",
+   "fieldtype": "Column Break",
+   "label": "Cb Participants"
+  },
+  {
+   "fieldname": "sb_places",
+   "fieldtype": "Section Break",
+   "label": "Locations",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "linked_place",
+   "fieldtype": "Link",
+   "label": "Primary place",
+   "options": "Place"
+  },
+  {
+   "fieldname": "sb_geo",
+   "fieldtype": "Section Break",
+   "label": "Position",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude"
+  },
+  {
+   "fieldname": "geo_precision",
+   "fieldtype": "Select",
+   "label": "Coordinate precision",
+   "options": "exact\napproximate\ncentroid\nuncertain"
+  },
+  {
+   "fieldname": "geocoding_method",
+   "fieldtype": "Select",
+   "label": "How the point was obtained",
+   "options": "manual\nmap_pick\ncoordinate_entry\ngazetteer\nadministrative\ncity_centroid\ngeocoder\nhistorical_map\ninherited"
+  },
+  {
+   "fieldname": "geo_uncertainty_m",
+   "fieldtype": "Float",
+   "label": "Uncertainty radius (m)"
+  },
+  {
+   "fieldname": "geometry_source",
+   "fieldtype": "Data",
+   "label": "Point source"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate"
+  },
+  {
+   "fieldname": "cb_admin",
+   "fieldtype": "Column Break",
+   "label": null
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village / locality",
+   "options": "Village"
+  },
+  {
+   "fieldname": "community",
+   "fieldtype": "Link",
+   "label": "Community / cluster",
+   "options": "Community"
+  },
+  {
+   "fieldname": "place_name",
+   "fieldtype": "Data",
+   "label": "Locality / place name",
+   "description": "Nearest named place (village/town); auto-filled by reverse-geocoding."
+  },
+  {
+   "fieldname": "cb_geo",
+   "fieldtype": "Column Break",
+   "label": "Cb Geo"
+  },
+  {
+   "fieldname": "sb_evidence",
+   "fieldtype": "Section Break",
+   "label": "Source & verification",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "primary_source",
+   "fieldtype": "Link",
+   "label": "Primary source",
+   "options": "Source"
+  },
+  {
+   "fieldname": "documentation_level",
+   "fieldtype": "Link",
+   "label": "Documentation level",
+   "options": "Documentation Level"
+  },
+  {
+   "fieldname": "authentication_level",
+   "fieldtype": "Link",
+   "label": "Authentication level",
+   "options": "Authentication Level"
+  },
+  {
+   "fieldname": "cb_provenance",
+   "fieldtype": "Column Break",
+   "label": "Cb Provenance"
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "label": "Record status",
+   "options": "Workflow State"
+  },
+  {
+   "fieldname": "sb_evidence_table",
+   "fieldtype": "Section Break",
+   "label": "Evidence (claims this record makes)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "evidence",
+   "fieldtype": "Table",
+   "label": "Evidence",
+   "options": "Evidence"
+  },
+  {
+   "fieldname": "sb_identifiers",
+   "fieldtype": "Section Break",
+   "label": "External identifiers",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "external_identifiers",
+   "fieldtype": "Table",
+   "label": "External identifiers",
+   "options": "External Identifier"
+  }
+ ],
+ "field_order": [
+  "title",
+  "sb_identity",
+  "event_type",
+  "status",
+  "description",
+  "cb_identity",
+  "start_date",
+  "end_date",
+  "sb_participants",
+  "cb_participants",
+  "sb_places",
+  "linked_place",
+  "sb_geo",
+  "latitude",
+  "longitude",
+  "geo_precision",
+  "geocoding_method",
+  "geo_uncertainty_m",
+  "geometry_source",
+  "country",
+  "governorate",
+  "cb_geo",
+  "district",
+  "municipality",
+  "village",
+  "community",
+  "sb_evidence",
+  "primary_source",
+  "documentation_level",
+  "authentication_level",
+  "cb_provenance",
+  "workflow_state",
+  "sb_evidence_table",
+  "evidence",
+  "sb_identifiers",
+  "external_identifiers",
+  "place_name",
+  "cb_admin"
+ ],
+ "links": [
+  {
+   "link_doctype": "Person Event",
+   "link_fieldname": "event",
+   "group": "Events"
+  },
+  {
+   "link_doctype": "Institution Event",
+   "link_fieldname": "event",
+   "group": "Events"
+  },
+  {
+   "link_doctype": "Military Unit Event",
+   "link_fieldname": "event",
+   "group": "Events"
+  },
+  {
+   "link_doctype": "Siraj Event Person",
+   "link_fieldname": "event",
+   "group": "People"
+  },
+  {
+   "link_doctype": "Siraj Event Institution",
+   "link_fieldname": "event",
+   "group": "Institutions"
+  },
+  {
+   "link_doctype": "Siraj Event Military Unit",
+   "link_fieldname": "event",
+   "group": "Military units"
+  },
+  {
+   "link_doctype": "Siraj Event Location",
+   "link_fieldname": "event",
+   "group": "Locations"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1,
+   "import": 1,
+   "email": 1,
+   "share": 1,
+   "set_user_permissions": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1,
+   "import": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1
+  }
+ ],
+ "actions": [],
+ "states": [],
+ "istable": 0,
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
+}

@@ -1,0 +1,299 @@
+{
+ "doctype": "DocType",
+ "name": "Admin Boundary",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "autoname": "hash",
+ "title_field": "name_en",
+ "search_fields": "pcode,name_en,name_ar,level,country",
+ "show_title_field_in_link": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "field_order": [
+  "dataset",
+  "level",
+  "pcode",
+  "sb_identity",
+  "name_en",
+  "name_ar",
+  "local_name",
+  "cb_identity",
+  "country",
+  "parent_pcode",
+  "parent_admin_boundary",
+  "linked_place",
+  "sb_geom",
+  "geometry_precision",
+  "area_m2",
+  "cb_geom",
+  "centroid_lat",
+  "centroid_lon",
+  "bbox",
+  "sb_provenance",
+  "source_id",
+  "validity_notes",
+  "cb_geom_child",
+  "geometries"
+ ],
+ "fields": [
+  {
+   "fieldname": "dataset",
+   "fieldtype": "Link",
+   "label": "Dataset",
+   "options": "Boundary Dataset",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "level",
+   "fieldtype": "Int",
+   "label": "Admin level",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "pcode",
+   "fieldtype": "Data",
+   "label": "P-Code",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "length": 64,
+   "set_only_once": 1,
+   "description": "Stable place code from the dataset (e.g. IRQ019 for Baghdad)."
+  },
+  {
+   "fieldname": "sb_identity",
+   "fieldtype": "Section Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "name_en",
+   "fieldtype": "Data",
+   "label": "English name",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "length": 200
+  },
+  {
+   "fieldname": "name_ar",
+   "fieldtype": "Data",
+   "label": "Arabic name",
+   "length": 200
+  },
+  {
+   "fieldname": "local_name",
+   "fieldtype": "Data",
+   "label": "Local/alternative name",
+   "length": 200
+  },
+  {
+   "fieldname": "cb_identity",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "parent_pcode",
+   "fieldtype": "Data",
+   "label": "Parent P-Code",
+   "length": 64,
+   "description": "P-Code of the containing feature at level-1, used to build the admin chain."
+  },
+  {
+   "fieldname": "parent_admin_boundary",
+   "fieldtype": "Link",
+   "label": "Parent boundary",
+   "options": "Admin Boundary",
+   "description": "Resolved foreign-key link once the parent row exists."
+  },
+  {
+   "fieldname": "linked_place",
+   "fieldtype": "Link",
+   "label": "Linked Place",
+   "options": "Place",
+   "description": "The Place record this polygon corresponds to (auto-linked by pcode or name match)."
+  },
+  {
+   "fieldname": "sb_geom",
+   "fieldtype": "Section Break",
+   "label": "Geometry"
+  },
+  {
+   "fieldname": "geometry_precision",
+   "fieldtype": "Select",
+   "label": "Precision",
+   "options": "full\nsimplified",
+   "default": "full",
+   "in_list_view": 1,
+   "description": "'full' is the source resolution; 'simplified' is a tolerance-reduced copy for fast point-in-polygon."
+  },
+  {
+   "fieldname": "area_m2",
+   "fieldtype": "Float",
+   "label": "Area (m\u00b2)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_geom",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "centroid_lat",
+   "fieldtype": "Float",
+   "label": "Centroid latitude",
+   "read_only": 1
+  },
+  {
+   "fieldname": "centroid_lon",
+   "fieldtype": "Float",
+   "label": "Centroid longitude",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bbox",
+   "fieldtype": "Data",
+   "label": "Bounding box",
+   "read_only": 1,
+   "length": 200,
+   "description": "minx,miny,maxx,maxy in WGS 84 \u2014 used for spatial pre-filtering."
+  },
+  {
+   "fieldname": "sb_provenance",
+   "fieldtype": "Section Break",
+   "label": "Provenance"
+  },
+  {
+   "fieldname": "source_id",
+   "fieldtype": "Data",
+   "label": "Source feature ID",
+   "length": 120,
+   "read_only": 1,
+   "description": "Original FID / shapefile record id for traceability."
+  },
+  {
+   "fieldname": "validity_notes",
+   "fieldtype": "Small Text",
+   "label": "Validity notes",
+   "read_only": 1,
+   "description": "Notes from shapely.make_valid (self-touching rings, etc)."
+  },
+  {
+   "fieldname": "cb_geom_child",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "geometries",
+   "fieldtype": "Table",
+   "label": "Geometries",
+   "options": "Admin Boundary Geom",
+   "description": "Full + simplified WKB geometries."
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 0,
+   "share": 0,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 1,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "actions": [],
+ "states": [],
+ "row_format": "Default",
+ "icon": "fa fa-shield",
+ "description": "One administrative-boundary polygon at a single level, imported from a Boundary Dataset. Geometry is stored in the `tabAdmin Boundary Geom` child/companion table (Long Text WKB hex) rather than on this row so regular list queries remain fast.",
+ "istable": 0,
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
+}

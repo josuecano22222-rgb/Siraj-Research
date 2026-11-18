@@ -1,0 +1,57 @@
+{
+ "doctype": "DocType",
+ "name": "Admin Boundary Geom",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "istable": 1,
+ "autoname": "hash",
+ "track_changes": 0,
+ "fields": [
+  {
+   "fieldname": "precision",
+   "fieldtype": "Select",
+   "label": "Precision",
+   "options": "full\nsimplified",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "full vs simplified geometry"
+  },
+  {
+   "fieldname": "srid",
+   "fieldtype": "Int",
+   "label": "SRID",
+   "default": 4326,
+   "read_only": 1
+  },
+  {
+   "fieldname": "point_count",
+   "fieldtype": "Int",
+   "label": "Point count",
+   "read_only": 1
+  },
+  {
+   "fieldname": "geom_wkb_hex",
+   "fieldtype": "Long Text",
+   "label": "Geometry (WKB hex)",
+   "read_only": 1,
+   "description": "Well-Known-Binary hex in EPSG:4326."
+  }
+ ],
+ "field_order": [
+  "precision",
+  "srid",
+  "point_count",
+  "geom_wkb_hex"
+ ],
+ "permissions": [],
+ "links": [],
+ "actions": [],
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
+}

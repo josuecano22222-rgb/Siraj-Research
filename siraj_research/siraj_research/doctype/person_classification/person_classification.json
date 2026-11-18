@@ -191,5 +191,13 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "id-badge",
- "description": "The `person_classification` domain: what a person is known as (researcher, professor, historian, official …). User-extensible, bilingual, colour-coded, and sorted by the registrar."
+ "description": "The `person_classification` domain: what a person is known as (researcher, professor, historian, official \u2026). User-extensible, bilingual, colour-coded, and sorted by the registrar.",
+ "istable": 0,
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

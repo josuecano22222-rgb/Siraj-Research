@@ -14,12 +14,22 @@ after_install = "siraj_research.setup.install.after_install"
 after_migrate = "siraj_research.setup.install.ensure_default_workflow_state"
 
 fixtures = [
+	{'dt': 'Print Format', 'filters': [['name', '=', 'SIRAJ Research Dossier']]},
 	# the four SIRAJ roles (Del. 8 �4); the DocPerm rows on the DocTypes name them
 	{
 		"dt": "Role",
-		"filters": [["name", "in", [
-			"SIRAJ Viewer", "SIRAJ Researcher", "SIRAJ Reviewer", "SIRAJ Administrator",
-		]]],
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"SIRAJ Viewer",
+					"SIRAJ Researcher",
+					"SIRAJ Reviewer",
+					"SIRAJ Administrator",
+				],
+			]
+		],
 	},
 	{"dt": "Workflow", "filters": [["name", "=", "SIRAJ Review"]]},
 	{"dt": "Workflow State"},
@@ -41,7 +51,32 @@ add_to_apps_screen = [
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/siraj_research/css/siraj_research.css"
-app_include_js = "/assets/siraj_research/js/coordinate_map.js"
+#
+# JS is shipped as a Frappe esbuild bundle so `bench build` rewrites it to
+# a content-hashed filename under public/dist/ (any source change → new
+# URL → guaranteed cache bust).
+#
+# CSS is served as fixed /assets paths with an explicit build-stamp query
+# string (?v=…). We can't use a CSS bundle because Frappe's postcss2
+# esbuild plugin copies only the bundle entry file to a temp directory
+# before resolving @import; sibling @import './foo.css' then fails with
+# ENOENT (observed 2026-11-17, bench 01471c4→3974662). The ?v= query
+# string forces the browser to re-request on every build, which is
+# sufficient for CSS (small files, no code split concerns).
+from siraj_research.record_icons import SIRAJ_BUILD as _SIRAJ_BUILD
+_CSS_VER = "?v=" + _SIRAJ_BUILD
+app_include_js = [
+	"siraj.bundle.js",
+]
+app_include_css = [
+	"/assets/siraj_research/css/siraj-map-toolbar.css" + _CSS_VER,
+	"/assets/siraj_research/css/siraj-icons.css" + _CSS_VER,
+	"/assets/siraj_research/css/siraj-map-advanced.css" + _CSS_VER,
+]
+
+# Inject per-doctype metadata on every page load so the client has the same
+# colour/glyph catalogue the server uses.
+boot_session = "siraj_research.record_icons.boot_session"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/siraj_research/css/siraj_research.css"
@@ -58,7 +93,9 @@ app_include_js = "/assets/siraj_research/js/coordinate_map.js"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+	"Boundary Dataset": "public/js/boundary_dataset.js",
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # Standard per-DocType tree scripts live beside their DocType JSON files.
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -89,10 +126,9 @@ app_include_js = "/assets/siraj_research/js/coordinate_map.js"
 # ----------
 
 # add methods and filters to jinja environment
-# jinja = {
-# 	"methods": "siraj_research.utils.jinja_methods",
-# 	"filters": "siraj_research.utils.jinja_filters"
-# }
+jinja = {
+	"methods": "siraj_research.jinja_utils",
+}
 
 # Installation
 # ------------
@@ -278,4 +314,3 @@ app_include_js = "/assets/siraj_research/js/coordinate_map.js"
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
-

@@ -171,9 +171,9 @@
  ],
  "links": [
   {
-   "link_doctype": "Event",
+   "link_doctype": "Siraj Event",
    "link_fieldname": "event_type",
-   "group": "Event"
+   "group": "Events"
   }
  ],
  "actions": [],
@@ -191,5 +191,13 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "calendar-days",
- "description": "The `event_type` domain: birth, death, founding, merger, conference, destruction, reform …"
+ "description": "The `event_type` domain: birth, death, founding, merger, conference, destruction, reform \u2026",
+ "istable": 0,
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

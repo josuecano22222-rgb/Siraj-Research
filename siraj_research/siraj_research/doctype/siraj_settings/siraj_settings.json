@@ -73,7 +73,7 @@
    "label": "Days before a record is 'awaiting review'",
    "default": "14",
    "non_negative": 1,
-   "description": "Age at which the editorial reminder fires for records sitting in In Review. Consumed by the 'SIRAJ · review overdue' Notification condition."
+   "description": "Age at which the editorial reminder fires for records sitting in In Review. Consumed by the 'SIRAJ \u00b7 review overdue' Notification condition."
   },
   {
    "fieldname": "tab_transfer",
@@ -237,18 +237,57 @@
    "read": 1,
    "write": 1,
    "create": 1,
+   "delete": 1,
    "report": 1,
+   "export": 1,
    "print": 1,
-   "share": 1
+   "email": 1,
+   "share": 1,
+   "select": 1
   },
   {
    "role": "System Manager",
    "read": 1,
    "write": 1,
    "create": 1,
+   "delete": 1,
    "report": 1,
+   "export": 1,
    "print": 1,
-   "share": 1
+   "email": 1,
+   "share": 1,
+   "select": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "select": 1
   }
  ],
  "links": [],
@@ -263,5 +302,12 @@
  "allow_import": 1,
  "in_create": 0,
  "icon": "settings",
- "description": "Instance-wide policy for the SIRAJ research registry."
+ "description": "Instance-wide policy for the SIRAJ research registry.",
+ "istable": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

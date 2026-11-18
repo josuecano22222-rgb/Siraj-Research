@@ -3,7 +3,7 @@
     'use strict';
     const el = id => document.getElementById(id);
     const MAX_BYTES = 2 * 1024 * 1024, MAX_NODES = 2000, MAX_EDGES = 4000, MAX_TEXT = 256, MAX_RESULTS = 100, MAX_LINKS = 100;
-    const types = new Set(['Person', 'Institution', 'Place', 'Source', 'SIRAJ Research Event']);
+    const types = new Set(['Person', 'Institution', 'Place', 'Source', 'Siraj Event']);
     let snapshot = null, nodes = new Map(), links = new Map(), places = new Map(), generation = 0, signedInfo = null, expires = 0, expiryTimer = null;
     const key = node => JSON.stringify([node.doctype, node.name]);
     const text = value => typeof value === 'string' && value.length > 0 && value.length <= MAX_TEXT && value.trim() === value;

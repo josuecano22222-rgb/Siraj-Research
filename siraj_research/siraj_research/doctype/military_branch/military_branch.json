@@ -185,5 +185,13 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "shield",
- "description": "The `military_branch` domain (migration 020): Army, Navy, Air Force, Joint, Gendarmerie, Coast Guard — the service a military person belongs to."
+ "description": "The `military_branch` domain (migration 020): Army, Navy, Air Force, Joint, Gendarmerie, Coast Guard \u2014 the service a military person belongs to.",
+ "istable": 0,
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

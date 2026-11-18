@@ -220,5 +220,13 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "building-2",
- "description": "Third level of the administrative chain (SIRAJ migration 016, `app/geo_chain.py`). Rows nest under a district; a place may be pinned at this level or deeper."
+ "description": "Third level of the administrative chain (SIRAJ migration 016, `app/geo_chain.py`). Rows nest under a district; a place may be pinned at this level or deeper.",
+ "istable": 0,
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

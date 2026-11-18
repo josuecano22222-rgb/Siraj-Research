@@ -91,7 +91,7 @@
    "options": "Operational Deployment",
    "in_list_view": 1,
    "link_filters": "[[\"Operational Deployment\", \"unit\", \"=\", \"eval:doc.unit\"]]",
-   "description": "A mission's deployment must belong to the mission's own unit or to an ancestor formation (`rules.check_mission`) — the filter expresses the same-unit case, the controller the ancestor case."
+   "description": "A mission's deployment must belong to the mission's own unit or to an ancestor formation (`rules.check_mission`) \u2014 the filter expresses the same-unit case, the controller the ancestor case."
   },
   {
    "fieldname": "sb_mission_dates",
@@ -120,7 +120,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "search_index": 1,
-   "description": "Planned → Ongoing → Executed, or Cancelled from either open state (source `MISSION_TRANSITIONS`). A Select and not a Workflow for the reason given on Operational Deployment."
+   "description": "Planned \u2192 Ongoing \u2192 Executed, or Cancelled from either open state (source `MISSION_TRANSITIONS`). A Select and not a Workflow for the reason given on Operational Deployment."
   },
   {
    "fieldname": "sb_mission_area",
@@ -188,7 +188,7 @@
    "in_standard_filter": 1,
    "search_index": 1,
    "no_copy": 1,
-   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft \u2192 In Review \u2192 Verified \u2192 Published, plus Needs Update / Disputed / Archived / Rejected)."
   },
   {
    "fieldname": "researcher_notes",
@@ -278,6 +278,18 @@
   },
   {
    "role": "SIRAJ Administrator",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": null,
+   "export": 1,
+   "import_": 1,
+   "set_user_permissions": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
    "permlevel": 1,
    "read": 1,
    "write": 1,
@@ -336,5 +348,13 @@
  "title_field": "mission_name",
  "search_fields": "mission_name,mission_type,area",
  "icon": "crosshair",
- "description": "Missions a unit conducts, optionally within a deployment. The source's `mission` table; its state machine is a native Workflow."
+ "description": "Missions a unit conducts, optionally within a deployment. The source's `mission` table; its state machine is a native Workflow.",
+ "istable": 0,
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

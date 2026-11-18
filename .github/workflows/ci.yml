@@ -1,10 +1,10 @@
-
 name: CI
 
 on:
   push:
     branches:
       - develop
+      - main
   pull_request:
 
 concurrency:
@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  tests:
+  server-tests:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -39,11 +39,6 @@ jobs:
       - name: Clone
         uses: actions/checkout@v3
 
-      - name: Find tests
-        run: |
-          echo "Finding tests"
-          grep -rn "def test" > /dev/null
-
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -66,7 +61,7 @@ jobs:
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
-        run: 'echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT'
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
       - uses: actions/cache@v4
         id: yarn-cache
@@ -78,18 +73,18 @@ jobs:
 
       - name: Install MariaDB Client
         run: |
-          sudo apt-get install mariadb-client
-          # MariaDB 10.6 server has no TLS, but newer clients require it by default
+          sudo apt-get update -y
+          sudo apt-get install -y mariadb-client
           printf "[client]\nskip-ssl\n" > ~/.my.cnf
 
-      - name: Setup
+      - name: Setup bench
         run: |
           pip install frappe-bench
           bench init --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
 
-      - name: Install
+      - name: Install app and site
         working-directory: /home/runner/frappe-bench
         run: |
           bench get-app siraj_research $GITHUB_WORKSPACE
@@ -100,10 +95,35 @@ jobs:
         env:
           CI: 'Yes'
 
-      - name: Run Tests
+      - name: Run Frappe server tests
         working-directory: /home/runner/frappe-bench
         run: |
           bench --site test_site set-config allow_tests true
           bench --site test_site run-tests --app siraj_research
         env:
           TYPE: server
+
+  pure-python-tests:
+    runs-on: ubuntu-latest
+    name: Pure-Python Unit Tests (no bench)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: pip
+      - name: Install deps
+        run: pip install pytest cryptography
+      - name: Run tests
+        run: |
+          pytest tests/ --ignore=tests/test_coordinate_map.js \
+                        --ignore=tests/test_explorer_assets.js \
+                        --ignore=tests/test_explorer_browser.js \
+                        --ignore=tests/test_explorer_ui.js \
+                        --ignore=tests/test_list_navigation.js \
+                        --ignore=tests/test_load_probe.js \
+                        --ignore=tests/test_offline_map_download.js \
+                        --ignore=tests/test_signed_snapshot_adversarial.js \
+                        --ignore=tests/test_signed_snapshot_crypto.js \
+                        --ignore=tests/test_tree_navigation.js \
+                   -q

@@ -20,8 +20,6 @@
   "commander",
   "current_deployment",
   "cb_unit_scope",
-  "division",
-  "region",
   "status",
   "direct_personnel",
   "subtree_personnel",
@@ -56,7 +54,16 @@
   "sb_evidence_table",
   "evidence",
   "sb_identifiers",
-  "external_identifiers"
+  "external_identifiers",
+  "country",
+  "governorate",
+  "cb_admin",
+  "district",
+  "municipality",
+  "village",
+  "community",
+  "linked_place",
+  "place_name"
  ],
  "fields": [
   {
@@ -127,7 +134,7 @@
    "in_list_view": 1,
    "in_preview": 1,
    "in_standard_filter": 1,
-   "description": "Brigade … Detachment (`vocab.UNIT_ECHELONS`); default Brigade, as in the source."
+   "description": "Brigade \u2026 Detachment (`vocab.UNIT_ECHELONS`); default Brigade, as in the source."
   },
   {
    "fieldname": "classification",
@@ -157,7 +164,7 @@
    "options": "Person",
    "in_list_view": 1,
    "link_filters": "[[\"Person\", \"category\", \"=\", \"Military\"]]",
-   "description": "Only a person of the military category can hold a command (`rules.check_commander_person`) — the link filter makes that rule visible before it is enforced."
+   "description": "Only a person of the military category can hold a command (`rules.check_commander_person`) \u2014 the link filter makes that rule visible before it is enforced."
   },
   {
    "fieldname": "current_deployment",
@@ -172,22 +179,6 @@
    "fieldname": "cb_unit_scope",
    "fieldtype": "Column Break",
    "label": ""
-  },
-  {
-   "fieldname": "division",
-   "fieldtype": "Link",
-   "label": "Division",
-   "options": "Military Division",
-   "in_list_view": 1,
-   "in_standard_filter": 1
-  },
-  {
-   "fieldname": "region",
-   "fieldtype": "Link",
-   "label": "Region",
-   "options": "Command Region",
-   "in_list_view": 1,
-   "in_standard_filter": 1
   },
   {
    "fieldname": "status",
@@ -208,14 +199,14 @@
    "reqd": 1,
    "in_list_view": 1,
    "non_negative": 1,
-   "description": "People posted directly to this unit, not its subordinates. The subtree total is a rollup the controller computes — the source's `descendant_personnel()` query, answered natively by the NestedSet."
+   "description": "People posted directly to this unit, not its subordinates. The subtree total is a rollup the controller computes \u2014 the source's `descendant_personnel()` query, answered natively by the NestedSet."
   },
   {
    "fieldname": "subtree_personnel",
    "fieldtype": "Int",
    "label": "Subtree personnel",
    "read_only": 1,
-   "description": "Σ direct_personnel over the whole subtree. Read-only and recomputed on save: it is the one number a commander asks for, and it must never be typed."
+   "description": "\u03a3 direct_personnel over the whole subtree. Read-only and recomputed on save: it is the one number a commander asks for, and it must never be typed."
   },
   {
    "fieldname": "sb_unit_formation",
@@ -241,7 +232,7 @@
    "options": "Unit Armament Holding",
    "no_copy": 1,
    "columns": 9,
-   "description": "One row per (unit, armament) with quantity and condition — the source's `unit_armament` table, which is genuinely data a unit owns, so it is a child table here."
+   "description": "One row per (unit, armament) with quantity and condition \u2014 the source's `unit_armament` table, which is genuinely data a unit owns, so it is a child table here."
   },
   {
    "fieldname": "tab_unit_geo",
@@ -326,11 +317,66 @@
    "depends_on": "eval:doc.latitude && doc.longitude"
   },
   {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate"
+  },
+  {
+   "fieldname": "cb_admin",
+   "fieldtype": "Column Break",
+   "label": null
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village / locality",
+   "options": "Village"
+  },
+  {
+   "fieldname": "community",
+   "fieldtype": "Link",
+   "label": "Community / cluster",
+   "options": "Community"
+  },
+  {
+   "fieldname": "place_name",
+   "fieldtype": "Data",
+   "label": "Locality / place name",
+   "description": "Nearest named place (village/town); auto-filled by reverse-geocoding."
+  },
+  {
    "fieldname": "geo_description",
    "fieldtype": "Text Editor",
    "label": "Geographic description",
    "collapsible": 1,
    "description": "How the unit's position sits relative to its headquarters and the terrain around it."
+  },
+  {
+   "fieldname": "linked_place",
+   "fieldtype": "Link",
+   "options": "Place",
+   "label": "Place (HQ location)",
+   "description": "Link to a Place record (e.g. base, garrison, command region as a Place) for this unit's position when it has no direct coordinates.",
+   "in_list_view": 0
   },
   {
    "fieldname": "tab_unit_notes",
@@ -392,7 +438,7 @@
    "in_standard_filter": 1,
    "search_index": 1,
    "no_copy": 1,
-   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft \u2192 In Review \u2192 Verified \u2192 Published, plus Needs Update / Disputed / Archived / Rejected)."
   },
   {
    "fieldname": "researcher_notes",
@@ -482,6 +528,18 @@
   },
   {
    "role": "SIRAJ Administrator",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": null,
+   "export": 1,
+   "import_": 1,
+   "set_user_permissions": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
    "permlevel": 1,
    "read": 1,
    "write": 1,
@@ -541,6 +599,36 @@
    "link_doctype": "Command Appointment",
    "link_fieldname": "unit",
    "group": "Command"
+  },
+  {
+   "link_doctype": "Person Military Unit",
+   "link_fieldname": "military_unit",
+   "group": "Military units"
+  },
+  {
+   "link_doctype": "Institution Military Unit",
+   "link_fieldname": "military_unit",
+   "group": "Military units"
+  },
+  {
+   "link_doctype": "Military Unit Event",
+   "link_fieldname": "military_unit",
+   "group": "Events"
+  },
+  {
+   "link_doctype": "Military Unit Institution",
+   "link_fieldname": "military_unit",
+   "group": "Institutions"
+  },
+  {
+   "link_doctype": "Military Unit Location",
+   "link_fieldname": "military_unit",
+   "group": "Locations"
+  },
+  {
+   "link_doctype": "Siraj Event Military Unit",
+   "link_fieldname": "military_unit",
+   "group": "Military units"
   }
  ],
  "actions": [],
@@ -566,5 +654,13 @@
  "search_fields": "unit_name,unit_code,echelon",
  "default_view": "Tree",
  "icon": "shield",
- "description": "The military unit tree — the source's `military_unit` table and the centre of the module. A NestedSet, so the chain of command is traversable rather than merely described."
+ "description": "The military unit tree \u2014 the source's `military_unit` table and the centre of the module. A NestedSet, so the chain of command is traversable rather than merely described.",
+ "istable": 0,
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

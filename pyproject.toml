@@ -9,6 +9,14 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
+    # Geospatial stack for boundary import + geo_resolve (Phase 2/3).
+    # These are OPTIONAL: geo_import.deps_ok() and the "Check dependencies"
+    # button on Boundary Dataset tell the admin what to install if they
+    # are missing. We list them as comments rather than hard dependencies
+    # so the app boots on benches without a C toolchain.
+    # "shapely>=2.0",
+    # "pyproj>=3.6",
+    # "pyogrio>=0.7",   # preferred over fiona
 ]
 
 [build-system]
@@ -50,9 +58,14 @@ ignore = [
     "F403", # can't detect undefined names from * import
     "F405", # can't detect undefined names from * import
     "F722", # syntax error in forward type annotation
+    "F821", # frappe framework is provided by bench at runtime
+    "RUF001", # Unicode characters (Arabic digits, ×) are used intentionally
     "W191", # indentation contains tabs
 ]
 typing-modules = ["frappe.types.DF"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"frappe".msg = "frappe is provided by the Bench runtime; ensure imports are compatible with Frappe v15."
 
 [tool.ruff.format]
 quote-style = "double"

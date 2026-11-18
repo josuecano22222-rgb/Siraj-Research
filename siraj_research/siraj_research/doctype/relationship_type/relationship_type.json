@@ -113,14 +113,14 @@
    "fieldtype": "Link",
    "label": "Inverse type",
    "options": "Relationship Type",
-   "description": "The type that reads in the opposite direction ('student of' ⇄ 'teacher of'). Used for display and for duplicate detection; the stored edge is never duplicated."
+   "description": "The type that reads in the opposite direction ('student of' \u21c4 'teacher of'). Used for display and for duplicate detection; the stored edge is never duplicated."
   },
   {
    "fieldname": "is_symmetric",
    "fieldtype": "Check",
    "label": "Symmetric",
    "default": "0",
-   "description": "True for colleague of, co-author with, partner of, relative of … A symmetric edge is stored once and read from both ends."
+   "description": "True for colleague of, co-author with, partner of, relative of \u2026 A symmetric edge is stored once and read from both ends."
   },
   {
    "fieldname": "cb_semantics",
@@ -247,5 +247,13 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "share-2",
- "description": "The `relationship_type` domain (33 seeded values) with its semantics: each type may name its `inverse_type` and declare itself symmetric. Inverse and symmetric behaviour is therefore *data*, not code — adding 'taught at' needs no deployment."
+ "description": "The `relationship_type` domain (33 seeded values) with its semantics: each type may name its `inverse_type` and declare itself symmetric. Inverse and symmetric behaviour is therefore *data*, not code \u2014 adding 'taught at' needs no deployment.",
+ "istable": 0,
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

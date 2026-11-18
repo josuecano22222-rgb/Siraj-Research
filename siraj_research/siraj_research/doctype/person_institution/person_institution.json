@@ -1,0 +1,282 @@
+{
+ "actions": [],
+ "allow_copy": 1,
+ "allow_events_in_timeline": 1,
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "hash",
+ "creation": "2026-11-17 00:00:00.000000",
+ "custom": 0,
+ "description": "Affiliation of a person with an institution (employment, membership, board role).",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "title_en",
+  "title_ar",
+  "title_as_stated",
+  "sb_relation",
+  "person",
+  "institution",
+  "cb_1",
+  "role",
+  "start_date",
+  "cb_dates",
+  "end_date",
+  "sb_evidence",
+  "primary_source",
+  "documentation_level",
+  "authentication_level",
+  "cb_prov",
+  "workflow_state",
+  "evidence",
+  "external_identifiers"
+ ],
+ "fields": [
+  {
+   "fieldname": "title_en",
+   "fieldtype": "Data",
+   "label": "Title (English)",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "translatable": 1
+  },
+  {
+   "fieldname": "title_ar",
+   "fieldtype": "Data",
+   "label": "\u0627\u0644\u0639\u0646\u0648\u0627\u0646 (Arabic)",
+   "in_list_view": 1,
+   "translatable": 1
+  },
+  {
+   "fieldname": "title_as_stated",
+   "fieldtype": "Data",
+   "label": "Title as stated",
+   "translatable": 1
+  },
+  {
+   "fieldname": "sb_relation",
+   "fieldtype": "Section Break",
+   "label": "Relation"
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "label": "Person",
+   "options": "Person",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "institution",
+   "fieldtype": "Link",
+   "label": "Institution",
+   "options": "Institution",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "role",
+   "fieldtype": "Data",
+   "label": "Role / relation",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start date",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "cb_dates",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End date",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "sb_evidence",
+   "fieldtype": "Section Break",
+   "label": "Evidence & provenance"
+  },
+  {
+   "fieldname": "primary_source",
+   "fieldtype": "Link",
+   "label": "Primary source",
+   "options": "Source"
+  },
+  {
+   "fieldname": "documentation_level",
+   "fieldtype": "Link",
+   "label": "Documentation level",
+   "options": "Documentation Level"
+  },
+  {
+   "fieldname": "authentication_level",
+   "fieldtype": "Link",
+   "label": "Authentication level",
+   "options": "Authentication Level"
+  },
+  {
+   "fieldname": "cb_prov",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "label": "Workflow state",
+   "options": "Workflow State",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "evidence",
+   "fieldtype": "Table",
+   "label": "Evidence",
+   "options": "Evidence"
+  },
+  {
+   "fieldname": "external_identifiers",
+   "fieldtype": "Table",
+   "label": "External identifiers",
+   "options": "External Identifier"
+  }
+ ],
+ "in_create": 0,
+ "links": [],
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Siraj Research",
+ "name": "Person Institution",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "SIRAJ Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": null,
+   "export": 1,
+   "import_": 1,
+   "set_user_permissions": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1,
+   "import": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1
+  }
+ ],
+ "quick_entry": 1,
+ "row_format": "Dynamic",
+ "search_fields": "title_en,title_ar,role",
+ "show_preview_popup": 1,
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [
+  {
+   "title": "Draft",
+   "color": "Gray"
+  },
+  {
+   "title": "In Review",
+   "color": "Orange"
+  },
+  {
+   "title": "Verified",
+   "color": "Light Blue"
+  },
+  {
+   "title": "Published",
+   "color": "Green"
+  },
+  {
+   "title": "Needs Update",
+   "color": "Yellow"
+  },
+  {
+   "title": "Disputed",
+   "color": "Red"
+  },
+  {
+   "title": "Archived",
+   "color": "Purple"
+  },
+  {
+   "title": "Rejected",
+   "color": "Red"
+  }
+ ],
+ "title_field": "title_en",
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1,
+ "docstatus": 0,
+ "idx": 0,
+ "istable": 0,
+ "issingle": 0
+}

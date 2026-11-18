@@ -7,6 +7,7 @@ source's `app/military/vocab.py` and `app/military/rules.py` that cannot be
 expressed as DocType metadata. Kept in one module so each transition table is
 defined exactly once.
 """
+
 from __future__ import annotations
 
 import frappe
@@ -36,8 +37,9 @@ SERVICE_STATUS_TRANSITIONS: dict[str, tuple[str, ...]] = {
 }
 
 
-def check_transition(table: dict[str, tuple[str, ...]], field: str, old: str | None,
-                     new: str | None, label: str) -> None:
+def check_transition(
+	table: dict[str, tuple[str, ...]], field: str, old: str | None, new: str | None, label: str
+) -> None:
 	"""Refuse a status change the source's transition table does not allow."""
 	if not old or old == new:
 		return
@@ -45,7 +47,10 @@ def check_transition(table: dict[str, tuple[str, ...]], field: str, old: str | N
 	if new not in allowed:
 		frappe.throw(
 			_("{0}: {1} cannot become {2}. Allowed from {3}: {4}.").format(
-				_(label), old, new, old,
+				_(label),
+				old,
+				new,
+				old,
 				", ".join(allowed) if allowed else _("nothing  this state is terminal"),
 			),
 			title=_("Invalid status change"),
@@ -76,8 +81,11 @@ def descendants(doctype: str, name: str) -> list[str]:
 	seen, found, frontier = {name}, [], [name]
 	while frontier:
 		children = frappe.get_all(
-			doctype, filters={"parent_unit": ("in", frontier)},
-			pluck="name", order_by="name asc", limit_page_length=0,
+			doctype,
+			filters={"parent_unit": ("in", frontier)},
+			pluck="name",
+			order_by="name asc",
+			limit_page_length=0,
 		)
 		frontier = []
 		for child in children:
@@ -98,7 +106,9 @@ def subtree_personnel(doctype: str, name: str) -> int:
 	"""Sum direct personnel over the persisted parent-linked subtree."""
 	names = [name, *descendants(doctype, name)]
 	total = frappe.get_all(
-		doctype, filters={"name": ("in", names)}, fields=["sum(direct_personnel) as total"],
+		doctype,
+		filters={"name": ("in", names)},
+		fields=["sum(direct_personnel) as total"],
 		limit_page_length=0,
 	)
 	return int((total[0].total if total else 0) or 0)

@@ -1,0 +1,503 @@
+/* Universal SIRAJ icon & colour primitives.
+ *
+ * These classes make the record-type glyphs look identical everywhere the
+ * palette is used: the map canvas, the network graph, list-view avatars, form
+ * sidebar indicators, autocomplete results, dashboard cards and printed PDFs.
+ *
+ * Each element that carries data-doctype="<Doctype>" gets a CSS custom
+ * property --siraj-colour set by the JS bootstrap, so backgrounds, strokes
+ * and borders stay in lockstep without inline styles.
+ */
+
+:root {
+	--siraj-pin-size: 36px;
+}
+
+/* --- Pin (map marker / node avatar) — professional teardrop marker.
+ * Structure (from sirajIcons.pin):
+ *   <span.sx-map-pin>
+ *     <span.siraj-pin-halo/>     ← pulsing selection halo (optional)
+ *     <span.siraj-pin-ring/>     ← outer status ring (ego / inferred)
+ *     <span.siraj-pin-body/>     ← circular body with glyph + white border
+ *     <span.siraj-pin-dot/>      ← notification dot (optional)
+ *     <span.siraj-pin-point/>    ← triangular point at the geographic coord
+ * iconAnchor must be [s/2, s*1.15] in the divIcon (point sits on coord). */
+.sx-pin-wrapper { border: 0; background: transparent; }
+.sx-pin-wrapper .siraj-pin.sx-map-pin { box-sizing: border-box; }
+.siraj-pin.sx-map-pin {
+	position: relative;
+	display: block;
+	width: 36px;                /* overridden by inline style */
+	height: 42px;
+	--pin-color: #6a7a7e;
+	flex: 0 0 auto;
+	filter: drop-shadow(0 2px 5px rgba(26,49,54,.38));
+	transition: transform .18s ease, filter .18s ease;
+	cursor: pointer;
+}
+.siraj-pin.sx-map-pin:hover {
+	transform: translateY(-2px) scale(1.05);
+	filter: drop-shadow(0 4px 9px rgba(26,49,54,.48));
+	z-index: 1000 !important;
+}
+.siraj-pin.sx-map-pin.is-selected {
+	transform: translateY(-2px) scale(1.08);
+	filter: drop-shadow(0 5px 12px rgba(12,94,91,.55));
+	z-index: 1200 !important;
+}
+.siraj-pin.sx-map-pin.is-active { filter: drop-shadow(0 0 0 2px rgba(12,94,91,.35)) drop-shadow(0 3px 8px rgba(26,49,54,.45)); z-index: 1100 !important; }
+.siraj-pin.sx-map-pin.is-inactive { opacity: .55; filter: drop-shadow(0 1px 3px rgba(26,49,54,.25)); }
+
+/* Rounded body disc — sits in the upper 75% of the pin. */
+.siraj-pin-body {
+	position: absolute;
+	left: 50%; top: 0;
+	transform: translateX(-50%);
+	width: 76%;
+	aspect-ratio: 1/1;
+	border-radius: 50%;
+	background: var(--pin-color);
+	border: 3px solid #fff;             /* white outline — crisp against any basemap */
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+	box-sizing: border-box;
+	/* subtle inner highlight for a 3D feel */
+	box-shadow: inset 0 -3px 0 rgba(0,0,0,.12), inset 0 2px 0 rgba(255,255,255,.18);
+}
+.siraj-pin-body svg { display: block; width: 55%; height: 55%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+
+/* Triangular point — the very tip is the geographic coordinate (iconAnchor).
+ * Inline style controls size; the inner <span> carries the body colour so the
+ * point stays visually attached to the body. */
+.siraj-pin-point {
+	position: absolute;
+	left: 50%; bottom: 0;
+	transform: translateX(-50%);
+	width: 0; height: 0;
+	border-style: solid;
+	border-color: transparent;
+	border-bottom: 0;
+	border-top-color: #fff;     /* outer white border triangle */
+}
+.siraj-pin-point > span {
+	position: absolute;
+	border-style: solid;
+	border-color: transparent;
+	border-bottom: 0;
+}
+
+/* Notification dot (top-right) */
+.siraj-pin-dot {
+	position: absolute;
+	top: -2px; right: 8%;
+	width: 10px; height: 10px;
+	border-radius: 50%;
+	border: 2px solid #fff;
+	box-shadow: 0 1px 3px rgba(0,0,0,.35);
+	z-index: 2;
+}
+
+/* Status ring (ego / inferred / selected) */
+.siraj-pin-ring {
+	position: absolute;
+	left: 50%; top: 0;
+	transform: translate(-50%, -15%);
+	width: 100%;
+	aspect-ratio: 1/1;
+	border-radius: 50%;
+	border: 2px solid var(--pin-color);
+	pointer-events: none;
+	animation: siraj-ring-pulse 1.8s ease-out infinite;
+}
+/* Outer halo (selected / current record) */
+.siraj-pin-halo {
+	position: absolute;
+	left: 50%; top: 0;
+	transform: translate(-50%, -25%);
+	width: 140%;
+	aspect-ratio: 1/1;
+	border-radius: 50%;
+	background: radial-gradient(circle, var(--pin-color) 0%, transparent 65%);
+	opacity: .28;
+	pointer-events: none;
+	animation: siraj-pin-halo 1.6s ease-out infinite;
+}
+@keyframes siraj-pin-halo {
+	0%   { transform: translate(-50%,-25%) scale(.6); opacity: .5; }
+	100% { transform: translate(-50%,-25%) scale(1.4); opacity: 0; }
+}
+@keyframes siraj-ring-pulse {
+	0%   { box-shadow: 0 0 0 0 rgba(255,255,255,.4); }
+	70%  { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
+	100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+}
+
+/* Legend / swatch pins are small circular discs (no teardrop point). */
+.sx-legend-pin.sx-map-pin,
+.sx-map-pin.sx-legend-pin {
+	width: 22px !important;
+	height: 22px !important;
+	aspect-ratio: 1/1;
+	filter: none;
+}
+.sx-legend-pin .siraj-pin-point,
+.sx-legend-pin .siraj-pin-dot,
+.sx-legend-pin .siraj-pin-halo,
+.sx-legend-pin .siraj-pin-ring { display: none !important; }
+.sx-legend-pin .siraj-pin-body {
+	position: absolute;
+	left: 0; top: 0;
+	transform: none;
+	width: 100% !important;
+	height: 100% !important;
+	aspect-ratio: 1/1;
+	border-radius: 50%;
+}
+
+/* Cluster markers keep the circular look but match the palette.
+ * Inline styles on .sx-cluster handle the size/colour tiers; CSS adds hover
+ * + focus polish and the pulse keyframe. `.sx-cluster-wrap` replaces the
+ * legacy `.sx-cluster` className on the Leaflet DivIcon wrapper so the icon
+ * never picks up Leaflet's default image-icon background/border. */
+.sx-cluster-wrap {
+	background: transparent !important;
+	border: none !important;
+	padding: 0 !important;
+	margin: 0 !important;
+}
+.sx-cluster-wrap .sx-cluster:hover {
+	transform: scale(1.08);
+	filter: brightness(1.08);
+}
+.sx-cluster-wrap .sx-cluster:focus-visible {
+	outline: 3px solid rgba(255,255,255,.9);
+	outline-offset: 2px;
+}
+@keyframes sx-cluster-pulse {
+	0%   { transform: scale(0.9);  opacity: 0.8; }
+	70%  { transform: scale(1.5);  opacity: 0;   }
+	100% { transform: scale(1.5);  opacity: 0;   }
+}
+.sx-cluster {
+	border-radius: 50%;
+	color: #fff;
+	font-weight: 700;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	user-select: none;
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* ============================================================
+   Pin visibility, layering & edge-clipping safety
+   ------------------------------------------------------------
+   Leaflet will happily render default image markers even when
+   our divIcons are mounted (the browser briefly flashes the
+   blue pin before JS replaces it, and if any marker slips past
+   the compat interception it remains visible forever). The
+   rules below:
+   (a) Hide the default Leaflet image/shadow inside any SIRAJ
+       surface so a blue pin never peeks through.
+   (b) Force our pins above tiles/shadows/overlays and below
+       popups/tooltips/controls.
+   (c) Make sure parent panes do NOT use overflow:hidden that
+       could clip pins near the edge of the viewport — pins
+       should remain legible even when their tip is at the very
+       edge of the map (the body is allowed to overflow into the
+       gutter so users can still see/click them).
+   (d) Respect prefers-reduced-motion for halo/pulse animations.
+   ============================================================ */
+
+/* Hide Leaflet default marker images/shadows inside any SIRAJ map.
+ * The public-API prototype icon replacement in siraj-compat.js (2b) makes
+ * L.marker() default to a SIRAJ divIcon, so an <img> marker appearing here
+ * means a code path bypassed our default — keeping it visible lets the
+ * SIRAJ Diagnostics page report it. We do NOT simply display:none the
+ * images (which would mask bugs). Instead, we give them a subtle red
+ * outline so developers notice them in QA. */
+.leaflet-marker-icon[src*="marker-icon.png"],
+.leaflet-marker-icon[src*="marker-shadow.png"] {
+	outline: 3px dashed #c0392b !important;
+	outline-offset: 2px;
+	background: rgba(192,57,43,.15);
+	/* keep visible so diagnostics & QA can see them; do not display:none */
+}
+
+/* Pin layering — pins must sit above all tile/shadow/overlay content
+   but below popups/tooltips/controls. Leaflet puts them in
+   .leaflet-marker-pane at z-index 600; bump markers inside our pins. */
+.sx-pin-wrapper {
+	z-index: 650 !important;
+}
+.sx-pin-wrapper .siraj-pin.sx-map-pin.is-selected { z-index: 800 !important; }
+.sx-pin-wrapper .siraj-pin.sx-map-pin.is-active   { z-index: 700 !important; }
+.leaflet-popup-pane, .leaflet-tooltip-pane { z-index: 900 !important; }
+.leaflet-control-container { z-index: 1000 !important; }
+
+/* Map containers are always clipped: tiles, vector overlays (admin polygons),
+   shadows and panes must never spill outside the canvas onto form sidebars,
+   dialogs or the Explorer detail panel. Edge pins are kept visible via
+   fitBounds() padding + autoPanPadding (see siraj-map-toolbar defaults and
+   coordinate_map / Explorer select handlers that call panInside()).
+
+   We DO allow popups/tooltips to escape the canvas because Leaflet opens
+   them with autoPan by default and the brief overflow is only visible at
+   open animation time; their z-index (900) sits below navbar/dialogs. */
+/* Shared Leaflet integration — MINIMAL OVERRIDES.
+   Leaflet ships its own carefully-tuned CSS for .leaflet-container,
+   .leaflet-pane, .leaflet-tile-container, marker sizing, overflow,
+   position, z-index. Overriding those caused every map to render blank in
+   builds .28-.36 (tiles fetched but never painted, North Pole zoom-0 view,
+   markers invisible). We therefore leave layout entirely to Leaflet's own
+   CSS and only override what Frappe/Bootstrap resets break:
+     - global img {max-width:100%;height:auto} stretches 256px tiles to 0px
+       when the container is mid-layout; reset for map images only.
+     - canvas box-sizing:border-box so border+padding don't subtract from
+       the area Leaflet measures.
+     - marker-cluster defaults (vendor CSS files are not shipped in vendor/).
+   We also keep popup/tooltip pointers disabled on the pane wrapper. */
+.siraj-coordinate-map .siraj-coord-canvas,
+.siraj-explorer .sx-canvas {
+	box-sizing: border-box;
+}
+.siraj-coordinate-map .leaflet-container,
+.siraj-explorer .leaflet-container,
+.leaflet-container {
+	outline: none;
+	-webkit-tap-highlight-color: transparent;
+	touch-action: pan-x pan-y;
+}
+.leaflet-container .leaflet-overlay-pane svg,
+.leaflet-container .leaflet-marker-pane img,
+.leaflet-container .leaflet-shadow-pane img,
+.leaflet-container .leaflet-tile-pane img,
+.leaflet-container img.leaflet-image-layer,
+.leaflet-container .leaflet-tile {
+	max-width: none !important;
+	max-height: none !important;
+	padding: 0;
+	margin: 0;
+	border: 0;
+	box-shadow: none;
+}
+.leaflet-container .leaflet-marker-icon,
+.leaflet-container .leaflet-marker-shadow {
+	display: block;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+}
+.leaflet-popup-pane,
+.leaflet-tooltip-pane {
+	pointer-events: none;
+}
+.leaflet-popup-pane .leaflet-popup,
+.leaflet-tooltip-pane .leaflet-tooltip {
+	pointer-events: auto;
+}
+/* MarkerCluster styles (vendor CSS not shipped). */
+.marker-cluster {
+	background-clip: padding-box;
+	border-radius: 20px;
+	background-color: rgba(18,106,104,0.32);
+}
+.marker-cluster div {
+	width: 30px; height: 30px;
+	margin-left: 5px; margin-top: 5px;
+	text-align: center;
+	border-radius: 15px;
+	font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+	font-weight: bold; color: #fff;
+	line-height: 30px;
+	background-color: #126a68;
+}
+.marker-cluster span { line-height: 30px; }
+.leaflet-cluster-anim .leaflet-marker-icon,
+.leaflet-cluster-anim .leaflet-marker-shadow {
+	transition: transform 0.3s ease-out, opacity 0.3s ease-in;
+}
+
+/* High-DPI / small viewports: scale slightly down on tiny screens. */
+@media (max-width: 480px) {
+	.siraj-pin.sx-map-pin:not(.sx-legend-pin) { transform: scale(.9); transform-origin: bottom center; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+	.siraj-pin-halo, .siraj-pin-ring { animation: none !important; }
+	.siraj-pin.sx-map-pin { transition: none !important; }
+}
+
+/* --- Small swatch for lists, breadcrumbs, autocomplete --- */
+.siraj-swatch {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 3px;
+	color: #fff;
+	flex: 0 0 auto;
+}
+.siraj-swatch svg { display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* --- List row avatar (like Frappe's list-avatar but with our glyph) --- */
+.siraj-list-avatar {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	color: #fff;
+	margin-inline-end: 8px;
+	vertical-align: middle;
+	flex: 0 0 auto;
+}
+.siraj-list-avatar svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* --- Form sidebar indicator --- */
+.siraj-form-indicator {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 8px;
+	border-radius: 999px;
+	color: #fff;
+	font-size: 11px;
+	font-weight: 600;
+}
+.siraj-form-indicator svg { width: 12px; height: 12px; fill: none; stroke: #fff; stroke-width: 2; }
+
+/* --- Cluster badges (size/colour tiers are set inline in siraj_explorer.js) --- */
+.sx-cluster {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	color: #fff;
+	font-weight: 700;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	user-select: none;
+}
+.sx-cluster-pulse { pointer-events: none; }
+@keyframes sx-cluster-pulse {
+	0%   { transform: scale(0.9);  opacity: 0.8; }
+	70%  { transform: scale(1.5);  opacity: 0;   }
+	100% { transform: scale(1.5);  opacity: 0;   }
+}
+
+/* --- Graph nodes (vis-network) get the pin style via HTML overlay --- */
+.sx-network-node {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	color: #fff;
+	border: 3px solid #fff;
+	box-shadow: 0 2px 8px #263c4055;
+}
+.sx-network-node svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 1.8; }
+
+/* --- Dashboard/structure deck swatches already use .sd-swatch; upgrade it --- */
+.sd-swatch {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 14px;
+	height: 14px;
+	border-radius: 3px;
+	color: #fff;
+	margin-inline-end: 5px;
+}
+.sd-swatch svg { display: none; }
+.sd-swatch.siraj-swatch svg { display: block; width: 10px; height: 10px; }
+
+/* --- Toolbar (map canvas) shared icon sizing --- */
+.siraj-toolbar-btn svg { display: block; }
+
+/* --- Measurement overlay --- */
+.siraj-vertex { background: transparent; border:0; }
+.siraj-vertex > span { display:block; width:10px; height:10px; border-radius:50%; background:#fff; border:2px solid #1a6670; box-shadow:0 1px 3px #263c4088; box-sizing:border-box; }
+.siraj-measure-label { background: rgba(26,102,112,0.92); color:#fff; font-size:11px; padding:3px 6px; border-radius:4px; white-space:nowrap; pointer-events:none; line-height:1.3; box-shadow:0 1px 4px #263c4055; }
+.siraj-measure-label.is-total { background:#0f4b53; font-weight:600; }
+.siraj-edge-tooltip { background:#233b37 !important; color:#fff !important; border:0 !important; font-size:11px; padding:3px 6px; border-radius:3px; box-shadow:0 2px 6px #0006; }
+
+/* --- Application side panel (distinct from the in-canvas map-tool dock) --- */
+.sx-app-panel { position:absolute; top:10px; left:10px; z-index:500; background:#fff; border-radius:8px; box-shadow:0 2px 12px #263c4033; padding:8px; min-width:200px; max-width:320px; max-height:calc(100% - 20px); overflow:auto; font-size:12px; }
+.sx-app-panel h5 { margin:2px 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:#3c5054; }
+.sx-app-panel .sx-record-item { display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:4px; width:100%; text-align:left; background:transparent; border:0; cursor:pointer; font-size:12px; }
+.sx-app-panel .sx-record-item:hover { background:#eaf1f1; }
+.sx-record-item .sx-item-glyph { flex:0 0 auto; }
+.sx-app-section { padding:6px 0; border-top:1px solid #e6ecec; }
+.sx-app-section:first-child { border-top:0; }
+
+/* --- SIRAJ list glyph used in the records panel / autocomplete / breadcrumbs --- */
+.sx-item-glyph { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; color:#fff; flex:0 0 auto; border:2px solid #fff; box-shadow:0 1px 3px #263c4044; }
+.sx-item-glyph svg { width:12px; height:12px; display:block; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+/* --- Structure deck swatches should actually show their glyphs --- */
+.sd-swatch.siraj-swatch svg { display:block; width:10px; height:10px; fill:none; stroke:#fff; stroke-width:2; }
+
+/* --- Form coordinate map lives inside a real .form-group wrapper --- */
+.siraj-coordinate-map { position:relative; margin: 10px 0; clear: both; min-width:0; max-width:100%; overflow:hidden; }
+.siraj-coordinate-map .siraj-coord-group,
+.siraj-coordinate-map .siraj-coord-canvas {
+	position: relative;
+	min-width: 0;
+	max-width: 100%;
+	overflow: hidden;
+}
+.siraj-coordinate-map .siraj-coord-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.siraj-coordinate-map .siraj-coord-head strong { font-weight:600; }
+.siraj-coordinate-map .siraj-coord-help { margin-bottom:6px; font-size:12px; color:var(--text-muted); }
+.siraj-coordinate-map .siraj-coord-status { margin-top:6px; font-size:12px; color:var(--text-muted); min-height:16px; }
+.siraj-coordinate-map .siraj-coord-canvas {
+	height: 380px; width: 100%; background: #dce8ed; border-radius: 8px;
+	border: 1px solid var(--border-color,#d9e2e7); position: relative; overflow: hidden;
+}
+/* When the canvas is inside a hidden/collapsed Frappe tab or section
+ * the layout collapses to 0×0 but Leaflet still gets mousemove events
+ * that it tries to unproject — producing NaN LatLng throws. Disable
+ * pointer events until the container has a real size; the JS toggles
+ * this class back off once the first invalidateSize fires. */
+.siraj-coordinate-map.is-zero-size .siraj-coord-canvas,
+.siraj-coordinate-map.is-zero-size .leaflet-container {
+	pointer-events: none !important;
+}
+.siraj-coordinate-map .siraj-toolbar { z-index: 600; }
+.siraj-coord-chip { display:inline-flex; align-items:center; gap:4px; padding:1px 8px; border-radius:999px; background:#eaf1f1; color:#234; font-size:11px; margin-inline-start:6px; }
+.siraj-coord-chip.is-warn { background:#fce8e6; color:#8a2525; }
+.siraj-coord-chip.is-ok { background:#e2f0e6; color:#1f6a3a; }
+.siraj-coord-linked-ghost {
+	position:relative; display:inline-flex; align-items:center; gap:4px;
+	margin-inline-start:8px; font-size:11px; color:var(--text-muted);
+}
+.siraj-coord-chip-use, .siraj-coord-chip-fetch {
+	appearance:none; border:0; background:transparent; color:var(--text-colors-link,#0c5e5b);
+	cursor:pointer; font-size:11px; padding:0 4px; margin-inline-start:4px; text-decoration:underline;
+}
+.siraj-coord-chip-use:hover, .siraj-coord-chip-fetch:hover { color:#073a38; }
+.siraj-coord-map.siraj-coord-readonly .siraj-coord-status { color:#888; font-style:italic; }
+.siraj-coord-map.siraj-coord-warning .siraj-coord-status { color:#8a2525; font-weight:500; }
+
+/* Ghost marker (suggested coordinates from linked place, not yet applied) */
+.sx-map-pin.siraj-pin-ghost .siraj-pin-body {
+	background: transparent !important;
+	border-style: dashed !important;
+}
+.sx-map-pin.siraj-pin-ghost { pointer-events: none; }
+
+
+/* --- SIRAJ pin teardrop variant (used by form picker and MapView override) --- */
+.siraj-teardrop { position:relative; width:28px; height:36px; }
+.siraj-teardrop::before { content:''; position:absolute; inset:0; background:inherit; -webkit-mask: radial-gradient(circle at 50% 38%, #000 32%, transparent 33%), polygon(50% 100%, 12% 45%, 88% 45%); mask: radial-gradient(circle at 50% 38%, #000 32%, transparent 33%), polygon(50% 100%, 12% 45%, 88% 45%); }
+
+/* Ensure Leaflet default-marker broken images never appear when our CSS overrides fail */
+.leaflet-marker-icon.sx-pin-wrapper > img { display:none !important; }

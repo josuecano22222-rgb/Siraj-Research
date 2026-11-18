@@ -55,5 +55,12 @@
  "istable": 1,
  "editable_grid": 1,
  "in_create": 0,
- "description": "An authority-file or legacy identifier for the parent record (the original `entity_external_id`)."
+ "description": "An authority-file or legacy identifier for the parent record (the original `entity_external_id`).",
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

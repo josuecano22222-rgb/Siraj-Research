@@ -16,8 +16,10 @@ class CommandAppointment(Document):
 	def validate_commander(self):
 		"""rules.check_commander_person — the appointee must be a military person."""
 		if not military_person(self.commander):
-			frappe.throw(_("{0} is not a person of the Military category.").format(self.commander),
-			             title=_("Invalid commander"))
+			frappe.throw(
+				_("{0} is not a person of the Military category.").format(self.commander),
+				title=_("Invalid commander"),
+			)
 
 	def validate_dates(self):
 		if self.relieved_date and self.assigned_date and self.relieved_date < self.assigned_date:
@@ -36,19 +38,21 @@ class CommandAppointment(Document):
 			"docstatus": ("<", 2),
 		}
 		for other in frappe.get_all(
-			self.doctype, filters=filters,
+			self.doctype,
+			filters=filters,
 			fields=["name", "commander", "assigned_date", "relieved_date"],
 		):
-			if self.assigned_date and other.relieved_date and \
-					other.relieved_date < self.assigned_date:
+			if self.assigned_date and other.relieved_date and other.relieved_date < self.assigned_date:
 				continue
-			if self.relieved_date and other.assigned_date and \
-					self.relieved_date < other.assigned_date:
+			if self.relieved_date and other.assigned_date and self.relieved_date < other.assigned_date:
 				continue
 			frappe.throw(
 				_("{0} is already {1} of {2} from {3} to {4}.").format(
-					other.commander, other.role, self.unit,
-					other.assigned_date, other.relieved_date or _("now"),
+					other.commander,
+					other.role,
+					self.unit,
+					other.assigned_date,
+					other.relieved_date or _("now"),
 				),
 				title=_("Overlapping appointment"),
 			)

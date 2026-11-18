@@ -7,7 +7,15 @@ from frappe import _
 
 from siraj_research.report_access import readable_rows
 
-CORE_DOCTYPES = ("Person", "Institution", "Place", "Event", "Relationship", "Source", "Military Unit")
+CORE_DOCTYPES = (
+	"Person",
+	"Institution",
+	"Place",
+	"Research Event",
+	"Relationship",
+	"Source",
+	"Military Unit",
+)
 
 
 def execute(filters=None):
@@ -22,7 +30,13 @@ def execute(filters=None):
 	for dt in CORE_DOCTYPES:
 		if not frappe.has_permission(dt, "read"):
 			continue
-		entry = {"doctype_name": dt, "total_records": 0, "draft_count": 0, "in_review_count": 0, "verified_count": 0}
+		entry = {
+			"doctype_name": dt,
+			"total_records": 0,
+			"draft_count": 0,
+			"in_review_count": 0,
+			"verified_count": 0,
+		}
 		for row in readable_rows(dt, ["workflow_state"]):
 			state = row.get("workflow_state") or ""
 			entry["total_records"] += 1

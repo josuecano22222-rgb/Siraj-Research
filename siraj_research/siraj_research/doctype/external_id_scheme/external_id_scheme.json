@@ -108,7 +108,7 @@
    "fieldtype": "Data",
    "label": "URL template",
    "length": 140,
-   "description": "Optional, e.g. https://viaf.org/viaf/{value} — used to build the 'open in the authority file' link from the recorded value."
+   "description": "Optional, e.g. https://viaf.org/viaf/{value} \u2014 used to build the 'open in the authority file' link from the recorded value."
   }
  ],
  "permissions": [
@@ -187,50 +187,32 @@
   {
    "link_doctype": "External Identifier",
    "link_fieldname": "scheme",
-   "group": "Identifiers in this scheme",
-   "is_child_table": 1,
-   "parent_doctype": "Person",
-   "table_fieldname": "external_identifiers"
+   "group": "Identifiers in this scheme"
   },
   {
    "link_doctype": "External Identifier",
    "link_fieldname": "scheme",
-   "group": "Identifiers in this scheme",
-   "is_child_table": 1,
-   "parent_doctype": "Institution",
-   "table_fieldname": "external_identifiers"
+   "group": "Identifiers in this scheme"
   },
   {
    "link_doctype": "External Identifier",
    "link_fieldname": "scheme",
-   "group": "Identifiers in this scheme",
-   "is_child_table": 1,
-   "parent_doctype": "Place",
-   "table_fieldname": "external_identifiers"
+   "group": "Identifiers in this scheme"
   },
   {
    "link_doctype": "External Identifier",
    "link_fieldname": "scheme",
-   "group": "Identifiers in this scheme",
-   "is_child_table": 1,
-   "parent_doctype": "Event",
-   "table_fieldname": "external_identifiers"
+   "group": "Events"
   },
   {
    "link_doctype": "External Identifier",
    "link_fieldname": "scheme",
-   "group": "Identifiers in this scheme",
-   "is_child_table": 1,
-   "parent_doctype": "Source",
-   "table_fieldname": "external_identifiers"
+   "group": "Identifiers in this scheme"
   },
   {
    "link_doctype": "External Identifier",
    "link_fieldname": "scheme",
-   "group": "Identifiers in this scheme",
-   "is_child_table": 1,
-   "parent_doctype": "Relationship",
-   "table_fieldname": "external_identifiers"
+   "group": "Identifiers in this scheme"
   }
  ],
  "actions": [],
@@ -249,5 +231,20 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "link",
- "description": "The `entity_external_id.scheme` values as a governed list: VIAF, Wikidata, ORCID, library catalogue, legacy spreadsheet number, plus any scheme a project needs. The optional URL template turns a bare value into a resolvable link."
+ "description": "The `entity_external_id.scheme` values as a governed list: VIAF, Wikidata, ORCID, library catalogue, legacy spreadsheet number, plus any scheme a project needs. The optional URL template turns a bare value into a resolvable link.",
+ "istable": 0,
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0,
+ "allow_copy": 1,
+ "allow_events_in_timeline": 1,
+ "allow_rename": 1,
+ "show_preview_popup": 1,
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
 }

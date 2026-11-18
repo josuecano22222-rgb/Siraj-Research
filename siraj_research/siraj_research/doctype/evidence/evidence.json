@@ -48,7 +48,7 @@
    "label": "Supports which field",
    "length": 64,
    "in_list_view": 1,
-   "description": "Optional fieldname of the parent record the claim is about ('birth_date', 'latitude'…). Validated against the parent's meta, so a citation can never point at a field that no longer exists.",
+   "description": "Optional fieldname of the parent record the claim is about ('birth_date', 'latitude'\u2026). Validated against the parent's meta, so a citation can never point at a field that no longer exists.",
    "columns": 2
   },
   {
@@ -120,5 +120,12 @@
  "in_create": 0,
  "grid_page_length": 30,
  "rows_threshold_for_grid_search": 30,
- "description": "One claim a source makes about the parent record (or about one field of it). The original `evidence` table, owned by the record it supports."
+ "description": "One claim a source makes about the parent record (or about one field of it). The original `evidence` table, owned by the record it supports.",
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

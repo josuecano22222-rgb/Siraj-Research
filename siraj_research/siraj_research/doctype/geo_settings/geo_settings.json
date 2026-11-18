@@ -1,0 +1,377 @@
+{
+ "doctype": "DocType",
+ "name": "Geo Settings",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "issingle": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "field_order": [
+  "sb_tiles",
+  "default_tile_layer",
+  "tile_cache_days",
+  "cb_tiles",
+  "enable_standard_layer",
+  "enable_aerial_layer",
+  "enable_hybrid_layer",
+  "allow_tile_fetch",
+  "sb_datasets",
+  "active_boundary_dataset",
+  "active_gazetteer_dataset",
+  "cb_datasets",
+  "border_tolerance_m",
+  "max_cache_entries",
+  "cache_ttl_seconds",
+  "sb_online",
+  "online_geocoder_enabled",
+  "online_provider",
+  "cb_online",
+  "online_api_key",
+  "online_rate_limit_per_min",
+  "online_cache_days",
+  "sb_reverse",
+  "reverse_max_distance_m",
+  "reverse_ambiguity_threshold_m",
+  "cb_reverse",
+  "default_country_code",
+  "sea_gap_warning_distance_km",
+  "sb_tile_keys",
+  "stadia_api_key",
+  "cb_tile_keys",
+  "nasa_gibs_date",
+  "sb_tile_mgmt",
+  "tile_cache_count",
+  "tile_cache_size_mb",
+  "enable_toner_layer",
+  "enable_terrain_layer",
+  "enable_watercolor_layer",
+  "enable_usgs_topo_layer",
+  "enable_nasa_modis_layer"
+ ],
+ "fields": [
+  {
+   "fieldname": "sb_tiles",
+   "fieldtype": "Section Break",
+   "label": "Map tile layers"
+  },
+  {
+   "fieldname": "default_tile_layer",
+   "fieldtype": "Select",
+   "label": "Default map layer",
+   "options": "\nstandard\naerial\nhybrid\ntonter\nterrain\nwatercolor\nusgs_topo\nnasa_modis",
+   "default": "standard",
+   "description": "Layer rendered on every map. Users do not get a switcher; this is the source of truth."
+  },
+  {
+   "fieldname": "tile_cache_days",
+   "fieldtype": "Int",
+   "label": "Server tile cache TTL (days)",
+   "default": "90",
+   "description": "Tiles are re-fetched after this age."
+  },
+  {
+   "fieldname": "cb_tiles",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "enable_standard_layer",
+   "fieldtype": "Check",
+   "label": "Enable Standard (OSM)",
+   "default": 1
+  },
+  {
+   "fieldname": "enable_aerial_layer",
+   "fieldtype": "Check",
+   "label": "Enable Aerial (Esri)",
+   "default": 1
+  },
+  {
+   "fieldname": "enable_hybrid_layer",
+   "fieldtype": "Check",
+   "label": "Enable Hybrid (aerial+labels)",
+   "default": 0
+  },
+  {
+   "fieldname": "allow_tile_fetch",
+   "fieldtype": "Check",
+   "label": "Allow server to fetch from provider",
+   "default": 1,
+   "description": "When off, only tiles already on disk are served (offline-safe)."
+  },
+  {
+   "fieldname": "enable_toner_layer",
+   "fieldtype": "Check",
+   "label": "Enable Stamen Toner",
+   "default": 0
+  },
+  {
+   "fieldname": "enable_terrain_layer",
+   "fieldtype": "Check",
+   "label": "Enable Stamen Terrain",
+   "default": 0
+  },
+  {
+   "fieldname": "enable_watercolor_layer",
+   "fieldtype": "Check",
+   "label": "Enable Stamen Watercolor",
+   "default": 0
+  },
+  {
+   "fieldname": "enable_usgs_topo_layer",
+   "fieldtype": "Check",
+   "label": "Enable USGS Topo (US only)",
+   "default": 0
+  },
+  {
+   "fieldname": "enable_nasa_modis_layer",
+   "fieldtype": "Check",
+   "label": "Enable NASA MODIS True-Color",
+   "default": 0
+  },
+  {
+   "fieldname": "sb_tile_keys",
+   "fieldtype": "Section Break",
+   "label": "Tile provider keys",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "stadia_api_key",
+   "fieldtype": "Data",
+   "label": "Stadia Maps API key",
+   "length": 128,
+   "description": "Free at https://client.stadiamaps.com/ \u2014 required for Toner/Terrain/Watercolor layers."
+  },
+  {
+   "fieldname": "cb_tile_keys",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "nasa_gibs_date",
+   "fieldtype": "Data",
+   "label": "NASA GIBS date (YYYY-MM-DD)",
+   "default": "",
+   "length": 12,
+   "description": "Leave blank for most-recent available. MODIS True Color only: enter a date e.g. 2024-06-01."
+  },
+  {
+   "fieldname": "sb_tile_mgmt",
+   "fieldtype": "Section Break",
+   "label": "Cache management",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "tile_cache_count",
+   "fieldtype": "Int",
+   "label": "Cached tiles (read-only)",
+   "default": 0,
+   "read_only": 1,
+   "description": "Populated by the cache-stats endpoint; informational."
+  },
+  {
+   "fieldname": "tile_cache_size_mb",
+   "fieldtype": "Float",
+   "label": "Cache size (MB)",
+   "default": 0,
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_datasets",
+   "fieldtype": "Section Break",
+   "label": "Datasets"
+  },
+  {
+   "fieldname": "active_boundary_dataset",
+   "fieldtype": "Link",
+   "label": "Active boundary dataset",
+   "options": "Boundary Dataset",
+   "description": "The polygon dataset used by resolve_point / resolve_area. Leave empty to disable offline admin resolution."
+  },
+  {
+   "fieldname": "active_gazetteer_dataset",
+   "fieldtype": "Link",
+   "label": "Active gazetteer dataset",
+   "options": "Boundary Dataset",
+   "description": "The point dataset used for nearest-place lookup."
+  },
+  {
+   "fieldname": "cb_datasets",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "border_tolerance_m",
+   "fieldtype": "Int",
+   "label": "Border tolerance (m)",
+   "default": 50,
+   "description": "Points within this distance of a boundary get flagged as ambiguous."
+  },
+  {
+   "fieldname": "max_cache_entries",
+   "fieldtype": "Int",
+   "label": "Max STRtree cache entries per worker",
+   "default": 4
+  },
+  {
+   "fieldname": "cache_ttl_seconds",
+   "fieldtype": "Int",
+   "label": "Cache TTL (seconds)",
+   "default": 3600
+  },
+  {
+   "fieldname": "sb_online",
+   "fieldtype": "Section Break",
+   "label": "Online fallback"
+  },
+  {
+   "fieldname": "online_geocoder_enabled",
+   "fieldtype": "Check",
+   "label": "Enable online geocoder fallback",
+   "default": 0,
+   "description": "Off by default. When enabled, the server may call the configured provider only when local resolution fails and the user explicitly requests it."
+  },
+  {
+   "fieldname": "online_provider",
+   "fieldtype": "Select",
+   "label": "Provider",
+   "options": "\nNominatim (OpenStreetMap)\nEsri World Geocoding\nPhoton (Komoot)",
+   "description": "Per-release provider choice \u2014 review the provider's ToS and data licence before enabling."
+  },
+  {
+   "fieldname": "cb_online",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "online_api_key",
+   "fieldtype": "Password",
+   "label": "API key"
+  },
+  {
+   "fieldname": "online_rate_limit_per_min",
+   "fieldtype": "Int",
+   "label": "Rate limit (req/min)",
+   "default": 30
+  },
+  {
+   "fieldname": "online_cache_days",
+   "fieldtype": "Int",
+   "label": "Cache online results (days)",
+   "default": 30,
+   "description": "Online results are cached locally and PII is stripped; set to 0 to disable caching."
+  },
+  {
+   "fieldname": "sb_reverse",
+   "fieldtype": "Section Break",
+   "label": "Reverse-geocode tuning"
+  },
+  {
+   "fieldname": "reverse_max_distance_m",
+   "fieldtype": "Int",
+   "label": "Nearest-place max distance (m)",
+   "default": 5000,
+   "description": "Do not return a village/gazetteer match farther than this from the point."
+  },
+  {
+   "fieldname": "reverse_ambiguity_threshold_m",
+   "fieldtype": "Int",
+   "label": "Ambiguity threshold (m)",
+   "default": 250,
+   "description": "If two candidates are closer than this to each other and to the point, return both flagged as ambiguous."
+  },
+  {
+   "fieldname": "cb_reverse",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "default_country_code",
+   "fieldtype": "Data",
+   "label": "Default country code",
+   "default": "IQ",
+   "length": 4,
+   "description": "ISO-3166-1 alpha-2 / alpha-3; narrows searches when no polygon matches."
+  },
+  {
+   "fieldname": "sea_gap_warning_distance_km",
+   "fieldtype": "Int",
+   "label": "Sea/gap warning distance (km)",
+   "default": 5,
+   "description": "Points this far from any land polygon are flagged as 'over water / no boundary'."
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "select": 1
+  }
+ ],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "icon": "fa fa-cog",
+ "description": "Site-wide settings for administrative auto-fill, offline boundary/gazetteer datasets and online fallback.",
+ "istable": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
+}

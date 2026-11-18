@@ -1,684 +1,1235 @@
-Siraj Research,سِراج للأبحاث
-SIRAJ Research Registry,سجل سِراج البحثي
-Quick Access,الوصول السريع
-Registry & Operations,السجل والعمليات
-Core Research Registry,السجل البحثي الأساسي
-Military & Operations,الشؤون العسكرية والعمليات
-Geographic Administration,الإدارة الجغرافية
-Controlled Vocabularies,المفردات المقننة
-Reports & Analytics,التقارير والتحليلات
-Total Persons,إجمالي الأشخاص
-Total Institutions,إجمالي المؤسسات
-Total Places,إجمالي الأماكن
-Total Events,إجمالي الأحداث
-Total Relationships,إجمالي العلاقات
-Total Sources,إجمالي المصادر
-Total Military Units,إجمالي الوحدات العسكرية
-Events by Type,الأحداث حسب النوع
-Relationships by Type,العلاقات حسب النوع
-Entity Relationship Graph,رسم العلاقات بين الكيانات
-Data Quality & Verification Summary,ملخص جودة البيانات والتحقق
-Military Force Structure,هيكل القوة العسكرية
-Person,شخص
-Institution,مؤسسة
-Place,مكان
-Event,حدث
-Relationship,علاقة
-Source,مصدر
-Military Unit,وحدة عسكرية
-Military Division,فرقة عسكرية
-Command Region,منطقة قيادة
-Command Appointment,تعيين قيادي
-Unit Classification,تصنيف الوحدة
-Armament,تسليح
-Mission,مهمة
-Operational Deployment,انتشار عملياتي
-Training Exercise,تمرين تدريبي
-Governorate,محافظة
-District,قضاء / منطقة
-Municipality,بلدية
-Village,قرية
-Community,تجمع سكاني
-Place Type,نوع المكان
-Event Type,نوع الحدث
-Relationship Type,نوع العلاقة
-Person Status,حالة الشخص
-Person Category,فئة الشخص
-Person Classification,تصنيف الشخص
-Institution Type,نوع المؤسسة
-Institution Subcategory,تصنيف فرعي للمؤسسة
-Source Type,نوع المصدر
-Source Reliability,موثوقية المصدر
-Governance System,نظام الحوكمة
-Leadership Level,مستوى القيادة
-Leadership Quality,صفة قيادية
-Expertise Area,مجال الخبرة
-Specialization,التخصص
-External ID Scheme,نظام المعرف الخارجي
-Social Platform,منصة تواصل اجتماعي
-Military Branch,فرع عسكري
-Military Service Status,حالة الخدمة العسكرية
-Authentication Level,مستوى التوثيق
-Documentation Level,مستوى التدوين
-SIRAJ Settings,إعدادات سِراج
-Person Position,منصب الشخص
-Evidence,دليل / إثبات
-External Identifier,معرف خارجي
-Leadership Quality Assessment,تقييم الصفات القيادية
-Social Account,حساب تواصل اجتماعي
-Unit Armament Holding,عهدة تسليح الوحدة
-Expertise Link,رابط الخبرة
-Specialization Link,رابط التخصص
-Swap Source & Target,تبديل المصدر والهدف
-Review State,حالة المراجعة
-Draft,مسودة
-In Review,قيد المراجعة
-Verified / Approved,موثق / معتمد
-Naming Series,سلسلة التسمية
-Full Name (Arabic),الاسم الكامل (عربي)
-Full Name (English),الاسم الكامل (إنجليزي)
-Name (Arabic),الاسم (عربي)
-Name (English),الاسم (إنجليزي)
-Label (Arabic),التسمية (عربي)
-Label (English),التسمية (إنجليزي)
-Description (Arabic),الوصف (عربي)
-Description (English),الوصف (إنجليزي)
-Summary (Arabic),الملخص (عربي)
-Summary (English),الملخص (إنجليزي)
-Notes,ملاحظات
-Status,الحالة
-Active,نشط
-Inactive,غير نشط
-Code,الرمز
-Color,اللون
-Is System,افتراضي للنظام
-Sort Order,ترتيب الفرز
-Parent Place,المكان الأب
-Parent Unit,الوحدة الأب
-Parent Region,المنطقة الأب
-Is Group,مجموعة
-Latitude,خط العرض
-Longitude,خط الطول
-Coordinate Precision,دقة الإحداثيات
-Geocoding Method,طريقة الترميز الجغرافي
-Geometry Provenance,مصدر الإحداثيات
-Geographic Description,الوصف الجغرافي
-Birth Date,تاريخ الميلاد
-Birth Date Precision,دقة تاريخ الميلاد
-Death Date,تاريخ الوفاة
-Death Date Precision,دقة تاريخ الوفاة
-Start Date,تاريخ البداية
-Start Date Precision,دقة تاريخ البداية
-End Date,تاريخ النهاية
-End Date Precision,دقة تاريخ النهاية
-Event Date,تاريخ الحدث
-Event Date Precision,دقة تاريخ الحدث
-Is Approximate,تاريخ تقريبي
-Is Uncertain,غير مؤكد
-Gender,الجنس
-Male,ذكر
-Female,أنثى
-Nationality,الجنسية
-Place of Birth,مكان الميلاد
-Place of Death,مكان الوفاة
-Current Residence,مكان الإقامة الحالي
-Biography (Arabic),السيرة الذاتية (عربي)
-Biography (English),السيرة الذاتية (إنجليزي)
-Positions & Appointments,المناصب والتعيينات
-External Identifiers,المعرفات الخارجية
-Social Accounts,حسابات التواصل الاجتماعي
-Evidence & Citations,الأدلة والاستشهادات
-Source Type,نوع المصدر
-Source DocType,نوع المستند المصدر
-Source Record,السجل المصدر
-Target Type,نوع الهدف
-Target DocType,نوع المستند الهدف
-Target Record,السجل الهدف
-Is Symmetric,متماثلة
-Inverse Label (Arabic),التسمية العكسية (عربي)
-Inverse Label (English),التسمية العكسية (إنجليزي)
-Direction,الاتجاه
-Validity Period,فترة الصلاحية
-Title (Arabic),العنوان (عربي)
-Title (English),العنوان (إنجليزي)
-Author,المؤلف
-Publisher,الناشر
-Publication Date,تاريخ النشر
-URL,الرابط
-Archive URL,رابط الأرشيف
-Citation,الاستشهاد
-Page / Reference,الصفحة / المرجع
-Excerpt,مقتطف
-Reliability,الموثوقية
-Verification Status,حالة التحقق
-Verified By,تم التحقق بواسطة
-Verification Date,تاريخ التحقق
-Unit Name (Arabic),اسم الوحدة (عربي)
-Unit Name (English),اسم الوحدة (إنجليزي)
-Unit Code,رمز الوحدة
-Emblem,الشعار
-Commander,القائد
-Personnel Count,عدد الأفراد
-Armament Holdings,عهدة التسليح
-Quantity,الكمية
-Condition,الحالة الفنية
-Workflow State,حالة سير العمل
+"'Professor of History', 'Chairman' — the wording the source uses for this connection.",'أستاذ التاريخ'، 'رئيس' — صياغة المصدر لهذه الصلة.
+"'Subject → type → object', computed on save.",'فاعل ← نوع ← مفعول به'، تُحسب عند الحفظ.
+'local' draws the offline vector pack shipped with the app; the rest are public tile services whose attribution must stay visible.,'local' يرسم حزمة المتجهات المحلية المشحونة مع التطبيق؛ وما عداها خدمات مربعات عامة يجب أن يبقى إسنادها ظاهراً.
+"0 disables the floor. Above 0, publishing a record below this score is refused, with the missing fields listed.",الصفر يُعطل الحاجز. فوق الصفر، يُرفض نشر سجل دون هذه الدرجة مع سرد الحقول الناقصة.
+"A Data Import beyond this ceiling is refused before anything is written, so one bad file cannot stall the registry.",استيراد بيانات يتجاوز هذا السقف يُرفض قبل أي كتابة، كي لا يُعطل ملف رديء السجل.
+"A birth year alone is a legitimate value: '1912', 'c. 1912', '1910s'.",سنة الميلاد وحدها قيمة مشروعة: '1912'، 'حوالي 1912'، 'عقد 1910'.
+A city centroid is not a street address; recording the method stops a centroid from being read as a verified location.,مركز إحداثيات المدينة ليس عنوان شارع؛ وتسجيل الطريقة يمنع اعتباره موقعاً متحققاً منه.
+A commander is a Person of the military category (migration 020 folded the `commander` table into `person`).,القائد هو شخص من الفئة العسكرية (التهجير 020 دمج جدول `commander` في `person`).
+A completed deployment needs an end date.,الانتشار المكتمل يحتاج تاريخ نهاية.
+A conference opens at 09:30; a death is known to the year. Both are legitimate and neither is promoted to the other.,قد يبدأ مؤتمر في الساعة 09:30، وقد تُعرف الوفاة في سنة محددة فقط. كلا التعبيرين صحيح.
+"A contradiction is a different claim, so the same source may both support and contradict the same record on different grounds.",التناقض مزعم مختلف، لذا يجوز لنفس المصدر أن يؤيد ويناقش نفس السجل على أسس مختلفة.
+A military unit cannot be its own ancestor.,لا يمكن أن تكون الوحدة العسكرية أصلاً لنفسها.
+"A mission's deployment must belong to the mission's own unit or to an ancestor formation (`rules.check_mission`) — the filter expresses the same-unit case, the controller the ancestor case.",يجب أن ينتمي انتشار المهمة إلى وحدة المهمة نفسها أو تشكيل سلف لها (`rules.check_mission`).
+A record cannot move to Verified/Published without a primary source or an Evidence row. Every published claim stays traceable.,لا يمكن للسجل الانتقال إلى متحقق/منشور دون مصدر أساسي أو سطر في الأدلة.
+A structure grouping field is not readable.,لا يمكن قراءة أحد حقول تجميع البنية.
 Abbreviation,الاختصار
+About this view,حول هذا العرض
 Access date,تاريخ الوصول
+Access denied,الوصول مرفوض
 Acquisition year,سنة الاستحواذ
+Acting Commander,قائد بالنيابة
+Active,نشط
+"Active → Reserve → Retired, and Retired is terminal (source `SERVICE_STATUS_TRANSITIONS`). The transition is enforced in the controller; see Del. 12 §4.",نشط → احتياط → متقاعد، والمتقاعد نهائي؛ انظر Del. 12 §4.
+Add child,إضافة فرع
+"Adds the Arabic label column beside each linked vocabulary value in exports, as the original bilingual export did.",يضيف عمود التسمية العربية بجانب كل قيمة مفردات مرتبطة.
 Administration,الإدارة
+Administrative chain broken,السلسلة الإدارية مكسورة
 Administrative units,الوحدات الإدارية
-Appointment,التعيين
+Age at which the editorial reminder fires for records sitting in In Review. Consumed by the 'SIRAJ · review overdue' Notification condition.,العمر بالأيام الذي يطلق تنبيه المراجعة المتأخرة للسجلات في حالة قيد المراجعة.
+Air Defense,دفاع جوي
+Air Force,جوية
+Airborne,محمول جواً
+Aircraft,طائرات
+All relationship types,جميع أنواع العلاقات
+All types,جميع الأنواع
+Amend,تعديل بعد الاعتماد
+An affiliation the person (or a source) asserts but that is not corroborated. Corroborated posts go in Positions with 'Verified' ticked.,انتماء يصرّح به الشخص أو المصدر دون corroboration؛ المناصب المتحققة تُسجَّل في المناصب.
+An executed mission needs an end date.,المهمة المنفذة تحتاج تاريخ نهاية.
+An optional external code (`military_unit.code UNIQUE`). Kept separate from the document name because a code is reusable business data while `name` is the permanent key.,رمز خارجي اختياري (`military_unit.code UNIQUE`). منفصل عن اسم المستند لأن الرمز قابل لإعادة الاستخدام.
+Anecdotal,منقول
+Appointment,تعيين
+Approved,معتمد
+Approximate,تقريبي
+Approximate area: {0} km²,مساحة تقريبية: {0} كم²
 Arabic label,التسمية العربية
+Archive URL,رابط الأرشيف
 Archive reference,مرجع الأرشيف
+Archived,مؤرشف
 Area,المنطقة
 Area of expertise,مجال الخبرة
 Area of operations,منطقة العمليات
+Area selected. Review bounds and zooms before downloading.,تم تحديد المنطقة. راجع النطاقات والتكبيرات قبل التنزيل.
 Areas of expertise,مجالات الخبرة
-Armament holdings,عهدة التسليح
+Armament,التسليح
+Armament Holdings,عهدة التسليح
+Armament holdings,حيازات التسليح
 Armament name,اسم التسليح
-Assessed by,تم التقييم بواسطة
-Assessed on,تاريخ التقييم
-Assessment,التقييم
-Assigned on,تاريخ التكليف
+Armor,مدرعات
+Armored,مدرع
+Army,جيش
+"Army, Navy, Air Force, Joint, Gendarmerie, Coast Guard — a governed vocabulary (migration 020 domain `military_branch`), extendable without a code change.",جيش، بحرية، جوية، مشترك، درك، خفر سواحل — مفردات مضبوطة.
+Arrangement,الترتيب
+Artillery,مدفعية
+As recorded in the source. Structured founder links are Relationship rows of type 'Founded by'.,كما ورد في المصدر. روابط المؤسس سطور علاقة.
+Assessed by,قيَّمه
+Assessed on,قُيِّم في
+Assessment,تقييم
+Assessment without a basis,تقييم بلا أساس
+Assigned on,عُيِّن في
+Association only — it never assigns that place's coordinates to this person.,ارتباط فقط — لا يُعطي إحداثيات المكان لهذا الشخص.
+Asymmetric,غير متماثل
+At most one current deployment per unit (`rules.check_deployment`); the unit's read-only pointer is updated from it.,انتشار جاري واحد كحد أقصى لكل وحدة.
+Attached,مُلحق
 Attachments,المرفقات
+Authentication Level,مستوى التوثيق
 Authentication level,مستوى التوثيق
+Author,المؤلف
+Back,رجوع
+"Badge colour used on cards, list indicators and reports.",لون الشارة على البطاقات ومؤشرات القوائم والتقارير.
 Base map provider,مزود الخريطة الأساسية
+"Basemap only, unencrypted. Maximum 512 possible tiles and 16 MiB of imagery. Use only on authorized devices.",خريطة أساسية فقط، غير مشفرة. 512 مربعاً و16 ميبيبايت كحد أقصى.
 Basis / evidence,الأساس / الدليل
+Battalion,كتيبة
+Bidirectional,ثنائي الاتجاه
+Biography (Arabic),السيرة الذاتية (عربي)
+Biography (English),السيرة الذاتية (إنجليزي)
 Birth,الميلاد
-Business code,الرمز التجاري
-Career,المسيرة المهنية
+Birth Date,تاريخ الميلاد
+Birth Date Precision,دقة تاريخ الميلاد
+Brigade,لواء
+"Brigade … Detachment (`vocab.UNIT_ECHELONS`); default Brigade, as in the source.",لواء … مفرزة (`vocab.UNIT_ECHELONS`)؛ افتراضياً لواء.
+Builds the geographic hierarchy: country → governorate → city → quarter. Cycles are rejected by the NestedSet.,يبني السلسلة الجغرافية: دولة → محافظة → مدينة → حي. الحلقات مرفوضة من NestedSet.
+Business code,رمز العمل
+Cancel,إلغاء
+Cancel download,إلغاء التنزيل
+Cancelled,ملغى
+Cannot delete,لا يمكن الحذف
+"Cannot exceed the unit's subtree personnel total (`rules.check_training` — capacity is real, not advisory).",لا يجوز تجاوز إجمالي أفراد الشجرة الفرعية للوحدة.
+Cannot retire,لا يمكن الإحالة للتقاعد
+Career,المسار المهني
 Category,الفئة
+"Ceiling for a synchronous export; larger exports go through Frappe's Data Export, which runs in the background.",سقف التصدير المتزامن؛ الصادرات الأكبر عبر الخلفية.
+Center on a person or organization,تمركز على شخص أو مؤسسة
+Center on selected record,تمركز على السجل المحدد
+Certification,الاعتماد
+Chief of Staff,رئيس الأركان
+Citation,الاستشهاد
 City (as stated),المدينة (كما وردت)
+Civilian,مدني
 Classification,التصنيف
+Clear coordinates,مسح الإحداثيات
+Clear measurement,مسح القياس
+Click at least three points to measure area.,انقر ثلاث نقاط على الأقل لقياس المساحة.
+"Click the map to select a point, or type latitude and longitude above.",انقر على الخريطة لتحديد نقطة، أو أدخل خط العرض وخط الطول أعلاه.
+Click two points on the map to measure distance.,انقر نقطتين على الخريطة لقياس المسافة.
+Clusters: off,التجميع: إيقاف
+Clusters: on,التجميع: تشغيل
+Coast Guard,خفر سواحل
+Code,الرمز
+Collapse branch,طيّ الفرع
+Color,اللون
 Colour,اللون
-Command,القيادة
+Combat,قتال
+Combat / Support / Reserve / Training ⇒ `vocab.CLASS_CATEGORIES`.,قتال/إسناد/احتياط/تدريب ⇒ `vocab.CLASS_CATEGORIES`.
+"Comma-separated overlay ids drawn over the base map ('place_hierarchy', 'relationships').",معرّفات تراكبات مفصولة بفواصل تُرسم على الخريطة الأساسية.
+Command,قيادة
+Command Appointment,تعيين قيادي
+Command hierarchy,التسلسل القيادي
+Commander,القائد
+Commanding Officer,الضابط الآمر
 Commission date,تاريخ التكليف
-Community / cluster,التجمع السكاني
+Communications,اتصالات
+Community,مجتمع
+Community / cluster,مجتمع / تجمع
+Company,سرية
+Completed,مكتمل
 Completeness (%),نسبة الاكتمال (%)
+"Computed from the dates, inclusive — the source validates that `duration_days` equals the span, so it is derived here rather than typed and checked.",محسوبة من التواريخ شاملة الطرفين؛ تُشتق هنا.
+"Computed on save: English name, else Arabic name. Frappe's `title_field`, so link fields, list views and the global search show one readable name for a bilingual record.",تُحسب عند الحفظ: الاسم الإنجليزي ثم العربي.
+Condition,الحالة
+Confirmed,مؤكد
+Connection,صلة
+Connections ({0}),الصلات ({0})
+Contradicts,يناقض
+Controlled Vocabularies,المفردات المضبوطة
+Coordinate Precision,دقة الإحداثيات
+Coordinate map,خريطة الإحداثيات
 Coordinate precision,دقة الإحداثيات
+Coordinates,الإحداثيات
+Core Research Registry,السجل البحثي الأساسي
+Could not update the coordinate fields.,تعذر تحديث حقلي الإحداثيات.
+Counting {0} visible records.,جرد {0} سجل مرئي.
 Country,الدولة
 Country of origin,بلد المنشأ
+Counts include only records you can read. Folded branches retain their record and group counts.,الأعداد تشمل فقط السجلات التي يمكنك قراءتها.
+Counts reflect visible records only. Expand a branch to inspect its groups.,تعكس الأعداد السجلات المرئية فقط. وسّع الفرع للاطلاع على مجموعاته.
+Course,دورة
+Create,إنشاء
+Current Residence,مكان الإقامة الحالي
 Current appointment,التعيين الحالي
 Current deployment,الانتشار الحالي
 Current leadership (as stated),القيادة الحالية (كما وردت)
 Current position (as stated),المنصب الحالي (كما ورد)
+Current post,المنصب الحالي
+Current status,الحالة الحالية
+DMS coordinates,إحداثيات DMS
+Data Quality & Verification Summary,ملخص جودة البيانات والتحقق
+Data quality,جودة البيانات
 Date,التاريخ
 Date of birth,تاريخ الميلاد
+Date of birth (as stated),تاريخ الميلاد (كما ورد)
+Date of birth (comparable),تاريخ الميلاد (قابل للمقارنة)
+Date of birth precision,دقة تاريخ الميلاد
+Date of closure (as stated),تاريخ الإغلاق (كما ورد)
+Date of closure (comparable),تاريخ الإغلاق (قابل للمقارنة)
+Date of closure precision,دقة تاريخ الإغلاق
 Date of death,تاريخ الوفاة
+Date of death (as stated),تاريخ الوفاة (كما ورد)
+Date of death (comparable),تاريخ الوفاة (قابل للمقارنة)
+Date of death precision,دقة تاريخ الوفاة
+Date of establishment (as stated),تاريخ التأسيس (كما ورد)
+Date of establishment (comparable),تاريخ التأسيس (قابل للمقارنة)
+Date of establishment precision,دقة تاريخ التأسيس
+Dates,التواريخ
+Dates & capacity,التواريخ والطاقة
+Dates & state,التواريخ والحالة
+Day,يوم
+Days before a record is 'awaiting review',الأيام قبل اعتبار السجل 'بانتظار المراجعة'
 Death,الوفاة
+Death Date,تاريخ الوفاة
+Death Date Precision,دقة تاريخ الوفاة
+Decade,عقد
+Deceased,متوفى
+Declared affiliation (as stated),الانتماء المصرّح به (كما ورد)
 Default,افتراضي
-Deployment,الانتشار
+Default import mode,وضع الاستيراد الافتراضي
+Default overlays,التراكبات الافتراضية
+Delete,حذف
+Deployment,انتشار
+Deployment name,اسم الانتشار
+Deployment outside the chain of command,انتشار خارج التسلسل القيادي
+"Deployment {0} belongs to {1}, which is not {2} or one of its ancestors.",الانتشار {0} يتبع {1}، وهي ليست {2} ولا أحد أسلافها.
+Depth {0},عمق {0}
+Deputy Commander,نائب القائد
 Description,الوصف
+Description (AR),الوصف (بالعربية)
+Description (Arabic),الوصف (عربي)
+Description (EN),الوصف (بالإنجليزية)
+Description (English),الوصف (إنجليزي)
+Detachment,مفرزة
+Detail,التفاصيل
 Details,التفاصيل
-Division,الفرقة
-Documentation level,مستوى التدوين
+Details panel,لوحة التفاصيل
+Direct personnel,الأفراد المباشرون
+Direct personnel cannot be negative.,لا يجوز أن يكون الأفراد المباشرون سالبين.
+Direct relationships,علاقات مباشرة
+Directed,موجهة
+Direction,الاتجاه
+Disable online street map,إيقاف خريطة الشوارع عبر الإنترنت
+Disabled,معطّل
+Disabled values stay on existing records but are not offered for new ones.,القيم المعطّلة تبقى على السجلات الموجودة ولا تُعرض للجديدة.
+Disbanded,حُلَّ
+Discs,أقراص
+Display name,الاسم المعروض
+Disputed,متنازع فيه
+Dissolved,منحل
+Distance: {0} km,المسافة: {0} كم
+Distinguishes a corroborated affiliation from a declared one (the original `affiliation_verified`).,يميز الانتماء الموثَّق عن المصرَّح به.
+Distribution bars,أشرطة التوزيع
+District,القضاء
+District / region,قضاء / منطقة
+Division,فرقة
+Division name,اسم الفرقة
+Documentation Level,مستوى التوثيق
+Documentation level,مستوى التوثيق
 Domain,النطاق
+Download ZIP,تنزيل ZIP
+Download cancelled.,أُلغي التنزيل.
+"Download failed. Check bounds, zooms, tile limit, size, permissions and connection.",فشل التنزيل. تحقق من النطاقات والتكبيرات والصلاحيات.
+Download local area,تنزيل المنطقة المحلية
+Download politeness delay (ms),مهلة التأدب في التنزيل (ملي ثانية)
+Download size cap (tiles),سقف حجم التنزيل (مربعات)
+Download zoom ceiling,سقف تكبير التنزيل
+Downloaded {0} of {1} possible tiles. Missing tiles will be blank.,نُزّل {0} من {1} مربعاً محتملاً. المربعات المفقودة ستكون فارغة.
+Draft,مسودة
+Drill,تدريب ميداني
+Duplicate armament,تسليح مكرر
+Duplicate current deployment,انتشار جاري مكرر
 Duration,المدة
+Duration (days),المدة (بالأيام)
+East,شرق
+Echelon,المستوى القيادي
+"Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected).",حالة التحرير يحركها سير عمل مراجعة سِراج.
 Email,البريد الإلكتروني
+Emblem,الشعار
+Emblem URL (external),رابط الشعار (خارجي)
+Emblem description,وصف الشعار
+Empty means the appointment is still open — which is what makes the overlap rule decidable (`rules.check_assignment`).,الفارغ يعني التعيين لا يزال مفتوحاً.
+Enable online street map,تفعيل خريطة الشوارع عبر الإنترنت
 End,النهاية
+End (as stated),النهاية (كما وردت)
+End (comparable),النهاية (قابلة للمقارنة)
+End Date,تاريخ النهاية
+End Date Precision,دقة تاريخ النهاية
+End date,تاريخ النهاية
+End precision,دقة النهاية
 English label,التسمية الإنجليزية
+Enter a valid latitude and longitude.,أدخل خط عرض وخط طول صالحين.
+Enter coordinates or select a point on the map.,أدخل الإحداثيات أو اختر نقطة على الخريطة.
+"Enter valid decimal coordinates: latitude −90 to 90, longitude −180 to 180.",أدخل إحداثيات عشرية صحيحة: خط العرض من −90 إلى 90، وخط الطول من −180 إلى 180.
 Entity,الكيان
-Equipment,المعدات
+Entity Relationship Graph,رسم العلاقات بين الكيانات
+Entity Type,نوع الكيان
+Equipment,العتاد
+Estimate tiles,تقدير المربعات
+Event,حدث تقويمي
+Event Date,تاريخ الحدث
+Event Date Precision,دقة تاريخ الحدث
+Event Type,نوع الحدث
 Event type,نوع الحدث
+Events by Type,الأحداث حسب النوع
+Every division sits in exactly one command region — the source's `division.region_id NOT NULL`.,كل فرقة تقع في منطقة قيادة واحدة بالضبط.
+Evidence,الأدلة
+Evidence & Citations,الأدلة والاستشهادات
+Evidence & review,الأدلة والمراجعة
+Evidence (claims this record makes),الأدلة (المزاعم التي يقدمها هذا السجل)
+Evidence counts are unavailable for some relationships.,عدّادات الأدلة غير متاحة لبعض العلاقات.
+Exact,دقيق
+Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.,كما يعطيها المصدر تماماً. القيمة الحجية؛ حقل التاريخ مشتق منها.
+Excellent,ممتاز
+Excerpt,مقتطف
+Executed,منفذ
+Exercise,مناورة
+Exercise name,اسم المناورة
+Expand branch,توسيع الفرع
+Expandable tree,شجرة قابلة للتوسيع
+Expertise Area,مجال الخبرة
+Expertise Link,ربط الخبرة
+Explore a different group to see a matrix.,استكشف مجموعة مختلفة لرؤية مصفوفة.
+Explore group,استكشف المجموعة
+Export,تصدير
+Export Arabic vocabulary labels,تصدير تسميات المفردات العربية
+Export CSV,تصدير CSV
+Export SVG,تصدير SVG
+Export visible points,تصدير النقاط المرئية
 External ID,المعرف الخارجي
+External ID Scheme,نظام المعرّف الخارجي
 External IDs,المعرفات الخارجية
+External Identifier,معرّف خارجي
+External Identifiers,المعرفات الخارجية
+External identifiers,معرّفات خارجية
 Faction,الفصيل
+Female,أنثى
+Fetched from the governorate so a district can never sit in a country its governorate does not belong to.,تُجلب من المحافظة.
+Fifth level: only communities of the chosen village.,المستوى الخامس: مجتمعات القرية المختارة فقط.
+Files,الملفات
+Filters,مرشحات
+Find,بحث
+Find in structure,بحث في الهيكل
 First name,الاسم الأول
+Fit,ملاءمة
+Fit network,ملاءمة الشبكة
+Fit points,ملاءمة النقاط
+Flow,تدفق
+Flow shows two grouping levels; explore a group to see deeper levels.,التدفق يُظهر مستويين؛ استكشف مجموعة لمستويات أعمق.
+Folded groups,مجموعات مطوية
+Folded records,سجلات مطوية
+Force,قوة
+Forces,قوى
+"Forces — echelon, status, classification",القوى — المستوى القيادي والحالة والتصنيف
+Formation,تشكيل
+Formation date,تاريخ التشكيل
 Founded,تاريخ التأسيس
+Founders (as stated),المؤسسون (كما ورد)
+Fourth level: only villages of the chosen municipality.,المستوى الرابع: قرى البلدية المختارة فقط.
+"Frappe icon name (e.g. 'building', 'map-pin').",اسم أيقونة Frappe (مثلاً 'building' أو 'map-pin').
+"Frappe's tree convention, inherited by every unit that has sub-units. Kept as a Check rather than derived, because a formation can legitimately have no subordinates yet.",اصطلاح الشجرة في Frappe، ترثه كل وحدة ذات وحدات فرعية.
+Frappe's tree convention: a group node is a container and cannot be deployed as a leaf. The source has no such column — its `path`/`depth` text columns lose the distinction — so this is the one field the framework adds to the source's shape.,عقدة المجموعة حاوية ولا تُنشر كورقة.
+Free text as recorded. Named office-holders with dates belong in Relationship rows of type 'Director of' / 'Board member of'.,نص حر. شاغلو المناصب المسماة مع التواريخ يُسجَّلون في سطور علاقة.
+"Free text as the source gives it. The structured, dated post is a row in Positions below.",نص حر كما يعطيه المصدر. المنصب المنظم المؤرخ يُسجَّل في المناصب أدناه.
+"Free text, exactly as the source has it: `role` is not in `VOCAB_FIELDS`, so no list constrains it and none is invented here.",نص حر كما ورد: `role` ليست في `VOCAB_FIELDS`.
+Free-text locality from an older import that could not be matched to a Governorate or District. Nothing is guessed.,محلية نص حر من استيراد قديم تعذرت مطابقته.
+From (subject),من (الفاعل)
+Full Name (Arabic),الاسم الكامل (عربي)
+Full Name (English),الاسم الكامل (إنجليزي)
 Full name,الاسم الكامل
+Gendarmerie,درك
+Gender,الجنس
+Geocoding Method,طريقة الترميز الجغرافي
+Geographic Administration,الإدارة الجغرافية
+Geographic Description,الوصف الجغرافي
+Geographic description,الوصف الجغرافي
+Geographic map,الخريطة الجغرافية
 Geography,الجغرافيا
+Geometry Provenance,مصدر الإحداثيات
+Go,اذهب
 Governance,الحوكمة
-Group,المجموعة
-Headquarters,المقر الرئيسي
+Governance System,نظام الحكم
+Governance system,نظام الحكم
+Governed vocabulary (Table MultiSelect). Free keywords are added with Frappe's native tags instead.,مفردات مضبوطة. الكلمات المفتاحية الحرة تُضاف عبر وسوم Frappe الأصلية.
+Governorate,المحافظة
+Group,مجموعة
+Group (has subordinates),مجموعة (لها مرؤوسون)
+Group nearby markers,تجميع العلامات القريبة
+Grouping,تجميع
+Groups,مجموعات
+Groups: {0},المجموعات: {0}
+Handle,المعرّف
+Headquarters,المقر
+Hide ended relationships,إخفاء العلاقات المنتهية
+Hide relationship lines,إخفاء خطوط العلاقات
 Hierarchy,التسلسل الهرمي
+High,مرتفع
+High / Medium / Low.,مرتفع/متوسط/منخفض.
+Highly reliable,موثوق جداً
 History,التاريخ
+History & seat,التاريخ والمقر
+How close the point is to the true position.,مدى قرب النقطة من الموقع الحقيقي.
+How much of the date is actually known. 'approximate' keeps c. 1850; 'year' keeps 1850; 'decade' keeps '1850s'; 'minute' keeps a time of day.,مقدار ما هو معروف من التاريخ.
+How strongly the record's content is verified.,مدى قوة التحقق من محتوى السجل.
+"How the place sits in the landscape, its boundaries, and what is near it.",كيفية وقوع المكان في المشهد وحدوده وما يجاوره.
+How the point was obtained,كيف حُصل على النقطة
+"How the source was authenticated: who holds the original, what was compared, what remains doubtful.",كيفية توثيق المصدر: مَن يحوز الأصل وماذا قورن.
+How the unit's position sits relative to its headquarters and the terrain around it.,كيفية وقوع الوحدة بالنسبة لمقرها.
+Humanitarian,إنساني
+ID,المعرّف
+INS-.####,INS-.####
+INS-.YY.-.####,INS-.YY.-.####
+ISBN / ISSN,ISBN / ISSN
 Icon,الأيقونة
 Identifier,المعرف
+Identifier series. 'PER-.####' numbers continuously; 'PER-.YY.-.####' restarts each year — the native equivalent of the original `sequence.reset_policy = yearly`.,سلسلة المعرّفات؛ 'PER-.YY.-.####' تُعيد البدء كل سنة.
+Identity,الهوية
 Image,الصورة
+Image URL (external),رابط الصورة (خارجي)
+Image alt text,النص البديل للصورة
+Import,استيراد
+Import & export,الاستيراد والتصدير
+In Refit,قيد التجديد
+In Review,قيد المراجعة
+Inactive,غير نشط
+Infantry,مشاة
+Initial latitude,خط العرض الابتدائي
+Initial longitude,خط الطول الابتدائي
+Initial zoom,مستوى التكبير الابتدائي
+Insert New Records,إدراج سجلات جديدة
+Insert or Update (Upsert),إدراج أو تحديث
+Institution,المؤسسة
+Institution (as stated),المؤسسة (كما وردت)
+Institution Subcategory,الفئة الفرعية للمؤسسة
+Institution Type,نوع المؤسسة
 Institution type,نوع المؤسسة
+"Internal working notes. At permission level 1, so visible to reviewers and administrators only; discussion belongs in the document's comment thread instead.",ملاحظات عمل داخلية. مرئية للمراجعين والمديرين فقط.
+"Invalid bounds, zooms, or more than 512 possible tiles.",نطاقات أو تكبيرات غير صالحة، أو أكثر من 512 مربعاً.
+Invalid commander,قائد غير صالح
+Invalid status change,تغيير حالة غير صالح
+Inverse Label (Arabic),التسمية العكسية (عربي)
+Inverse Label (English),التسمية العكسية (إنجليزي)
+Inverse type,النوع العكسي
+Is Approximate,تاريخ تقريبي
+Is Group,مجموعة
+Is Symmetric,متماثلة
+Is System,افتراضي للنظام
+Is Uncertain,غير مؤكد
 Is active,نشط
 Is current,حالي
+Is group,مجموعة
+Is hierarchical,هرمي
 Is primary,أساسي
 Is symmetric,متماثل
 Is verified,تم التحقق
+Joint,مشترك
+Joint Exercise,مناورة مشتركة
+"Judgements about a leader, one row per quality, and each row must carry its basis (who assessed it, when, on what evidence). The source keeps these in a separate `commander_trait`/`person_trait` table; a judgement about a person is owned by that person, so it is a child table here.",أحكام حول قائد، سطر لكل صفة مع أساسه؛ جدول فرعي هنا.
+Label (Arabic),التسمية (عربي)
+Label (English),التسمية (إنجليزي)
 Language,اللغة
 Last name,اسم العائلة
+Last review date,تاريخ آخر مراجعة
+Latin transliteration of the original-script name.,نقل حرفي لاتيني للاسم الأصلي.
+Latitude,خط العرض
+Lead trainer,المدرب الرئيسي
 Leadership,القيادة
+Leadership Level,مستوى القيادة
+Leadership Quality,صفة قيادية
+Leadership Quality Assessment,تقييم الصفات القيادية
+Leadership qualities,الصفات القيادية
+Legend,المفتاح
 Level,المستوى
+Life & dates,الحياة والتواريخ
+Limited,محدود
+Link when the institution is a registry record.,رابط عندما تكون المؤسسة سجلاً في السجل.
+Living,حي
+"Living, deceased, whereabouts unknown …",حي، متوفى، مكان الوجود غير معروف …
+Loading…,جارٍ التحميل…
+Local aerial,جوي محلي
+Local basemap,الخريطة الأساسية المحلية
+Local basemap could not be loaded. You can still use the markers or enable online tiles.,تعذر تحميل الخريطة المحلية. لا يزال بإمكانك استخدام العلامات.
+Local map pack: coverage depends on supplied data.,حزمة الخريطة المحلية: التغطية تعتمد على البيانات الموردة.
+Local overview,خريطة محلية عامة
+Local standard,محلي قياسي
+Locality (as stated),المحلية (كما وردت)
 Location,الموقع
-Military,عسكري
-Military branch,الفرع العسكري
-Name,الاسم
-Nickname,اللقب
-Organization,المنظمة
-Origin,الأصل
-Overview,نظرة عامة
-Parent,الأب
-Period,الفترة
-Phone,الهاتف
-Place type,نوع المكان
-Platform,المنصة
-Position,المنصب
-Precision,الدقة
-Provenance,المصدر / المنشأ
-Rank,الرتبة
-Reference,المرجع
-Region,المنطقة
-Relationship type,نوع العلاقة
-Remarks,ملاحظات
-Role,الدور
-Scope,النطاق
-Section,القسم
-Sequence,التسلسل
-Settings,الإعدادات
-Short name,الاسم المختصر
-Start,البداية
-Subcategory,التصنيف الفرعي
-Summary,الملخص
-Symbol,الرمز
-Target,الهدف
-Title,العنوان
-Training,التدريب
-Type,النوع
-Unit,الوحدة
-Username,اسم المستخدم
-Value,القيمة
-Verification,التحقق
-Website,الموقع الإلكتروني
-Year,السنة
-Amend,تعديل بعد الاعتماد
-Approved,معتمد
-Approximate,تقريبي
-Archived,مؤرشف
-Asymmetric,غير متماثل
-Bidirectional,ثنائي الاتجاه
-Cancel,إلغاء
-Confirmed,مؤكد
-Create,إنشاء
-Day,يوم
-Decade,عقد
-Delete,حذف
-Directed,موجه
-Disputed,متنازع عليه
-Dissolved,منحل
-Exact,دقيق
-Export,تصدير
-High,مرتفع
-Import,استيراد
+Location (as stated),الموقع (كما ورد)
+Location preview (read-only).,معاينة الموقع (للقراءة فقط).
+Location shown. Typed coordinate text is not rounded by the map.,يظهر الموقع. لا تقرّب الخريطة نص الإحداثيات المُدخل.
+Logistics,لوجستيات
+Longitude,خط الطول
 Low,منخفض
+MIL-ARM-.####,MIL-ARM-.####
+MIL-ARM-.category.#####,MIL-ARM-.category.#####
+MIL-ASG-.####,MIL-ASG-.####
+MIL-ASG-.YYYY-.####,MIL-ASG-.YYYY-.####
+MIL-BRG-.####,MIL-BRG-.####
+MIL-CLS-.####,MIL-CLS-.####
+MIL-DEP-.####,MIL-DEP-.####
+MIL-DEP-.YYYY-.####,MIL-DEP-.YYYY-.####
+MIL-DIV-.####,MIL-DIV-.####
+MIL-MIS-.####,MIL-MIS-.####
+MIL-MIS-.YYYY-.####,MIL-MIS-.YYYY-.####
+MIL-REG-.####,MIL-REG-.####
+MIL-TRN-.####,MIL-TRN-.####
+MIL-TRN-.######,MIL-TRN-.######
+MIL-TRN-.YYYY-.####,MIL-TRN-.YYYY-.####
+MIL-UNIT-.####,MIL-UNIT-.####
+"Machine-comparable value derived from the 'as stated' value; used for filters, sorting and reports. Never more precise than what is stated.",قيمة قابلة للمقارنة الآلية مشتقة من 'كما ورد'.
+Maintained by the controller when a deployment's state or `is_current` flag changes: at most one current deployment per unit (`rules.check_deployment`). Read-only because the deployment is the record that owns that fact.,يُحافظ عليها المُتحكم عند تغيُّر الحالة أو `is_current`.
+Male,ذكر
+"Mandatory by rule once the deployment is Completed, which is the kind of condition metadata cannot express.",إلزامي حسب القاعدة متى اكتمل الانتشار.
+Map,الخريطة
+Mapped records,سجلات معينة على الخريطة
+Mapped records ({0}),سجلات معينة ({0})
+"Marks containment types ('located in', 'contains', 'member of') so the graph view can draw them as a hierarchy.",تُحدد أنواع الاحتواء لكي يرسمها عرض الرسم البياني.
+Matrix,مصفوفة
+Matrix shows two grouping levels; explore a group to see deeper levels.,المصفوفة تُظهر مستويين؛ استكشف مجموعة لمستويات أعمق.
+Maximum markers per view,الحد الأقصى للعلامات لكل عرض
+Maximum rows per export,الحد الأقصى للصفوف لكل تصدير
+Maximum rows per import,الحد الأقصى للصفوف لكل استيراد
+Maximum zoom,أقصى تكبير
+Measure area,قياس المساحة
+Measure distance,قياس المسافة
+Measurement units,وحدات القياس
+Mechanized,ميكانيكي
+Mechanized / Armored / Infantry / Artillery / Support / Airborne — `vocab.DIVISION_TYPES`.,ميكانيكي/مدرع/مشاة/مدفعية/إسناد/محمول جواً — `vocab.DIVISION_TYPES`.
 Medium,متوسط
 Merged,مدمج
+Military,العسكري
+Military & Operations,العسكريات والعمليات
+Military / Civilian / Other. The category decides which attributes apply.,عسكري/مدني/آخر. الفئة تحدد السمات.
+"Military / Civilian / Other. The category decides which attributes apply: a military person shows rank, branch, commission date, service status and military biography; a civilian shows the career fields. This is the 2026 update that folded the separate `commander` (Leader) table into Person (migration 020).",عسكري/مدني/آخر. تحديث 2026 دمج `commander` في Person (تهجير 020).
+Military Branch,الفرع العسكري
+Military Force Structure,هيكل القوة العسكرية
+Military Service Status,حالة الخدمة العسكرية
+Military Unit,وحدة عسكرية
+Military biography,السيرة العسكرية
+Military branch,الفرع العسكري
+Military service,الخدمة العسكرية
+"Milliseconds between tile fetches, so a download stays polite to the public tile service.",ميلي ثانية بين جلبات المربعات.
+Minimum completeness to publish (%),الحد الأدنى للاكتمال قبل النشر (%)
+Minimum zoom,أدنى تكبير
+Missing end date,تاريخ النهاية مفقود
+Mission,مهمة
+Mission name,اسم المهمة
+Mobilized,حُشد
 Month,شهر
-Pending Review,بانتظار المراجعة
-Primary,أساسي
-Print,طباعة
-Published,منشور
-Read,قراءة
-Rejected,مرفوض
-Report,تقرير
-Secondary,ثانوي
-Share,مشاركة
-Submit,اعتماد
-Suspended,معلق
-Symmetric,متماثل
-Unconfirmed,غير مؤكد
-Unknown,غير معروف
-Write,تعديل
-Identity,الهوية
-Life & dates,الحياة والتواريخ
-Position & evidence,الموقع والأدلة
-Provenance & State,المصدر والحالة
+Multiple sources,مصادر متعددة
+Municipality,بلدية
+Name,الاسم
+Name (Arabic),الاسم (بالعربية)
+Name (English),الاسم (بالإنجليزية)
 Name (original language),الاسم (باللغة الأصلية)
+Naming Series,سلسلة التسمية
+Nationality,الجنسية
+"Native File; Frappe keeps the file, its size, hash and the permission of the record it hangs from.",ملف محلي؛ يحتفظ Frappe بالملف وحجمه وهاشه.
+Native `Country` master (ISO 3166). Remembers the last value picked: a recorder entering people from one country picks it once.,جدول `Country` الأصلي (ISO 3166).
+Native `Country` master (the source keeps a vocabulary code).,جدول `Country` الأصلي (المصدر يحتفظ برمز مفردات).
+Native `Country` master — the source keeps this as a vocabulary code.,جدول `Country` الأصلي — المصدر يُبقيه كرمز مفردات.
+Native `Language` doctype — not a free-text language code.,نوع DocType `Language` الأصلي — ليس رمز لغة نصاً حراً.
+"Native tree. The source maintains `path`/`depth` by hand in `rules.compute_path`; NestedSet gives the same subtree semantics, plus a tree view and `treeview` reports.",شجرة أصلية؛ NestedSet تضيف عرض شجرة.
+Navy,بحرية
+Needs Improvement,بحاجة لتحسين
+Needs Update,بحاجة لتحديث
+Neighbourhood / village,حي / قرية
+Nested-set grouping node (a country or governorate that contains other places). Frappe's standard tree flag.,عقدة تجميع NestedSet. علم الشجرة القياسي في Frappe.
+New Military Unit,وحدة عسكرية جديدة
+Nickname,اللقب
+"Nine states, from `vocab.UNIT_STATUSES`.",تسع حالات من `vocab.UNIT_STATUSES`.
+"Nine states, from `vocab.UNIT_STATUSES`. Deliberately *set-valued only*: the source treats unit status as owner-reviewable and imposes no transition table.",تسع حالات من `vocab.UNIT_STATUSES`؛ لا جدول انتقالات.
+"Nine states, from `vocab.UNIT_STATUSES`. Deliberately *set-valued only*: the source treats unit status as owner-reviewable categorization.",تسع حالات من `vocab.UNIT_STATUSES`؛ تصنيف يخضع لمراجعة المالك.
+No matching group or record in the loaded structure.,لا مجموعة أو سجل مطابق في الهيكل المحمَّل.
+No records to display.,لا سجلات للعرض.
+No subgroups to display.,لا مجموعات فرعية للعرض.
+No visible connections in this view.,لا صلات مرئية في هذا العرض.
+North,شمال
+Not permitted to read this tree node,غير مسموح بقراءة عقدة الشجرة هذه
+Not permitted to read {0},غير مسموح بقراءة {0}
+Not recorded,غير مسجَّل
+Note,ملاحظة
+Notes,ملاحظات
+Notes & evidence,ملاحظات وأدلة
+Object,المفعول به
+Object type,نوع المفعول به
+Occupation / classification,المهنة / التصنيف
+Official accounts,الحسابات الرسمية
+Official address,العنوان الرسمي
+Official website,الموقع الرسمي
+Offline basemap,خريطة أساسية دون اتصال
+Offline basemap could not be loaded. Online tiles remain optional.,تعذر تحميل الخريطة المحلية. تظل خرائط الإنترنت اختيارية.
+"Offline basemap: Natural Earth, low detail.",خريطة أساسية دون اتصال: Natural Earth، بتفاصيل منخفضة.
+One degree,درجة واحدة
+"One row per (unit, armament) with quantity and condition — the source's `unit_armament` table, which is genuinely data a unit owns, so it is a child table here.",سطر لكل (وحدة، تسليح) مع الكمية والحالة؛ جدول فرعي هنا.
+"One row per claim: which source says what, where in the source, whether it supports or contradicts, and who verified it. Not copied with the record: a claim is evidence about one specific record.",سطر لكل مزعم: أي مصدر قال ماذا وأين، وهل يؤيد أم يناقض.
+"One row per post, with its own dates, institution, place and verification state. This is the single home of a person's affiliations — there is deliberately no second 'current institution' field to fall out of step with it. Not copied with the record: a duplicate person is a new person, not a second copy of someone's career.",سطر لكل منصب؛ الموضع الوحيد لانتماءات الشخص.
+Ongoing,جارية
+Online map tiles are optional; enabling them shares your IP address and viewed area with OpenStreetMap.,خرائط الإنترنت اختيارية؛ تفعيلها يشارك عنوان IP والمنطقة المعروضة مع OpenStreetMap.
+Online tiles disclose your IP address and viewed area to OpenStreetMap.,مربعات الإنترنت تكشف عنوان IP والمنطقة المعروضة لـ OpenStreetMap.
+Online: OpenStreetMap,عبر الإنترنت: OpenStreetMap
+Only a person of the military category can hold a command (`rules.check_commander_person`) — the link filter makes that obvious in the form.,فقط الشخص من الفئة العسكرية يمكنه شغل قيادة.
+Only a person of the military category can hold a command (`rules.check_commander_person`) — the link filter makes that rule visible before it is enforced.,فقط الشخص من الفئة العسكرية يمكنه شغل قيادة.
+Only a person of the military category can hold a command (`rules.check_commander_person`).,فقط الشخص من الفئة العسكرية يمكنه شغل قيادة.
+Only governorates of the chosen country are offered.,تُعرض فقط محافظات الدولة المختارة.
+Only relationships with evidence,فقط العلاقات ذات الأدلة
+Open geographic explorer,افتح المستكشف الجغرافي
+Open record,افتح السجل
+Operational,عملياتي
+Operational Deployment,انتشار عملياتي
+"Optional constraint on the subject end (e.g. Person), enforced in the Relationship controller.",قيد اختياري على طرف الفاعل، يُفرض في متحكم العلاقة.
+"Optional fieldname of the parent record the claim is about ('birth_date', 'latitude'…). Validated against the parent's meta, so a citation can never point at a field that no longer exists.",اسم حقل اختياري في السجل الأب، يُتحقق من صحته.
+"Optional, e.g. https://viaf.org/viaf/{value} — used to build the 'open in the authority file' link from the recorded value.",اختياري، لبناء رابط 'افتح في ملف الاستناد'.
+"Optional, e.g. https://viaf.org/viaf/{value} — used to build the 'open in the authority file' link.",اختياري، لبناء رابط ملف الاستناد.
+Orbit,مدار
+Organisational structure,الهيكل التنظيمي
+Organization,المنظمة
+Origin,الأصل
 Original-name language,لغة الاسم الأصلي
-Transliteration,النقحرة (الكتابة اللاتينية)
-Other recorded forms of the name,صيغ أخرى مسجلة للاسم
-Portrait URL (external),رابط الصورة (خارجي)
-Portrait alt text,النص البديل للصورة
-Date of birth (as stated),تاريخ الميلاد (كما ورد)
-Date of birth precision,دقة تاريخ الميلاد
-Date of death (as stated),تاريخ الوفاة (كما ورد)
-Date of death precision,دقة تاريخ الوفاة
+Other,آخر
+Other recorded forms of the name,أشكال أخرى مسجلة للاسم
+Over capacity,فوق الطاقة الاستيعابية
+Overlapping appointment,تعيين متداخل
+Overlays,الطبقات
+Overview,نظرة عامة
+PER-.####,PER-.####
+PER-.YY.-.####,PER-.YY.-.####
+PLC-.####,PLC-.####
+PLC-.YY.-.####,PLC-.YY.-.####
+Page / Reference,الصفحة / المرجع
+"Page, folio, column, or minute:second.",صفحة، ورقة، عمود، أو دقيقة:ثانية.
+Parent,الأب
+Parent Place,المكان الأب
+Parent Region,المنطقة الأب
+Parent Unit,الوحدة الأصل
+Parent region,المنطقة الأصل
+Parent unit,الوحدة الأصل
+Part of (parent place),جزء من (المكان الأصل)
+Participants,المشاركون
+Peacekeeping,حفظ سلام
+Pending Review,بانتظار المراجعة
+"People posted directly to this unit, not its subordinates. The subtree total is a rollup the controller computes — the same number a commander asks for.",أشخاص منتدبون مباشرة لهذه الوحدة.
+"People posted directly to this unit, not its subordinates. The subtree total is a rollup the controller computes — the source's `descendant_personnel()` query, answered natively by the NestedSet.",أشخاص منتدبون مباشرة لهذه الوحدة؛ تجميع NestedSet.
+Period,الفترة
+Person,شخص
+Person Category,فئة الشخص
+Person Classification,تصنيف الشخص
+Person Position,منصب الشخص
+Person Status,حالة الشخص
+Person appointed,الشخص المعيَّن
+Personnel Count,عدد الأفراد
+Phone,الهاتف
+Place,مكان
+Place (as stated),المكان (كما ورد)
+Place (record),المكان (كسجل)
+Place Type,نوع المكان
+Place labels on the map,تسميات الأماكن على الخريطة
+Place of Birth,مكان الميلاد
+Place of Death,مكان الوفاة
 Place of birth,مكان الميلاد
 Place of birth (as stated),مكان الميلاد (كما ورد)
-Occupation / classification,المهنة / التصنيف
-Declared affiliation (as stated),الانتماء المعلن (كما ورد)
-Posts held (history),المناصب السابقة (السجل)
-Positions,المناصب
-Post title (Arabic),مسمى المنصب (عربي)
-Post title (English),مسمى المنصب (إنجليزي)
-Current post,المنصب الحالي
-Verified by a source,موثق بمصدر
-Specialisation,التخصص
-Specialisations,التخصصات
-Public activity,النشاط العام
-Official website,الموقع الرسمي
-Official accounts,الحسابات الرسمية
-Handle,اسم المستخدم / المعرف
-Position (this record's own),الموقع الجغرافي (الخاص بهذا السجل)
-Source & verification,المصدر والتحقق
-Primary source,المصدر الأساسي
-Record status,حالة السجل
-Researcher's notes,ملاحظات الباحث
-Evidence (claims this record makes),الأدلة (الادعاءات المسجلة)
-Supports which field,يدعم أي حقل
-Scheme,النظام
-External identifiers,المعرفات الخارجية
-The name in the script and language of the source.,الاسم بالخط واللغة الواردة في المصدر.
-Native `Language` doctype — not a free-text language code.,مستند اللغة الأصلي في النظام — وليس رمز لغة نصياً حراً.
-Latin transliteration of the original-script name.,النقحرة اللاتينية للاسم المكتوب بخطه الأصلي.
-"Uploaded portrait (native File, permission-checked by Frappe).",صورة شخصية مرفوعة (ملف أصلي محمي بصلاحيات النظام).
-Use for a portrait hosted elsewhere; the uploaded portrait wins when both are set.,يُستخدم لصورة مستضافة خارجياً؛ وتُفضّل الصورة المرفوعة عند توفر الاثنين.
-"This record's own latitude, independent of any linked place.",خط العرض الخاص بهذا السجل، مستقل عن أي مكان مرتبط.
-"This record's own longitude, independent of any linked place.",خط الطول الخاص بهذا السجل، مستقل عن أي مكان مرتبط.
-How strongly the record's content is verified.,مدى قوة توثيق محتوى السجل.
-Series,السلسلة
-Identifier series. 'PER-.####' numbers continuously; 'PER-.YY.-.####' restarts each year — the native equivalent of the original `sequence.reset_policy = yearly`.,سلسلة المعرفات. 'PER-.####' يرقم بشكل مستمر؛ و'PER-.YY.-.####' يعيد الترقيم كل سنة.
-Display name,الاسم المعروض
-"Computed on save: English name, else Arabic name. Frappe's `title_field`, so link fields, list views and the global search show one readable name for a bilingual record.",يُحسب عند الحفظ: الاسم الإنجليزي وإلا الاسم العربي، ليظهر اسم واحد مقروء في القوائم والبحث.
-"Spellings met in sources that are not the preferred form. Searchable, so 'Mosul' finds 'Mūṣil'.",تهجئات وردت في المصادر وليست الصيغة المفضلة، وتُستخدم لتسهيل البحث.
-Portrait,الصورة الشخصية
-Short description of the portrait for accessibility and print.,وصف مختصر للصورة الشخصية لإتاحة الوصول والطباعة.
-"A birth year alone is a legitimate value: '1912', 'c. 1912', '1910s'.",سنة الميلاد وحدها قيمة مقبولة: '1912' أو 'حوالي 1912' أو 'عقد 1910'.
-Date of birth (comparable),تاريخ الميلاد (للمقارنة)
-"Machine-comparable value derived from the 'as stated' value; used for filters, sorting and reports. Never more precise than what is stated.",قيمة قابلة للمقارنة مشتقة من التاريخ كما ورد؛ تُستخدم للفرز والتصفية والتقارير.
-How much of the date is actually known. 'approximate' keeps c. 1850; 'year' keeps 1850; 'decade' keeps '1850s'; 'minute' keeps a time of day.,مستوى دقة التاريخ المعروف فعلياً (تقريبي، سنة، عقد، دقيقة، إلخ).
-Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.,التاريخ كما ورد في المصدر تماماً؛ وهو القيمة المعتمدة.
-Date of death (comparable),تاريخ الوفاة (للمقارنة)
-Native `Country` master (ISO 3166). Remembers the last value picked: a recorder entering people from one country picks it once.,قائمة الدول القياسية (ISO 3166). يتذكر آخر قيمة تم اختيارها لتسريع الإدخال.
-Association only — it never assigns that place's coordinates to this person.,ربط مرجعي فقط — لا ينسخ إحداثيات المكان إلى هذا الشخص.
-"What the source says, kept verbatim even when the place cannot be linked to a Place record. Mandatory while no Place is linked: an unlinked place must still be recorded.",ما ورد في المصدر حرفياً حتى عند تعذر ربطه بسجل مكان.
-Current status,الحالة الحالية
-"Living, deceased, whereabouts unknown …",حي، متوفى، مكان الإقامة غير معروف …
-"Military / Civilian / Other. The category decides which attributes apply: a military person shows rank, branch, commission date, service status and military biography; a civilian shows the career fields. This is the 2026 update that folded the separate `commander` (Leader) table into Person (migration 020).",عسكري / مدني / أخرى. تحدد الفئة الحقول الظاهرة (عسكرية أو مدنية).
-"Free text as the source gives it. The structured, dated post is a row in Positions below.",نص حر كما ورد في المصدر. أما المنصب المؤرخ فيُسجل في جدول المناصب أدناه.
-An affiliation the person (or a source) asserts but that is not corroborated. Corroborated posts go in Positions with 'Verified' ticked.,انتماء يُصرح به الشخص أو المصدر دون توثيق مؤكد.
-Military service,الخدمة العسكرية
-Service attributes that apply to a person of the military category. The row of a source's `commander` table is this section plus a Person record.,بيانات الخدمة الخاصة بالفئة العسكرية.
-"The rank held. Free text on purpose: a historical rank (Ottoman, mandate-era, foreign) must not be forced into a modern list.",الرتبة العسكرية (نص حر لاستيعاب الرتب التاريخية).
-Service branch,فرع الخدمة
-"Army, Navy, Air Force, Joint, Gendarmerie, Coast Guard — a governed vocabulary (migration 020 domain `military_branch`), extendable without a code change.",الجيش، البحرية، القوة الجوية، الدرك، خفر السواحل — مفردة مقننة.
-"When the person was commissioned. A year alone is acceptable, which is why this is a plain Date and not the three-field historical-date trio: military commission records are day-precise in this dataset.",تاريخ التكليف أو التخرج العسكري.
-Service status,حالة الخدمة
-"Active → Reserve → Retired, and Retired is terminal (source `SERVICE_STATUS_TRANSITIONS`). The transition is enforced in the controller; see Del. 12 §4.",في الخدمة ← احتياط ← متقاعد.
-Military biography,السيرة العسكرية
-"Service history, commands and campaigns — the military record behind the rank.",سجل الخدمة والقيادات والحملات العسكرية.
-Leadership qualities,الصفات القيادية
-"Judgements about a leader, one row per quality, and each row must carry its basis (who assessed it, when, on what evidence). The source keeps these in a separate `commander_trait`/`person_trait` table; a judgement about a person is owned by that person, so it is a child table here.",تقييمات الصفات القيادية، صف لكل صفة مع بيان المُقيّم والدليل.
-"One row per post, with its own dates, institution, place and verification state. This is the single home of a person's affiliations — there is deliberately no second 'current institution' field to fall out of step with it. Not copied with the record: a duplicate person is a new person, not a second copy of someone's career.",صف لكل منصب مع تواريخه والمؤسسة والمكان وحالة التوثيق.
-Governed vocabulary (Table MultiSelect). Free keywords are added with Frappe's native tags instead.,مفردة مقننة؛ وتُضاف الكلمات المفتاحية الحرة عبر الوسوم.
-How close the point is to the true position.,مدى قرب النقطة من الموقع الفعلي.
-How the point was obtained,طريقة تحديد النقطة
-A city centroid is not a street address; recording the method stops a centroid from being read as a verified location.,تحديد طريقة الحصول على الإحداثيات (مركز مدينة، عنوان، مسح ميداني).
-Uncertainty radius (m),نطاق عدم اليقين (متر)
-The radius the true position could lie within.,نصف القطر الذي قد يقع ضمنه الموقع الفعلي.
+Place type,نوع المكان
+Planned,مخطط
+"Planned → Active / Suspended → Completed, Completed terminal (source `DEPLOYMENT_TRANSITIONS`). A Select with a controller-enforced transition table rather than a native Workflow: Frappe runs ONE workflow per DocType, and that one is taken by the editorial SIRAJ Review workflow on `workflow_state`. Two independent state machines on one record need two fields, not one workflow — see Del. 12 §5.",مخطط ← نشط/معلّق ← مكتمل؛ حقل Select بانتقالات — انظر Del. 12 §5.
+"Planned → Active / Suspended → Completed, Completed terminal.",مخطط ← نشط/معلّق ← مكتمل، ومكتمل نهائي.
+"Planned → Ongoing → Executed, or Cancelled from either open state (source `MISSION_TRANSITIONS`). A Select and not a Workflow for the reason given on Operational Deployment.",مخطط ← جاري ← منفذ أو ملغى؛ حقل Select.
+"Planned → Ongoing → Executed, or Cancelled from either open state.",مخطط ← جاري ← منفذ، أو ملغى من أي حالتين مفتوحتين.
+Platform,منصة
+Platoon,فصيل
+Please review this holding: the quantity is not positive.,يرجى مراجعة هذه الحيازة: الكمية ليست موجبة.
 Point source,مصدر النقطة
-"The map, survey or gazetteer the coordinates came from.",الخريطة أو المسح أو المعجم الجغرافي المأخوذة منه الإحداثيات.
-"The source the record rests on. Additional claims from other sources are recorded in the Evidence table, one claim per row.",المصدر الرئيسي الذي يستند إليه السجل.
-"Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected).",الحالة التحريرية وفق سير عمل مراجعة سِراج.
-"Internal working notes. At permission level 1, so visible to reviewers and administrators only; discussion belongs in the document's comment thread instead.",ملاحظات عمل داخلية مرئية للمراجعين والمدراء فقط.
-"One row per claim: which source says what, where in the source, whether it supports or contradicts, and who verified it. Not copied with the record: a claim is evidence about one specific record.",صف لكل ادعاء يوضح المصدر والموضع وما إذا كان يؤيد أو يعارض.
-"VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record.",معرفات خارجية مثل VIAF أو Wikidata أو أرقام الأرشيف.
-Quality,الجودة
-"Share of the record's critical fields that are filled in. Computed on save; used by the quality report and by the 'minimum completeness to publish' rule. Completeness, not truth.",نسبة اكتمال الحقول الأساسية في السجل؛ تُحسب عند الحفظ.
-Type of institution,نوع المؤسسة
-Governance system,نظام الحوكمة
-Image URL (external),رابط الصورة (خارجي)
-Image alt text,النص البديل للصورة
-History & seat,التاريخ والمقر
-Date of establishment (as stated),تاريخ التأسيس (كما ورد)
-Date of establishment (comparable),تاريخ التأسيس (للمقارنة)
-Date of establishment precision,دقة تاريخ التأسيس
-Date of closure (as stated),تاريخ الإغلاق (كما ورد)
-Date of closure (comparable),تاريخ الإغلاق (للمقارنة)
-Date of closure precision,دقة تاريخ الإغلاق
-Seat,المقر
-Place (record),المكان (سجل)
-Official address,العنوان الرسمي
-Profile,الملف التعريفي
-Statement of objectives,بيان الأهداف
-Organisational structure,الهيكل التنظيمي
-Research significance,الأهمية البحثية
-Founders (as stated),المؤسسون (كما وردوا)
-Is group,مجموعة
-Part of (parent place),تابع لـ (المكان الأب)
-District / region,القضاء / المنطقة
-Neighbourhood / village,الحي / القرية
-Locality (as stated),المحلة / الموقع (كما ورد)
-Geographic description,الوصف الجغرافي
-Research,البحث
-Timing & place,التوقيت والمكان
-When,متى
-Start (as stated),البداية (كما وردت)
-Start (comparable),البداية (للمقارنة)
-Start precision,دقة البداية
-End (as stated),النهاية (كما وردت)
-End (comparable),النهاية (للمقارنة)
-End precision,دقة النهاية
-Where,أين
-Place (as stated),المكان (كما ورد)
-Significance,الأهمية
-The link,الرابط
-Ongoing,مستمر
-From (subject),من (الفاعل / المصدر)
-Subject type,نوع الفاعل
-Subject,الفاعل
-To (object),إلى (المفعول / الهدف)
-Object type,نوع الهدف
-Object,الهدف
-Detail,التفاصيل
-Validity,الصلاحية
-What the link asserts,ما يثبته الرابط
-Relationship description,وصف العلاقة
-Role / title (as stated),الدور / المسمى (كما ورد)
-Evidence & review,الأدلة والمراجعة
-Review,المراجعة
-Last review date,تاريخ آخر مراجعة
-Source name / title,اسم المصدر / العنوان
-Source type,نوع المصدر
-ISBN / ISSN,الرقم المعياري (ISBN / ISSN)
-Web link,الرابط الإلكتروني
-Dates,التواريخ
+Portrait,الصورة الشخصية
+Portrait URL (external),رابط الصورة الشخصية (خارجي)
+Portrait alt text,النص البديل للصورة
+Position,المنصب
+Position & emblem,الموقع والشعار
+Position & evidence,الموقع والأدلة
+Position (this record's own),الموقع (خاص بهذا السجل)
+Position within its own list; lower comes first.,الموضع ضمن قائمته؛ الأقل يأتي أولاً.
+Positions,المناصب
+Positions & Appointments,المناصب والتعيينات
+Positive by rule (`check_holding`).,موجب حسب القاعدة.
+Post title (Arabic),عنوان المنصب (بالعربية)
+Post title (English),عنوان المنصب (بالإنجليزية)
+Posts held (history),المناصب التي شغلها (السجل)
+Precision,الدقة
+Preview only: both coordinate fields must be text fields to select a point.,معاينة فقط: يجب أن يكون حقلا الإحداثيات نصيين لاختيار نقطة.
+Primary,أساسي
+Primary source,مصدر أساسي
+Print,طباعة
+Profile,الملف الشخصي
+Profile URL prefix,بادئة رابط الملف الشخصي
+Provenance,المصدر / المنشأ
+Provenance & State,المصدر والحالة
+Provenance & state,المصدر والحالة
+Public activity,النشاط العام
 Publication & access,النشر والوصول
+Publication Date,تاريخ النشر
 Publication date (as stated),تاريخ النشر (كما ورد)
-Publication date (comparable),تاريخ النشر (للمقارنة)
+Publication date (comparable),تاريخ النشر (قابل للمقارنة)
 Publication date precision,دقة تاريخ النشر
+Published,منشور
+Publisher,الناشر
+Quality,الجودة
+Quantity,الكمية
+Quick Access,الوصول السريع
+REL-.####,REL-.####
+REL-.YY.-.####,REL-.YY.-.####
+Rank,الرتبة
+Rank and service status are only meaningful for a person of the Military category.,الرتبة وحالة الخدمة ذات معنى فقط للفئة العسكرية.
+Read,قراءة
+Readiness tier,مستوى الجاهزية
+Reconnaissance,استطلاع
+Record data could not be loaded. The local basemap may still be available.,تعذر تحميل بيانات السجل. الخريطة المحلية قد تظل متاحة.
+Record leaves are hidden; enable Records to show them.,أوراق السجلات مخفية؛ فعّل السجلات لإظهارها.
+Record not found or not permitted,السجل غير موجود أو غير مسموح
+Record status,حالة السجل
+Records,سجلات
+Records panel,لوحة السجلات
+Reference,المرجع
+Regiment,فوج
+Region,منطقة
+Region name,اسم المنطقة
+Regions × Units,المناطق × الوحدات
+Regions — command hierarchy,المناطق — التسلسل القيادي
+Registry & Operations,السجل والعمليات
+Rejected,مرفوض
+Relationship,علاقة
+Relationship Type,نوع العلاقة
+Relationship description,وصف العلاقة
+Relationship map,خريطة العلاقات
+Relationship matrix,مصفوفة العلاقات
+Relationship type,نوع العلاقة
+Relationships by Type,العلاقات حسب النوع
+Reliability,الموثوقية
 Reliability & verification,الموثوقية والتحقق
 Reliability assessment,تقييم الموثوقية
-Verification notes,ملاحظات التحقق
-Files,الملفات
-Scan / PDF,نسخة مصورة / PDF
-Provenance & state,المصدر والحالة
-SIRAJ Explorer,مستكشف سراج
-Geographic map,الخريطة الجغرافية
-Relationship map,خريطة العلاقات
-Structures,البنى
-Loading…,جارٍ التحميل…
-Unable to load the explorer. Check permissions and try again.,تعذّر تحميل المستكشف. تحقق من الصلاحيات وحاول مجددًا.
-Results are limited to {0} visible records per type; the view is incomplete.,النتائج محدودة بـ {0} سجل مرئي لكل نوع؛ العرض غير مكتمل.
-Open record,فتح السجل
-Search records,البحث في السجلات
-All types,جميع الأنواع
-"Showing {0} record-owned points. Unset and ambiguous 0,0 coordinates are excluded.",عرض {0} نقطة تخص سجلاتها. تُستبعد الإحداثيات غير المحددة والإحداثيات الملتبسة 0،0.
-Fit points,إظهار جميع النقاط
-Toggle OpenStreetMap tiles,إظهار أو إخفاء خريطة OpenStreetMap
-About this view,حول هذا العرض
-Select a marker to inspect its record. Tiles are optional; enabling them sends map requests to OpenStreetMap.,اختر علامة للاطلاع على سجلها. خلفية الخريطة اختيارية؛ تفعيلها يرسل طلبات الخريطة إلى OpenStreetMap.
-Showing {0} records and {1} relationships. Only visible records and links are included.,عرض {0} سجل و{1} علاقة. تظهر السجلات والعلاقات المسموح بالاطلاع عليها فقط.
-Fit network,إظهار الشبكة كاملة
-Stabilize layout,تثبيت التخطيط
-Select a record or a connection to inspect it. Drag nodes to rearrange the network.,اختر سجلًا أو علاقة للاطلاع عليهما. اسحب العقد لإعادة ترتيب الشبكة.
-Expandable tree,شجرة قابلة للتوسيع
-Distribution bars,أشرطة التوزيع
-Counting {0} visible records.,عدد السجلات المرئية: {0}.
-Grouping,التجميع
-Records,السجلات
-Counts reflect visible records only. Expand a branch to inspect its groups.,تعكس الأعداد السجلات المرئية فقط. وسّع الفرع للاطلاع على مجموعاته.
-No records to display.,لا توجد سجلات للعرض.
-Unable to load this structure. Check permissions.,تعذّر تحميل هذه البنية. تحقق من الصلاحيات.
-Not recorded,غير مسجل
-Unknown structure source,مصدر البنية غير معروف
-Not permitted to read {0},ليس لديك صلاحية قراءة {0}
-Open geographic explorer,فتح المستكشف الجغرافي
-Unit name,اسم الوحدة
-"Offline basemap: Natural Earth, low detail.",خريطة أساسية دون اتصال: بيانات Natural Earth بتفاصيل محدودة.
-Local basemap could not be loaded. You can still use the markers or enable online tiles.,تعذّر تحميل الخريطة المحلية. لا يزال بإمكانك استخدام العلامات أو تفعيل الخريطة عبر الإنترنت.
-Record data could not be loaded. The local basemap may still be available.,تعذّر تحميل بيانات السجلات. قد تظل الخريطة المحلية متاحة.
-Clusters: on,تجميع العلامات: مفعّل
-Clusters: off,تجميع العلامات: متوقف
-Offline basemap,خريطة دون اتصال
-Online: OpenStreetMap,عبر الإنترنت: OpenStreetMap
-Some online tiles failed to load. Choose the offline basemap to continue.,تعذّر تحميل بعض مربعات الخريطة. اختر الخريطة المحلية للمتابعة.
-Online tiles disclose your IP address and viewed area to OpenStreetMap.,تُرسل الخريطة عبر الإنترنت عنوان IP والمنطقة المعروضة إلى OpenStreetMap.
-Export visible points,تصدير النقاط الظاهرة
-Select a marker to inspect its record. Clusters show the number of nearby points. Online tiles are optional.,اختر علامة للاطلاع على سجلها. تظهر المجموعات عدد النقاط المتقاربة. الخريطة عبر الإنترنت اختيارية.
-Connections ({0}),العلاقات ({0})
-No visible connections in this view.,لا توجد علاقات مرئية في هذا العرض.
-Measure distance,قياس المسافة
-Clear measurement,مسح القياس
-Click two points on the map to measure distance.,انقر نقطتين على الخريطة لقياس المسافة.
-Distance: {0} km,المسافة: {0} كم
-Groups: {0},المجموعات: {0}
-Unsupported tree type,نوع الشجرة غير مدعوم
-Not permitted to read this tree node,ليس لديك صلاحية قراءة عقدة الشجرة هذه
-This value is disabled. Existing linked records are retained.,هذه القيمة معطّلة. تُحفظ السجلات المرتبطة بها كما هي.
-Some settings are not yet connected to the explorer or other workflows.,بعض الإعدادات غير مرتبطة بعد بالمستكشف أو بسير العمل الآخر.
-This current position also has an end date. Please review the source.,لهذا المنصب الحالي تاريخ انتهاء أيضاً. يرجى مراجعة المصدر.
-Please review this holding: the quantity is not positive.,يرجى مراجعة هذه الحيازة: الكمية ليست موجبة.
-New Military Unit,وحدة عسكرية جديدة
-Add child,إضافة وحدة فرعية
-Unsupported military hierarchy type,نوع التسلسل العسكري غير مدعوم
-The military unit hierarchy contains a cycle.,يحتوي التسلسل الهرمي للوحدات العسكرية على حلقة.
-A military unit cannot be its own ancestor.,لا يمكن أن تكون الوحدة العسكرية أصلاً لنفسها.
-Echelon,المستوى التنظيمي
-Direct personnel,الأفراد المباشرون
-ID,المعرّف
-Brigade,لواء
-Regiment,فوج
-Battalion,كتيبة
-Company,سرية
-Platoon,فصيلة
-Squadron,سرب
-Detachment,مفرزة
-Standby,في حالة استعداد
-Mobilized,معبّأة
-Attached,ملحقة
+Reliable,موثوق
+Relieved on,أُعفي في
+Remarks,ملاحظات
+Reorganizing,قيد إعادة التنظيم
+Report,تقرير
+Reports & Analytics,التقارير والتحليلات
+Require a source before publishing,اشتراط مصدر قبل النشر
+Research,الأبحاث
+Research Event,حدث بحثي
+Research significance,الأهمية البحثية
+Researcher's notes,ملاحظات الباحث
 Reserve,احتياط
-Reorganizing,إعادة التنظيم
-Stand-down,إيقاف النشاط
-Disbanded,محلولة
-{0} smaller groups,{0} مجموعة أصغر
-A structure grouping field is not readable.,لا يمكن قراءة أحد حقول تجميع البنية.
-Center on selected record,التمركز حول السجل المحدد
-Show all records,إظهار جميع السجلات
-Treemap,خريطة متفرعة
+Resolution,الدقة
+Results are limited to {0} visible records per type; the view is incomplete.,النتائج محدودة بـ {0} سجل مرئي لكل نوع؛ العرض غير مكتمل.
+Retired,متقاعد
+Review,مراجعة
+Review State,حالة المراجعة
+Review date,تاريخ المراجعة
+Reviewed by,راجعه
 Rings,حلقات
-Flow,تدفق
-Matrix,مصفوفة
-Discs,أقراص
-Tree,شجرة
-Table,جدول
-Show or hide data table,إظهار جدول البيانات أو إخفاؤه
+Role,الدور
+Role / title (as stated),الدور / العنوان (كما ورد)
+Row {0}: an assessment cannot be dated in the future.,السطر {0}: لا يجوز أن يكون تاريخ التقييم في المستقبل.
+Row {0}: quantity must be greater than zero.,السطر {0}: الكمية يجب أن تكون أكبر من صفر.
+Row {0}: {1} is already held by this unit.,السطر {0}: {1} محجوز بالفعل لدى هذه الوحدة.
+SIRAJ Explorer,مستكشف سِراج
+SIRAJ Research Registry,سجل سِراج البحثي
+SIRAJ Settings,إعدادات سِراج
+SRC-.####,SRC-.####
+SRC-.YY.-.####,SRC-.YY.-.####
+Satisfactory,مرضي
+Scan / PDF,مسح / PDF
+Scheme,المخطط
+Scope,النطاق
+Search records,بحث في السجلات
+Seat,المقر
+Secondary,ثانوي
+Section,القسم
+Seeded by the application; cannot be renamed or deleted.,مبذور بواسطة التطبيق؛ لا يمكن إعادة تسميته أو حذفه.
+Select a local pack and enter valid bounds and zooms.,اختر حزمة محلية وأدخل نطاقات وتكبيرات صالحة.
+Select a marker to inspect its record. Clusters show the number of nearby points. Online tiles are optional.,اختر علامة لفحص سجلها. التجميعات تُظهر عدد النقاط القريبة.
+Select a marker to inspect its record. Tiles are optional; enabling them sends map requests to OpenStreetMap.,اختر علامة للاطلاع على سجلها. خلفية الخريطة اختيارية؛ تفعيلها يرسل طلبات الخريطة إلى OpenStreetMap.
+Select a record or a connection to inspect it. Drag nodes to rearrange the network.,اختر سجلاً أو صلة لفحصه. اسحب العقد لإعادة ترتيب الشبكة.
+Selected coordinates exceed the text field length.,الإحداثيات المحددة تتجاوز طول الحقل النصي.
+Semantics,الدلالة
+Sequence,التسلسل
+"Sequential by default, or partitioned by category.",متسلسل افتراضياً، أو مقسوم حسب الفئة.
+"Sequential by default, or partitioned by category. The source writes the field segment as `MIL-ARM-.{category}.#####`; a native Naming Series writes the same segment without braces (`.category.`), and the framework then partitions the counter on the field value exactly as `naming._partition_and_body` does by hand.",متسلسل أو مقسوم حسب الفئة؛ سلسلة تسمية أصلية.
+Series,السلسلة
+Service attributes that apply to a person of the military category. The row of a source's `commander` table is this section plus a Person record.,سمات الخدمة للشخص العسكري.
+Service branch,فرع الخدمة
+"Service history, commands and campaigns — the military record behind the rank.",السجل الخدمي والأوامر والحملات.
+Service status,حالة الخدمة
+"Serviceability, from the closed list in `military/vocab.py` (`HOLDING_CONDITIONS`).",الصلاحية للخدمة من القائمة المغلقة.
+Serviceable,صالح للخدمة
+Set it on several rows at once in the grid: one reviewer clearing a batch of claims marks them all 'single source'.,اضبطها على عدة سطور دفعة واحدة.
+Settings,الإعدادات
+Share,مشاركة
+"Share of the record's critical fields that are filled in. Computed on save; used by the quality report and by the 'minimum completeness to publish' rule. Completeness, not truth.",نصيب الحقول الحرجة المملوءة؛ اكتمال لا صدق.
+"Shelfmark, fonds, box or register number.",الرمز الأرففي، المجموعة، الصندوق، أو رقم السجل.
+Short description of the portrait for accessibility and print.,وصف قصير للصورة لإمكانية الوصول والطباعة.
+Short name,الاسم المختصر
+Show all records,إظهار جميع السجلات
+Show more,إظهار المزيد
+Show or hide data table,إظهار أو إخفاء جدول البيانات
+Show relationship lines,إظهار خطوط العلاقات
+"Showing {0} record-owned points. Unset and ambiguous 0,0 coordinates are excluded.","عرض {0} نقطة مملوكة للسجل. إحداثيات 0,0 مستبعدة."
+Showing {0} records and {1} relationships. Only visible records and links are included.,عرض {0} سجل و{1} علاقة.
+Significance,الأهمية
+Single source,مصدر واحد
+Siraj Research,سِراج للأبحاث
+"Small Text, not Data: a bibliographic title is often longer than the 140-character Data column, and the global search reads it through `search_fields` rather than a column index.",نص صغير لا بيانات؛ أطول من 140 حرفاً.
+Social Account,حساب اجتماعي
+Social Accounts,حسابات التواصل الاجتماعي
+Social Platform,منصة تواصل
+Some local tiles are unavailable at this location or zoom.,بعض المربعات المحلية غير متاحة في هذا الموقع أو مستوى التكبير.
+Some online tiles failed to load. Choose the offline basemap to continue.,فشل تحميل بعض مربعات الإنترنت. اختر الخريطة دون اتصال.
+Some record types are not readable: {0},بعض أنواع السجلات غير قابلة للقراءة: {0}
+Some settings are not yet connected to the explorer or other workflows.,بعض الإعدادات غير مرتبطة بعد بالمستكشف أو بسير العمل الآخر.
+Sort Order,ترتيب الفرز
+Sort order,ترتيب الفرز
+Source,المصدر
+Source & verification,المصدر والتحقق
+Source (as stated),المصدر (كما ورد)
+Source DocType,نوع المستند المصدر
+Source Record,السجل المصدر
+Source Reliability,موثوقية المصدر
+Source Type,نوع المصدر
+Source name / title,اسم / عنوان المصدر
+Source type,نوع المصدر
+South,جنوب
+Specialisation,التخصص
+Specialisations,التخصصات
+Specialization,التخصص
+Specialization Link,ربط التخصص
+Specification,المواصفة
+"Spellings met in sources that are not the preferred form. Searchable, so 'Mosul' finds 'Mūṣil'.",هجاءات وردت في المصادر ليست الصيغة المفضلة.
+Squadron,سرب
+Stabilize layout,تثبيت التخطيط
+"Stable machine code used by data imports, report filters and the migration. Values are never reused.",رمز آلي مستقر؛ لا يُعاد استخدام القيم.
+Stand-down,وقف الاستنفار
+Standby,تأهب
+Start,البداية
+Start (as stated),البداية (كما وردت)
+Start (comparable),البداية (قابلة للمقارنة)
+Start Date,تاريخ البداية
+Start Date Precision,دقة تاريخ البداية
+Start date,تاريخ البداية
+Start precision,دقة البداية
+Statement in the source,النص في المصدر
+Statement of objectives,بيان الأهداف
+Status,الحالة
+Structure depth,عمق الهيكل
 Structure diagram,مخطط الهيكل
-Groups,المجموعات
-Folded groups,المجموعات المطوية
-Folded records,السجلات المطوية
-Explore group,استكشاف المجموعة
-Collapse branch,طي الفرع
-Expand branch,توسيع الفرع
-No subgroups to display.,لا توجد مجموعات فرعية للعرض.
-Explore a different group to see a matrix.,استكشف مجموعة أخرى لعرض المصفوفة.
-Counts include only records you can read. Folded branches retain their record and group counts.,تشمل الأعداد السجلات المصرح لك بقراءتها فقط. تحتفظ الفروع المطوية بأعداد السجلات والمجموعات.
-Record leaves are hidden; enable Records to show them.,أوراق السجلات مخفية؛ فعّل السجلات لإظهارها.
-Flow shows two grouping levels; explore a group to see deeper levels.,يعرض التدفق مستويين من التجميع؛ استكشف مجموعة لعرض المستويات الأعمق.
-Matrix shows two grouping levels; explore a group to see deeper levels.,تعرض المصفوفة مستويين من التجميع؛ استكشف مجموعة لعرض المستويات الأعمق.
-{0} more records,{0} سجلات إضافية
+Structures,الهياكل
+Subcategory,الفئة الفرعية
+Subject,الفاعل
+Subject type,نوع الفاعل
+Submit,اعتماد
+Subtree personnel,أفراد الشجرة الفرعية
+Summary,الملخص
+Summary (Arabic),الملخص (عربي)
+Summary (English),الملخص (إنجليزي)
+Support,إسناد
+Supports,يؤيد
+Supports which field,أي حقل يدعم
+Suspended,مُعلَّق
+Swap Source & Target,تبديل المصدر والهدف
+Symbol,الرمز
+Symmetric,متماثل
+System value,قيمة نظامية
+Table,جدول
+Taken from the Relationship Type: a symmetric type is stored once and read from both ends; it is never duplicated as a mirror row.,النوع المتماثل يُخزن مرة ولا يُكرر كسطر مرآتي.
+Target,الهدف
+Target DocType,نوع المستند الهدف
+Target Record,السجل الهدف
+Target Type,نوع الهدف
+Tertiary,ثالثي
+The Arabic label printed in Arabic exports and reports.,التسمية العربية في الصادرات والتقارير العربية.
+"The chain is fetched, never retyped: a municipality cannot sit in a country its district does not belong to.",التسلسل يُجلب ولا يُعاد كتابته.
+The claim in the researcher's words: a quotation or a faithful paraphrase of one.,المزعم بكلمات الباحث: اقتباس أو إعادة صياغة أمينة.
+The commander of {0} must be a person of the Military category.,قائد {0} يجب أن يكون شخصاً من الفئة العسكرية.
+"The deployed area's own coordinates — a deployment has a position of its own, independent of the unit's home station (migration 018).",إحداثيات منطقة الانتشار (التهجير 018).
+The end date cannot precede the start date.,لا يجوز أن يسبق تاريخ النهاية تاريخ البداية.
+"The label shown in English lists, filters and exports.",التسمية في القوائم والمرشحات والصادرات الإنجليزية.
+The link,الرابط
+The map reports what it left out and asks the reader to zoom in; it never draws a silent sample.,الخريطة تُبلغ عما تركته وتطلب التكبير.
+"The map, survey or gazetteer the coordinates came from.",الخريطة أو المسح أو المعجم الجغرافي الذي جاءت منه الإحداثيات.
+The military unit hierarchy contains a cycle.,التسلسل الهرمي للوحدة العسكرية يحتوي على حلقة.
+The name in the script and language of the source.,الاسم بخط ولغة المصدر.
+The named place the event happened at.,المكان المسمى الذي وقع فيه الحدث.
+"The named settlement or building; association only, never a source of coordinates.",المستوطنة أو المبنى المسمى؛ ارتباط فقط.
+The post the person holds now. More than one current post is allowed — people hold several.,المنصب الجاري؛ يجوز شغل عدة مناصب.
+The radius the true position could lie within.,نصف القطر الذي قد يقع ضمنه الموقع الحقيقي.
+"The rank held. Free text on purpose: a historical rank (Ottoman, mandate-era, foreign) must not be forced into a modern list.",الرتبة؛ نص حر عمداً.
+The relieved date cannot precede the assigned date.,تاريخ الإعفاء لا يجوز أن يسبق تاريخ التعيين.
+"The source the record rests on. Additional claims from other sources are recorded in the Evidence table, one claim per row.",المصدر الذي يقوم عليه السجل. مزاعم إضافية في الأدلة.
+The source's one option for classifications.,خيار المصدر الوحيد للتصنيفات.
+The source's one option for divisions (`MIL-DIV-`).,خيار المصدر الوحيد للفرق (`MIL-DIV-`).
+The source's one option for divisions.,خيار المصدر الوحيد للفرق.
+The source's one option for regions (`MIL-REG-`).,خيار المصدر الوحيد للمناطق (`MIL-REG-`).
+The source's one option for regions.,خيار المصدر الوحيد للمناطق.
+The type that reads in the opposite direction ('student of' ⇄ 'teacher of'). Used for display and for duplicate detection; the stored edge is never duplicated.,النوع الذي يُقرأ في الاتجاه العكسي ('تلميذ' ⇄ 'مدرس').
+"The unit's own emblem (migration 017). Native File: private by default, permission-checked.",شعار الوحدة (التهجير 017).
+"The wording of the source when it does not fit either label column ('مدرس أول', 'acting director').",صياغة المصدر عندما لا تناسب عمودي التسمية.
+Theater,مسرح عمليات
+Theater / Region / Zone / Area — a closed list from `vocab.REGION_TYPES`.,مسرح / منطقة / نطاق / قطاع — قائمة مغلقة.
+Third level of the administrative chain (country → governorate → district → municipality → village → community); only municipalities of the chosen district are offered.,المستوى الثالث؛ بلديات القضاء المختار فقط.
+Third level of the administrative chain; only municipalities of the chosen district are offered.,المستوى الثالث؛ بلديات القضاء المختار فقط.
+Third level of the six-level chain. Only districts of the chosen governorate are offered.,المستوى الثالث من السلسلة السداسية؛ أقضية المحافظة المختارة.
+This current position also has an end date. Please review the source.,لهذا المنصب الحالي تاريخ انتهاء أيضاً. يرجى مراجعة المصدر.
+"This record's own latitude, independent of any linked place.",خط العرض الخاص بهذا السجل.
+"This record's own longitude, independent of any linked place.",خط الطول الخاص بهذا السجل.
+This value is disabled. Existing linked records are retained.,هذه القيمة معطّلة. تُحفظ السجلات المرتبطة بها كما هي.
+Three degrees,ثلاث درجات
+Tiles checked: {0} of {1}; available: {2}.,المربعات المفحوصة: {0} من {1}؛ المتاح: {2}.
+Timing & place,التوقيت والمكان
+Title,العنوان
+Title (Arabic),العنوان (بالعربية)
+Title (English),العنوان (بالإنجليزية)
+Title (as stated),العنوان (كما ورد)
+To (object),إلى (المفعول به)
+Toggle OpenStreetMap tiles,إظهار أو إخفاء خريطة OpenStreetMap
+Total Events,إجمالي الأحداث
+Total Institutions,إجمالي المؤسسات
+Total Military Units,إجمالي الوحدات العسكرية
+Total Persons,إجمالي الأشخاص
+Total Places,إجمالي الأماكن
+Total Records,إجمالي السجلات
+Total Relationships,إجمالي العلاقات
+Total Sources,إجمالي المصادر
+Training,تدريب
+Training Exercise,مناورة تدريبية
+Transliteration,النقل الحرفي
+Tree,شجرة
+Treemap,خريطة شجرية
+"True for colleague of, co-author with, partner of, relative of …",صحيح لزميل، مؤلف مشارك، شريك، قريب …
+"True for colleague of, co-author with, partner of, relative of … A symmetric edge is stored once and read from both ends.",صحيح لزميل/شريك/قريب؛ تُخزن مرة.
+True while the relationship still holds (no end date).,صحيح ما دامت العلاقة سارية.
+Two degrees,درجتان
+Type,النوع
+Type of institution,نوع المؤسسة
+URL,الرابط
+URL template,قالب الرابط
+Unable to export: some node positions are unavailable. Try again after the layout settles.,تعذر التصدير: بعض مواضع العقد غير متاحة.
+Unable to load evidence counts.,تعذر تحميل عدّادات الأدلة.
 Unable to load record details.,تعذر تحميل تفاصيل السجل.
-Force,قوة
-Orbit,مدار
-Relationship matrix,مصفوفة العلاقات
-All relationship types,كل أنواع العلاقات
-Hide ended relationships,إخفاء العلاقات المنتهية
-Mapped records,السجلات على الخريطة
-Mapped records ({0}),السجلات على الخريطة ({0})
-Show more,عرض المزيد
-Records panel,لوحة السجلات
-Details panel,لوحة التفاصيل
-Measure area,قياس المساحة
-Click at least three points to measure area.,انقر ثلاث نقاط على الأقل لقياس المساحة.
-Approximate area: {0} km²,المساحة التقريبية: {0} كم²
-Command hierarchy,التسلسل القيادي
+Unable to load relationship lines.,تعذّر تحميل خطوط العلاقات.
+Unable to load the explorer. Check permissions and try again.,تعذر تحميل المستكشف. تحقق من الصلاحيات.
+Unable to load this structure. Check permissions.,تعذر تحميل هذا الهيكل. تحقق من الصلاحيات.
+Unassigned or inaccessible parent,أصل غير معيَّن أو يتعذر الوصول إليه
+Uncertainty radius (m),نصف قطر عدم التيقن (م)
+Unconfirmed,غير مؤكد
+"Unique, human, and what a unit's link field shows.",فريد، مقروء بشرياً، ما يُظهره حقل ربط الوحدة.
+Unit,وحدة
+Unit Armament Holding,حيازة تسليح الوحدة
+Unit Classification,تصنيف الوحدة
+Unit Code,رمز الوحدة
+Unit ID,معرّف الوحدة
+Unit Name (Arabic),اسم الوحدة (عربي)
+Unit Name (English),اسم الوحدة (إنجليزي)
+Unit name,اسم الوحدة
+Units × Operations,الوحدات × العمليات
 Units — command hierarchy,الوحدات — التسلسل القيادي
-"Forces — echelon, status, classification",القوات — الإطار والحالة والتصنيف
-Regions — command hierarchy,المناطق — التسلسل القيادي
+Unknown,غير معروف
+Unknown record,سجل غير معروف
+Unknown structure source,مصدر هيكل غير معروف
+Unreliable,غير موثوق
+Unsatisfactory,غير مرضي
+Unserviceable,غير صالح للخدمة
+Unsupported military hierarchy type,نوع تسلسل عسكري غير مدعوم
+Unsupported tree type,نوع شجرة غير مدعوم
+Up to {0} tiles; actual coverage and size may be smaller.,حتى {0} مربعاً؛ التغطية والحجم الفعليان قد يكونان أصغر.
+Update Existing Records,تحديث السجلات الموجودة
+"Uploaded portrait (native File, permission-checked by Frappe).",صورة شخصية مرفوعة (ملف محلي).
+Use current map area,استخدام منطقة الخريطة الحالية
+Use for a portrait hosted elsewhere; the uploaded portrait wins when both are set.,لصورة مستضافة خارجياً؛ المرفوعة تفوز عند ضبط كليهما.
+Used when the body is not (yet) a registry record. Nothing is invented to fill the Link.,يُستخدم عندما لا يكون الكيان سجلاً في السجل.
+Username,اسم المستخدم
+Usually reliable,موثوق عادة
+"VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record.",VIAF، ويكي بيانات، ORCID، فهارس المكتبات — لا تُنسخ.
+Valid object type,نوع الكائن الصحيح
+Valid subject type,نوع الفاعل الصحيح
+Validity,الصلاحية
+Validity Period,فترة الصلاحية
+Value,القيمة
+Vehicles,عربات
+Verification,التحقق
+Verification Date,تاريخ التحقق
+Verification Status,حالة التحقق
+Verification notes,ملاحظات التحقق
+Verified,متحقق منه
+Verified / Approved,متحقق / معتمد
+Verified By,تم التحقق بواسطة
+Verified by a source,متحقق منه بمصدر
+View,عرض
+Village,قرية
+Weapons,أسلحة
+Web link,رابط ويب
+Website,الموقع الإلكتروني
+West,غرب
+"What is being judged — one quality per row, from the governed list (migration 019).",ما يُحكَم عليه — صفة واحدة لكل سطر (التهجير 019).
+What the Data Import wizard starts with.,ما يبدأ به معالج استيراد البيانات.
+"What the assessment rests on. At least one of assessor, date or evidence is required.",أساس التقييم؛ مطلوب المُقيِّم أو التاريخ أو الدليل.
+"What the connection consisted of, in the researcher's words.",فحوى الصلة بكلمات الباحث.
+What the link asserts,ما يؤكده الرابط
+"What the source says, kept verbatim even when the place cannot be linked to a Place record. Mandatory while no Place is linked.",ما يقوله المصدر حرفياً.
+"What the source says, kept verbatim even when the place cannot be linked to a Place record. Mandatory while no Place is linked: an unlinked place must still be recorded.",ما يقوله المصدر حرفياً؛ يُسجّل حتى دون ربط بسجل Place.
+"What the unit holds. The holding is a row, not a column: one unit holds many kinds of armament, each with its own quantity and condition.",ما تحوزه الوحدة؛ سطر لكل نوع تسليح.
+When,متى
+When a reviewer last confirmed this edge. The review itself is recorded as a workflow transition plus a comment.,متى أكّد مراجع هذه الحافة آخر مرة.
+When the person was commissioned.,متى كُلِّف الشخص.
+"When the person was commissioned. A year alone is acceptable, which is why this is a plain Date and not the three-field historical-date trio.",متى كُلِّف؛ حقل Date عادي.
+"When the person was commissioned. A year alone is acceptable, which is why this is a plain Date and not the three-field historical-date trio: military commission records are day-precise in this dataset.",متى كُلِّف؛ حقل Date لأن التكليف دقيق ليوم.
+When the researcher consulted it.,متى راجعه الباحث.
+"When the researcher consulted it. Always an exact date, so it needs no precision trio.",تاريخ المراجعة؛ تاريخ دقيق.
+Where,أين
+Where in the source,أين ورد في المصدر
+Whereabouts unknown,مكان الوجود غير معروف
+Workflow State,حالة سير العمل
+Write,تعديل
+Year,السنة
+"Year-partitioned by default (`MIL-DEP-.YYYY.-`), so each year starts its own sequence — the source's `year_token` behaviour, which is the `.YYYY.` token in a native Naming Series. The unpartitioned option is available per record.",مجزأ حسب السنة افتراضياً؛ خيار غير المجزأ متاح.
+"Year-partitioned by default (`MIL-DEP-.YYYY.-`), so each year starts its own sequence — the source's `year_token` behaviour.",مجزأ حسب السنة افتراضياً.
+Zone,منطقة
 Zoom in,تكبير
 Zoom out,تصغير
-Fit,احتواء
-Export SVG,تصدير SVG
-Export CSV,تصدير CSV
-Arrangement,الترتيب
-Center on a person or organization,التمركز حول شخص أو مؤسسة
-Coordinates,الإحداثيات
-DMS coordinates,الإحداثيات بالدرجات والدقائق والثواني
-Go,انتقال
-Enter a valid latitude and longitude.,أدخل خط عرض وخط طول صحيحين.
-Show relationship lines,إظهار خطوط العلاقات
-Hide relationship lines,إخفاء خطوط العلاقات
-Unable to load relationship lines.,تعذر تحميل خطوط العلاقات.
-Direct relationships,العلاقات المباشرة
-Two degrees,درجتان
-Three degrees,ثلاث درجات
-Regions × Units,المناطق × الوحدات
-Units × Operations,الوحدات × العمليات
-Unassigned or inaccessible parent,غير مرتبط أو الأصل غير متاح
-Some record types are not readable: {0},بعض أنواع السجلات غير قابلة للقراءة: {0}
-Only relationships with evidence,العلاقات التي لها أدلة فقط
-Evidence counts are unavailable for some relationships.,أعداد الأدلة غير متاحة لبعض العلاقات.
-Unable to load evidence counts.,تعذر تحميل أعداد الأدلة.
-Depth {0},العمق {0}
-Structure depth,عمق الهيكل
-Find in structure,البحث في الهيكل
-Find,بحث
-Legend,المفتاح
-No matching group or record in the loaded structure.,لا توجد مجموعة أو سجل مطابق في الهيكل المحمّل.
-Unable to export: some node positions are unavailable. Try again after the layout settles.,تعذر التصدير: بعض مواقع العقد غير متاحة. حاول مجدداً بعد استقرار التخطيط.
-Coordinate map,خريطة الإحداثيات
-"Click the map to select a point, or type latitude and longitude above.",انقر على الخريطة لتحديد نقطة، أو أدخل خط العرض وخط الطول أعلاه.
-Clear coordinates,مسح الإحداثيات
-Enable online street map,تفعيل خريطة الشوارع عبر الإنترنت
-Disable online street map,إيقاف خريطة الشوارع عبر الإنترنت
-Online map tiles are optional; enabling them shares your IP address and viewed area with OpenStreetMap.,خرائط الإنترنت اختيارية؛ تفعيلها يشارك عنوان IP والمنطقة المعروضة مع OpenStreetMap.
-"Enter valid decimal coordinates: latitude −90 to 90, longitude −180 to 180.",أدخل إحداثيات عشرية صحيحة: خط العرض من −90 إلى 90، وخط الطول من −180 إلى 180.
-Enter coordinates or select a point on the map.,أدخل الإحداثيات أو اختر نقطة على الخريطة.
-Location shown. Typed coordinate text is not rounded by the map.,يظهر الموقع. لا تقرّب الخريطة نص الإحداثيات المُدخل.
-Preview only: both coordinate fields must be text fields to select a point.,معاينة فقط: يجب أن يكون حقلا الإحداثيات نصيين لاختيار نقطة.
-Location preview (read-only).,معاينة الموقع (للقراءة فقط).
-Could not update the coordinate fields.,تعذر تحديث حقلي الإحداثيات.
-Selected coordinates exceed the text field length.,الإحداثيات المحددة تتجاوز طول الحقل النصي.
-Offline basemap could not be loaded. Online tiles remain optional.,تعذر تحميل الخريطة المحلية. تظل خرائط الإنترنت اختيارية.
-Local aerial,الصور الجوية المحلية
-Local standard,الخريطة المحلية القياسية
-Some local tiles are unavailable at this location or zoom.,بعض أجزاء الخريطة المحلية غير متوفرة في هذا الموقع أو مستوى التكبير.
-Local map pack: coverage depends on supplied data.,حزمة الخرائط المحلية: تعتمد التغطية على البيانات المقدمة.
-Local overview,خريطة محلية عامة
-Local basemap,الخريطة الأساسية المحلية
-Download local area,تنزيل منطقة محلية
-West,الغرب
-South,الجنوب
-East,الشرق
-North,الشمال
-Minimum zoom,أدنى تكبير
-Maximum zoom,أقصى تكبير
-Use current map area,استخدام المنطقة الحالية على الخريطة
-Area selected. Review bounds and zooms before downloading.,تم تحديد المنطقة. راجع الحدود ومستويات التكبير قبل التنزيل.
-Estimate tiles,تقدير مربعات الخريطة
-"Up to {0} tiles; actual coverage and size may be smaller.","حتى {0} مربعاً؛ قد تكون التغطية والحجم الفعلي أقل."
-"Invalid bounds, zooms, or more than 512 possible tiles.",الحدود أو مستويات التكبير غير صالحة أو يتجاوز العدد المحتمل 512 مربعاً.
-Cancel download,إلغاء التنزيل
-Download ZIP,تنزيل ZIP
-Select a local pack and enter valid bounds and zooms.,اختر حزمة محلية وأدخل حدوداً ومستويات تكبير صالحة.
-"Tiles checked: {0} of {1}; available: {2}.","المربعات المفحوصة: {0} من {1}؛ المتاحة: {2}."
-"Downloaded {0} of {1} possible tiles. Missing tiles will be blank.","تم تنزيل {0} من أصل {1} مربع محتمل. ستظهر المربعات المفقودة فارغة."
-Download cancelled.,أُلغي التنزيل.
-"Download failed. Check bounds, zooms, tile limit, size, permissions and connection.",فشل التنزيل. تحقق من الحدود ومستويات التكبير والحدود القصوى والحجم والصلاحيات والاتصال.
-"Basemap only, unencrypted. Maximum 512 possible tiles and 16 MiB of imagery. Use only on authorized devices.",خريطة أساسية فقط دون تشفير. الحد الأقصى 512 مربعاً محتملاً و16 ميبيبايت من الصور. استخدم أجهزة مصرحاً بها فقط.
+"`MIL-UNIT-` by default, or `MIL-BRG-` when the unit is a brigade and the registrar prefers the readable prefix (both patterns are in `naming.SERIES_CATALOG`).",`MIL-UNIT-` افتراضياً، أو `MIL-BRG-` للألوية.
+e.g. https://x.com/ — prepended to a handle to build a link.,مثلاً https://x.com/ — يُضاف قبل المعرّف.
+nothing  this state is terminal,لا شيء — هذه حالة نهائية
+nothing — this state is terminal,لا شيء — هذه حالة نهائية
+{0} already has a current deployment ({1}). Clear it first.,لدى {0} انتشار جاري ({1}). أخلِه أولاً.
+{0} is already {1} of {2} from {3} to {4}.,{0} هو بالفعل {1} في {2} من {3} إلى {4}.
+{0} is not a person of the Military category.,{0} ليس شخصاً من الفئة العسكرية.
+{0} more records,{0} سجلات إضافية
+{0} participants exceeds {1},{0} مشاركاً يتجاوز {1}
+{0} smaller groups,{0} مجموعات أصغر
+{0} still has subordinate units.,لا يزال لدى {0} وحدات فرعية.
+{0} still has {1} records.,لا يزال لدى {0} {1} سجلاً.
+{0} still holds a current appointment ({1}). Relieve them first.,{0} لا يزال يشغل تعييناً جارياً ({1}). أَعْفِه أولاً.
+"{0} {1} belongs to {2} {3}, not {4}.",{0} {1} يتبع {2} {3}، وليس {4}.
+{0}: {1} cannot become {2}. Allowed from {3}: {4}.,{0}: لا يمكن لـ {1} أن يصبح {2}. مسموح من {3}: {4}.
+Σ direct_personnel over the whole subtree.,مجموع الأفراد المباشرين عبر الشجرة الفرعية.
+"Σ direct_personnel over the whole subtree. Read-only and recomputed on save: it is the one number a commander asks for, and it must never be typed.",مجموع الأفراد المباشرين عبر الشجرة الفرعية؛ قراءة فقط.
+"Center on a person, place or unit…",التركيز على شخص أو مكان أو وحدة…
+Clear centers,مسح المراكز
+{0} selected,{0} محدد/محددة
+No matches,لا توجد تطابقات
++{0} more,+{0} غير ذلك
+Center on records,التركيز على السجلات
+Remove {0},إزالة {0}
+Centered on {0} record(s).,متمركز حول {0} سجل/سجلات.
+Select one or more records (via the Centre picker or by clicking a node) to walk out N degrees. Drag nodes to rearrange the network. Click an edge to inspect the relationship.,اختر سجلاً أو أكثر (من خلال منتقي المركز أو بالنقر على عقدة) لاستكشاف العلاقات حتى N درجة. اسحب العقد لإعادة ترتيب الشبكة. انقر على وصلة لفحص العلاقة.
+Current,جارية
+Ended,منتهية
+Relationship details,تفاصيل العلاقة
+Endpoints,الأطراف
+No evidence attached.,لا توجد أدلة مرفقة.
+Endpoint unavailable.,الطرف غير متاح.
+Focus in network,تركيز في الشبكة
+Could not load details: {0},تعذّر تحميل التفاصيل: {0}
+Retry,إعادة المحاولة
+No field data available.,لا تتوفر بيانات حقلية.
+Showing first 50 entries. Open the record for the full list.,يُعرض أول 50 مدخل. افتح السجل للاطلاع على القائمة الكاملة.
+Add relationship,إضافة علاقة
++ Add relationship,+ إضافة علاقة
+Add related,إضافة مرتبطة
+Add relationship from {0},إضافة علاقة من {0}
+Add relationship: {0} → {1},إضافة علاقة: {0} ← {1}
+To,إلى
+From,من
+From type,نوع الطرف الأول
+To type,نوع الطرف الثاني
+Save relationship,حفظ العلاقة
+Could not save: {0},تعذّر الحفظ: {0}
+A record cannot relate to itself.,لا يجوز للسجل أن يرتبط بنفسه.
+Invalid endpoint type,نوع طرف غير صالح
+Relationship created,تم إنشاء العلاقة
+Tip: hold Shift and drag one node onto another to create a relationship.,نصيحة: اضغط Shift واسحب عقدة فوق أخرى لإنشاء علاقة.
+Suggested connections,اقتراحات الربط
+Search structure views,البحث في هياكل البيانات
+Search datasets or filter content…,ابحث في مجموعات البيانات أو صفِّ المحتوى…
+Entities,الكيانات
+Military Units,الوحدات العسكرية
+Forces (echelon),القوى (الرُتب)
+Deployments,الانتشارات
+Missions,المهام
+Training exercises,التمارين التدريبية
+Source:,المصدر:
+No matching views,لا توجد طرق عرض مطابقة
+Add relationship from this record,إضافة علاقة من هذا السجل
+No authored relationships. Use + Add to create one from this record.,لا توجد علاقات مسجَّلة. استخدم + إضافة لإنشاء علاقة من هذا السجل.
+No visible connections in this view. Use + Add to create one from this record.,لا توجد صلات مرئية في هذا العرض. استخدم + إضافة لإنشاء صلة من هذا السجل.
++ Add,+ إضافة
+Add,إضافة
+(directed),(موجَّه)
+About & hotkeys,حول واختصارات لوحة المفاتيح
+Activity,النشاط
+Add relationship to selected,إضافة علاقة إلى العنصر المحدَّد
+Add relationship…,إضافة علاقة…
+All,الكل
+Area: {0},المساحة: {0}
+Back to previous selection,العودة إلى التحديد السابق
+Basemap,الخريطة الأساسية
+Basemap (click to toggle online tiles — sends requests to OpenStreetMap),الخريطة الأساسية (انقر لتفعيل/إيقاف البلاطات الإلكترونية — يرسل طلبات إلى OpenStreetMap)
+Bearing,الاتجاه
+Clear measurements,مسح القياسات
+Clear selection,مسح التحديد
+Click a point to link it to a record.,انقر على نقطة لربطها بسجل.
+Click a point to link it to an existing or new record.,انقر على نقطة لربطها بسجل موجود أو سجل جديد.
+"Click once for the centre, then again to set the radius.",انقر مرة واحدة لتحديد المركز، ثم مرة أخرى لضبط نصف القطر.
+Click the map to place {0},انقر على الخريطة لوضع {0}
+"Click to place vertices; the polygon follows your cursor. Double-click, Enter or click the start point to close.",انقر لوضع الرؤوس؛ يتبع المضلع مؤشرك. انقر مرتين، أو اضغط Enter، أو انقر على نقطة البداية للإغلاق.
+Click two points to measure; click more to chain. Double-click or Esc to finish.,انقر على نقطتين للقياس؛ واصل النقر لإضافة نقاط. انقر مرتين أو اضغط Esc للإنهاء.
+Click two points to read bearing and distance.,انقر على نقطتين لقراءة الاتجاه والمسافة.
+Close,إغلاق
+Close details,إغلاق التفاصيل
+Close panel,إغلاق اللوحة
+Cluster markers,تجميع العلامات
+Comments,التعليقات
+Connections,الصلات
+Coordinates updated for {0},تم تحديث إحداثيات {0}
+Could not load connections: {0},تعذّر تحميل الصلات: {0}
+Could not update: ,تعذّر التحديث: 
+Data,البيانات
+Direct connections,صلات مباشرة
+Distance,المسافة
+Download offline tiles,تنزيل البلاطات للاستخدام دون اتصال
+Events and operations,الأحداث والعمليات
+Export GeoJSON,تصدير GeoJSON
+Family,العائلة
+Fields,الحقول
+Filter by type,فلترة حسب النوع
+Filter relationship types,فلترة أنواع العلاقات
+Fit data,ملاءمة البيانات
+Fit data to view,ملاءمة البيانات للعرض
+Fit to data,الانتقال إلى البيانات
+Fly to,الانتقال السريع إلى
+Go to coordinates,الذهاب إلى إحداثيات
+Help,المساعدة
+Help & hotkeys,المساعدة واختصارات لوحة المفاتيح
+Hide toolbar,إخفاء شريط الأدوات
+Home view,العرض الرئيسي
+Inbound,واردة
+Inbound links,روابط واردة
+Institutions,المؤسسات
+Invert,عكس
+Isolate,عزل
+Isolate selection,عزل التحديد
+Keep connectors,الإبقاء على الروابط
+Lat,خط العرض
+Leave blank to create a new record after saving.,اتركه فارغًا لإنشاء سجل جديد بعد الحفظ.
+Link a record to this point,ربط سجل بهذه النقطة
+Loading {0}…,جارٍ تحميل {0}…
+Lon,خط الطول
+Map shell is ready but data failed to load.,إطار الخريطة جاهز لكن تعذّر تحميل البيانات.
+Map tools,أدوات الخريطة
+Map tools & hotkeys,أدوات الخريطة واختصارات لوحة المفاتيح
+"Map tools (navigate, basemap, measure, pick, overlays, selection) live in the dock on the right edge of the map. Records, filters, and export live in the panel at the upper left. Press ? or the Help button for the full hotkey list.",أدوات الخريطة (التنقل، الخريطة الأساسية، القياس، الالتقاط، الطبقات، التحديد) في الركن الأيمن من الخريطة. السجلات والفلاتر والتصدير في اللوحة العلوية اليسرى. اضغط ? أو زر المساعدة لعرض قائمة الاختصارات كاملة.
+Map tools are docked on the right edge. Click a pin to see its connections.,أدوات الخريطة مثبَّتة على الحافة اليمنى. انقر على دبوس لعرض صلاته.
+Marker clusters,تجميع العلامات
+Measure,قياس
+Measure bearing,قياس الاتجاه
+Measure radius,قياس نصف القطر
+Membership,العضوية
+Method,الطريقة
+Modified,آخر تعديل
+My location,موقعي
+Navigate,التنقل
+Network depth,عمق الشبكة
+Network summary,ملخّص الشبكة
+No,لا
+No activity recorded.,لا يوجد نشاط مسجَّل.
+No coordinates on this record.,لا توجد إحداثيات على هذا السجل.
+None,لا شيء
+Offline,بدون اتصال
+Online tiles disclose your IP to OpenStreetMap.,البلاطات الإلكترونية تكشف عنوان IP الخاص بك لـ OpenStreetMap.
+Online: OSM,متصل: OSM
+Open full record →,فتح السجل كاملاً ←
+Open selected record,فتح السجل المحدَّد
+Outbound,صادرة
+Outbound links,روابط صادرة
+Owner,المالك
+Panels,اللوحات
+Participation,المشاركة
+Path to another entity,مسار إلى كيان آخر
+People,الأشخاص
+People + Institutions,الأشخاص + المؤسسات
+Permissions,الصلاحيات
+Pick,التقاط
+Pick a point to link a record,التقط نقطة لربط سجل
+Pick point to link,التقاط نقطة للربط
+Place on map,وضع على الخريطة
+Places,الأماكن
+Quick actions,إجراءات سريعة
+Radius,نصف القطر
+Radius: {0},نصف القطر: {0}
+Recent changes,التغييرات الأخيرة
+Record,سجل
+Record data could not be loaded.,تعذّر تحميل بيانات السجل.
+Record details,تفاصيل السجل
+Record type,نوع السجل
+Relationship depth,عمق العلاقات
+Relationship layout,تخطيط العلاقات
+Relationship lines,خطوط العلاقات
+Relationships,العلاقات
+Research events,الأحداث البحثية
+Reset view,إعادة ضبط العرض
+Restricted,مقيَّد
+Select a record first.,اختر سجلاً أولاً.
+Selection,التحديد
+Set coordinates,تعيين الإحداثيات
+Show all,عرض الكل
+Show connections,عرض الصلات
+Show connections of selected,عرض صلات العنصر المحدَّد
+Show my location,عرض موقعي
+Show/hide toolbar,إظهار/إخفاء شريط الأدوات
+Showing all {0} types · {1} records,عرض جميع الأنواع {0} · {1} سجل
+Showing {0} connections (capped). Refine with type filters.,عرض {0} صلة (العدد محدود). صفِّ النتائج باستخدام فلاتر الأنواع.
+Showing {0} connections.,عرض {0} صلة.
+Showing {0} of {1} records on the map.,عرض {0} من أصل {1} سجل على الخريطة.
+Showing {0} of {1} types · {2} records,عرض {0} من أصل {1} نوع · {2} سجل
+Showing {0} record points.,عرض {0} نقطة سجل.
+Some local tiles are unavailable.,بعض البلاطات المحلية غير متاحة.
+Sources,المصادر
+Structural,هيكلي
+Three hops,ثلاث درجات
+Toolbar,شريط الأدوات
+Toolbar hidden — press \ to show.,شريط الأدوات مخفي — اضغط \ لإظهاره.
+Total: {0},المجموع: {0}
+Two hops,درجتان
+Unable to load the explorer.,تعذّر تحميل المستكشف.
+Uncertainty (m),عدم اليقين (م)
+Unmapped connections,صلات غير معيَّنة على الخريطة
+View all,عرض الكل
+Yes,نعم
+area {0},مساحة {0}
+can edit,يمكن التعديل
+can link,يمكن الربط
+groups,مجموعات
+perimeter {0},محيط {0}
+radius {0},نصف قطر {0}
+records,سجلات
+showing {0} of {1},عرض {0} من أصل {1}
+Toolbar hidden — press \\ to show.,شريط الأدوات مخفي — اضغط \ لإظهاره.
+Place (HQ location),المكان (موقع القيادة)
+Could not update:,تعذّر التحديث:
+No relationships defined for {0},لا توجد علاقات معرَّفة لـ {0}
+Not permitted to read {0} {1},غير مسموح بقراءة {0} {1}
+Record not found or not readable: {0} {1},السجل غير موجود أو غير مقروء: {0} {1}
+Relationship name is required,اسم العلاقة مطلوب
+Relationship {0} not found,العلاقة {0} غير موجودة
+"Row {0}: a leadership assessment needs a basis — an assessor, a date or evidence.",السطر {0}: تقييم القيادة يحتاج إلى مستند — مُقيِّم أو تاريخ أو دليل.
+{0} {1} not found,{0} {1} غير موجود
+{0}: restricted,{0}: مقيَّد
+Collapse all sections,طيّ جميع الأقسام
+Expand all sections,توسيع جميع الأقسام
+Toolbar sections,أقسام شريط الأدوات
+Labels,التسميات
+Icons only,أيقونات فقط
+Auto,تلقائي
+Icons + text,أيقونات ونص
