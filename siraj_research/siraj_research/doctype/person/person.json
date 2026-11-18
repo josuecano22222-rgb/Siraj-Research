@@ -811,6 +811,36 @@
    "link_doctype": "Military Unit",
    "link_fieldname": "commander",
    "group": "Units commanded"
+  },
+  {
+   "link_doctype": "Person Institution",
+   "group": "Institutions",
+   "link_fieldname": "person"
+  },
+  {
+   "link_doctype": "Person Event",
+   "group": "Events",
+   "link_fieldname": "person"
+  },
+  {
+   "link_doctype": "Person Military Unit",
+   "group": "Military units",
+   "link_fieldname": "person"
+  },
+  {
+   "link_doctype": "Person Location",
+   "group": "Locations",
+   "link_fieldname": "person"
+  },
+  {
+   "link_doctype": "Institution",
+   "group": "Institutions",
+   "link_fieldname": "primary_contact"
+  },
+  {
+   "link_doctype": "Relationship",
+   "group": "Relationships",
+   "is_dynamic": 0
   }
  ],
  "actions": [

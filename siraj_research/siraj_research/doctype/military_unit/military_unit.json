@@ -611,6 +611,26 @@
    "link_doctype": "Command Appointment",
    "link_fieldname": "unit",
    "group": "Command"
+  },
+  {
+   "link_doctype": "Military Unit Event",
+   "group": "Events",
+   "link_fieldname": "military_unit"
+  },
+  {
+   "link_doctype": "Military Unit Institution",
+   "group": "Institutions",
+   "link_fieldname": "military_unit"
+  },
+  {
+   "link_doctype": "Military Unit Location",
+   "group": "Locations",
+   "link_fieldname": "military_unit"
+  },
+  {
+   "link_doctype": "Person Military Unit",
+   "group": "Command personnel",
+   "link_fieldname": "military_unit"
   }
  ],
  "actions": [],

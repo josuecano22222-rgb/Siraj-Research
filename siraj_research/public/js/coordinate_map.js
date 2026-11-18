@@ -604,11 +604,22 @@
 			});
 			state.resizeObserver.observe(canvas[0]);
 		}
+		const safeInvalidate = () => {
+			if (states.get(key) !== state) return;
+			const w = canvas[0].clientWidth, h = canvas[0].clientHeight;
+			if (!w || !h) return;
+			try { map.invalidateSize(false); } catch (_) {}
+		};
+		// Invalidate size on tab switch (Bootstrap fires shown.bs.tab on the
+		// newly-activated tab-link) and on MutationObserver class changes.
+		const onTabShow = () => setTimeout(safeInvalidate, 60);
+		$(document).on('shown.bs.tab', 'a[data-toggle="tab"]', onTabShow);
+		state._offTab = () => $(document).off('shown.bs.tab', 'a[data-toggle="tab"]', onTabShow);
 		state.tabObserver = new MutationObserver(() => {
 			if (!canvas[0].isConnected) return;
 			const w = canvas[0].clientWidth, h = canvas[0].clientHeight;
 			const hidden = !canvas[0].offsetParent || !w || !h;
-			if (!hidden) setTimeout(() => { if (canvas[0].clientWidth && canvas[0].clientHeight) map.invalidateSize(); }, 30);
+			if (!hidden) setTimeout(safeInvalidate, 30);
 		});
 		state.tabObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class','style','hidden','aria-hidden'] });
 

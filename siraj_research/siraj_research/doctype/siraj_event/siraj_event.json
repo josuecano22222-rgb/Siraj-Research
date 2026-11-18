@@ -301,7 +301,28 @@
    "options": "External Identifier"
   }
  ],
- "links": [],
+ "links": [
+  {
+   "link_doctype": "Siraj Event Person",
+   "group": "People",
+   "link_fieldname": "event"
+  },
+  {
+   "link_doctype": "Siraj Event Institution",
+   "group": "Institutions",
+   "link_fieldname": "event"
+  },
+  {
+   "link_doctype": "Siraj Event Military Unit",
+   "group": "Military units",
+   "link_fieldname": "event"
+  },
+  {
+   "link_doctype": "Siraj Event Location",
+   "group": "Locations",
+   "link_fieldname": "event"
+  }
+ ],
  "actions": [],
  "states": [],
  "permissions": [

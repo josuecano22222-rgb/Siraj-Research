@@ -641,6 +641,26 @@
    "is_child_table": 1,
    "parent_doctype": "Person",
    "table_fieldname": "positions"
+  },
+  {
+   "link_doctype": "Institution Event",
+   "group": "Events",
+   "link_fieldname": "institution"
+  },
+  {
+   "link_doctype": "Institution Military Unit",
+   "group": "Military units",
+   "link_fieldname": "institution"
+  },
+  {
+   "link_doctype": "Institution Location",
+   "group": "Locations",
+   "link_fieldname": "institution"
+  },
+  {
+   "link_doctype": "Person Institution",
+   "group": "People",
+   "link_fieldname": "institution"
   }
  ],
  "actions": [

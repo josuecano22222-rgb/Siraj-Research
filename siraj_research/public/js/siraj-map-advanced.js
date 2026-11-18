@@ -79,6 +79,10 @@
 			return `${Math.abs(v).toFixed(4)}° ${hemi}`;
 		}
 		map.on('mousemove', e => {
+			// Guard against NaN latlngs fired before the CRS is fully
+			// initialized (e.g. mousemove while the canvas is 0x0 or right
+			// after a tab switch before invalidateSize runs).
+			if (!e.latlng || !isFinite(e.latlng.lat) || !isFinite(e.latlng.lng)) return;
 			el.querySelector('.sx-coord-lat').textContent = fmtCoord(e.latlng.lat,'lat');
 			el.querySelector('.sx-coord-lon').textContent = fmtCoord(e.latlng.lng,'lon');
 		});
