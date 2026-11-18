@@ -191,5 +191,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "map",
- "description": "The `place_type` domain: country, region, city, village, mosque, archive, archaeological site …"
+ "description": "The `place_type` domain: country, region, city, village, mosque, archive, archaeological site \u2026",
+ "istable": 0,
+ "issingle": 0
 }

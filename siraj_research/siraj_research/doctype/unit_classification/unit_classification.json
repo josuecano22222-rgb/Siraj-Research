@@ -281,5 +281,7 @@
  "in_create": 0,
  "search_fields": "classification_name,category",
  "icon": "tag",
- "description": "Unit classifications with their category and readiness tier (the source's `classification` table)."
+ "description": "Unit classifications with their category and readiness tier (the source's `classification` table).",
+ "istable": 0,
+ "issingle": 0
 }

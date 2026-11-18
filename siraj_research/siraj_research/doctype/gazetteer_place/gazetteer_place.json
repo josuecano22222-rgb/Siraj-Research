@@ -271,5 +271,7 @@
  "states": [],
  "row_format": "Default",
  "icon": "fa fa-map-pin",
- "description": "A named point (settlement, landmark, natural feature) loaded from a gazetteer dataset. Used to answer 'what is the nearest village to this coordinate?'"
+ "description": "A named point (settlement, landmark, natural feature) loaded from a gazetteer dataset. Used to answer 'what is the nearest village to this coordinate?'",
+ "istable": 0,
+ "issingle": 0
 }

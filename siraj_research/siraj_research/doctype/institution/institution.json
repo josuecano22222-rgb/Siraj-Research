@@ -69,11 +69,7 @@
   "municipality",
   "village",
   "community",
-  "events_table",
-  "military_units",
-  "locations_table",
-  "place_name",
-  "people"
+  "place_name"
  ],
  "fields": [
   {
@@ -445,34 +441,6 @@
    "label": "Provenance & State"
   },
   {
-   "fieldname": "events_table",
-   "fieldtype": "Table",
-   "label": "Events",
-   "options": "Institution Event",
-   "group": "Events"
-  },
-  {
-   "fieldname": "military_units",
-   "fieldtype": "Table",
-   "label": "Military units",
-   "options": "Institution Military Unit",
-   "group": "Military units"
-  },
-  {
-   "fieldname": "locations_table",
-   "fieldtype": "Table",
-   "label": "Locations",
-   "options": "Institution Location",
-   "group": "Locations"
-  },
-  {
-   "fieldname": "people",
-   "fieldtype": "Table",
-   "options": "Person Institution",
-   "label": "People",
-   "group": "People"
-  },
-  {
    "fieldname": "sb_evidence",
    "fieldtype": "Section Break",
    "label": "Source & verification"
@@ -657,30 +625,37 @@
   {
    "link_doctype": "Person Position",
    "link_fieldname": "institution",
-   "group": "Posts recorded here",
-   "is_child_table": 1,
-   "parent_doctype": "Person",
-   "table_fieldname": "positions"
-  },
-  {
-   "link_doctype": "Institution Event",
-   "group": "Events",
-   "link_fieldname": "institution"
-  },
-  {
-   "link_doctype": "Institution Military Unit",
-   "group": "Military units",
-   "link_fieldname": "institution"
-  },
-  {
-   "link_doctype": "Institution Location",
-   "group": "Locations",
-   "link_fieldname": "institution"
+   "group": "Positions"
   },
   {
    "link_doctype": "Person Institution",
-   "group": "People",
-   "link_fieldname": "institution"
+   "link_fieldname": "institution",
+   "group": "Institutions"
+  },
+  {
+   "link_doctype": "Institution Event",
+   "link_fieldname": "institution",
+   "group": "Events"
+  },
+  {
+   "link_doctype": "Institution Military Unit",
+   "link_fieldname": "institution",
+   "group": "Military units"
+  },
+  {
+   "link_doctype": "Institution Location",
+   "link_fieldname": "institution",
+   "group": "Locations"
+  },
+  {
+   "link_doctype": "Military Unit Institution",
+   "link_fieldname": "institution",
+   "group": "Institutions"
+  },
+  {
+   "link_doctype": "Siraj Event Institution",
+   "link_fieldname": "institution",
+   "group": "Institutions"
   }
  ],
  "actions": [
@@ -748,5 +723,7 @@
  "image_field": "image",
  "search_fields": "display_name,name_ar,name_en,abbreviation,name_original",
  "icon": "building",
- "description": "Universities, research centres, ministries, associations and other bodies."
+ "description": "Universities, research centres, ministries, associations and other bodies.",
+ "istable": 0,
+ "issingle": 0
 }

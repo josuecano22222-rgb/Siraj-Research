@@ -108,7 +108,7 @@
    "fieldtype": "Data",
    "label": "Profile URL prefix",
    "length": 140,
-   "description": "e.g. https://x.com/ — prepended to a handle to build a link."
+   "description": "e.g. https://x.com/ \u2014 prepended to a handle to build a link."
   }
  ],
  "permissions": [
@@ -217,5 +217,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "at-sign",
- "description": "The platforms a person or institution publishes on (SIRAJ stored these as one free-text field). A small governed list keeps the links clickable and reportable."
+ "description": "The platforms a person or institution publishes on (SIRAJ stored these as one free-text field). A small governed list keeps the links clickable and reportable.",
+ "istable": 0,
+ "issingle": 0
 }

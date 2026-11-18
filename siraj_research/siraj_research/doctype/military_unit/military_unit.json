@@ -62,12 +62,8 @@
   "municipality",
   "village",
   "community",
-  "institutions",
-  "events_table",
-  "locations_table",
   "linked_place",
-  "place_name",
-  "command_personnel"
+  "place_name"
  ],
  "fields": [
   {
@@ -403,34 +399,6 @@
    "label": "Provenance & State"
   },
   {
-   "fieldname": "institutions",
-   "fieldtype": "Table",
-   "label": "Institutions",
-   "options": "Military Unit Institution",
-   "group": "Institutions"
-  },
-  {
-   "fieldname": "events_table",
-   "fieldtype": "Table",
-   "label": "Events",
-   "options": "Military Unit Event",
-   "group": "Events"
-  },
-  {
-   "fieldname": "locations_table",
-   "fieldtype": "Table",
-   "label": "Locations",
-   "options": "Military Unit Location",
-   "group": "Locations"
-  },
-  {
-   "fieldname": "command_personnel",
-   "fieldtype": "Table",
-   "options": "Person Military Unit",
-   "label": "Command personnel",
-   "group": "Command personnel"
-  },
-  {
    "fieldname": "sb_evidence",
    "fieldtype": "Section Break",
    "label": "Source & verification"
@@ -633,24 +601,34 @@
    "group": "Command"
   },
   {
+   "link_doctype": "Person Military Unit",
+   "link_fieldname": "military_unit",
+   "group": "Military units"
+  },
+  {
+   "link_doctype": "Institution Military Unit",
+   "link_fieldname": "military_unit",
+   "group": "Military units"
+  },
+  {
    "link_doctype": "Military Unit Event",
-   "group": "Events",
-   "link_fieldname": "military_unit"
+   "link_fieldname": "military_unit",
+   "group": "Events"
   },
   {
    "link_doctype": "Military Unit Institution",
-   "group": "Institutions",
-   "link_fieldname": "military_unit"
+   "link_fieldname": "military_unit",
+   "group": "Institutions"
   },
   {
    "link_doctype": "Military Unit Location",
-   "group": "Locations",
-   "link_fieldname": "military_unit"
+   "link_fieldname": "military_unit",
+   "group": "Locations"
   },
   {
-   "link_doctype": "Person Military Unit",
-   "group": "Command personnel",
-   "link_fieldname": "military_unit"
+   "link_doctype": "Siraj Event Military Unit",
+   "link_fieldname": "military_unit",
+   "group": "Military units"
   }
  ],
  "actions": [],
@@ -676,5 +654,7 @@
  "search_fields": "unit_name,unit_code,echelon",
  "default_view": "Tree",
  "icon": "shield",
- "description": "The military unit tree \u2014 the source's `military_unit` table and the centre of the module. A NestedSet, so the chain of command is traversable rather than merely described."
+ "description": "The military unit tree \u2014 the source's `military_unit` table and the centre of the module. A NestedSet, so the chain of command is traversable rather than merely described.",
+ "istable": 0,
+ "issingle": 0
 }

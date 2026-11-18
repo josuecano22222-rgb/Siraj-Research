@@ -1,0 +1,13 @@
+{
+  "name": "SIRAJ Research Dossier",
+  "docstatus": 0,
+  "doctype": "Print Format",
+  "module": "Siraj Research",
+  "print_format_type": "Server",
+  "doc_type": "Person",
+  "default_print_language": "en",
+  "html": "<div><h1>{{ doc.display_name }}</h1><p>SIRAJ Research Dossier</p></div>",
+  "standard": "Yes",
+  "custom_format": 1,
+  "disabled": 0
+}

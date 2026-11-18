@@ -299,5 +299,7 @@
  "editable_grid": 0,
  "quick_entry": 1,
  "icon": "fa fa-map-o",
- "description": "A released set of administrative-boundary polygons from a named source, version and licence. Admin Boundary records reference their parent Boundary Dataset."
+ "description": "A released set of administrative-boundary polygons from a named source, version and licence. Admin Boundary records reference their parent Boundary Dataset.",
+ "istable": 0,
+ "issingle": 0
 }

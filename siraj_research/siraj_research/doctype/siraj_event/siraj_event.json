@@ -77,43 +77,15 @@
    "collapsible": 1
   },
   {
-   "fieldname": "people",
-   "fieldtype": "Table",
-   "label": "People involved",
-   "options": "Siraj Event Person",
-   "group": "People involved"
-  },
-  {
    "fieldname": "cb_participants",
    "fieldtype": "Column Break",
    "label": "Cb Participants"
-  },
-  {
-   "fieldname": "institutions",
-   "fieldtype": "Table",
-   "label": "Institutions involved",
-   "options": "Siraj Event Institution",
-   "group": "Institutions involved"
-  },
-  {
-   "fieldname": "military_units",
-   "fieldtype": "Table",
-   "label": "Military units involved",
-   "options": "Siraj Event Military Unit",
-   "group": "Military units involved"
   },
   {
    "fieldname": "sb_places",
    "fieldtype": "Section Break",
    "label": "Locations",
    "collapsible": 1
-  },
-  {
-   "fieldname": "places",
-   "fieldtype": "Table",
-   "label": "Locations",
-   "options": "Siraj Event Location",
-   "group": "Locations"
   },
   {
    "fieldname": "linked_place",
@@ -281,12 +253,8 @@
   "start_date",
   "end_date",
   "sb_participants",
-  "people",
   "cb_participants",
-  "institutions",
-  "military_units",
   "sb_places",
-  "places",
   "linked_place",
   "sb_geo",
   "latitude",
@@ -317,24 +285,39 @@
  ],
  "links": [
   {
+   "link_doctype": "Person Event",
+   "link_fieldname": "event",
+   "group": "Events"
+  },
+  {
+   "link_doctype": "Institution Event",
+   "link_fieldname": "event",
+   "group": "Events"
+  },
+  {
+   "link_doctype": "Military Unit Event",
+   "link_fieldname": "event",
+   "group": "Events"
+  },
+  {
    "link_doctype": "Siraj Event Person",
-   "group": "People",
-   "link_fieldname": "event"
+   "link_fieldname": "event",
+   "group": "People"
   },
   {
    "link_doctype": "Siraj Event Institution",
-   "group": "Institutions",
-   "link_fieldname": "event"
+   "link_fieldname": "event",
+   "group": "Institutions"
   },
   {
    "link_doctype": "Siraj Event Military Unit",
-   "group": "Military units",
-   "link_fieldname": "event"
+   "link_fieldname": "event",
+   "group": "Military units"
   },
   {
    "link_doctype": "Siraj Event Location",
-   "group": "Locations",
-   "link_fieldname": "event"
+   "link_fieldname": "event",
+   "group": "Locations"
   }
  ],
  "permissions": [
@@ -403,5 +386,7 @@
   }
  ],
  "actions": [],
- "states": []
+ "states": [],
+ "istable": 0,
+ "issingle": 0
 }

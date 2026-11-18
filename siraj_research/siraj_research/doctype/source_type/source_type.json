@@ -191,5 +191,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "book-open",
- "description": "The `source_type` domain: book, archival document, manuscript, official register, interview, oral history, website, photograph, map …"
+ "description": "The `source_type` domain: book, archival document, manuscript, official register, interview, oral history, website, photograph, map \u2026",
+ "istable": 0,
+ "issingle": 0
 }

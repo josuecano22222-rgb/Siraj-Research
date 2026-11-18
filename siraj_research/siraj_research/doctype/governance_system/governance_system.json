@@ -191,5 +191,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "scale",
- "description": "The `governance_system` domain (SIRAJ migration 003): centralised, endowment (waqf), board of trustees, collegial, military …"
+ "description": "The `governance_system` domain (SIRAJ migration 003): centralised, endowment (waqf), board of trustees, collegial, military \u2026",
+ "istable": 0,
+ "issingle": 0
 }

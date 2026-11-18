@@ -185,5 +185,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "award",
- "description": "The `leadership_quality` domain (migration 019, `military/vocab.py`): the twelve qualities a leader is assessed on. Qualities are *judgements*, so an assessment row always carries its basis."
+ "description": "The `leadership_quality` domain (migration 019, `military/vocab.py`): the twelve qualities a leader is assessed on. Qualities are *judgements*, so an assessment row always carries its basis.",
+ "istable": 0,
+ "issingle": 0
 }

@@ -73,7 +73,7 @@
    "label": "Days before a record is 'awaiting review'",
    "default": "14",
    "non_negative": 1,
-   "description": "Age at which the editorial reminder fires for records sitting in In Review. Consumed by the 'SIRAJ · review overdue' Notification condition."
+   "description": "Age at which the editorial reminder fires for records sitting in In Review. Consumed by the 'SIRAJ \u00b7 review overdue' Notification condition."
   },
   {
    "fieldname": "tab_transfer",
@@ -263,5 +263,6 @@
  "allow_import": 1,
  "in_create": 0,
  "icon": "settings",
- "description": "Instance-wide policy for the SIRAJ research registry."
+ "description": "Instance-wide policy for the SIRAJ research registry.",
+ "istable": 0
 }

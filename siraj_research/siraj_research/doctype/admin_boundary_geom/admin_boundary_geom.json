@@ -46,5 +46,6 @@
  ],
  "permissions": [],
  "links": [],
- "actions": []
+ "actions": [],
+ "issingle": 0
 }

@@ -249,5 +249,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "link",
- "description": "The `entity_external_id.scheme` values as a governed list: VIAF, Wikidata, ORCID, library catalogue, legacy spreadsheet number, plus any scheme a project needs. The optional URL template turns a bare value into a resolvable link."
+ "description": "The `entity_external_id.scheme` values as a governed list: VIAF, Wikidata, ORCID, library catalogue, legacy spreadsheet number, plus any scheme a project needs. The optional URL template turns a bare value into a resolvable link.",
+ "istable": 0,
+ "issingle": 0
 }

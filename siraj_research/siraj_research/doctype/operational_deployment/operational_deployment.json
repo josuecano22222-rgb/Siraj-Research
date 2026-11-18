@@ -436,5 +436,7 @@
  "title_field": "deployment_name",
  "search_fields": "deployment_name,deployment_type",
  "icon": "send",
- "description": "Operational deployments of a unit, with their own area and coordinates. The source's `operational_deployment` table; its status machine becomes a native Workflow."
+ "description": "Operational deployments of a unit, with their own area and coordinates. The source's `operational_deployment` table; its status machine becomes a native Workflow.",
+ "istable": 0,
+ "issingle": 0
 }

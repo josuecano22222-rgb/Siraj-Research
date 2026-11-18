@@ -361,5 +361,7 @@
  "title_field": "exercise_name",
  "search_fields": "exercise_name,training_type",
  "icon": "award",
- "description": "Training exercises and courses run by a unit. The source's `training` table."
+ "description": "Training exercises and courses run by a unit. The source's `training` table.",
+ "istable": 0,
+ "issingle": 0
 }

@@ -217,5 +217,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "map-pin",
- "description": "The `district` domain (SIRAJ migration 012) — the second-level unit under a governorate, named by its ISO-derived code."
+ "description": "The `district` domain (SIRAJ migration 012) \u2014 the second-level unit under a governorate, named by its ISO-derived code.",
+ "istable": 0,
+ "issingle": 0
 }

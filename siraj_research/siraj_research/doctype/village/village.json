@@ -228,5 +228,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "home",
- "description": "Fourth level of the administrative chain: a neighbourhood or village inside a municipality (SIRAJ migration 016)."
+ "description": "Fourth level of the administrative chain: a neighbourhood or village inside a municipality (SIRAJ migration 016).",
+ "istable": 0,
+ "issingle": 0
 }

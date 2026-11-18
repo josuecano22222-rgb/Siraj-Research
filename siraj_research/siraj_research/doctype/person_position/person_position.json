@@ -1,72 +1,88 @@
 {
- "doctype": "DocType",
- "name": "Person Position",
- "module": "Siraj Research",
+ "actions": [],
+ "allow_copy": 1,
+ "allow_events_in_timeline": 1,
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "hash",
+ "creation": "2026-11-17 00:00:00.000000",
  "custom": 0,
+ "description": "One post or appointment a person held at an institution.",
+ "doctype": "DocType",
+ "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "title_ar",
   "title_en",
+  "title_ar",
   "title_as_stated",
+  "sb_relation",
+  "person",
   "institution",
-  "institution_as_stated",
-  "cb_scope",
+  "cb_1",
   "place",
   "country",
-  "start_date_as_stated",
+  "role",
   "start_date",
-  "start_date_precision",
-  "end_date_as_stated",
+  "cb_dates",
   "end_date",
-  "end_date_precision",
-  "sb_state",
-  "is_current",
-  "verified",
-  "notes"
+  "sb_evidence",
+  "primary_source",
+  "documentation_level",
+  "authentication_level",
+  "cb_prov",
+  "workflow_state",
+  "evidence",
+  "external_identifiers"
  ],
  "fields": [
   {
-   "fieldname": "title_ar",
-   "fieldtype": "Data",
-   "label": "Post title (Arabic)",
-   "reqd": 1,
-   "in_list_view": 1,
-   "length": 140
-  },
-  {
    "fieldname": "title_en",
    "fieldtype": "Data",
-   "label": "Post title (English)",
+   "label": "Title (English)",
    "in_list_view": 1,
-   "length": 140,
-   "columns": 3
+   "in_standard_filter": 1,
+   "translatable": 1
+  },
+  {
+   "fieldname": "title_ar",
+   "fieldtype": "Data",
+   "label": "\u0627\u0644\u0639\u0646\u0648\u0627\u0646 (Arabic)",
+   "in_list_view": 1,
+   "translatable": 1
   },
   {
    "fieldname": "title_as_stated",
    "fieldtype": "Data",
-   "label": "Title (as stated)",
-   "length": 140,
-   "description": "The wording of the source when it does not fit either label column ('مدرس أول', 'acting director')."
+   "label": "Title as stated",
+   "translatable": 1
+  },
+  {
+   "fieldname": "sb_relation",
+   "fieldtype": "Section Break",
+   "label": "Relation"
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "label": "Person",
+   "options": "Person",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "columns": 2
   },
   {
    "fieldname": "institution",
    "fieldtype": "Link",
    "label": "Institution",
    "options": "Institution",
+   "reqd": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "description": "Link when the institution is a registry record.",
-   "columns": 3
+   "columns": 2
   },
   {
-   "fieldname": "institution_as_stated",
-   "fieldtype": "Data",
-   "label": "Institution (as stated)",
-   "length": 140,
-   "description": "Used when the body is not (yet) a registry record. Nothing is invented to fill the Link."
-  },
-  {
-   "fieldname": "cb_scope",
+   "fieldname": "cb_1",
    "fieldtype": "Column Break",
    "label": ""
   },
@@ -74,7 +90,11 @@
    "fieldname": "place",
    "fieldtype": "Link",
    "label": "Place",
-   "options": "Place"
+   "options": "Place",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "columns": 2
   },
   {
    "fieldname": "country",
@@ -83,101 +103,198 @@
    "options": "Country"
   },
   {
-   "fieldname": "start_date_as_stated",
+   "fieldname": "role",
    "fieldtype": "Data",
-   "label": "Start (as stated)",
-   "description": "Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.",
-   "in_global_search": 1,
-   "length": 32
+   "label": "Role / relation",
+   "in_list_view": 1,
+   "columns": 2
   },
   {
    "fieldname": "start_date",
    "fieldtype": "Date",
-   "label": "Start (comparable)",
-   "description": "Machine-comparable value derived from the 'as stated' value; used for filters, sorting and reports. Never more precise than what is stated.",
-   "search_index": 1,
-   "reqd": 0,
-   "no_copy": 1,
-   "read_only": 1,
-   "columns": 2
+   "label": "Start date",
+   "in_list_view": 1,
+   "columns": 1
   },
   {
-   "fieldname": "start_date_precision",
-   "fieldtype": "Select",
-   "label": "Start precision",
-   "options": "exact\nminute\nday\nmonth\nyear\ndecade\napproximate\nuncertain\nrange\nunknown",
-   "default": "unknown",
-   "no_copy": 1,
-   "read_only": 1,
-   "description": "How much of the date is actually known. 'approximate' keeps c. 1850; 'year' keeps 1850; 'decade' keeps '1850s'; 'minute' keeps a time of day."
-  },
-  {
-   "fieldname": "end_date_as_stated",
-   "fieldtype": "Data",
-   "label": "End (as stated)",
-   "description": "Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.",
-   "in_global_search": 1,
-   "length": 32
+   "fieldname": "cb_dates",
+   "fieldtype": "Column Break",
+   "label": ""
   },
   {
    "fieldname": "end_date",
    "fieldtype": "Date",
-   "label": "End (comparable)",
-   "description": "Machine-comparable value derived from the 'as stated' value; used for filters, sorting and reports. Never more precise than what is stated.",
-   "search_index": 1,
-   "reqd": 0,
-   "no_copy": 1,
-   "read_only": 1,
-   "columns": 2
+   "label": "End date",
+   "in_list_view": 1,
+   "columns": 1
   },
   {
-   "fieldname": "end_date_precision",
-   "fieldtype": "Select",
-   "label": "End precision",
-   "options": "exact\nminute\nday\nmonth\nyear\ndecade\napproximate\nuncertain\nrange\nunknown",
-   "default": "unknown",
-   "no_copy": 1,
-   "read_only": 1,
-   "description": "How much of the date is actually known. 'approximate' keeps c. 1850; 'year' keeps 1850; 'decade' keeps '1850s'; 'minute' keeps a time of day."
-  },
-  {
-   "fieldname": "sb_state",
+   "fieldname": "sb_evidence",
    "fieldtype": "Section Break",
+   "label": "Evidence & provenance"
+  },
+  {
+   "fieldname": "primary_source",
+   "fieldtype": "Link",
+   "label": "Primary source",
+   "options": "Source"
+  },
+  {
+   "fieldname": "documentation_level",
+   "fieldtype": "Link",
+   "label": "Documentation level",
+   "options": "Documentation Level"
+  },
+  {
+   "fieldname": "authentication_level",
+   "fieldtype": "Link",
+   "label": "Authentication level",
+   "options": "Authentication Level"
+  },
+  {
+   "fieldname": "cb_prov",
+   "fieldtype": "Column Break",
    "label": ""
   },
   {
-   "fieldname": "is_current",
-   "fieldtype": "Check",
-   "label": "Current post",
-   "default": "0",
-   "in_list_view": 1,
-   "description": "The post the person holds now. More than one current post is allowed — people hold several."
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "label": "Workflow state",
+   "options": "Workflow State",
+   "no_copy": 1
   },
   {
-   "fieldname": "verified",
-   "fieldtype": "Check",
-   "label": "Verified by a source",
-   "default": "0",
-   "in_list_view": 1,
-   "allow_bulk_edit": 1,
-   "description": "Distinguishes a corroborated affiliation from a declared one (the original `affiliation_verified`)."
+   "fieldname": "evidence",
+   "fieldtype": "Table",
+   "label": "Evidence",
+   "options": "Evidence"
   },
   {
-   "fieldname": "notes",
-   "fieldtype": "Small Text",
-   "label": "Notes"
+   "fieldname": "external_identifiers",
+   "fieldtype": "Table",
+   "label": "External identifiers",
+   "options": "External Identifier"
   }
  ],
- "permissions": [],
- "links": [],
- "actions": [],
- "states": [],
- "sort_field": "modified",
- "sort_order": "ASC",
- "row_format": "Dynamic",
- "autoname": "hash",
- "istable": 1,
- "editable_grid": 1,
  "in_create": 0,
- "description": "One post a person held, with its own dates, place and verification."
+ "links": [],
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Siraj Research",
+ "name": "Person Position",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "SIRAJ Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": null,
+   "export": 1,
+   "import_": 1,
+   "set_user_permissions": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1,
+   "import": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1
+  }
+ ],
+ "quick_entry": 1,
+ "row_format": "Dynamic",
+ "search_fields": "title_en,title_ar,role",
+ "show_preview_popup": 1,
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [
+  {
+   "title": "Draft",
+   "color": "Gray"
+  },
+  {
+   "title": "In Review",
+   "color": "Orange"
+  },
+  {
+   "title": "Verified",
+   "color": "Light Blue"
+  },
+  {
+   "title": "Published",
+   "color": "Green"
+  },
+  {
+   "title": "Needs Update",
+   "color": "Yellow"
+  },
+  {
+   "title": "Disputed",
+   "color": "Red"
+  },
+  {
+   "title": "Archived",
+   "color": "Purple"
+  },
+  {
+   "title": "Rejected",
+   "color": "Red"
+  }
+ ],
+ "title_field": "title_en",
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1,
+ "docstatus": 0,
+ "idx": 0,
+ "istable": 0,
+ "issingle": 0
 }

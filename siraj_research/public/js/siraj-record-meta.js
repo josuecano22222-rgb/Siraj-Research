@@ -185,8 +185,8 @@
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.52';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .52 FUNDAMENTAL FIX: comprehensive audit of all 68 DocTypes — root cause of getdoctype 404s was TWO bugs: (1) 14 child-table packages had 0-byte __init__.py (namespace-package import failure on Python 3.12); (2) Table-field options used snake_case module slugs ('person_location') instead of DocType display names ('Person Location') which Frappe requires for options resolution. Also fix: default_print_format on standard DocTypes (forbidden), missing labels on section/column breaks in 4 older DocTypes, controller class-name typos (ExternalIDScheme→ExternalIdScheme, SIRAJSettings→SirajSettings). All Link/Table/links[] cross-references now verified: 0 errors across all 68 DocTypes."); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.53';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .53 FUNDAMENTAL DATA-MODEL FIX: 15 relation DocTypes (Person Position + 14 cross-links) converted from child tables (istable=1) to STANDARD DocTypes (istable=0) per owner correction; parent Table fields removed (they implied child-table ownership); cross-links now populate via DocType.links[] -> Connections panel. Ship SIRAJ Research Dossier Print Format as proper fixture (removed from standard DocType JSON). Fix SIRAJ Settings istable=0 and External ID Scheme istable=0 (both had None). Idempotent cleanup patch removes stale Custom Fields/Property Setters. 8 static integrity tests + in-site meta-load test."); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------
 // Compare the JS-built stamp with the server stamp delivered at boot time.

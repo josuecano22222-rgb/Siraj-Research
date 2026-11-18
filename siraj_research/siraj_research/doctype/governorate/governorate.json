@@ -212,5 +212,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "land-plot",
- "description": "The `governorate` domain \u2014 ISO 3166-2 first-level units. Named by its ISO code, labelled in both languages, and linked to its country, so the 'only governorates of the chosen country' filter is a plain Link filter."
+ "description": "The `governorate` domain \u2014 ISO 3166-2 first-level units. Named by its ISO code, labelled in both languages, and linked to its country, so the 'only governorates of the chosen country' filter is a plain Link filter.",
+ "istable": 0,
+ "issingle": 0
 }

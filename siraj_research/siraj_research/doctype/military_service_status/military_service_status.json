@@ -185,5 +185,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "shield-half",
- "description": "The `military_service_status` domain (migration 020): Active, Reserve, Retired. The lifecycle is Active → Reserve → Retired with Retired terminal — enforced by the Person controller, not by the vocabulary."
+ "description": "The `military_service_status` domain (migration 020): Active, Reserve, Retired. The lifecycle is Active \u2192 Reserve \u2192 Retired with Retired terminal \u2014 enforced by the Person controller, not by the vocabulary.",
+ "istable": 0,
+ "issingle": 0
 }

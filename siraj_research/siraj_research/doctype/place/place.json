@@ -53,11 +53,7 @@
   "sb_evidence_table",
   "evidence",
   "sb_identifiers",
-  "external_identifiers",
-  "people",
-  "institutions",
-  "military_units",
-  "events"
+  "external_identifiers"
  ],
  "fields": [
   {
@@ -336,34 +332,6 @@
    "label": "Provenance & State"
   },
   {
-   "fieldname": "people",
-   "fieldtype": "Table",
-   "options": "Person Location",
-   "label": "People",
-   "group": "People"
-  },
-  {
-   "fieldname": "institutions",
-   "fieldtype": "Table",
-   "options": "Institution Location",
-   "label": "Institutions",
-   "group": "Institutions"
-  },
-  {
-   "fieldname": "military_units",
-   "fieldtype": "Table",
-   "options": "Military Unit Location",
-   "label": "Military units",
-   "group": "Military units"
-  },
-  {
-   "fieldname": "events",
-   "fieldtype": "Table",
-   "options": "Siraj Event Location",
-   "label": "Events",
-   "group": "Events"
-  },
-  {
    "fieldname": "sb_evidence",
    "fieldtype": "Section Break",
    "label": "Source & verification"
@@ -556,29 +524,34 @@
    "group": "Person"
   },
   {
-   "link_doctype": "Siraj Event Location",
-   "link_fieldname": "place",
-   "group": "Events"
-  },
-  {
    "link_doctype": "Place",
    "link_fieldname": "parent_place",
    "group": "Contained places"
   },
   {
+   "link_doctype": "Person Position",
+   "link_fieldname": "place",
+   "group": "Positions"
+  },
+  {
    "link_doctype": "Person Location",
-   "group": "People",
-   "link_fieldname": "place"
+   "link_fieldname": "place",
+   "group": "Locations"
   },
   {
    "link_doctype": "Institution Location",
-   "group": "Institutions",
-   "link_fieldname": "place"
+   "link_fieldname": "place",
+   "group": "Locations"
   },
   {
    "link_doctype": "Military Unit Location",
-   "group": "Military units",
-   "link_fieldname": "place"
+   "link_fieldname": "place",
+   "group": "Locations"
+  },
+  {
+   "link_doctype": "Siraj Event Location",
+   "link_fieldname": "place",
+   "group": "Locations"
   }
  ],
  "actions": [
@@ -649,5 +622,7 @@
  "search_fields": "display_name,name_ar,name_en,name_original",
  "default_view": "Tree",
  "icon": "map-pin",
- "description": "Cities, districts, sites and buildings of research interest."
+ "description": "Cities, districts, sites and buildings of research interest.",
+ "istable": 0,
+ "issingle": 0
 }

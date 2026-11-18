@@ -191,5 +191,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "layers",
- "description": "The `institution_subcategory` domain: public, private, religious, non-governmental, international, military, mixed."
+ "description": "The `institution_subcategory` domain: public, private, religious, non-governmental, international, military, mixed.",
+ "istable": 0,
+ "issingle": 0
 }

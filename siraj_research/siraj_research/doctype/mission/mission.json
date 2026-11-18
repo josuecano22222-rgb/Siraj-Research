@@ -348,5 +348,7 @@
  "title_field": "mission_name",
  "search_fields": "mission_name,mission_type,area",
  "icon": "crosshair",
- "description": "Missions a unit conducts, optionally within a deployment. The source's `mission` table; its state machine is a native Workflow."
+ "description": "Missions a unit conducts, optionally within a deployment. The source's `mission` table; its state machine is a native Workflow.",
+ "istable": 0,
+ "issingle": 0
 }

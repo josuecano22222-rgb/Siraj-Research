@@ -194,5 +194,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "graduation-cap",
- "description": "The `tag` domain 'specialization': a person's research specialisms (modern Iraqi history, archival science, Ottoman studies …). Replaces the tag/entity_tag pair for the governed case; free keywords stay in Frappe's native tags."
+ "description": "The `tag` domain 'specialization': a person's research specialisms (modern Iraqi history, archival science, Ottoman studies \u2026). Replaces the tag/entity_tag pair for the governed case; free keywords stay in Frappe's native tags.",
+ "istable": 0,
+ "issingle": 0
 }

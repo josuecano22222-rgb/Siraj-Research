@@ -1,8 +1,5 @@
-# Copyright (c) 2026, SIRAJ and contributors
-# For license information, please see license.txt
-
+"""# siraj_event_institution"""
 from frappe.model.document import Document
-
 
 class SirajEventInstitution(Document):
 	pass

@@ -505,5 +505,7 @@
  "title_field": "display_name",
  "search_fields": "display_name,title,title_ar,publisher,archive_reference,isbn_issn",
  "icon": "book",
- "description": "Documents, archives, interviews and web references."
+ "description": "Documents, archives, interviews and web references.",
+ "istable": 0,
+ "issingle": 0
 }

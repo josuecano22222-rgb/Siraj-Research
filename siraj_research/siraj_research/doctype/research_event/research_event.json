@@ -556,5 +556,7 @@
  "image_field": "image",
  "search_fields": "display_name,title_ar,title_en",
  "icon": "flag",
- "description": "Research-documented historical events that connect persons, places and institutions. Distinct from the Frappe calendar Event."
+ "description": "Research-documented historical events that connect persons, places and institutions. Distinct from the Frappe calendar Event.",
+ "istable": 0,
+ "issingle": 0
 }

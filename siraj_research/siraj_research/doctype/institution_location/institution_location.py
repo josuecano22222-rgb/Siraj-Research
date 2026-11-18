@@ -1,8 +1,5 @@
-# Copyright (c) 2026, SIRAJ and contributors
-# For license information, please see license.txt
-
+"""# institution_location"""
 from frappe.model.document import Document
-
 
 class InstitutionLocation(Document):
 	pass

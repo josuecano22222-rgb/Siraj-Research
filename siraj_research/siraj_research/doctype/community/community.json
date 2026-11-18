@@ -237,5 +237,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "users",
- "description": "Fifth level of the administrative chain: a cluster inside a village (SIRAJ migration 016). The deepest unit a place can be pinned to."
+ "description": "Fifth level of the administrative chain: a cluster inside a village (SIRAJ migration 016). The deepest unit a place can be pinned to.",
+ "istable": 0,
+ "issingle": 0
 }

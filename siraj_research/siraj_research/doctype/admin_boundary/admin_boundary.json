@@ -287,5 +287,7 @@
  "states": [],
  "row_format": "Default",
  "icon": "fa fa-shield",
- "description": "One administrative-boundary polygon at a single level, imported from a Boundary Dataset. Geometry is stored in the `tabAdmin Boundary Geom` child/companion table (Long Text WKB hex) rather than on this row so regular list queries remain fast."
+ "description": "One administrative-boundary polygon at a single level, imported from a Boundary Dataset. Geometry is stored in the `tabAdmin Boundary Geom` child/companion table (Long Text WKB hex) rather than on this row so regular list queries remain fast.",
+ "istable": 0,
+ "issingle": 0
 }

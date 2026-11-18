@@ -185,5 +185,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "bar-chart-3",
- "description": "The `leadership_level` domain (migration 019): Exceptional, Outstanding, Proficient, Developing — the rating scale for a leadership assessment, colour-coded in the registrar's order."
+ "description": "The `leadership_level` domain (migration 019): Exceptional, Outstanding, Proficient, Developing \u2014 the rating scale for a leadership assessment, colour-coded in the registrar's order.",
+ "istable": 0,
+ "issingle": 0
 }

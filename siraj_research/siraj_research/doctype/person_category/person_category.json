@@ -185,5 +185,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "users-round",
- "description": "The 2026 update's `person_category` domain (migration 020): Military / Civilian / Other. The category decides which attributes a person shows, and only a person of the military category may hold a command."
+ "description": "The 2026 update's `person_category` domain (migration 020): Military / Civilian / Other. The category decides which attributes a person shows, and only a person of the military category may hold a command.",
+ "istable": 0,
+ "issingle": 0
 }

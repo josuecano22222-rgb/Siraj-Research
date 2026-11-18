@@ -14,6 +14,7 @@ after_install = "siraj_research.setup.install.after_install"
 after_migrate = "siraj_research.setup.install.ensure_default_workflow_state"
 
 fixtures = [
+	{'dt': 'Print Format', 'filters': [['name', '=', 'SIRAJ Research Dossier']]},
 	# the four SIRAJ roles (Del. 8 �4); the DocPerm rows on the DocTypes name them
 	{
 		"dt": "Role",

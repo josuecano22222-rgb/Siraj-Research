@@ -366,5 +366,6 @@
  "actions": [],
  "states": [],
  "icon": "fa fa-cog",
- "description": "Site-wide settings for administrative auto-fill, offline boundary/gazetteer datasets and online fallback."
+ "description": "Site-wide settings for administrative auto-fill, offline boundary/gazetteer datasets and online fallback.",
+ "istable": 0
 }

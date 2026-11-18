@@ -194,5 +194,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "sparkles",
- "description": "The `tag` domain 'expertise': an institution's areas of expertise (manuscript cataloguing, oral history, digital archives …)."
+ "description": "The `tag` domain 'expertise': an institution's areas of expertise (manuscript cataloguing, oral history, digital archives \u2026).",
+ "istable": 0,
+ "issingle": 0
 }

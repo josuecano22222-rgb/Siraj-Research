@@ -191,5 +191,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "calendar-days",
- "description": "The `event_type` domain: birth, death, founding, merger, conference, destruction, reform \u2026"
+ "description": "The `event_type` domain: birth, death, founding, merger, conference, destruction, reform \u2026",
+ "istable": 0,
+ "issingle": 0
 }

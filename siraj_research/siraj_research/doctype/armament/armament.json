@@ -307,5 +307,7 @@
  "title_field": "armament_name",
  "search_fields": "armament_name,category",
  "icon": "target",
- "description": "The armament catalogue. The source's `armament` table."
+ "description": "The armament catalogue. The source's `armament` table.",
+ "istable": 0,
+ "issingle": 0
 }

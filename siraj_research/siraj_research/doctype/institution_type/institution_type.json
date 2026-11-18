@@ -191,5 +191,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "building-2",
- "description": "The `institution_type` domain: university, ministry, research centre, archive, association, foundation …"
+ "description": "The `institution_type` domain: university, ministry, research centre, archive, association, foundation \u2026",
+ "istable": 0,
+ "issingle": 0
 }

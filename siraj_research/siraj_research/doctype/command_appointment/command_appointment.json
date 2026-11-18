@@ -322,5 +322,7 @@
  "in_create": 0,
  "search_fields": "role",
  "icon": "briefcase",
- "description": "Who commands which unit, from when to when. The source's `command_assignment` table."
+ "description": "Who commands which unit, from when to when. The source's `command_assignment` table.",
+ "istable": 0,
+ "issingle": 0
 }

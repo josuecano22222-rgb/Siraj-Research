@@ -50,7 +50,6 @@
   "military_biography",
   "leadership_assessments",
   "sb_positions",
-  "positions",
   "sb_expertise",
   "specializations",
   "sb_activity",
@@ -86,10 +85,6 @@
   "municipality",
   "village",
   "community",
-  "institutions",
-  "military_units",
-  "events_table",
-  "locations_table",
   "place_name"
  ],
  "fields": [
@@ -433,15 +428,6 @@
    "label": "Posts held (history)"
   },
   {
-   "fieldname": "positions",
-   "fieldtype": "Table",
-   "label": "Positions",
-   "options": "Person Position",
-   "no_copy": 1,
-   "columns": 9,
-   "description": "One row per post, with its own dates, institution, place and verification state. This is the single home of a person's affiliations \u2014 there is deliberately no second 'current institution' field to fall out of step with it. Not copied with the record: a duplicate person is a new person, not a second copy of someone's career."
-  },
-  {
    "fieldname": "sb_expertise",
    "fieldtype": "Section Break",
    "label": "Specialisation"
@@ -587,34 +573,6 @@
    "fieldname": "tab_provenance",
    "fieldtype": "Tab Break",
    "label": "Provenance & State"
-  },
-  {
-   "fieldname": "institutions",
-   "fieldtype": "Table",
-   "label": "Institutions",
-   "options": "Person Institution",
-   "group": "Institutions"
-  },
-  {
-   "fieldname": "military_units",
-   "fieldtype": "Table",
-   "label": "Military units",
-   "options": "Person Military Unit",
-   "group": "Military units"
-  },
-  {
-   "fieldname": "events_table",
-   "fieldtype": "Table",
-   "label": "Events",
-   "options": "Person Event",
-   "group": "Events"
-  },
-  {
-   "fieldname": "locations_table",
-   "fieldtype": "Table",
-   "label": "Locations",
-   "options": "Person Location",
-   "group": "Locations"
   },
   {
    "fieldname": "sb_evidence",
@@ -825,24 +783,34 @@
    "group": "Units commanded"
   },
   {
+   "link_doctype": "Person Position",
+   "link_fieldname": "person",
+   "group": "Positions"
+  },
+  {
    "link_doctype": "Person Institution",
-   "group": "Institutions",
-   "link_fieldname": "person"
+   "link_fieldname": "person",
+   "group": "Institutions"
   },
   {
    "link_doctype": "Person Event",
-   "group": "Events",
-   "link_fieldname": "person"
+   "link_fieldname": "person",
+   "group": "Events"
   },
   {
    "link_doctype": "Person Military Unit",
-   "group": "Military units",
-   "link_fieldname": "person"
+   "link_fieldname": "person",
+   "group": "Military units"
   },
   {
    "link_doctype": "Person Location",
-   "group": "Locations",
-   "link_fieldname": "person"
+   "link_fieldname": "person",
+   "group": "Locations"
+  },
+  {
+   "link_doctype": "Siraj Event Person",
+   "link_fieldname": "person",
+   "group": "People"
   }
  ],
  "actions": [
@@ -910,5 +878,7 @@
  "image_field": "image",
  "search_fields": "display_name,name_ar,name_en,name_original,name_transliteration",
  "icon": "user",
- "description": "Researchers, scholars, officials and other individuals."
+ "description": "Researchers, scholars, officials and other individuals.",
+ "istable": 0,
+ "issingle": 0
 }

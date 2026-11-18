@@ -1,8 +1,5 @@
-# Copyright (c) 2026, SIRAJ and contributors
-# For license information, please see license.txt
-
+"""# person_location"""
 from frappe.model.document import Document
-
 
 class PersonLocation(Document):
 	pass

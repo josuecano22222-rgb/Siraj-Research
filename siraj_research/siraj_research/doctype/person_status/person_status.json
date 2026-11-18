@@ -191,5 +191,7 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "activity",
- "description": "The `person_status` domain: living, retired, deceased, whereabouts unknown. Drives the 'living persons' filters and the biography report."
+ "description": "The `person_status` domain: living, retired, deceased, whereabouts unknown. Drives the 'living persons' filters and the biography report.",
+ "istable": 0,
+ "issingle": 0
 }
