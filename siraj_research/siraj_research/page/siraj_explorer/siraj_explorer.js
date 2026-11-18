@@ -1,6 +1,6 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
-const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.34';
+const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.35';
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -439,12 +439,38 @@ class SirajExplorer {
 		]);
 		if (renderId !== this.renderId) return;
 		const Kit = window.SirajMapKit;
+
+		// Defer L.map creation until the canvas has a non-zero size. Leaflet
+		// records container.offsetWidth/Height in _initContainer and uses
+		// those cached values to project LatLng to pixels and to size every
+		// pane; if we call L.map() while the canvas is 0x0 (e.g. before the
+		// CSS grid column has laid out, or while the section is collapsed),
+		// all tiles and markers are projected to pixel (0,0) and never paint
+		// even after later invalidateSize calls. Waiting for size >= 20x20
+		// before constructing the map avoids the problem entirely.
+		await new Promise(resolve => {
+			const tryInit = delay => {
+				if (renderId !== this.renderId) return resolve();
+				const el = this.canvas[0];
+				if (el && el.clientWidth > 20 && el.clientHeight > 20) return resolve();
+				if (delay > 1500) return resolve(); // give up after 1.5s; Leaflet will init at whatever size it has
+				setTimeout(() => tryInit(delay * 2), delay);
+			};
+			tryInit(10);
+			// Also listen for resize so we wake up as soon as layout settles
+			requestAnimationFrame(() => tryInit(20));
+		});
+		if (renderId !== this.renderId) return;
+
 		const map = this.map = L.map(this.canvas[0], {
 			worldCopyJump: true, preferCanvas: true,
 			minZoom: 0, maxZoom: 22, zoomAnimation: false, zoomControl: false,
 			zoomSnap: 0.25,
 			autoPanPadding: [60, 60],  // keep pins inside canvas (containers are overflow:hidden)
-		}).setView([33.3152, 44.3661], 4);
+		});
+		const initCenter = [33.3152, 44.3661], initZoom = 4;
+		map.setView(initCenter, initZoom);
+		console.info('[SIRAJ] geography map init size:', map.getSize(), 'canvas:', this.canvas[0].clientWidth+'x'+this.canvas[0].clientHeight);
 		L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 		const dms = (value, latitude) => {
 			const n = Number(value), tenths = Math.round(Math.abs(n) * 36000);
@@ -1606,21 +1632,39 @@ class SirajExplorer {
 				map.fitBounds(L.latLngBounds(currentPoints.map(p=>[Number(p.latitude),Number(p.longitude)])).pad(0.15),{maxZoom:12, padding:[60,60]});
 			} catch(_) { /* invalid/empty bounds — ignore */ }
 		}
-		// Invalidate size whenever the canvas or its ancestors resize. Force
-		// invalidateSize (no animate, no short-circuit on matching getSize)
-		// the moment the canvas is non-trivial — Leaflet may have initialized
-		// at 0×0 before CSS grid laid out the column.
+		// Invalidate size whenever the canvas or its ancestors resize. If
+		// Leaflet's cached size was 0 (init happened before layout) a plain
+		// invalidateSize still re-projects tiles correctly because the
+		// deferred init above waits for real size — but we still force a
+		// hard reset of the view if getSize disagrees with the DOM by >2px
+		// so that any late layout (sidebar toggle, mobile orientation change)
+		// re-centers the projection rather than leaving tiles at pixel (0,0).
+		const ensureSize = () => {
+			if (this.map !== map) return;
+			const w = this.canvas[0].clientWidth, h = this.canvas[0].clientHeight;
+			if (w < 20 || h < 20) return false;
+			const sz = map.getSize();
+			if (Math.abs(sz.x - w) > 2 || Math.abs(sz.y - h) > 2) {
+				map.invalidateSize(false);
+				// If size was previously near-zero, _resetView explicitly to
+				// force tiles to re-fetch at the new pixel origin.
+				if (sz.x < 20 || sz.y < 20) {
+					map.setView(map.getCenter() || initCenter, map.getZoom() || initZoom, { animate: false });
+				}
+			}
+			return true;
+		};
 		const tryInvalidate = delay => {
 			setTimeout(() => {
 				if (this.map !== map) return;
-				const w = this.canvas[0].clientWidth, h = this.canvas[0].clientHeight;
-				if (w > 100 && h > 100) { map.invalidateSize(false); return; }
+				if (ensureSize()) return;
 				if (delay < 1600) tryInvalidate(delay * 2);
 			}, delay);
 		};
 		tryInvalidate(50);
-		requestAnimationFrame(() => { if (this.map === map) map.invalidateSize(false); });
-		setTimeout(() => { if (this.map === map) map.invalidateSize(false); }, 500);
+		requestAnimationFrame(() => ensureSize());
+		setTimeout(() => ensureSize(), 250);
+		setTimeout(() => ensureSize(), 800);
 		if (window.ResizeObserver && !this._geoResizeObs) {
 			this._geoResizeObs = new ResizeObserver(() => {
 				if (this.map !== map) return;

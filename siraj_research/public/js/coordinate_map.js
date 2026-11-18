@@ -537,17 +537,31 @@
 		else if ($sectionBody.length) $sectionBody.append(group);
 		else fields.lon.$wrapper.after(box);
 
+		// Defer L.map until canvas is sized (see Explorer geography() for
+		// explanation). Frappe form sections can collapse/expand; mapping at
+		// 0x0 projects tiles to pixel (0,0) and they never paint.
+		await new Promise(resolve => {
+			const tryInit = delay => {
+				if (!document.body.contains(canvas[0])) return resolve();
+				if (canvas[0].clientWidth > 20 && canvas[0].clientHeight > 20) return resolve();
+				if (delay > 1500) return resolve();
+				setTimeout(() => tryInit(delay * 2), delay);
+			};
+			tryInit(10);
+			requestAnimationFrame(() => tryInit(20));
+		});
+
 		// autoPanPadding keeps edge pins/popups inside the visible canvas rather
-		// than spilling outside the frame (we removed overflow:visible from the
-		// container so panes cannot bleed into form sidebars; pan-inside is how
-		// we still keep pins legible at the edge).
+		// than spilling outside the frame.
 		const map = L.map(canvas[0], {
 			maxZoom: 22, scrollWheelZoom: false, zoomControl: false,
 			zoomSnap: 0.25,
 			autoPanPadding: [60, 60],
 			autoPanPaddingTopLeft: null,
 			autoPanPaddingBottomRight: null,
-		}).setView([33.3152, 44.3661], 4);
+		});
+		const initCenter = [33.3152, 44.3661], initZoom = 4;
+		map.setView(initCenter, initZoom);
 		L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 		if (map.attributionControl) map.attributionControl.addAttribution('Natural Earth');
 

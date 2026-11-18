@@ -225,26 +225,50 @@
    them with autoPan by default and the brief overflow is only visible at
    open animation time; their z-index (900) sits below navbar/dialogs. */
 /* Shared Leaflet container rules.
-   DO NOT set height/width:100% here. The wrapper divs (.sx-canvas in Explorer,
-   .siraj-coord-canvas in form coordinate maps) *are* the Leaflet container
-   (Leaflet adds .leaflet-container to the element you pass it), so
-   `height:100% !important` overrides their explicit fixed height
-   (min(70vh,760px) / 380px) with percent-height of the parent grid/flex cell
-   which has no explicit height — collapsing the map container to 0px and
-   leaving the map blank even though the wrapper border/background paints.
-   Sizing is the caller's responsibility via the wrapper classes below.
-   DO NOT set contain:layout paint — it makes Leaflet's tile/SVG panes (which
-   are absolutely positioned inside the container) size to 0x0 when init
-   happens before CSS layout completes. We use overflow:hidden for bleed
-   containment and z-index:0 + isolation for stacking instead. */
+   - NEVER set height/width:100% here: .sx-canvas / .siraj-coord-canvas *are*
+     the Leaflet container and `height:100%` collapses percent-height grid
+     children to 0 (root cause of .33/.34 blank maps).
+   - NEVER set contain:layout paint: Leaflet's absolutely-positioned panes
+     size themselves from container.offsetWidth/Height at init and don't
+     re-resolve inside a containment box.
+   - Keep specificity low (one class selector) so wrapper rules can win
+     without !important, and use !important only where we need to override
+     Leaflet defaults or aggressive Frappe resets (e.g. img max-width). */
 .siraj-coordinate-map .leaflet-container,
 .siraj-explorer .leaflet-container,
 .leaflet-container {
-	position: relative !important;
-	overflow: hidden !important;
-	isolation: isolate !important;
-	z-index: 0 !important;
-	max-width: 100% !important;
+	position: relative;
+	overflow: hidden;
+	z-index: 0;
+	background: #c8dfe0;
+	outline: none;
+}
+/* Leaflet tiles/markers must never inherit global max-width:100% (common in
+   Frappe / Bootstrap resets) — it stretches 256px tiles to container width
+   and makes them invisible. */
+.leaflet-container img.leaflet-tile,
+.leaflet-container img.leaflet-marker-icon,
+.leaflet-container img.leaflet-marker-shadow {
+	max-width: none !important;
+	max-height: none !important;
+	min-width: 0;
+	min-height: 0;
+	padding: 0;
+	margin: 0;
+	border: 0;
+	box-shadow: none;
+}
+/* Panes need to be position:absolute so Leaflet's top/left transforms place
+   them correctly. overflow:hidden clips tiles to the viewport. */
+.leaflet-pane {
+	position: absolute;
+	top: 0; left: 0;
+}
+.leaflet-tile-pane,
+.leaflet-overlay-pane,
+.leaflet-shadow-pane,
+.leaflet-marker-pane {
+	overflow: hidden;
 }
 .leaflet-tile-pane,
 .leaflet-overlay-pane,

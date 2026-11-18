@@ -185,8 +185,8 @@
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.34';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .28 containment / .30 advanced maps / .31-.33 hotfixes / .34 FIX: drop height:100%!important and contain:layout paint on .leaflet-container (root cause of blank maps), force invalidateSize on rAF+500ms, online OSM fallback when offline topojson 404s"); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.35';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .28 containment / .30 advanced maps / .31-.34 hotfixes / .35 FIX: defer L.map() until canvas >=20x20 (no 0x0 projection), add img leaflet-tile CSS reset (max-width:none), explicit pane positioning, log init size to console"); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------
 // Compare the JS-built stamp with the server stamp delivered at boot time.
