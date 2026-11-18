@@ -185,8 +185,8 @@
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.48';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .48 Normalize all 14 cross-link child tables to match the canonical child-table schema (autoname=hash, row_format=Dynamic, sort_order=ASC, in_create=0, track_changes=0, quick_entry=0, permlevel=0 on all permissions, remove extraneous single-DocType keys, ensure empty links/actions/states arrays) so Frappe fixture importer accepts them on migrate and creates the DocType records in tabDocType"); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.49';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .49 Hard normalize: rebuild all 14 child tables by copying person_position.json template verbatim (correcting stale quick_entry/issingle/track_changes keys and over-broad permissions that caused Frappe to silently skip importing them); normalize Siraj Event to match the Person master-DocType schema"); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------
 // Compare the JS-built stamp with the server stamp delivered at boot time.
