@@ -1,6 +1,6 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
-const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.57';
+const SIRAJ_EXPLORER_BUILD = '2026-11-18.profile-i18n.a.1';
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -119,7 +119,7 @@ class SirajExplorer {
 		rows.forEach(([label, value]) => {
 			if (value === null || value === undefined || value === '') return;
 			$('<dt></dt>').text(label).appendTo(dl);
-			$('<dd></dd>').text(value).appendTo(dl);
+			$('<dd></dd>').attr('dir', 'auto').text(value).appendTo(dl);
 		});
 		if (target) $('<div style="margin-top:10px"></div>')
 			.append(this.button(__('Open record'), () => frappe.set_route('Form', target.doctype, target.name), true).addClass('btn-primary btn-sm'))
@@ -859,6 +859,8 @@ class SirajExplorer {
 			if (v == null) return '';
 			if (typeof v === 'object' && v.type === 'link') return v.title + ' (' + __(v.doctype) + ')';
 			if (typeof v === 'object' && v.type === 'attach') return v.url;
+			if (typeof v === 'boolean') return __(v ? 'Yes' : 'No');
+			if (typeof v === 'object') { try { return JSON.stringify(v); } catch(_) { return String(v); } }
 			return String(v);
 		};
 		const renderValueCell = (v, dt, name) => {
@@ -1045,7 +1047,7 @@ class SirajExplorer {
 				if (id === 'overview') {
 					// Core metadata section (status/modified/owner)
 					const metaRows = [];
-					if (prof.header && prof.header.status) metaRows.push([__('Status'), prof.header.status]);
+					if (prof.header && prof.header.status) metaRows.push([__('Status'), __(prof.header.status)]);
 					metaRows.push([__('Modified'), prof.header && prof.header.modified]);
 					metaRows.push([__('Owner'), prof.header && prof.header.owner]);
 					if (prof.permissions) {
@@ -1059,7 +1061,7 @@ class SirajExplorer {
 					metaRows.forEach(([k,v]) => {
 						if (v == null || v === '') return;
 						$('<dt></dt>').text(k).appendTo(dl);
-						$('<dd></dd>').text(String(v)).appendTo(dl);
+						$('<dd></dd>').attr('dir', 'auto').text(String(v)).appendTo(dl);
 					});
 
 					// Network summary
@@ -1084,47 +1086,55 @@ class SirajExplorer {
 					}
 
 				} else if (id === 'fields') {
-					let fieldCount = 0;
-					(prof.sections||[]).forEach(secDef => {
-						const fields = secDef.fields || [];
-						if (!fields.length) return;
-						fieldCount += fields.length;
-						const sec = section('fields', 'fld_'+secDef.heading, secDef.heading || __('Fields'), String(fields.length)).appendTo(pane);
-						const body = sec.find('.sx-section-body');
-						const dl = $('<dl></dl>').appendTo(body);
-						fields.forEach(f => {
-							$('<dt></dt>').text(f.label).appendTo(dl);
-							$('<dd></dd>').append(renderValueCell(f.value)).appendTo(dl);
+					// The presentation engine owns this tab: semantic grouping,
+					// typed values, bilingual labels and sortable child tables.
+					if (window.SirajProfileFields) {
+						window.SirajProfileFields.mountFields({
+							container: pane,
+							profile: prof,
+							sectionFactory: section,
+							onOpenLink: link => {
+								const key = this.id({doctype:link.doctype, name:link.name});
+								const n = pointsById.get(key);
+								if (n && n.latitude != null) selectNode(n);
+								else frappe.set_route('Form', link.doctype, link.name);
+							},
+							onCount: n => setTabCount('fields', n || null),
 						});
-					});
-					// Child tables
-					Object.entries(prof.children||{}).forEach(([fn, tbl]) => {
-						if (!tbl.rows || !tbl.rows.length) return;
-						const total = tbl.total || tbl.rows.length;
-						const label = tbl.label + (tbl.truncated ? ' (' + __('showing {0} of {1}', [tbl.rows.length, total]) + ')' : '');
-						const sec = section('fields', 'ctbl_'+fn, label, String(total)).appendTo(pane);
-						const body = sec.find('.sx-section-body');
-						const keys = Object.keys(tbl.rows[0]);
-						const wrap = $('<div class="sx-table-wrap"></div>').appendTo(body);
-						const t = $('<table class="table table-condensed"></table>').appendTo(wrap);
-						const thead = $('<thead></thead>').appendTo(t), trh=$('<tr></tr>').appendTo(thead);
-						keys.forEach(k => $('<th></th>').text(tbl.rows[0][k].label).appendTo(trh));
-						const tbody = $('<tbody></tbody>').appendTo(t);
-						tbl.rows.forEach(row => {
-							const tr=$('<tr></tr>').appendTo(tbody);
-							keys.forEach(k => $('<td></td>').text(fmtProfileValue(row[k].value)).appendTo(tr));
+					} else {
+						// Defensive fallback: still never render a Table field as
+						// a value and still translate labels client-side.
+						let fieldCount = 0;
+						(prof.sections||[]).forEach(secDef => {
+							const fields = (secDef.fields || []).filter(f => !['Table','Table MultiSelect'].includes(f.fieldtype));
+							if (!fields.length) return;
+							fieldCount += fields.length;
+							const sec = section('fields', 'fld_'+(secDef.id || secDef.heading), __(secDef.heading || 'Fields'), String(fields.length)).appendTo(pane);
+							const dl = $('<dl></dl>').appendTo(sec.find('.sx-section-body'));
+							fields.forEach(f => {
+								$('<dt></dt>').text(__(f.label)).appendTo(dl);
+								$('<dd></dd>').append(renderValueCell(f.value)).appendTo(dl);
+							});
 						});
-						if (tbl.truncated) {
-							$('<button type="button" class="btn btn-link btn-xs sx-show-all"></button>')
-								.text(__('Open full record →'))
-								.on('click', () => frappe.set_route('Form', p.doctype, p.name))
-								.appendTo(body);
+						Object.entries(prof.children||{}).forEach(([fn, tbl]) => {
+							if (!tbl.rows || !tbl.rows.length) return;
+							const body = section('fields', 'ctbl_'+fn, __(tbl.label), String(tbl.total || tbl.rows.length)).appendTo(pane).find('.sx-section-body');
+							const wrap = $('<div class="sx-table-wrap"></div>').appendTo(body);
+							const t = $('<table class="table table-condensed"></table>').appendTo(wrap);
+							const trh = $('<tr></tr>').appendTo($('<thead></thead>').appendTo(t));
+							const keys = tbl.rows.reduce((acc,row) => Object.keys(row).filter(k => !acc.includes(k)).concat(acc), []);
+							keys.forEach(k => $('<th></th>').text(__(tbl.rows[0][k] ? tbl.rows[0][k].label : k)).appendTo(trh));
+							const tbody = $('<tbody></tbody>').appendTo(t);
+							tbl.rows.forEach(row => {
+								const tr = $('<tr></tr>').appendTo(tbody);
+								keys.forEach(k => $('<td></td>').text(fmtProfileValue(row[k] && row[k].value)).appendTo(tr));
+							});
+						});
+						if (!fieldCount && !(prof.children && Object.keys(prof.children).length)) {
+							$('<div class="sx-empty"></div>').text(__('No field data available.')).appendTo(pane);
 						}
-					});
-					if (!fieldCount && (!prof.children || !Object.keys(prof.children).length)) {
-						$('<div class="sx-empty"></div>').text(__('No field data available.')).appendTo(pane);
+						setTabCount('fields', fieldCount || null);
 					}
-					setTabCount('fields', fieldCount || null);
 
 				} else if (id === 'connections') {
 					const rels = (prof.connections && prof.connections.relationships) || [];
@@ -1158,9 +1168,11 @@ class SirajExplorer {
 							const dirGlyph = r.direction_relative === 'outbound' ? '→' : (r.direction_relative === 'inbound' ? '←' : '↔');
 							$('<span class="sx-conn-dir"></span>').text(dirGlyph).appendTo(row);
 							row.append(itemGlyph(r.counterpart_doctype, 16));
+							const relType = r.relationship_type ? __(r.relationship_type) : '';
+							const connLabel = r.counterpart_title + (relType ? ' · ' + relType : '');
 							const lbl = $('<button type="button" class="sx-conn-name"></button>')
-								.text(r.counterpart_title + (r.relationship_type ? ' · ' + r.relationship_type : ''))
-								.attr('title', r.counterpart_title + (r.relationship_type ? ' · ' + r.relationship_type : ''))
+								.text(connLabel)
+								.attr('title', connLabel).attr('dir', 'auto')
 								.on('click', () => {
 									if (r.counterpart_restricted) return;
 									const key = this.id({doctype:r.counterpart_doctype, name:r.counterpart_name});
@@ -1185,8 +1197,8 @@ class SirajExplorer {
 						ob.forEach(l => {
 							const row = $('<li class="sx-conn"></li>').appendTo(list);
 							row.append(itemGlyph(l.doctype, 14));
-							$('<span class="sx-conn-meta" style="margin-inline-start:0"></span>').text(l.label).appendTo(row);
-							const b = $('<button type="button" class="sx-conn-name"></button>').text(l.title).appendTo(row);
+							$('<span class="sx-conn-meta" style="margin-inline-start:0"></span>').text(__(l.label)).appendTo(row);
+							const b = $('<button type="button" class="sx-conn-name"></button>').text(l.title).attr('dir', 'auto').appendTo(row);
 							b.on('click', () => { if (l.restricted) return; frappe.set_route('Form', l.doctype, l.name); });
 						});
 					}
@@ -1232,14 +1244,18 @@ class SirajExplorer {
 							}).addClass('btn-xs btn-default').appendTo(r);
 						});
 					}
-					setTabCount('connections', String(rels.length + ob.length + ib.length + unm.length));
+					setTabCount('connections', rels.length + ob.length + ib.length + unm.length || null);
 
 				} else if (id === 'location') {
 					const loc = prof.location || {};
 					const rows = [];
+					// Precision and method are controlled vocabulary, not archive
+					// data: show the translation with the recorded option beneath.
+					const controlled = { precision:1, method:1 };
 					[['latitude',__('Latitude')],['longitude',__('Longitude')],['precision',__('Precision')],['method',__('Method')],['uncertainty_m',__('Uncertainty (m)')],['source',__('Source')],['location_source',__('Provenance')]].forEach(([k,label]) => {
 						if (loc[k] == null || loc[k] === '') return;
-						rows.push([label, String(loc[k])]);
+						const raw = String(loc[k]);
+						rows.push([label, controlled[k] ? __(raw) : raw, controlled[k] ? raw : '']);
 					});
 					const hasCoords = loc.latitude != null && loc.longitude != null;
 					const lSec = section('location', 'coords', __('Coordinates'), hasCoords ? '✓' : null).appendTo(pane);
@@ -1247,7 +1263,11 @@ class SirajExplorer {
 						$('<div class="sx-empty"></div>').text(__('No coordinates on this record.')).appendTo(lSec.find('.sx-section-body'));
 					} else {
 						const dl = $('<dl></dl>').appendTo(lSec.find('.sx-section-body'));
-						rows.forEach(([k,v]) => { $('<dt></dt>').text(k).appendTo(dl); $('<dd></dd>').text(v).appendTo(dl); });
+						rows.forEach(([k,v,source]) => {
+							$('<dt></dt>').text(k).appendTo(dl);
+							const dd = $('<dd></dd>').attr('dir','auto').text(v).appendTo(dl);
+							if (source && source !== v) dd.append($('<small class="sx-i18n-source"></small>').text(source));
+						});
 					}
 					if (hasCoords) {
 						$('<div style="margin-top:8px"></div>').append(
@@ -1275,29 +1295,36 @@ class SirajExplorer {
 					if (atts.length) {
 						const s = section('activity','atts',__('Attachments'), String(atts.length)).appendTo(pane);
 						const list = $('<ul class="sx-conn-list"></ul>').appendTo(s.find('.sx-section-body'));
-						atts.forEach(f => $('<li class="sx-conn"></li>').append(
-							$('<a target="_blank" rel="noopener" class="sx-conn-name" style="padding:0"></a>')
-								.attr('href', f.file_url || '').text(f.file_name || f.name)
-						).appendTo(list));
+						const safeAttachmentUrl = url => {
+						if (window.SirajProfileFields) return window.SirajProfileFields.safeUrl(url || '');
+						return /^(https?:|mailto:|tel:)/i.test(url || '') ? url : null;
+					};
+					atts.forEach(f => {
+						const link = safeAttachmentUrl(f.file_url);
+						const node = link
+							? $('<a target="_blank" rel="noopener noreferrer" class="sx-conn-name" style="padding:0"></a>').attr('href', link)
+							: $('<span class="sx-conn-name" style="padding:0"></span>');
+						$('<li class="sx-conn"></li>').append(node.attr('dir','auto').text(f.file_name || f.name)).appendTo(list);
+					});
 					}
 					if (comments.length) {
 						const s = section('activity','cmt',__('Comments'), String(comments.length)).appendTo(pane);
 						const body = s.find('.sx-section-body');
 						comments.forEach(c => $('<div style="font-size:12px;padding:4px 0;border-bottom:1px dashed var(--sx-line,#d4dfe0)"></div>')
-							.text((c.comment_by || c.comment_email || '') + ' · ' + String(c.content||'').replace(/<[^>]+>/g,''))
+							.attr('dir','auto').text((c.comment_by || c.comment_email || '') + ' · ' + String(c.content||'').replace(/<[^>]+>/g,''))
 							.appendTo(body));
 					}
 					if (versions.length) {
 						const s = section('activity','ver',__('Recent changes'), String(versions.length)).appendTo(pane);
 						const body = s.find('.sx-section-body');
 						versions.slice(0,30).forEach(v => $('<div style="font-size:12px;padding:2px 0;color:var(--text-muted)"></div>')
-							.text((v.owner||'') + ' · ' + v.creation)
+							.attr('dir','auto').text((v.owner||'') + ' · ' + v.creation)
 							.appendTo(body));
 					}
 					if (!atts.length && !comments.length && !versions.length) {
 						$('<div class="sx-empty"></div>').text(__('No activity recorded.')).appendTo(pane);
 					}
-					setTabCount('activity', String(atts.length + comments.length + versions.length));
+					setTabCount('activity', atts.length + comments.length + versions.length || null);
 				}
 
 				// Add relationship button at the bottom of every tab
@@ -1912,7 +1939,8 @@ class SirajExplorer {
 			const head = $('<div class="sx-panel-head"></div>').appendTo(this.aside);
 			const title = $('<div class="sx-panel-title"></div>').appendTo(head);
 			title.append(itemGlyph('Relationship', 28));
-			const heading = $('<h4></h4>').attr('title', edge.type || edge.name).text(edge.type || __('Relationship')).appendTo(title);
+			const heading = $('<h4></h4>').attr('title', edge.type || edge.name)
+				.text(edge.type ? __(edge.type) : __('Relationship')).appendTo(title);
 			$('<span class="sx-type-chip"></span>').text(__('Relationship')).appendTo(title);
 			if (edge.is_current || !edge.end_date) {
 				$('<span class="sx-status-chip sx-status-active"></span>').text(__('Current')).appendTo(title);
@@ -1975,7 +2003,11 @@ class SirajExplorer {
 				if (isOpen) sec.attr('open', 'open');
 				const sum = $('<summary></summary>').appendTo(sec);
 				sum.append($('<span class="sx-section-caret">' + CARET_SVG + '</span>'));
-				sum.append($('<span class="sx-section-label"></span>').text(titleText));
+				const lbl = $('<span class="sx-section-label"></span>');
+				// The profile engine passes a localised label node; keep the
+				// same contract as the entity panel's section() builder.
+				if (typeof titleText === 'string') lbl.text(titleText); else lbl.append(titleText);
+				sum.append(lbl);
 				if (countNode != null) {
 					const c = $('<span class="sx-section-count"></span>');
 					c.text(String(typeof countNode === 'function' ? '…' : countNode));
@@ -2035,7 +2067,7 @@ class SirajExplorer {
 
 				if (id === 'overview') {
 					const metaRows = [];
-					if (prof.header && prof.header.status) metaRows.push([__('Status'), prof.header.status]);
+					if (prof.header && prof.header.status) metaRows.push([__('Status'), __(prof.header.status)]);
 					metaRows.push([__('Direction'), (/^(directed|one.way)$/i.test((prof.header && prof.header.direction) || edge.direction || '') ? __('Directed') : __('Symmetric'))]);
 					metaRows.push([__('Ongoing'), prof.header && prof.header.is_current ? __('Yes') : __('No')]);
 					if (edge.description) metaRows.push([__('Description'), edge.description]);
@@ -2052,7 +2084,7 @@ class SirajExplorer {
 					metaRows.forEach(([k, v]) => {
 						if (v == null || v === '') return;
 						$('<dt></dt>').text(k).appendTo(dl);
-						$('<dd></dd>').text(String(v)).appendTo(dl);
+						$('<dd></dd>').attr('dir', 'auto').text(String(v)).appendTo(dl);
 					});
 
 					const counters = prof.counters || { evidence: Number(edge.evidence_count)||0, external_identifiers: 0 };
@@ -2068,59 +2100,58 @@ class SirajExplorer {
 					setBadge('evidence', counters.evidence || null);
 
 				} else if (id === 'fields') {
-					let fieldCount = 0;
-					(prof.sections||[]).forEach(secDef => {
-						const fields = secDef.fields || [];
-						if (!fields.length) return;
-						fieldCount += fields.length;
-						const sec = section('fields', 'fld_'+secDef.heading, secDef.heading || __('Fields'), String(fields.length)).appendTo(pane);
-						const body = sec.find('.sx-section-body');
-						const dl = $('<dl></dl>').appendTo(body);
-						fields.forEach(f => {
-							$('<dt></dt>').text(f.label).appendTo(dl);
-							const v = f.value;
-							const dd = $('<dd></dd>').appendTo(dl);
-							if (v && typeof v === 'object' && v.type === 'link') {
-								$('<button type="button" class="btn btn-link btn-xs"></button>')
-									.text(v.title || v.name)
-									.on('click', () => frappe.set_route('Form', v.doctype, v.name))
-									.appendTo(dd);
-							} else if (v && typeof v === 'object' && v.type === 'attach') {
-								$('<a target="_blank" rel="noopener"></a>').attr('href', v.url).text(v.url).appendTo(dd);
-							} else {
-								dd.text(fmtValue(v));
-							}
+					if (window.SirajProfileFields) {
+						window.SirajProfileFields.mountFields({
+							container: pane,
+							profile: prof,
+							sectionFactory: section,
+							tables: [], // Relationship tables live in the Evidence tab.
+							onCount: n => setBadge('fields', n || null),
 						});
-					});
-					if (!fieldCount) $('<div class="sx-empty"></div>').text(__('No field data available.')).appendTo(pane);
-					setBadge('fields', fieldCount || null);
+					} else {
+						let fieldCount = 0;
+						(prof.sections||[]).forEach(secDef => {
+							const fields = secDef.fields || [];
+							if (!fields.length) return;
+							fieldCount += fields.length;
+							const sec = section('fields', 'fld_'+(secDef.id || secDef.heading), __(secDef.heading || 'Fields'), String(fields.length)).appendTo(pane);
+							const dl = $('<dl></dl>').appendTo(sec.find('.sx-section-body'));
+							fields.forEach(f => {
+								$('<dt></dt>').text(__(f.label)).appendTo(dl);
+								$('<dd></dd>').text(fmtValue(f.value)).appendTo(dl);
+							});
+						});
+						if (!fieldCount) $('<div class="sx-empty"></div>').text(__('No field data available.')).appendTo(pane);
+						setBadge('fields', fieldCount || null);
+					}
 
 				} else if (id === 'evidence') {
 					const children = prof.children || {};
-					const ev = children.evidence;
-					const ext = children.external_identifiers;
-					if (ev && ev.rows && ev.rows.length) {
-						const sec = section('evidence','ev',__('Evidence'), String(ev.total)).appendTo(pane);
-						const wrap = $('<div class="sx-table-wrap"></div>').appendTo(sec.find('.sx-section-body'));
-						const keys = Object.keys(ev.rows[0]);
-						const t = $('<table class="table table-condensed"></table>').appendTo(wrap);
-						const thead = $('<thead></thead>').appendTo(t), trh = $('<tr></tr>').appendTo(thead);
-						keys.forEach(k => $('<th></th>').text(ev.rows[0][k].label).appendTo(trh));
-						const tbody = $('<tbody></tbody>').appendTo(t);
-						ev.rows.forEach(row => { const tr=$('<tr></tr>').appendTo(tbody); keys.forEach(k => $('<td></td>').text(fmtValue(row[k].value)).appendTo(tr)); });
-						if (ev.truncated) $('<div class="sx-muted" style="padding:6px 0"></div>').text(__('Showing first 50 entries. Open the record for the full list.')).appendTo(sec.find('.sx-section-body'));
-					} else {
+					const names = ['evidence','external_identifiers'].filter(fn => children[fn] && children[fn].rows && children[fn].rows.length);
+					if (!names.length) {
 						$('<div class="sx-empty"></div>').text(__('No evidence attached.')).appendTo(pane);
-					}
-					if (ext && ext.rows && ext.rows.length) {
-						const sec = section('evidence','ext',__('External identifiers'), String(ext.total)).appendTo(pane);
-						const wrap = $('<div class="sx-table-wrap"></div>').appendTo(sec.find('.sx-section-body'));
-						const keys = Object.keys(ext.rows[0]);
-						const t = $('<table class="table table-condensed"></table>').appendTo(wrap);
-						const thead = $('<thead></thead>').appendTo(t), trh = $('<tr></tr>').appendTo(thead);
-						keys.forEach(k => $('<th></th>').text(ext.rows[0][k].label).appendTo(trh));
-						const tbody = $('<tbody></tbody>').appendTo(t);
-						ext.rows.forEach(row => { const tr=$('<tr></tr>').appendTo(tbody); keys.forEach(k => $('<td></td>').text(fmtValue(row[k].value)).appendTo(tr)); });
+					} else if (window.SirajProfileFields) {
+						window.SirajProfileFields.mountTables({
+							container: pane,
+							profile: prof,
+							sectionFactory: section,
+							tables: names,
+						});
+					} else {
+						names.forEach(fn => {
+							const tbl = children[fn];
+							const sec = section('evidence', fn, __(tbl.label), String(tbl.total || tbl.rows.length)).appendTo(pane);
+							const body = sec.find('.sx-section-body');
+							const keys = tbl.rows.reduce((acc,row) => Object.keys(row).filter(k => !acc.includes(k)).concat(acc), []);
+							const t = $('<table class="table table-condensed"></table>').appendTo($('<div class="sx-table-wrap"></div>').appendTo(body));
+							const trh = $('<tr></tr>').appendTo($('<thead></thead>').appendTo(t));
+							keys.forEach(k => $('<th></th>').text(__(tbl.rows[0][k] ? tbl.rows[0][k].label : k)).appendTo(trh));
+							const tbody = $('<tbody></tbody>').appendTo(t);
+							tbl.rows.forEach(row => {
+								const tr = $('<tr></tr>').appendTo(tbody);
+								keys.forEach(k => $('<td></td>').text(fmtValue(row[k] && row[k].value)).appendTo(tr));
+							});
+						});
 					}
 
 				} else if (id === 'endpoints') {

@@ -72,6 +72,7 @@ app_include_css = [
 	"/assets/siraj_research/css/siraj-map-toolbar.css" + _CSS_VER,
 	"/assets/siraj_research/css/siraj-icons.css" + _CSS_VER,
 	"/assets/siraj_research/css/siraj-map-advanced.css" + _CSS_VER,
+	"/assets/siraj_research/css/siraj-profile-fields.css" + _CSS_VER,
 ]
 
 # Inject per-doctype metadata on every page load so the client has the same

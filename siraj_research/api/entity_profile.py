@@ -11,7 +11,11 @@ import json
 from frappe import _
 from frappe.model.meta import get_meta
 
-# Layout-only fieldtypes we never render as values.
+from siraj_research.profile_presentation import organise_profile
+
+# Layout-only fieldtypes we never render as values. "Table" is deliberately
+# absent here: it is skipped by the scalar loop below but collected as a child
+# table, so it can never leak into a <dd> as "[object Object]".
 SKIP_FIELDTYPES = {
     "Section Break", "Column Break", "Tab Break", "HTML", "Button", "Table MultiSelect",
 }
@@ -37,7 +41,9 @@ def _fmt_value(doc, f):
     if ft == "Password":
         return PASSWORD_PLACEHOLDER
     if ft in ("Check",):
-        return _("Yes") if val else _("No")
+        # Keep the raw boolean: the client translates "Yes"/"No" once, in the
+        # language it is actually rendering, and can show the source value too.
+        return bool(val)
     if ft in ("Attach", "Attach Image", "Image"):
         return {"type": "attach", "url": val}
     if ft == "Link":
@@ -61,7 +67,10 @@ def _fmt_value(doc, f):
             pass
         return {"type": "link", "doctype": target_doctype, "name": val, "title": val}
     if ft == "Select":
-        return _(val)
+        # Do not translate here. The profile keeps the recorded value and the
+        # client translates controlled vocabulary through __(); see
+        # profile_presentation.normalise_field for the translatable_value flag.
+        return val
     return val
 
 
@@ -102,9 +111,15 @@ def get_entity_profile(doctype, name, **kwargs):
     field_map = {}
     for f in meta.fields:
         if f.fieldtype in SKIP_FIELDTYPES:
-            if f.fieldtype == "Section Break":
+            # A Tab Break is a new top-level group. Treating it as a mere
+            # separator used to append its fields to the previous section
+            # (e.g. "Completeness (%)" under "External identifiers").
+            if f.fieldtype in ("Section Break", "Tab Break"):
                 cur_section = {"heading": _field_label(f) or _("Details"), "fields": []}
                 sections.append(cur_section)
+            continue
+        if f.fieldtype == "Table":
+            # Child tables are collected below; they are never scalar values.
             continue
         if f.hidden:
             continue
@@ -139,17 +154,27 @@ def get_entity_profile(doctype, name, **kwargs):
     for f in meta.fields:
         if f.fieldtype == "Table" and f.options:
             rows = []
+            rmeta = get_meta(f.options)
+            column_order = [
+                rf.fieldname for rf in rmeta.fields
+                if rf.fieldtype not in SKIP_FIELDTYPES and not rf.hidden
+            ]
             for r in (doc.get(f.fieldname) or [])[:50]:
                 row = {}
-                rmeta = get_meta(f.options)
                 for rf in rmeta.fields:
                     if rf.fieldtype in SKIP_FIELDTYPES or rf.hidden:
                         continue
                     v = _fmt_value(r, rf)
                     if v is not None:
-                        row[rf.fieldname] = {"label": _field_label(rf), "value": v}
+                        row[rf.fieldname] = {
+                            "label": _field_label(rf),
+                            "fieldtype": rf.fieldtype,
+                            "options": rf.options,
+                            "value": v,
+                        }
                 rows.append(row)
             children[f.fieldname] = {"label": _field_label(f), "options": f.options, "rows": rows,
+                                     "column_order": column_order,
                                      "truncated": len(doc.get(f.fieldname) or []) > 50,
                                      "total": len(doc.get(f.fieldname) or [])}
 
@@ -262,7 +287,7 @@ def get_entity_profile(doctype, name, **kwargs):
         "can_create": frappe.has_permission("Relationship", "create"),
     }
 
-    return {
+    profile = {
         "header": header,
         "sections": sections,
         "children": children,
@@ -272,6 +297,8 @@ def get_entity_profile(doctype, name, **kwargs):
         "network_summary": network_summary,
         "permissions": perms,
     }
+    # Source labels/values stay untouched; the client translates them once.
+    return organise_profile(profile, doctype=doctype, lang=getattr(frappe.local, "lang", None) or "en")
 
 
 def _authored_relationships(doctype, name):
