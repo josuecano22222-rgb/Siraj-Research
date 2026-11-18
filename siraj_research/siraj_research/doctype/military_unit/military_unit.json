@@ -559,6 +559,18 @@
   },
   {
    "role": "SIRAJ Administrator",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": null,
+   "export": 1,
+   "import_": 1,
+   "set_user_permissions": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
    "permlevel": 1,
    "read": 1,
    "write": 1,

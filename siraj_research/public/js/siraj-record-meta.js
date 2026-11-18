@@ -185,8 +185,8 @@
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.45';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .45 NaN map hard-fix (Institution): never call L.map() on a 0x0 canvas; use CSS pointer-events:none + ResizeObserver/MutationObserver/shown.bs.tab to defer construction until the Position tab is visible, which eliminates the Invalid LatLng (NaN,NaN) throw; removed duplicate/empty links entries; clarified: cross-record links populate automatically via Frappe DocType.links reverse entries (no manual child-table rows required)"); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.46';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .46 Permission fix: add permlevel=0 SIRAJ Administrator permissions across all core DocTypes and related types (fixes \"Permission at level 0 must be set before higher levels\" Customize Form error)"); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------
 // Compare the JS-built stamp with the server stamp delivered at boot time.

@@ -181,7 +181,7 @@
    "fieldname": "end_date_as_stated",
    "fieldtype": "Data",
    "label": "End (as stated)",
-   "description": "Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.",
+   "description": "Exactly as the source gives it: 1950 \u00b7 1950-05 \u00b7 1950-05-12 \u00b7 1950-05-12T21:45 \u00b7 'c. 1850' \u00b7 '1850s' \u00b7 '1850?'. Authoritative value; the date field beside it is derived from it.",
    "in_global_search": 1,
    "length": 32
   },
@@ -349,7 +349,7 @@
    "in_standard_filter": 1,
    "search_index": 1,
    "no_copy": 1,
-   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft \u2192 In Review \u2192 Verified \u2192 Published, plus Needs Update / Disputed / Archived / Rejected)."
   },
   {
    "fieldname": "researcher_notes",
@@ -436,6 +436,18 @@
    "read": 1,
    "write": 1,
    "report": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": null,
+   "export": 1,
+   "import_": 1,
+   "set_user_permissions": 1
   },
   {
    "role": "SIRAJ Administrator",

@@ -67,7 +67,7 @@
    "options": "Combat\nSupport\nReserve\nTraining",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "description": "Combat / Support / Reserve / Training ⇒ `vocab.CLASS_CATEGORIES`."
+   "description": "Combat / Support / Reserve / Training \u21d2 `vocab.CLASS_CATEGORIES`."
   },
   {
    "fieldname": "readiness_tier",
@@ -133,7 +133,7 @@
    "in_standard_filter": 1,
    "search_index": 1,
    "no_copy": 1,
-   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft \u2192 In Review \u2192 Verified \u2192 Published, plus Needs Update / Disputed / Archived / Rejected)."
   },
   {
    "fieldname": "researcher_notes",
@@ -206,6 +206,18 @@
    "read": 1,
    "write": 1,
    "report": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
+   "permlevel": 0,
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": null,
+   "export": 1,
+   "import_": 1,
+   "set_user_permissions": 1
   },
   {
    "role": "SIRAJ Administrator",
