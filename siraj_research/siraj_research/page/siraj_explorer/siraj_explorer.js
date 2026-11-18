@@ -1341,13 +1341,28 @@ class SirajExplorer {
 		};
 
 		// Marker cluster layer — aggregate badge sized by child count.
+		// Inline styles are applied as a belt-and-suspenders so clusters render
+		// correctly even if CSS hasn't loaded (Leaflet's own leaflet-marker-icon
+		// rules can otherwise zero out flex layout in some load orders). Size
+		// tiers shift colour so dense areas (100+ pins) visually pop.
+		const clusterTier = count => {
+			if (count < 10)   return { bg: 'linear-gradient(135deg,#1f9d8e,#188c7e)', ring: 'rgba(255,255,255,.9)',  shadow: '0 2px 8px rgba(24,140,126,.45)' };
+			if (count < 100)  return { bg: 'linear-gradient(135deg,#4f7cc5,#3577c0)', ring: 'rgba(255,255,255,.9)',  shadow: '0 2px 9px rgba(53,119,192,.45)' };
+			if (count < 1000) return { bg: 'linear-gradient(135deg,#e09a3b,#d08733)', ring: 'rgba(255,255,255,.92)', shadow: '0 3px 11px rgba(208,135,51,.5)' };
+			return              { bg: 'linear-gradient(135deg,#d66157,#c3564b)', ring: 'rgba(255,255,255,.95)', shadow: '0 3px 12px rgba(195,86,75,.55)' };
+		};
 		const clusterIcon = c => {
 			const count = c.getChildCount();
 			const size = count < 10 ? 36 : count < 100 ? 42 : count < 1000 ? 48 : 56;
 			const fontSize = count < 100 ? 13 : count < 1000 ? 14 : 15;
+			const tier = clusterTier(count);
+			const pulse = count >= 100
+				? `<span class="sx-cluster-pulse" style="position:absolute;inset:-6px;border-radius:50%;border:2px solid ${tier.bg.includes('c3564b')?'rgba(195,86,75,.35)':tier.bg.includes('d08733')?'rgba(208,135,51,.3)':'rgba(53,119,192,.3)'};animation:sx-cluster-pulse 1.8s ease-out infinite"></span>`
+				: '';
+			const label = count >= 1000 ? (count/1000).toFixed(1)+'k' : count;
 			return L.divIcon({
-				className: 'sx-cluster',
-				html: `<span style="font-size:${fontSize}px">${count >= 1000 ? (count/1000).toFixed(1)+'k' : count}</span>`,
+				className: 'sx-cluster-wrap',
+				html: `<div class="sx-cluster" style="position:relative;width:${size}px;height:${size}px;border-radius:50%;background:${tier.bg};border:4px solid ${tier.ring};box-shadow:${tier.shadow};color:#fff;font-weight:700;font-size:${fontSize}px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;cursor:pointer;transition:transform .15s ease"><span style="line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.25);pointer-events:none">${label}</span>${pulse}</div>`,
 				iconSize: [size, size],
 				iconAnchor: [size/2, size/2],
 			});
