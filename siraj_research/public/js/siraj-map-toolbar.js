@@ -24,7 +24,30 @@
  */
 (() => {
 	'use strict';
-	if (!window.L) { console.warn('L.Control.SirajToolbar requires Leaflet'); return; }
+
+	// register(): runs as soon as Leaflet is present. The bundle loads this
+	// file synchronously (siraj.bundle.js entry) but Leaflet itself is
+	// fetched lazily via frappe.require by coordinate_map.js / Explorer,
+	// so at first eval window.L may not exist yet. In that case we poll
+	// briefly and retry on load/async CSS/JS ready events instead of bailing
+	// out (which previously left L.control.sirajToolbar undefined).
+	function register() {
+		if (window.L && window.L.Control && window.L.DomUtil) return install(window.L);
+		if (register._tried) return;
+		register._tried = true;
+		const retry = () => { register._tried = false; register(); };
+		if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', retry, { once: true });
+		if (window.jQuery) $(window).on('load', retry);
+		// Poll for up to 30 s — Leaflet loads from our vendor path.
+		let tries = 0;
+		const iv = setInterval(() => {
+			if (window.L && window.L.Control) { clearInterval(iv); install(window.L); }
+			else if (++tries > 300) { clearInterval(iv); console.warn('[SIRAJ] toolbar: Leaflet not loaded after 30s'); }
+		}, 100);
+	}
+
+	function install(L) {
+		if (L.control.sirajToolbar) return; // already installed (idempotent)
 
 	const TOOL_MISSING = '<svg class="siraj-ico-missing" viewBox="0 0 24 24" width="18" height="18" role="img" aria-hidden="true" fill="none" stroke="#c0392b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 2"/><path d="M8 8l8 8M16 8l-8 8"/></svg>';
 
@@ -392,4 +415,7 @@
 	});
 
 	L.control.sirajToolbar = options => new L.Control.SirajToolbar(options);
+	} // install(L)
+
+	register();
 })();

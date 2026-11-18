@@ -70,9 +70,11 @@
 				'/assets/siraj_research/vendor/leaflet/leaflet.js',
 				'/assets/siraj_research/vendor/topojson/topojson-client.min.js',
 			])).then(() => {
-				if (window.SirajMapKit) return;
+				// siraj-map-toolbar.js installs itself after Leaflet appears;
+				// wait for both SirajMapKit and the toolbar control so mount()
+				// never sees L.control.sirajToolbar === undefined.
 				return new Promise(res => {
-					const check = () => window.SirajMapKit ? res() : setTimeout(check, 30);
+					const check = () => (window.SirajMapKit && window.L && window.L.control && window.L.control.sirajToolbar) ? res() : setTimeout(check, 30);
 					check();
 				});
 			}).catch(err => { assetsPromise = null; throw err; });
