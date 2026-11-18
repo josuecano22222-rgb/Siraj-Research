@@ -74,7 +74,7 @@
    "in_list_view": 1,
    "search_index": 1,
    "in_global_search": 1,
-   "description": "'Subject → type → object', computed on save.",
+   "description": "'Subject \u2192 type \u2192 object', computed on save.",
    "in_preview": 1
   },
   {
@@ -117,7 +117,7 @@
    "fieldname": "subject_type",
    "fieldtype": "Select",
    "label": "Subject type",
-   "options": "Person\nInstitution\nPlace\nResearch Event\nSource\nMilitary Unit\nOperational Deployment",
+   "options": "Person\nInstitution\nPlace\nResearch Event\nSource\nMilitary Unit\nOperational Deployment\nSiraj Event",
    "reqd": 1,
    "default": "Person",
    "in_standard_filter": 1,
@@ -148,7 +148,7 @@
    "fieldname": "object_type",
    "fieldtype": "Select",
    "label": "Object type",
-   "options": "Person\nInstitution\nPlace\nResearch Event\nSource\nMilitary Unit\nOperational Deployment",
+   "options": "Person\nInstitution\nPlace\nResearch Event\nSource\nMilitary Unit\nOperational Deployment\nSiraj Event",
    "reqd": 1,
    "default": "Institution",
    "in_standard_filter": 1,
@@ -179,7 +179,7 @@
    "fieldname": "start_date_as_stated",
    "fieldtype": "Data",
    "label": "Start (as stated)",
-   "description": "Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.",
+   "description": "Exactly as the source gives it: 1950 \u00b7 1950-05 \u00b7 1950-05-12 \u00b7 1950-05-12T21:45 \u00b7 'c. 1850' \u00b7 '1850s' \u00b7 '1850?'. Authoritative value; the date field beside it is derived from it.",
    "in_global_search": 1,
    "length": 32
   },
@@ -209,7 +209,7 @@
    "fieldname": "end_date_as_stated",
    "fieldtype": "Data",
    "label": "End (as stated)",
-   "description": "Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.",
+   "description": "Exactly as the source gives it: 1950 \u00b7 1950-05 \u00b7 1950-05-12 \u00b7 1950-05-12T21:45 \u00b7 'c. 1850' \u00b7 '1850s' \u00b7 '1850?'. Authoritative value; the date field beside it is derived from it.",
    "in_global_search": 1,
    "length": 32
   },
@@ -251,7 +251,7 @@
    "fieldtype": "Data",
    "label": "Role / title (as stated)",
    "length": 140,
-   "description": "'Professor of History', 'Chairman' — the wording the source uses for this connection."
+   "description": "'Professor of History', 'Chairman' \u2014 the wording the source uses for this connection."
   },
   {
    "fieldname": "tab_evidence",
@@ -303,7 +303,7 @@
    "in_standard_filter": 1,
    "search_index": 1,
    "no_copy": 1,
-   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft \u2192 In Review \u2192 Verified \u2192 Published, plus Needs Update / Disputed / Archived / Rejected)."
   },
   {
    "fieldname": "researcher_notes",

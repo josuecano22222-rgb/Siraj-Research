@@ -56,7 +56,21 @@
   "sb_evidence_table",
   "evidence",
   "sb_identifiers",
-  "external_identifiers"
+  "external_identifiers",
+  "country",
+  "governorate",
+  "cb_admin",
+  "district",
+  "municipality",
+  "village",
+  "community",
+  "sb_assoc",
+  "institutions",
+  "events_table",
+  "cb_assoc",
+  "locations_table",
+  "linked_place",
+  "place_name"
  ],
  "fields": [
   {
@@ -308,6 +322,82 @@
    "length": 140,
    "description": "The map, survey or gazetteer the coordinates came from.",
    "depends_on": "eval:doc.latitude && doc.longitude"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate"
+  },
+  {
+   "fieldname": "cb_admin",
+   "fieldtype": "Column Break",
+   "label": "Cb Admin"
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village / locality",
+   "options": "Village"
+  },
+  {
+   "fieldname": "community",
+   "fieldtype": "Link",
+   "label": "Community / cluster",
+   "options": "Community"
+  },
+  {
+   "fieldname": "place_name",
+   "fieldtype": "Data",
+   "label": "Locality / place name",
+   "description": "Nearest named place (village/town) from the gazetteer; auto-filled by reverse-geocoding."
+  },
+  {
+   "fieldname": "sb_assoc",
+   "fieldtype": "Section Break",
+   "label": "Associations",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "institutions",
+   "fieldtype": "Table",
+   "label": "Institutions",
+   "options": "Military Unit Institution"
+  },
+  {
+   "fieldname": "events_table",
+   "fieldtype": "Table",
+   "label": "Events",
+   "options": "Military Unit Event"
+  },
+  {
+   "fieldname": "cb_assoc",
+   "fieldtype": "Column Break",
+   "label": "Cb Assoc"
+  },
+  {
+   "fieldname": "locations_table",
+   "fieldtype": "Table",
+   "label": "Locations",
+   "options": "Military Unit Location"
   },
   {
    "fieldname": "geo_description",

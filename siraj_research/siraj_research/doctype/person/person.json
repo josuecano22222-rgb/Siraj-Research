@@ -78,7 +78,23 @@
   "sb_identifiers",
   "external_identifiers",
   "tab_quality",
-  "completeness_score"
+  "completeness_score",
+  "country",
+  "governorate",
+  "cb_admin",
+  "district",
+  "municipality",
+  "village",
+  "community",
+  "sb_links",
+  "institutions",
+  "military_units",
+  "cb_links",
+  "events_table",
+  "locations_table",
+  "sb_relations_view",
+  "relationships_note",
+  "place_name"
  ],
  "fields": [
   {
@@ -98,7 +114,7 @@
    "options": "PER-.####\nPER-.YY.-.####",
    "reqd": 1,
    "default": "PER-.####",
-   "description": "Identifier series. 'PER-.####' numbers continuously; 'PER-.YY.-.####' restarts each year — the native equivalent of the original `sequence.reset_policy = yearly`."
+   "description": "Identifier series. 'PER-.####' numbers continuously; 'PER-.YY.-.####' restarts each year \u2014 the native equivalent of the original `sequence.reset_policy = yearly`."
   },
   {
    "fieldname": "display_name",
@@ -153,7 +169,7 @@
    "fieldtype": "Link",
    "label": "Original-name language",
    "options": "Language",
-   "description": "Native `Language` doctype — not a free-text language code."
+   "description": "Native `Language` doctype \u2014 not a free-text language code."
   },
   {
    "fieldname": "name_transliteration",
@@ -166,7 +182,7 @@
    "fieldname": "name_variants",
    "fieldtype": "Small Text",
    "label": "Other recorded forms of the name",
-   "description": "Spellings met in sources that are not the preferred form. Searchable, so 'Mosul' finds 'Mūṣil'."
+   "description": "Spellings met in sources that are not the preferred form. Searchable, so 'Mosul' finds 'M\u016b\u1e63il'."
   },
   {
    "fieldname": "cb_media",
@@ -242,7 +258,7 @@
    "fieldname": "death_date_as_stated",
    "fieldtype": "Data",
    "label": "Date of death (as stated)",
-   "description": "Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.",
+   "description": "Exactly as the source gives it: 1950 \u00b7 1950-05 \u00b7 1950-05-12 \u00b7 1950-05-12T21:45 \u00b7 'c. 1850' \u00b7 '1850s' \u00b7 '1850?'. Authoritative value; the date field beside it is derived from it.",
    "in_global_search": 1,
    "length": 32
   },
@@ -292,7 +308,7 @@
    "fieldtype": "Link",
    "label": "Place of birth",
    "options": "Place",
-   "description": "Association only — it never assigns that place's coordinates to this person."
+   "description": "Association only \u2014 it never assigns that place's coordinates to this person."
   },
   {
    "fieldname": "birthplace_as_stated",
@@ -328,7 +344,7 @@
    "label": "Current status",
    "options": "Person Status",
    "in_standard_filter": 1,
-   "description": "Living, deceased, whereabouts unknown …",
+   "description": "Living, deceased, whereabouts unknown \u2026",
    "in_preview": 1
   },
   {
@@ -380,7 +396,7 @@
    "label": "Service branch",
    "options": "Military Branch",
    "depends_on": "eval:doc.category == 'Military'",
-   "description": "Army, Navy, Air Force, Joint, Gendarmerie, Coast Guard — a governed vocabulary (migration 020 domain `military_branch`), extendable without a code change."
+   "description": "Army, Navy, Air Force, Joint, Gendarmerie, Coast Guard \u2014 a governed vocabulary (migration 020 domain `military_branch`), extendable without a code change."
   },
   {
    "fieldname": "commission_date",
@@ -396,14 +412,14 @@
    "options": "Military Service Status",
    "depends_on": "eval:doc.category == 'Military'",
    "in_standard_filter": 1,
-   "description": "Active → Reserve → Retired, and Retired is terminal (source `SERVICE_STATUS_TRANSITIONS`). The transition is enforced in the controller; see Del. 12 §4."
+   "description": "Active \u2192 Reserve \u2192 Retired, and Retired is terminal (source `SERVICE_STATUS_TRANSITIONS`). The transition is enforced in the controller; see Del. 12 \u00a74."
   },
   {
    "fieldname": "military_biography",
    "fieldtype": "Text Editor",
    "label": "Military biography",
    "depends_on": "eval:doc.category == 'Military'",
-   "description": "Service history, commands and campaigns — the military record behind the rank."
+   "description": "Service history, commands and campaigns \u2014 the military record behind the rank."
   },
   {
    "fieldname": "leadership_assessments",
@@ -427,7 +443,7 @@
    "options": "Person Position",
    "no_copy": 1,
    "columns": 9,
-   "description": "One row per post, with its own dates, institution, place and verification state. This is the single home of a person's affiliations — there is deliberately no second 'current institution' field to fall out of step with it. Not copied with the record: a duplicate person is a new person, not a second copy of someone's career."
+   "description": "One row per post, with its own dates, institution, place and verification state. This is the single home of a person's affiliations \u2014 there is deliberately no second 'current institution' field to fall out of step with it. Not copied with the record: a duplicate person is a new person, not a second copy of someone's career."
   },
   {
    "fieldname": "sb_expertise",
@@ -525,6 +541,100 @@
    "depends_on": "eval:doc.latitude && doc.longitude"
   },
   {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate"
+  },
+  {
+   "fieldname": "cb_admin",
+   "fieldtype": "Column Break",
+   "label": "Cb Admin"
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village / locality",
+   "options": "Village"
+  },
+  {
+   "fieldname": "community",
+   "fieldtype": "Link",
+   "label": "Community / cluster",
+   "options": "Community"
+  },
+  {
+   "fieldname": "place_name",
+   "fieldtype": "Data",
+   "label": "Locality / place name",
+   "description": "Nearest named place (village/town) from the gazetteer; auto-filled by reverse-geocoding."
+  },
+  {
+   "fieldname": "sb_links",
+   "fieldtype": "Section Break",
+   "label": "Associations",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "institutions",
+   "fieldtype": "Table",
+   "label": "Institutions",
+   "options": "Person Institution"
+  },
+  {
+   "fieldname": "military_units",
+   "fieldtype": "Table",
+   "label": "Military units",
+   "options": "Person Military Unit"
+  },
+  {
+   "fieldname": "cb_links",
+   "fieldtype": "Column Break",
+   "label": "Cb Links"
+  },
+  {
+   "fieldname": "events_table",
+   "fieldtype": "Table",
+   "label": "Events",
+   "options": "Person Event"
+  },
+  {
+   "fieldname": "locations_table",
+   "fieldtype": "Table",
+   "label": "Locations",
+   "options": "Person Location"
+  },
+  {
+   "fieldname": "sb_relations_view",
+   "fieldtype": "Section Break",
+   "label": "Relationships",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "relationships_note",
+   "fieldtype": "HTML",
+   "label": "Note",
+   "options": "<div class=\"form-note\">Add directed relationships (subject \u2192 object) using the <b>Relationship</b> DocType. Relationships where this Person is the subject or object will appear here in the Relationship Graph view.</div>"
+  },
+  {
    "fieldname": "tab_provenance",
    "fieldtype": "Tab Break",
    "label": "Provenance & State"
@@ -569,7 +679,7 @@
    "in_standard_filter": 1,
    "search_index": 1,
    "no_copy": 1,
-   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft \u2192 In Review \u2192 Verified \u2192 Published, plus Needs Update / Disputed / Archived / Rejected)."
   },
   {
    "fieldname": "researcher_notes",

@@ -30,17 +30,19 @@
 	// 'text' writes Data fields like place_name/community.
 	const DEFAULT_COORDS = {
 		'Person':                 { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'birthplace',   silhouette:'bust',
-			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', community:'community', place_name:'place_name' } },
+			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', village:'village', community:'community', place_name:'place_name' } },
 		'Institution':            { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'place',         silhouette:'building',
-			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', community:'community', place_name:'place_name' } },
+			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', village:'village', community:'community', place_name:'place_name' } },
 		'Place':                  { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'parent_place',  silhouette:'pin',
-			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', community:'community' } },
+			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', village:'village', community:'community' } },
 		'Research Event':         { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'place',         silhouette:'star',
-			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', community:'community', place_name:'place_name' } },
+			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', village:'village', community:'community', place_name:'place_name' } },
+		'Siraj Event':            { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'linked_place', silhouette:'calendar',
+			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', village:'village', community:'community', place_name:'place_name' } },
 		'Military Unit':          { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'linked_place',  silhouette:'shield',
-			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality' } },
+			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', village:'village', community:'community' } },
 		'Operational Deployment': { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:null,            silhouette:'crosshair',
-			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', place_name:'location' } },
+			admin_fields: { country:'country', governorate:'governorate', district:'district', municipality:'municipality', village:'village', place_name:'location' } },
 	};
 	function docConfig(doctype) {
 		const fromBoot = (window.sirajCoordinateDocs && window.sirajCoordinateDocs[doctype]) || {};

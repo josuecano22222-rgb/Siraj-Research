@@ -1,0 +1,362 @@
+{
+ "doctype": "DocType",
+ "name": "Siraj Event",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "istable": 0,
+ "issingle": 0,
+ "track_changes": 1,
+ "quick_entry": 1,
+ "autoname": "field:title",
+ "title_field": "title",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "field_order": [
+  "title",
+  "sb_identity",
+  "event_type",
+  "status",
+  "description",
+  "cb_identity",
+  "start_date",
+  "end_date",
+  "sb_participants",
+  "people",
+  "cb_participants",
+  "institutions",
+  "military_units",
+  "sb_places",
+  "places",
+  "linked_place",
+  "sb_geo",
+  "latitude",
+  "longitude",
+  "geo_precision",
+  "geocoding_method",
+  "geo_uncertainty_m",
+  "geometry_source",
+  "country",
+  "governorate",
+  "cb_geo",
+  "district",
+  "municipality",
+  "village",
+  "community",
+  "sb_evidence",
+  "primary_source",
+  "documentation_level",
+  "authentication_level",
+  "cb_provenance",
+  "workflow_state",
+  "sb_evidence_table",
+  "evidence",
+  "sb_identifiers",
+  "external_identifiers",
+  "place_name"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title"
+  },
+  {
+   "fieldname": "sb_identity",
+   "fieldtype": "Section Break",
+   "label": "Identity",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "event_type",
+   "fieldtype": "Link",
+   "label": "Event type",
+   "options": "Event Type"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "\nPlanned\nOngoing\nConcluded\nCancelled"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  },
+  {
+   "fieldname": "cb_identity",
+   "fieldtype": "Column Break",
+   "label": "Cb Identity"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start date"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End date"
+  },
+  {
+   "fieldname": "sb_participants",
+   "fieldtype": "Section Break",
+   "label": "Participants",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "people",
+   "fieldtype": "Table",
+   "label": "People involved",
+   "options": "Siraj Event Person"
+  },
+  {
+   "fieldname": "cb_participants",
+   "fieldtype": "Column Break",
+   "label": "Cb Participants"
+  },
+  {
+   "fieldname": "institutions",
+   "fieldtype": "Table",
+   "label": "Institutions involved",
+   "options": "Siraj Event Institution"
+  },
+  {
+   "fieldname": "military_units",
+   "fieldtype": "Table",
+   "label": "Military units involved",
+   "options": "Siraj Event Military Unit"
+  },
+  {
+   "fieldname": "sb_places",
+   "fieldtype": "Section Break",
+   "label": "Locations",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "places",
+   "fieldtype": "Table",
+   "label": "Locations",
+   "options": "Siraj Event Location"
+  },
+  {
+   "fieldname": "linked_place",
+   "fieldtype": "Link",
+   "label": "Primary place",
+   "options": "Place"
+  },
+  {
+   "fieldname": "sb_geo",
+   "fieldtype": "Section Break",
+   "label": "Position",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude"
+  },
+  {
+   "fieldname": "geo_precision",
+   "fieldtype": "Select",
+   "label": "Coordinate precision",
+   "options": "exact\napproximate\ncentroid\nuncertain"
+  },
+  {
+   "fieldname": "geocoding_method",
+   "fieldtype": "Select",
+   "label": "How the point was obtained",
+   "options": "manual\nmap_pick\ncoordinate_entry\ngazetteer\nadministrative\ncity_centroid\ngeocoder\nhistorical_map\ninherited"
+  },
+  {
+   "fieldname": "geo_uncertainty_m",
+   "fieldtype": "Float",
+   "label": "Uncertainty radius (m)"
+  },
+  {
+   "fieldname": "geometry_source",
+   "fieldtype": "Data",
+   "label": "Point source"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate"
+  },
+  {
+   "fieldname": "cb_geo",
+   "fieldtype": "Column Break",
+   "label": "Cb Geo"
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village / locality",
+   "options": "Village"
+  },
+  {
+   "fieldname": "community",
+   "fieldtype": "Link",
+   "label": "Community / cluster",
+   "options": "Community"
+  },
+  {
+   "fieldname": "place_name",
+   "fieldtype": "Data",
+   "label": "Locality / place name",
+   "description": "Nearest named place (village/town) from the gazetteer; auto-filled by reverse-geocoding."
+  },
+  {
+   "fieldname": "sb_evidence",
+   "fieldtype": "Section Break",
+   "label": "Source & verification",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "primary_source",
+   "fieldtype": "Link",
+   "label": "Primary source",
+   "options": "Source"
+  },
+  {
+   "fieldname": "documentation_level",
+   "fieldtype": "Link",
+   "label": "Documentation level",
+   "options": "Documentation Level"
+  },
+  {
+   "fieldname": "authentication_level",
+   "fieldtype": "Link",
+   "label": "Authentication level",
+   "options": "Authentication Level"
+  },
+  {
+   "fieldname": "cb_provenance",
+   "fieldtype": "Column Break",
+   "label": "Cb Provenance"
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "label": "Record status",
+   "options": "Workflow State"
+  },
+  {
+   "fieldname": "sb_evidence_table",
+   "fieldtype": "Section Break",
+   "label": "Evidence (claims this record makes)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "evidence",
+   "fieldtype": "Table",
+   "label": "Evidence",
+   "options": "Evidence"
+  },
+  {
+   "fieldname": "sb_identifiers",
+   "fieldtype": "Section Break",
+   "label": "External identifiers",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "external_identifiers",
+   "fieldtype": "Table",
+   "label": "External identifiers",
+   "options": "External Identifier"
+  }
+ ],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "permissions": [
+  {
+   "role": "SIRAJ Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1,
+   "import": 1,
+   "email": 1,
+   "share": 1,
+   "set_user_permissions": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1,
+   "import": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "print": 1,
+   "select": 1,
+   "export": 1
+  }
+ ]
+}

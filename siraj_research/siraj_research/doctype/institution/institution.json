@@ -66,7 +66,19 @@
   "sb_evidence_table",
   "evidence",
   "sb_identifiers",
-  "external_identifiers"
+  "external_identifiers",
+  "cb_admin",
+  "district",
+  "municipality",
+  "village",
+  "community",
+  "sb_assoc",
+  "people_note",
+  "events_table",
+  "military_units",
+  "cb_assoc",
+  "locations_table",
+  "place_name"
  ],
  "fields": [
   {
@@ -204,7 +216,7 @@
    "fieldname": "founded_date_as_stated",
    "fieldtype": "Data",
    "label": "Date of establishment (as stated)",
-   "description": "Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.",
+   "description": "Exactly as the source gives it: 1950 \u00b7 1950-05 \u00b7 1950-05-12 \u00b7 1950-05-12T21:45 \u00b7 'c. 1850' \u00b7 '1850s' \u00b7 '1850?'. Authoritative value; the date field beside it is derived from it.",
    "in_global_search": 1,
    "length": 32
   },
@@ -233,7 +245,7 @@
    "fieldname": "closed_date_as_stated",
    "fieldtype": "Data",
    "label": "Date of closure (as stated)",
-   "description": "Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.",
+   "description": "Exactly as the source gives it: 1950 \u00b7 1950-05 \u00b7 1950-05-12 \u00b7 1950-05-12T21:45 \u00b7 'c. 1850' \u00b7 '1850s' \u00b7 '1850?'. Authoritative value; the date field beside it is derived from it.",
    "in_global_search": 1,
    "length": 32
   },
@@ -290,6 +302,76 @@
    "options": "Place",
    "description": "The named settlement or building; association only, never a source of coordinates.",
    "in_preview": 1
+  },
+  {
+   "fieldname": "cb_admin",
+   "fieldtype": "Column Break",
+   "label": "Cb Admin"
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village / locality",
+   "options": "Village"
+  },
+  {
+   "fieldname": "community",
+   "fieldtype": "Link",
+   "label": "Community / cluster",
+   "options": "Community"
+  },
+  {
+   "fieldname": "place_name",
+   "fieldtype": "Data",
+   "label": "Locality / place name",
+   "description": "Nearest named place (village/town) from the gazetteer; auto-filled by reverse-geocoding."
+  },
+  {
+   "fieldname": "sb_assoc",
+   "fieldtype": "Section Break",
+   "label": "Associations",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "people_note",
+   "fieldtype": "HTML",
+   "label": "Note",
+   "options": "<div class=\"form-note\">People linked to this institution appear via <b>Person \u2192 Institution</b> rows.</div>"
+  },
+  {
+   "fieldname": "events_table",
+   "fieldtype": "Table",
+   "label": "Events",
+   "options": "Institution Event"
+  },
+  {
+   "fieldname": "military_units",
+   "fieldtype": "Table",
+   "label": "Military units",
+   "options": "Institution Military Unit"
+  },
+  {
+   "fieldname": "cb_assoc",
+   "fieldtype": "Column Break",
+   "label": "Cb Assoc"
+  },
+  {
+   "fieldname": "locations_table",
+   "fieldtype": "Table",
+   "label": "Locations",
+   "options": "Institution Location"
   },
   {
    "fieldname": "city_as_stated",
@@ -463,7 +545,7 @@
    "in_standard_filter": 1,
    "search_index": 1,
    "no_copy": 1,
-   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft \u2192 In Review \u2192 Verified \u2192 Published, plus Needs Update / Disputed / Archived / Rejected)."
   },
   {
    "fieldname": "researcher_notes",
