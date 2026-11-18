@@ -1258,3 +1258,55 @@ Iraq,العراق
 United States,الولايات المتحدة
 Major General,لواء
 Telegram,تيليجرام
+Geography and spatial index,الجغرافيا والفهرس المكاني
+"Administrative identity, coordinates and source provenance for this level. Values imported from a dataset may be corrected manually later.",الهوية الإدارية والإحداثيات ومصدر المستوى. يمكن تصحيح القيم المستوردة يدوياً لاحقاً.
+Source P-Code,رمز المصدر
+"Stable identifier from GADM, GeoNames, OSM or another imported dataset.",معرّف ثابت من GADM أو GeoNames أو OSM أو أي مجموعة بيانات مستوردة أخرى.
+Parent P-Code,رمز الأصل
+Local level name,المسمى المحلي للمستوى
+"For example: emirate, parish, region, commune or mahallah. Lets countries with different terminology keep their own names.",مثال: إمارة أو أبرشية أو إقليم أو بلدية أو محلة. يسمح للبلدان ذات المصطلحات المختلفة بالاحتفاظ بأسمائها.
+Center latitude,خط العرض للمركز
+Center longitude,خط الطول للمركز
+"Bounding box (W,S,E,N)",المستطيل المحيط (غ،ج،ش،م)
+Geometry and provenance,الهندسة والمصدر
+Boundary,الحدود
+Full-resolution polygon lives in Admin Boundary; this Link keeps the editable record connected to it.,يُحفظ المضلع كامل الدقة في الحدود الإدارية، وهذا الربط يُبقي السجل القابل للتحرير متصلاً به.
+GeoJSON (simplified),GeoJSON (مبسّط)
+Compact polygon for display and offline use. Always regenerable from the linked Admin Boundary.,مضلع مضغوط للعرض والاستخدام دون اتصال، ويمكن إعادة توليده دائماً من الحدود الإدارية المرتبطة.
+Source dataset,مجموعة البيانات المصدر
+Source kind,نوع المصدر
+Manual,يدوي
+Imported,مستورد
+Online,إلكتروني
+Last verified on,تاريخ آخر تحقق
+Indexed bounding box,المستطيل المحيط المفهرس
+West (lon),الغرب (الطول)
+South (lat),الجنوب (العرض)
+East (lon),الشرق (الطول)
+North (lat),الشمال (العرض)
+Linked hierarchy record,سجل التسلسل الهرمي المرتبط
+Hierarchy DocType,نوع مستند التسلسل الهرمي
+Hierarchy record,سجل التسلسل الهرمي
+Scalable import,استيراد قابل للتوسّع
+Store GeoJSON copy,تخزين نسخة GeoJSON
+Write a compact GeoJSON copy beside WKB. Disable for very large datasets to save disk.,اكتب نسخة GeoJSON مضغوطة بجوار WKB. عطّلها للمجموعات الكبيرة جداً لتوفير المساحة.
+Import batch size,حجم دفعة الاستيراد
+Features per streaming batch. Lower this if the worker runs out of memory.,عدد المعالم في الدفعة المتدفقة. قلّله إذا نفدت ذاكرة العامل.
+Last processed offset,آخر إزاحة معالجة
+Resume point for chunked imports; reset to 0 only when reloading a whole dataset.,نقطة الاستئناف للاستيراد المجزّأ؛ لا تُعاد إلى صفر إلا عند إعادة تحميل المجموعة كاملة.
+Coordinate resolution,تحليل الإحداثيات
+Create missing hierarchy records,إنشاء سجلات التسلسل الناقصة
+"When a resolved coordinate names a level that does not exist yet, create it if the user has create permission.",عندما يشير إحداثي مُحلّل إلى مستوى غير موجود بعد، يُنشأ إذا كان لدى المستخدم إذن الإنشاء.
+Use nearest gazetteer place as village,استخدام أقرب مكان في الفهرس كقرية
+Only used when no polygon-derived village or community exists; marked low confidence.,يُستخدم فقط عند غياب قرية أو تجمع مشتق من مضلع، ويُوسم بثقة منخفضة.
+Use online fallback when,استخدام الاحتياط الإلكتروني عند
+Missing country,غياب البلد
+Missing any level,غياب أي مستوى
+Always,دائماً
+Online User-Agent,وكيل المستخدم الإلكتروني
+Required by Nominatim. Include a contact address; a generic browser agent may be blocked.,مطلوب في Nominatim. أدرج عنوان اتصال؛ قد يُحظر وكيل المتصفح العام.
+Minimum seconds between online calls,أقل ثوانٍ بين الطلبات الإلكترونية
+Global per-worker throttle for public geocoders.,تحكم عام لكل عامل في طلبات خدمات التحديد العامة.
+Cache online results (days),تخزين نتائج الشبكة (أيام)
+Google Geocoding,تحديد المواقع من Google
+GeoJSON (same precision),GeoJSON (بالدقة نفسها)

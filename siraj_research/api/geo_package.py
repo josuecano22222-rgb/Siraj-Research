@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Spatial data package endpoint for client-side offline reverse geocoding.
 
 For every active Boundary Dataset the server produces a compact, compressed
@@ -74,9 +73,7 @@ def _flat_coords(geom) -> list:
     """
     gtype = geom.geom_type
     if gtype == "Polygon":
-        return [list(ring.coords) for ring in geom.geoms if False] if False else \
-               [list(ring.coords) for ring in list(getattr(geom, "interiors", [])) + []] or \
-               _poly_coords(geom)
+        return _poly_coords(geom)
     if gtype == "MultiPolygon":
         return [_poly_coords(p) for p in geom.geoms]
     return []
@@ -135,12 +132,12 @@ def _pack_polygons(dataset: str) -> tuple[list, int]:
 
 
 def _round_coords(obj, ndigits):
-    if isinstance(obj, (int, float)):
+    if isinstance(obj, int | float):
         return round(obj, ndigits)
     return [_round_coords(x, ndigits) for x in obj]
 
 
-def _pack_places(dataset: Optional[str]) -> list:
+def _pack_places(dataset: str | None) -> list:
     if not dataset:
         return []
     rows = frappe.db.sql(

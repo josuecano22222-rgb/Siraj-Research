@@ -36,13 +36,19 @@
    "label": "Geometry (WKB hex)",
    "read_only": 1,
    "description": "Well-Known-Binary hex in EPSG:4326."
+  },
+  {
+   "fieldname": "geom_geojson",
+   "fieldtype": "Long Text",
+   "label": "GeoJSON (same precision)"
   }
  ],
  "field_order": [
   "precision",
   "srid",
   "point_count",
-  "geom_wkb_hex"
+  "geom_wkb_hex",
+  "geom_geojson"
  ],
  "permissions": [],
  "links": [],

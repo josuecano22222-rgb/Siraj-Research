@@ -213,7 +213,7 @@
 			// Build chain from finest level up via parent pcode.
 			const LEVELS = [
 				[0,'country'],[1,'governorate'],[2,'district'],
-				[3,'municipality'],[4,'community'],[5,'neighborhood'],
+				[3,'municipality'],[4,'village'],[5,'community'],
 			];
 			const finest = Math.max.apply(null, Object.keys(best).map(Number));
 			let cur = best[finest] || null;

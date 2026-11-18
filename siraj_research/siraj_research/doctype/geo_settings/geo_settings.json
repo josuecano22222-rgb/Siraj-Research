@@ -48,7 +48,14 @@
   "enable_terrain_layer",
   "enable_watercolor_layer",
   "enable_usgs_topo_layer",
-  "enable_nasa_modis_layer"
+  "enable_nasa_modis_layer",
+  "sb_resolve",
+  "auto_create_missing",
+  "link_gazetteer_as_village",
+  "online_fallback_when",
+  "cb_resolve",
+  "online_user_agent",
+  "online_min_interval_s"
  ],
  "fields": [
   {
@@ -142,7 +149,7 @@
    "fieldtype": "Data",
    "label": "Stadia Maps API key",
    "length": 128,
-   "description": "Free at https://client.stadiamaps.com/ \u2014 required for Toner/Terrain/Watercolor layers."
+   "description": "Free at https://client.stadiamaps.com/ — required for Toner/Terrain/Watercolor layers."
   },
   {
    "fieldname": "cb_tile_keys",
@@ -237,8 +244,8 @@
    "fieldname": "online_provider",
    "fieldtype": "Select",
    "label": "Provider",
-   "options": "\nNominatim (OpenStreetMap)\nEsri World Geocoding\nPhoton (Komoot)",
-   "description": "Per-release provider choice \u2014 review the provider's ToS and data licence before enabling."
+   "options": "Nominatim (OpenStreetMap)\nEsri World Geocoding\nPhoton (Komoot)\nGoogle Geocoding",
+   "description": "Per-release provider choice — review the provider's ToS and data licence before enabling."
   },
   {
    "fieldname": "cb_online",
@@ -301,6 +308,50 @@
    "label": "Sea/gap warning distance (km)",
    "default": 5,
    "description": "Points this far from any land polygon are flagged as 'over water / no boundary'."
+  },
+  {
+   "fieldname": "sb_resolve",
+   "fieldtype": "Section Break",
+   "label": "Coordinate resolution"
+  },
+  {
+   "fieldname": "auto_create_missing",
+   "fieldtype": "Check",
+   "label": "Create missing hierarchy records",
+   "default": 1,
+   "description": "When a resolved coordinate names a level that does not exist yet, create it if the user has create permission."
+  },
+  {
+   "fieldname": "link_gazetteer_as_village",
+   "fieldtype": "Check",
+   "label": "Use nearest gazetteer place as village",
+   "default": 1,
+   "description": "Only used when no polygon-derived village or community exists; marked low confidence."
+  },
+  {
+   "fieldname": "online_fallback_when",
+   "fieldtype": "Select",
+   "label": "Use online fallback when",
+   "options": "Missing country\nMissing any level\nAlways",
+   "default": "Missing any level"
+  },
+  {
+   "fieldname": "cb_resolve",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "online_user_agent",
+   "fieldtype": "Data",
+   "label": "Online User-Agent",
+   "length": 180,
+   "description": "Required by Nominatim. Include a contact address; a generic browser agent may be blocked."
+  },
+  {
+   "fieldname": "online_min_interval_s",
+   "fieldtype": "Int",
+   "label": "Minimum seconds between online calls",
+   "default": 1,
+   "description": "Global per-worker throttle for public geocoders."
   }
  ],
  "permissions": [

@@ -130,6 +130,43 @@ def _seed_workflow_states(report):
 			_insert("Workflow State", {"workflow_state_name": name}, report)
 
 
+REFERENCE_DATASET = "SIRAJ-REFERENCE"
+
+
+def _seed_countries(report):
+    """Ensure the native Frappe Country list covers our reference codes."""
+    for row in _load("countries.json"):
+        code = str(row.get("code") or "").upper()
+        label = row.get("label_en") or code
+        if not code:
+            continue
+        if frappe.db.exists("Country", {"code": code}):
+            report.existing["Country"] += 1
+            continue
+        if frappe.db.exists("Country", label):
+            # Keep a site-created country that happens to share the label.
+            report.skip("Country", code, "label belongs to an existing Country")
+            continue
+        values = {"doctype": "Country", "country_name": label, "code": code}
+        _insert("Country", values, report)
+
+
+def _ensure_reference_dataset():
+    if not frappe.db.exists("Boundary Dataset", REFERENCE_DATASET):
+        doc = frappe.new_doc("Boundary Dataset")
+        doc.code = REFERENCE_DATASET
+        doc.label_en = "SIRAJ curated administrative reference"
+        doc.label_ar = "المرجع الإداري المنسّق في سراج"
+        doc.source = "SIRAJ reference_data/*.json"
+        doc.license_id = "Other (see notes)"
+        doc.import_status = "Complete"
+        doc.import_progress = 100
+        doc.feature_count = sum(len(_load(name)) for name in (
+            "governorates.json", "districts.json", "admin_units.json"))
+        doc.insert(ignore_permissions=True)
+    return REFERENCE_DATASET
+
+
 def _country_index(report):
 	groups = defaultdict(list)
 	for row in frappe.get_all("Country", fields=["name", "code"], limit_page_length=0):
@@ -176,8 +213,13 @@ def _seed_geo_level(doctype, parent_field, rows, parent_map, report):
 				"sort_order": int(row.get("sort") or 100),
 				"disabled": 0,
 				"is_system": 0,
+				"pcode": code,
+				"source_kind": "Imported",
+				"source_dataset": REFERENCE_DATASET,
 				parent_field: parent["name"],
 			}
+			if row.get("type"):
+				values["admin_level_type"] = row["type"]
 			# Fetch-from fields are normally populated by the form; populate
 			# them explicitly for server-side inserts without changing a parent.
 			values.update(parent.get("ancestors", {}))
@@ -192,6 +234,8 @@ def _seed_geo_level(doctype, parent_field, rows, parent_map, report):
 
 
 def _seed_geography(data, report):
+	_seed_countries(report)
+	_ensure_reference_dataset()
 	country_map = {code: {"name": name, "ancestors": {}} for code, name in _country_index(report).items()}
 	governorates = [{**g, "parent": g["country"]} for g in _load("governorates.json")]
 	gov_map = _seed_geo_level("Governorate", "country", governorates, country_map, report)
