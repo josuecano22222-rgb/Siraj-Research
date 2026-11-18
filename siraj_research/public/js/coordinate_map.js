@@ -705,9 +705,12 @@
 		setTimeout(() => { if (states.get(key) === state) map.invalidateSize(false); }, 500);
 
 		// Load offline base layer (Natural Earth countries-110m topojson).
+		// Fall back to online OSM tiles if the topojson fetch fails so the
+		// map is never blank after a missed `bench build`.
+		let offlineOk = false;
 		try {
 			const response = await fetch('/assets/siraj_research/vendor/world-atlas/countries-110m.json');
-			if (!response.ok) throw new Error('basemap');
+			if (!response.ok) throw new Error('basemap HTTP ' + response.status);
 			const world = await response.json();
 			if (states.get(key) !== state) return;
 			state.offlineLayer = L.geoJSON(topojson.feature(world, world.objects.countries), {
@@ -715,8 +718,21 @@
 			});
 			if (!state.tileLayer && !state.packLayer) state.offlineLayer.addTo(map);
 			if (state.marker && state.marker.bringToFront) state.marker.bringToFront();
-		} catch (_) {
-			if (states.get(key) === state) status.text(t('Offline basemap could not be loaded. Online tiles remain optional.'));
+			offlineOk = true;
+		} catch (err) {
+			console.warn('[SIRAJ] coordinate map: offline basemap failed:', err && err.message);
+		}
+		if (!offlineOk && states.get(key) === state) {
+			try {
+				state.tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+					maxZoom: 22, maxNativeZoom: 19,
+					attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+				}).addTo(map);
+				status.text(t('Offline basemap unavailable; using OpenStreetMap online tiles.'));
+			} catch (e) {
+				console.warn('[SIRAJ] coordinate map: online fallback failed:', e);
+				status.text(t('Basemap could not be loaded. Check network or run `bench build`.'));
+			}
 		}
 
 		// Advanced overlays (coordinate readout + stats dock + minimap).

@@ -1,6 +1,6 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
-const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.33';
+const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.34';
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -456,7 +456,10 @@ class SirajExplorer {
 			if (this.note) this.note.text(text).toggleClass('sx-warning', !!warn);
 		};
 		let offlineLayer = null, onlineLayer = null, localPackLayer = null, selectedCircle = null;
-		// Basemap
+		// Basemap. Prefer offline Natural Earth polygons (no third-party
+		// network); if that fetch fails (e.g. assets not linked after a
+		// deploy) fall back to OSM online tiles so the map is never blank.
+		let offlineOk = false;
 		try {
 			const response = await fetch('/assets/siraj_research/vendor/world-atlas/countries-110m.json');
 			if (!response.ok) throw new Error('offline basemap HTTP ' + response.status);
@@ -467,10 +470,23 @@ class SirajExplorer {
 			}).addTo(map);
 			map.attributionControl.addAttribution('Natural Earth / world-atlas');
 			mapStatus(__('Offline basemap: Natural Earth, low detail.'));
+			offlineOk = true;
 		} catch (err) {
-			console.error(err);
+			console.error('[SIRAJ] offline basemap failed:', err);
+		}
+		if (!offlineOk) {
 			if (renderId !== this.renderId) return;
-			mapStatus(__('Local basemap could not be loaded. You can still use the markers or enable online tiles.'), true);
+			try {
+				onlineLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+					maxZoom: 22, maxNativeZoom: 19,
+					attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+				}).addTo(map);
+				mapStatus(__('Offline basemap unavailable; using OpenStreetMap online tiles.'), true);
+			} catch (e) {
+				console.error('[SIRAJ] fallback online basemap failed:', e);
+				if (renderId !== this.renderId) return;
+				mapStatus(__('Basemap could not be loaded. Check network or run `bench build`.'), true);
+			}
 		}
 		// Icons — teardrop pin anchored at the tip (bottom center).
 		const pinH = s => Math.round(s * 1.15);

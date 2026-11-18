@@ -224,6 +224,19 @@
    We DO allow popups/tooltips to escape the canvas because Leaflet opens
    them with autoPan by default and the brief overflow is only visible at
    open animation time; their z-index (900) sits below navbar/dialogs. */
+/* Shared Leaflet container rules.
+   DO NOT set height/width:100% here. The wrapper divs (.sx-canvas in Explorer,
+   .siraj-coord-canvas in form coordinate maps) *are* the Leaflet container
+   (Leaflet adds .leaflet-container to the element you pass it), so
+   `height:100% !important` overrides their explicit fixed height
+   (min(70vh,760px) / 380px) with percent-height of the parent grid/flex cell
+   which has no explicit height — collapsing the map container to 0px and
+   leaving the map blank even though the wrapper border/background paints.
+   Sizing is the caller's responsibility via the wrapper classes below.
+   DO NOT set contain:layout paint — it makes Leaflet's tile/SVG panes (which
+   are absolutely positioned inside the container) size to 0x0 when init
+   happens before CSS layout completes. We use overflow:hidden for bleed
+   containment and z-index:0 + isolation for stacking instead. */
 .siraj-coordinate-map .leaflet-container,
 .siraj-explorer .leaflet-container,
 .leaflet-container {
@@ -231,12 +244,7 @@
 	overflow: hidden !important;
 	isolation: isolate !important;
 	z-index: 0 !important;
-	/* `contain: layout paint` breaks Leaflet: tile/SVG panes size to 0x0
-	   when the container is laid out after init. We rely on overflow:hidden
-	   for containment and z-index:0 + isolation for stacking instead. */
 	max-width: 100% !important;
-	height: 100% !important;
-	width: 100% !important;
 }
 .leaflet-tile-pane,
 .leaflet-overlay-pane,
