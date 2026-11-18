@@ -121,7 +121,8 @@ class TestDocTypeIntegrity(unittest.TestCase):
                 self.assertTrue(py.exists(), f"missing controller {dir_name}.py")
                 src = py.read_text()
                 tree = ast.parse(src)  # must be valid Python
-                expected = "".join(w.capitalize() for w in dir_name.split("_"))
+                # Frappe's controller naming: remove spaces/hyphens/apostrophes verbatim, no Title() camel-case
+                expected = d["name"].replace(' ','').replace('-','').replace("'","")
                 classes = [n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]
                 self.assertIn(expected, classes,
                     f"controller must define class {expected} (have {classes})")

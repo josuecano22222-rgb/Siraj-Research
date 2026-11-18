@@ -185,7 +185,7 @@
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.56';
+window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.57';
 try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .54 Fix patch-import crash: add missing patches/v1_0/__init__.py (Python requires __init__.py to treat a directory as a regular package) and remove erroneous .execute suffix from patches.txt entry (Frappe imports the module and calls execute() on it; .execute on the path makes it look for a submodule)."); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------

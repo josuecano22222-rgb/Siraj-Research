@@ -30,7 +30,7 @@
 	'use strict';
 	// Map engine build tag — mirrors window.SIRAJ_BUILD from siraj-record-meta.js
 	// so diagnostic lines in the console agree on the deployed revision.
-	const SIRAJ_MAP_BUILD = (window.SIRAJ_BUILD) || '2026-11-17.coord-field-slice-a.56';
+	const SIRAJ_MAP_BUILD = (window.SIRAJ_BUILD) || '2026-11-17.coord-field-slice-a.57';
 	console.info('%c[SIRAJ Map]', 'color:#0c5e5b;font-weight:bold', 'build', SIRAJ_MAP_BUILD, '| default engine: maplibre');
 
 	const engines = { maplibre: null, leaflet: null };
@@ -67,29 +67,141 @@
 		});
 	}
 
-	/* ---------------- MapLibre adapter ---------------- */
-	async function createMapLibre(container, opts) {
-		await loadMapLibre();
-		const ml = window.maplibregl;
-		// Default style: solid background only. No text labels, no glyph PBFs, no
-		// external requests of any kind. Label layers and glyphs endpoint must be
-		// added explicitly by a later basemap style (vector PMTiles) once local
-		// font PBFs are bundled; demotiles.maplibre.org must never be referenced
-		// in the default configuration.
-		const style = opts.style || {
-			version: 8,
-			name: 'siraj-offline-zero',
+	/* ---------------- Basemap styles (MapLibre raster sources) ---------------- */
+	const BASEMAPS = {
+		standard: {
+			label: 'Standard',
+			icon: '🗺️',
+			sources: {
+				'basemap': {
+					type: 'raster',
+					tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+					tileSize: 256,
+					attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+				},
+			},
+			layers: [{ id: 'basemap', type: 'raster', source: 'basemap' }],
+		},
+		satellite: {
+			label: 'Satellite',
+			icon: '🛰️',
+			sources: {
+				'basemap': {
+					type: 'raster',
+					tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+					tileSize: 256,
+					attribution: '© Esri World Imagery',
+				},
+			},
+			layers: [{ id: 'basemap', type: 'raster', source: 'basemap' }],
+		},
+		hybrid: {
+			label: 'Hybrid',
+			icon: '📌',
+			sources: {
+				'sat': {
+					type: 'raster',
+					tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+					tileSize: 256,
+					attribution: '© Esri',
+				},
+				'labels': {
+					type: 'raster',
+					tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],
+					tileSize: 256,
+				},
+			},
+			layers: [
+				{ id: 'sat', type: 'raster', source: 'sat' },
+				{ id: 'labels', type: 'raster', source: 'labels' },
+			],
+		},
+		offline: {
+			label: 'Offline',
+			icon: '📴',
 			sources: {},
 			layers: [
 				{ id: 'background', type: 'background', paint: { 'background-color': '#e8e4cf' } },
 			],
-			// glyphs intentionally omitted; styles that render labels must set this
-			// to a locally-hosted URL (e.g. '/assets/siraj_research/fonts/{fontstack}/{range}.pbf').
+		},
+	};
+
+	class BasemapControl {
+		constructor(defaultStyle = 'standard') { this._style = defaultStyle; this._container = null; this._map = null; }
+		onAdd(map) {
+			this._map = map;
+			const div = document.createElement('div');
+			div.className = 'maplibregl-ctrl maplibregl-ctrl-group sx-basemap-ctrl';
+			const btns = document.createElement('div');
+			btns.style.cssText = 'display:flex;flex-direction:column;';
+			for (const [key, spec] of Object.entries(BASEMAPS)) {
+				const b = document.createElement('button');
+				b.type = 'button';
+				b.className = 'sx-basemap-btn' + (key === this._style ? ' active' : '');
+				b.title = spec.label;
+				b.innerHTML = `<span class="sx-basemap-icon">${spec.icon}</span>`;
+				b.dataset.style = key;
+				b.onclick = () => this.setStyle(key);
+				btns.appendChild(b);
+			}
+			div.appendChild(btns);
+			this._container = div;
+			this._apply(this._style);
+			return div;
+		}
+		onRemove() { if (this._container && this._container.parentNode) this._container.parentNode.removeChild(this._container); this._map = null; }
+		getDefaultPosition() { return 'top-left'; }
+		setStyle(key) {
+			if (!BASEMAPS[key]) return;
+			this._style = key;
+			if (this._container) {
+				this._container.querySelectorAll('.sx-basemap-btn').forEach(b => b.classList.toggle('active', b.dataset.style === key));
+			}
+			if (this._map) this._apply(key);
+			if (this._onChange) this._onChange(key);
+		}
+		onChange(fn) { this._onChange = fn; }
+		_apply(key) {
+			const map = this._map; if (!map) return;
+			const style = map.getStyle();
+			// Remove existing basemap sources/layers
+			['basemap','sat','labels'].forEach(sid => {
+				try { if (style.layers.some(l => l.id === sid + '-bg')) return; } catch(_) {}
+				if (map.getLayer(sid)) map.removeLayer(sid);
+				if (map.getSource(sid)) map.removeSource(sid);
+			});
+			if (map.getLayer('background')) map.removeLayer('background');
+			const spec = BASEMAPS[key];
+			if (!spec) return;
+			// Add sources + layers (under all other layers)
+			const firstLayerId = style.layers.find(l => l.id !== 'background')?.id;
+			if (key === 'offline') {
+				map.addLayer({ id:'background', type:'background', paint:{'background-color':'#e8e4cf'} });
+				return;
+			}
+			for (const [sid, src] of Object.entries(spec.sources)) {
+				map.addSource(sid, src);
+			}
+			for (const layer of spec.layers) {
+				if (firstLayerId) map.addLayer(layer, firstLayerId);
+				else map.addLayer(layer);
+			}
+		}
+	}
+
+	/* ---------------- MapLibre adapter ---------------- */
+	async function createMapLibre(container, opts) {
+		await loadMapLibre();
+		const ml = window.maplibregl;
+		// Default starting style = empty; BasemapControl adds the selected raster layer.
+		const initialStyle = (opts.basemap === 'offline') ? BASEMAPS.offline : {
+			version: 8, name: 'siraj-blank', sources: {},
+			layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#e8e4cf' } }],
 		};
 		const map = new ml.Map({
 			container,
-			style,
-			center: opts.center || [44.3661, 33.3152],   // [lng, lat] for MapLibre
+			style: initialStyle,
+			center: opts.center || [44.3661, 33.3152],
 			zoom: opts.zoom || 4,
 			minZoom: opts.minZoom || 0,
 			maxZoom: opts.maxZoom || 22,
@@ -99,8 +211,11 @@
 		// Controls
 		if (opts.navControl !== false) map.addControl(new ml.NavigationControl({ visualizePitch: true }), 'top-right');
 		if (opts.scale !== false) map.addControl(new ml.ScaleControl({ unit: 'metric' }), 'bottom-left');
+		const basemapCtrl = new BasemapControl(opts.basemap || 'standard');
+		if (opts.basemapControl !== false) map.addControl(basemapCtrl, 'top-left');
 		return {
-			engine: 'maplibre', map, container, ml,
+			engine: 'maplibre', map, container, ml, basemaps: BASEMAPS,
+			setBasemap(k) { basemapCtrl.setStyle(k); return this; },
 			addControl(ctl, pos) { map.addControl(ctl, pos || 'top-right'); return this; },
 			fit(bounds, o) { map.fitBounds(bounds, Object.assign({padding:20}, o||{})); return this; },
 			setView(lnglat, z) { map.flyTo({center: lnglat, zoom: z == null ? map.getZoom() : z}); return this; },

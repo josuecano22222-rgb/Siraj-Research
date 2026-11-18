@@ -399,3 +399,26 @@
 .siraj-coordinate-map .siraj-toolbar { border-radius: 6px; box-shadow: 0 1px 4px rgba(28,52,58,.12); }
 .siraj-coordinate-map .siraj-toolbar-btn { min-width: 30px; min-height: 30px; padding: 5px; }
 .siraj-coordinate-map .siraj-toolbar-btn svg { width: 16px; height: 16px; }
+
+/* Basemap switcher (standard / satellite / hybrid / offline) */
+.sx-basemap-ctrl .sx-basemap-btn {
+	display: block;
+	width: 34px;
+	height: 32px;
+	line-height: 32px;
+	padding: 0;
+	margin: 0;
+	border: none;
+	border-bottom: 1px solid rgba(0,0,0,0.08);
+	background: #fff;
+	cursor: pointer;
+	font-size: 16px;
+	transition: background .15s ease;
+}
+.sx-basemap-ctrl .sx-basemap-btn:last-child { border-bottom: none; }
+.sx-basemap-ctrl .sx-basemap-btn:hover { background: #f4f4f5; }
+.sx-basemap-ctrl .sx-basemap-btn.active {
+	background: #0c5e5b;
+	color: #fff;
+}
+.sx-basemap-ctrl .sx-basemap-icon { pointer-events: none; }
