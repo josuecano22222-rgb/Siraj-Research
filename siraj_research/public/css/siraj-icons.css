@@ -224,66 +224,79 @@
    We DO allow popups/tooltips to escape the canvas because Leaflet opens
    them with autoPan by default and the brief overflow is only visible at
    open animation time; their z-index (900) sits below navbar/dialogs. */
-/* Shared Leaflet container rules.
-   - NEVER set height/width:100% here: .sx-canvas / .siraj-coord-canvas *are*
-     the Leaflet container and `height:100%` collapses percent-height grid
-     children to 0 (root cause of .33/.34 blank maps).
-   - NEVER set contain:layout paint: Leaflet's absolutely-positioned panes
-     size themselves from container.offsetWidth/Height at init and don't
-     re-resolve inside a containment box.
-   - Keep specificity low (one class selector) so wrapper rules can win
-     without !important, and use !important only where we need to override
-     Leaflet defaults or aggressive Frappe resets (e.g. img max-width). */
+/* Shared Leaflet integration — MINIMAL OVERRIDES.
+   Leaflet ships its own carefully-tuned CSS for .leaflet-container,
+   .leaflet-pane, .leaflet-tile-container, marker sizing, overflow,
+   position, z-index. Overriding those caused every map to render blank in
+   builds .28-.36 (tiles fetched but never painted, North Pole zoom-0 view,
+   markers invisible). We therefore leave layout entirely to Leaflet's own
+   CSS and only override what Frappe/Bootstrap resets break:
+     - global img {max-width:100%;height:auto} stretches 256px tiles to 0px
+       when the container is mid-layout; reset for map images only.
+     - canvas box-sizing:border-box so border+padding don't subtract from
+       the area Leaflet measures.
+     - marker-cluster defaults (vendor CSS files are not shipped in vendor/).
+   We also keep popup/tooltip pointers disabled on the pane wrapper. */
+.siraj-coordinate-map .siraj-coord-canvas,
+.siraj-explorer .sx-canvas {
+	box-sizing: border-box;
+}
 .siraj-coordinate-map .leaflet-container,
 .siraj-explorer .leaflet-container,
 .leaflet-container {
-	position: relative;
-	overflow: hidden;
-	z-index: 0;
-	background: #c8dfe0;
 	outline: none;
+	-webkit-tap-highlight-color: transparent;
+	touch-action: pan-x pan-y;
 }
-/* Leaflet tiles/markers must never inherit global max-width:100% (common in
-   Frappe / Bootstrap resets) — it stretches 256px tiles to container width
-   and makes them invisible. */
-.leaflet-container img.leaflet-tile,
-.leaflet-container img.leaflet-marker-icon,
-.leaflet-container img.leaflet-marker-shadow {
+.leaflet-container .leaflet-overlay-pane svg,
+.leaflet-container .leaflet-marker-pane img,
+.leaflet-container .leaflet-shadow-pane img,
+.leaflet-container .leaflet-tile-pane img,
+.leaflet-container img.leaflet-image-layer,
+.leaflet-container .leaflet-tile {
 	max-width: none !important;
 	max-height: none !important;
-	min-width: 0;
-	min-height: 0;
 	padding: 0;
 	margin: 0;
 	border: 0;
 	box-shadow: none;
 }
-/* Panes need to be position:absolute so Leaflet's top/left transforms place
-   them correctly. overflow:hidden clips tiles to the viewport. */
-.leaflet-pane {
-	position: absolute;
-	top: 0; left: 0;
-}
-.leaflet-tile-pane,
-.leaflet-overlay-pane,
-.leaflet-shadow-pane,
-.leaflet-marker-pane {
-	overflow: hidden;
-}
-.leaflet-tile-pane,
-.leaflet-overlay-pane,
-.leaflet-shadow-pane,
-.leaflet-marker-pane {
-	overflow: hidden !important;
+.leaflet-container .leaflet-marker-icon,
+.leaflet-container .leaflet-marker-shadow {
+	display: block;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
 }
 .leaflet-popup-pane,
 .leaflet-tooltip-pane {
-	overflow: visible !important;
 	pointer-events: none;
 }
 .leaflet-popup-pane .leaflet-popup,
 .leaflet-tooltip-pane .leaflet-tooltip {
 	pointer-events: auto;
+}
+/* MarkerCluster styles (vendor CSS not shipped). */
+.marker-cluster {
+	background-clip: padding-box;
+	border-radius: 20px;
+	background-color: rgba(18,106,104,0.32);
+}
+.marker-cluster div {
+	width: 30px; height: 30px;
+	margin-left: 5px; margin-top: 5px;
+	text-align: center;
+	border-radius: 15px;
+	font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+	font-weight: bold; color: #fff;
+	line-height: 30px;
+	background-color: #126a68;
+}
+.marker-cluster span { line-height: 30px; }
+.leaflet-cluster-anim .leaflet-marker-icon,
+.leaflet-cluster-anim .leaflet-marker-shadow {
+	transition: transform 0.3s ease-out, opacity 0.3s ease-in;
 }
 
 /* High-DPI / small viewports: scale slightly down on tiny screens. */
