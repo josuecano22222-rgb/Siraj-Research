@@ -185,8 +185,8 @@
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.50';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .50 Full doctype audit: add non-empty __init__.py to every DocType package directory (Python 3.12 namespace-package quirk caused ModuleNotFoundError on child tables during bench migrate even though .py files existed); verify all Link/Table/links[] references resolve to existing DocTypes; remove broken Governorate→Institution link"); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.51';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .51 Fix Table-field options: Frappe resolves Link/Table options by DocType display name (e.g. 'Person Location') not module-dir slug ('person_location') — snake_case values caused getdoctype 404s, form-builder cascades, and WrongOptionsDoctypeLinkError; remove default_print_format from standard DocTypes (only allowed on custom DocTypes/Print Format records)"); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------
 // Compare the JS-built stamp with the server stamp delivered at boot time.

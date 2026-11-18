@@ -26,7 +26,6 @@
  "search_fields": "display_name,name_ar,name_en,name_original,name_transliteration",
  "icon": "star",
  "description": "SIRAJ-researched event connecting persons, institutions, military units and places.",
- "default_print_format": "SIRAJ Research Dossier",
  "fields": [
   {
    "fieldname": "title",
@@ -81,7 +80,7 @@
    "fieldname": "people",
    "fieldtype": "Table",
    "label": "People involved",
-   "options": "siraj_event_person",
+   "options": "Siraj Event Person",
    "group": "People involved"
   },
   {
@@ -93,14 +92,14 @@
    "fieldname": "institutions",
    "fieldtype": "Table",
    "label": "Institutions involved",
-   "options": "siraj_event_institution",
+   "options": "Siraj Event Institution",
    "group": "Institutions involved"
   },
   {
    "fieldname": "military_units",
    "fieldtype": "Table",
    "label": "Military units involved",
-   "options": "siraj_event_military_unit",
+   "options": "Siraj Event Military Unit",
    "group": "Military units involved"
   },
   {
@@ -113,7 +112,7 @@
    "fieldname": "places",
    "fieldtype": "Table",
    "label": "Locations",
-   "options": "siraj_event_location",
+   "options": "Siraj Event Location",
    "group": "Locations"
   },
   {

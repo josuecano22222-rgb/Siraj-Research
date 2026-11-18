@@ -448,27 +448,27 @@
    "fieldname": "events_table",
    "fieldtype": "Table",
    "label": "Events",
-   "options": "institution_event",
+   "options": "Institution Event",
    "group": "Events"
   },
   {
    "fieldname": "military_units",
    "fieldtype": "Table",
    "label": "Military units",
-   "options": "institution_military_unit",
+   "options": "Institution Military Unit",
    "group": "Military units"
   },
   {
    "fieldname": "locations_table",
    "fieldtype": "Table",
    "label": "Locations",
-   "options": "institution_location",
+   "options": "Institution Location",
    "group": "Locations"
   },
   {
    "fieldname": "people",
    "fieldtype": "Table",
-   "options": "person_institution",
+   "options": "Person Institution",
    "label": "People",
    "group": "People"
   },
@@ -748,6 +748,5 @@
  "image_field": "image",
  "search_fields": "display_name,name_ar,name_en,abbreviation,name_original",
  "icon": "building",
- "description": "Universities, research centres, ministries, associations and other bodies.",
- "default_print_format": "SIRAJ Research Dossier"
+ "description": "Universities, research centres, ministries, associations and other bodies."
 }

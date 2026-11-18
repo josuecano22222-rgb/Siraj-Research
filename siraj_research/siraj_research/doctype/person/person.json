@@ -592,28 +592,28 @@
    "fieldname": "institutions",
    "fieldtype": "Table",
    "label": "Institutions",
-   "options": "person_institution",
+   "options": "Person Institution",
    "group": "Institutions"
   },
   {
    "fieldname": "military_units",
    "fieldtype": "Table",
    "label": "Military units",
-   "options": "person_military_unit",
+   "options": "Person Military Unit",
    "group": "Military units"
   },
   {
    "fieldname": "events_table",
    "fieldtype": "Table",
    "label": "Events",
-   "options": "person_event",
+   "options": "Person Event",
    "group": "Events"
   },
   {
    "fieldname": "locations_table",
    "fieldtype": "Table",
    "label": "Locations",
-   "options": "person_location",
+   "options": "Person Location",
    "group": "Locations"
   },
   {
@@ -910,6 +910,5 @@
  "image_field": "image",
  "search_fields": "display_name,name_ar,name_en,name_original,name_transliteration",
  "icon": "user",
- "description": "Researchers, scholars, officials and other individuals.",
- "default_print_format": "SIRAJ Research Dossier"
+ "description": "Researchers, scholars, officials and other individuals."
 }

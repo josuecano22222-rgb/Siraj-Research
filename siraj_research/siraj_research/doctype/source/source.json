@@ -505,6 +505,5 @@
  "title_field": "display_name",
  "search_fields": "display_name,title,title_ar,publisher,archive_reference,isbn_issn",
  "icon": "book",
- "description": "Documents, archives, interviews and web references.",
- "default_print_format": "SIRAJ Research Dossier"
+ "description": "Documents, archives, interviews and web references."
 }

@@ -510,6 +510,5 @@
  "title_field": "display_name",
  "search_fields": "display_name,subject,object,description",
  "icon": "share-2",
- "description": "Typed, sourced links between any two registry records.",
- "default_print_format": "SIRAJ Research Dossier"
+ "description": "Typed, sourced links between any two registry records."
 }

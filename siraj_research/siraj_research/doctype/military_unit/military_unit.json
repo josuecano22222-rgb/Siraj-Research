@@ -406,27 +406,27 @@
    "fieldname": "institutions",
    "fieldtype": "Table",
    "label": "Institutions",
-   "options": "military_unit_institution",
+   "options": "Military Unit Institution",
    "group": "Institutions"
   },
   {
    "fieldname": "events_table",
    "fieldtype": "Table",
    "label": "Events",
-   "options": "military_unit_event",
+   "options": "Military Unit Event",
    "group": "Events"
   },
   {
    "fieldname": "locations_table",
    "fieldtype": "Table",
    "label": "Locations",
-   "options": "military_unit_location",
+   "options": "Military Unit Location",
    "group": "Locations"
   },
   {
    "fieldname": "command_personnel",
    "fieldtype": "Table",
-   "options": "person_military_unit",
+   "options": "Person Military Unit",
    "label": "Command personnel",
    "group": "Command personnel"
   },

@@ -338,28 +338,28 @@
   {
    "fieldname": "people",
    "fieldtype": "Table",
-   "options": "person_location",
+   "options": "Person Location",
    "label": "People",
    "group": "People"
   },
   {
    "fieldname": "institutions",
    "fieldtype": "Table",
-   "options": "institution_location",
+   "options": "Institution Location",
    "label": "Institutions",
    "group": "Institutions"
   },
   {
    "fieldname": "military_units",
    "fieldtype": "Table",
-   "options": "military_unit_location",
+   "options": "Military Unit Location",
    "label": "Military units",
    "group": "Military units"
   },
   {
    "fieldname": "events",
    "fieldtype": "Table",
-   "options": "siraj_event_location",
+   "options": "Siraj Event Location",
    "label": "Events",
    "group": "Events"
   },
@@ -649,6 +649,5 @@
  "search_fields": "display_name,name_ar,name_en,name_original",
  "default_view": "Tree",
  "icon": "map-pin",
- "description": "Cities, districts, sites and buildings of research interest.",
- "default_print_format": "SIRAJ Research Dossier"
+ "description": "Cities, districts, sites and buildings of research interest."
 }
