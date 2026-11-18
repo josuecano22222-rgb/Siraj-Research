@@ -6,7 +6,14 @@
    (a wide Leaflet container will otherwise force its column beyond 1fr and
    spill into the detail aside — see map-overflow bug). */
 .sx-layout > *, .sx-layout-geo > * { min-width: 0; max-width: 100%; }
-.sx-canvas { position: relative; min-height: 570px; height: min(70vh, 760px); width:100%; border: 1px solid var(--sx-line); border-radius: 8px; overflow: hidden; background: #e7efed; contain: layout paint; }
+/* NOTE: do NOT add `contain: layout paint` here. Leaflet's SVG renderer
+   sizes itself to the map container at init time via offsetWidth/Height;
+   with layout containment applied to a parent whose Leaflet child is
+   initialized before the parent is laid out (0x0), the containment box
+   never re-propagates to absolute-positioned tile/SVG panes and the map
+   renders at 0x0 even though the wrapper has height. Instead we rely on
+   overflow:hidden + isolation on .leaflet-container itself. */
+.sx-canvas { position: relative; min-height: 570px; height: min(70vh, 760px); width:100%; border: 1px solid var(--sx-line); border-radius: 8px; overflow: hidden; background: #e7efed; }
 .sx-canvas.sx-graph { background: var(--sx-bg); }
 .sx-aside { padding: 18px; border: 1px solid var(--sx-line); border-radius: 8px; background: var(--sx-bg); overflow-wrap: anywhere; }
 .sx-aside h4 { margin-top: 0; } .sx-aside p { margin: 8px 0; } .sx-aside dl { margin-top: 16px; }

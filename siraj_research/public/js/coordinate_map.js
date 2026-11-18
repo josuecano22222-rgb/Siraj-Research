@@ -684,16 +684,25 @@
 		}
 
 		update(frm, true);
-		// Defer initial invalidateSize until the canvas has a real size
-		// (grid form sections may be 0×0 on first paint; calling it on a
-		// zero-size container produces "Invalid LatLng: NaN" from unproject).
+		// Defer initial invalidateSize until the canvas has a real size.
+		// Force-call invalidateSize the moment the canvas is non-trivial
+		// (earlier code returned early if size matched cached size, but on
+		// first paint Leaflet initialized at 0×0 and never refreshed even
+		// when the wrapper later had height).
 		const tryInv = delay => setTimeout(() => {
 			if (states.get(key) !== state) return;
 			const w = canvas[0].clientWidth, h = canvas[0].clientHeight;
-			if (w > 100 && h > 100) { map.invalidateSize(); return; }
-			if (delay < 800) tryInv(delay * 2);
+			if (w > 100 && h > 100) {
+				map.invalidateSize(false);  // animate=false; force re-layout
+				return;
+			}
+			if (delay < 1600) tryInv(delay * 2);
 		}, delay);
 		tryInv(30);
+		// Belt-and-suspenders: also invalidate on the next two animation
+		// frames and after a longer timeout to catch slow Frappe layouts.
+		requestAnimationFrame(() => { if (states.get(key) === state) map.invalidateSize(false); });
+		setTimeout(() => { if (states.get(key) === state) map.invalidateSize(false); }, 500);
 
 		// Load offline base layer (Natural Earth countries-110m topojson).
 		try {

@@ -231,8 +231,12 @@
 	overflow: hidden !important;
 	isolation: isolate !important;
 	z-index: 0 !important;
-	contain: layout paint style !important;
+	/* `contain: layout paint` breaks Leaflet: tile/SVG panes size to 0x0
+	   when the container is laid out after init. We rely on overflow:hidden
+	   for containment and z-index:0 + isolation for stacking instead. */
 	max-width: 100% !important;
+	height: 100% !important;
+	width: 100% !important;
 }
 .leaflet-tile-pane,
 .leaflet-overlay-pane,

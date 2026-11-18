@@ -1,6 +1,6 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
-const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.32';
+const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.33';
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -1590,19 +1590,21 @@ class SirajExplorer {
 				map.fitBounds(L.latLngBounds(currentPoints.map(p=>[Number(p.latitude),Number(p.longitude)])).pad(0.15),{maxZoom:12, padding:[60,60]});
 			} catch(_) { /* invalid/empty bounds — ignore */ }
 		}
-		// Invalidate size whenever the canvas or its ancestors resize (grid
-		// reflow, sidebar open, window resize, mobile URL bar collapse) so
-		// the Leaflet viewport tracks its actual bounding box. Wait until
-		// layout has settled (grid columns can be 0 wide on first paint).
+		// Invalidate size whenever the canvas or its ancestors resize. Force
+		// invalidateSize (no animate, no short-circuit on matching getSize)
+		// the moment the canvas is non-trivial — Leaflet may have initialized
+		// at 0×0 before CSS grid laid out the column.
 		const tryInvalidate = delay => {
 			setTimeout(() => {
 				if (this.map !== map) return;
 				const w = this.canvas[0].clientWidth, h = this.canvas[0].clientHeight;
-				if (w > 100 && h > 100) { map.invalidateSize(); return; }
-				if (delay < 800) tryInvalidate(delay * 2);
+				if (w > 100 && h > 100) { map.invalidateSize(false); return; }
+				if (delay < 1600) tryInvalidate(delay * 2);
 			}, delay);
 		};
 		tryInvalidate(50);
+		requestAnimationFrame(() => { if (this.map === map) map.invalidateSize(false); });
+		setTimeout(() => { if (this.map === map) map.invalidateSize(false); }, 500);
 		if (window.ResizeObserver && !this._geoResizeObs) {
 			this._geoResizeObs = new ResizeObserver(() => {
 				if (this.map !== map) return;
