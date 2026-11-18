@@ -98,7 +98,8 @@
   },
   {
    "fieldname": "cb_identity",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": ""
   },
   {
    "fieldname": "country",
@@ -147,12 +148,13 @@
   {
    "fieldname": "area_m2",
    "fieldtype": "Float",
-   "label": "Area (m²)",
+   "label": "Area (m\u00b2)",
    "read_only": 1
   },
   {
    "fieldname": "cb_geom",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": ""
   },
   {
    "fieldname": "centroid_lat",
@@ -172,7 +174,7 @@
    "label": "Bounding box",
    "read_only": 1,
    "length": 200,
-   "description": "minx,miny,maxx,maxy in WGS 84 — used for spatial pre-filtering."
+   "description": "minx,miny,maxx,maxy in WGS 84 \u2014 used for spatial pre-filtering."
   },
   {
    "fieldname": "sb_provenance",
@@ -196,7 +198,8 @@
   },
   {
    "fieldname": "cb_geom_child",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": ""
   },
   {
    "fieldname": "geometries",

@@ -96,7 +96,8 @@
   },
   {
    "fieldname": "cb_identity",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": ""
   },
   {
    "fieldname": "country",
@@ -154,7 +155,8 @@
   },
   {
    "fieldname": "cb_loc",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": ""
   },
   {
    "fieldname": "population",

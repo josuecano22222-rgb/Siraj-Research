@@ -4,5 +4,5 @@
 from frappe.model.document import Document
 
 
-class ExternalIDScheme(Document):
+class ExternalIdScheme(Document):
 	pass

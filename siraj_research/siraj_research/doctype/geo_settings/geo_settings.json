@@ -73,7 +73,8 @@
   },
   {
    "fieldname": "cb_tiles",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": ""
   },
   {
    "fieldname": "enable_standard_layer",
@@ -145,7 +146,8 @@
   },
   {
    "fieldname": "cb_tile_keys",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": ""
   },
   {
    "fieldname": "nasa_gibs_date",
@@ -197,7 +199,8 @@
   },
   {
    "fieldname": "cb_datasets",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": ""
   },
   {
    "fieldname": "border_tolerance_m",
@@ -239,7 +242,8 @@
   },
   {
    "fieldname": "cb_online",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": ""
   },
   {
    "fieldname": "online_api_key",
@@ -280,7 +284,8 @@
   },
   {
    "fieldname": "cb_reverse",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": ""
   },
   {
    "fieldname": "default_country_code",

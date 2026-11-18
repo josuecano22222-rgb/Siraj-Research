@@ -112,7 +112,8 @@
   },
   {
    "fieldname": "cb_meta",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": ""
   },
   {
    "fieldname": "country",
@@ -137,7 +138,7 @@
    "label": "Encoding",
    "default": "UTF-8",
    "length": 32,
-   "description": "Shapefile DBF encoding (UTF-8, Windows-1256, ISO-8859-6, …)."
+   "description": "Shapefile DBF encoding (UTF-8, Windows-1256, ISO-8859-6, \u2026)."
   },
   {
    "fieldname": "simplification_tolerance_m",
@@ -175,7 +176,8 @@
   },
   {
    "fieldname": "cb_status",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "label": ""
   },
   {
    "fieldname": "feature_count",
@@ -215,7 +217,7 @@
    "label": "SRID",
    "default": 4326,
    "read_only": 1,
-   "description": "All geometry stored in EPSG:4326 (WGS 84 lon/lat) — server reprojects on import."
+   "description": "All geometry stored in EPSG:4326 (WGS 84 lon/lat) \u2014 server reprojects on import."
   }
  ],
  "permissions": [
