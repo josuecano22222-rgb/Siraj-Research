@@ -1,6 +1,6 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
-const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.31';
+const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.32';
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -29,7 +29,17 @@ class SirajExplorer {
 	}
 	async render() {
 		if (this.downloadController) { this.downloadController.abort(); this.downloadController = null; }
-		if (this.map) { this.map.remove(); this.map = null; }
+		// Tear down prior observers/advanced overlays before removing the map
+		// so refresh() does not fire against a removed Leaflet instance
+		// (avoids "Map container is being reused by another instance" and
+		// NaN LatLng cascades during tab switches).
+		if (this._geoResizeObs) { this._geoResizeObs.disconnect(); this._geoResizeObs = null; }
+		if (this.map && this.map._sirajAdvanced) { delete this.map._sirajAdvanced; }
+		this._adv = null;
+		if (this.map) {
+			try { this.map.off(); this.map.remove(); } catch(_) {}
+			this.map = null;
+		}
 		if (this.network) { this.network.destroy(); this.network = null; }
 		const renderId = this.renderId = (this.renderId || 0) + 1;
 		this.root.empty();
@@ -1470,6 +1480,10 @@ class SirajExplorer {
 			mapStatus(visible ? '' : __('Toolbar hidden — press \\ to show.'));
 		}.bind(this)});
 
+		// Helper for svg icons inside popover markup (declared before use so
+		// the Charts/Share buttons below can reference it at init time).
+		function svgText(name) { return (window.SirajMapAdvanced && window.SirajMapAdvanced.svg) ? window.SirajMapAdvanced.svg(name) : ''; }
+
 		// Charts / share / palette / help — advanced overlays group.
 		const advGroup = this.toolbar.group(__('Insights'));
 		if (window.SirajMapAdvanced && window.SirajMapAdvanced.charts) {
@@ -1525,8 +1539,6 @@ class SirajExplorer {
 			dlg.show();
 		}});
 
-		// Helper for svg icons inside popover markup.
-		function svgText(name) { return (window.SirajMapAdvanced && window.SirajMapAdvanced.svg) ? window.SirajMapAdvanced.svg(name) : ''; }
 		function openExplorerPalette(selfRef) {
 			if (!window.SirajMapAdvanced) return;
 			const cmds = [
@@ -1615,6 +1627,7 @@ class SirajExplorer {
 
 		/* ----- Advanced overlays (stats, readout, minimap, box-select) ----- */
 		if (window.SirajMapAdvanced) {
+			const self2 = this;
 			const adv = window.SirajMapAdvanced.attach(map, {
 				getData: () => {
 					const st = filterStore.get();
@@ -1625,12 +1638,19 @@ class SirajExplorer {
 					});
 					const typeCounts = {};
 					visible.forEach(p => { typeCounts[p.doctype] = (typeCounts[p.doctype]||0)+1; });
-					const edgesOn = overlayLines && map.hasLayer(overlayLines);
+					// Relationship lines live on this.relLayer.layer — the old
+					// overlayLines variable does not exist in this module.
+					let edgesCount = 0;
+					try {
+						if (self2.relLayer && self2.relLayer.layer && map.hasLayer(self2.relLayer.layer)) {
+							edgesCount = (currentEdges && currentEdges.length) || 0;
+						}
+					} catch(_) {}
 					return {
 						total: data.points ? data.points.length : 0,
 						visible: visible.length,
 						selected: selectedNode ? 1 : 0,
-						edges: edgesOn ? (currentEdges||[]).length : 0,
+						edges: edgesCount,
 						typeCounts,
 						truncated: !!(data && data.truncated && data.truncated.length),
 					};
@@ -1643,12 +1663,13 @@ class SirajExplorer {
 				},
 			});
 			this._adv = adv;
-			// Re-render the stats dock whenever filters or selection change.
-			const refresh = () => adv && adv.refresh && adv.refresh();
+			// Re-render stats dock safely (swallow errors from stale events
+			// during map teardown so they don't surface to the console).
+			const refresh = () => { try { adv && adv.refresh && adv.refresh(); } catch(_) {} };
 			filterStore.subscribe(refresh);
 			map.on('layeradd layerremove zoomend moveend', refresh);
 			map.on('click', () => setTimeout(refresh, 20));
-			refresh();
+			setTimeout(refresh, 100);
 		}
 	}
 	async relationships(data, renderId) {
