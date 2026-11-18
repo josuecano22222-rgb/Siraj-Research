@@ -185,8 +185,8 @@
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.53';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .53 FUNDAMENTAL DATA-MODEL FIX: 15 relation DocTypes (Person Position + 14 cross-links) converted from child tables (istable=1) to STANDARD DocTypes (istable=0) per owner correction; parent Table fields removed (they implied child-table ownership); cross-links now populate via DocType.links[] -> Connections panel. Ship SIRAJ Research Dossier Print Format as proper fixture (removed from standard DocType JSON). Fix SIRAJ Settings istable=0 and External ID Scheme istable=0 (both had None). Idempotent cleanup patch removes stale Custom Fields/Property Setters. 8 static integrity tests + in-site meta-load test."); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.54';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .54 Fix patch-import crash: add missing patches/v1_0/__init__.py (Python requires __init__.py to treat a directory as a regular package) and remove erroneous .execute suffix from patches.txt entry (Frappe imports the module and calls execute() on it; .execute on the path makes it look for a submodule)."); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------
 // Compare the JS-built stamp with the server stamp delivered at boot time.
