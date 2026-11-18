@@ -395,13 +395,13 @@ def seed_demo_data():
         ("div17", "17th Commando Division",            "Mechanized Infantry", "2000-01-01", "Habbaniyah, Anbar",          33.3820,       43.5700,       "anbar_ops"),
         ("iso",   "Iraqi Special Operations Forces",   "Special Operations",  "2005-01-01", "Victory Base Complex, Baghdad", Geo.VIC_GREEN[0], Geo.VIC_GREEN[1], "ct_cmd"),
     ]
-    for key, name, uclass, formed, hq, lat, lng, rkey in div_data:
+    for key, name, cls_name, formed, hq, lat, lng, rkey in div_data:
         divisions[key] = _add("Military Unit", {
             "naming_series": "MIL-UNIT-.####",
             "unit_name": f"{name} {TAG}",
             "is_group": 1,
             "echelon": "Division",
-            "classification": uclass,
+            "classification": uclass[cls_name],
             "linked_place": regions[rkey],
             "formation_date": _dt.date.fromisoformat(formed),
             "headquarters": f"{hq} {TAG}",
