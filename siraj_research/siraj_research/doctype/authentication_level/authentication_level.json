@@ -218,5 +218,11 @@
  "icon": "badge-check",
  "description": "The `authentication_level` domain: unverified, self-declared, single source, corroborated, primary document verified, institutionally confirmed. Ordered by strength, which is what the `sort_order` is for.",
  "istable": 0,
- "issingle": 0
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

@@ -656,5 +656,11 @@
  "icon": "shield",
  "description": "The military unit tree \u2014 the source's `military_unit` table and the centre of the module. A NestedSet, so the chain of command is traversable rather than merely described.",
  "istable": 0,
- "issingle": 0
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

@@ -301,5 +301,11 @@
  "icon": "fa fa-map-o",
  "description": "A released set of administrative-boundary polygons from a named source, version and licence. Admin Boundary records reference their parent Boundary Dataset.",
  "istable": 0,
- "issingle": 0
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

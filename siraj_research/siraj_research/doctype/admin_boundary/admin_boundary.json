@@ -289,5 +289,11 @@
  "icon": "fa fa-shield",
  "description": "One administrative-boundary polygon at a single level, imported from a Boundary Dataset. Geometry is stored in the `tabAdmin Boundary Geom` child/companion table (Long Text WKB hex) rather than on this row so regular list queries remain fast.",
  "istable": 0,
- "issingle": 0
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

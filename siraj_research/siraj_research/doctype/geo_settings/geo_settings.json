@@ -367,5 +367,11 @@
  "states": [],
  "icon": "fa fa-cog",
  "description": "Site-wide settings for administrative auto-fill, offline boundary/gazetteer datasets and online fallback.",
- "istable": 0
+ "istable": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }

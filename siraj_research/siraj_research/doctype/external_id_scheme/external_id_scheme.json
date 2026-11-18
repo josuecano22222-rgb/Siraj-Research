@@ -187,50 +187,32 @@
   {
    "link_doctype": "External Identifier",
    "link_fieldname": "scheme",
-   "group": "Identifiers in this scheme",
-   "is_child_table": 1,
-   "parent_doctype": "Person",
-   "table_fieldname": "external_identifiers"
+   "group": "Identifiers in this scheme"
   },
   {
    "link_doctype": "External Identifier",
    "link_fieldname": "scheme",
-   "group": "Identifiers in this scheme",
-   "is_child_table": 1,
-   "parent_doctype": "Institution",
-   "table_fieldname": "external_identifiers"
+   "group": "Identifiers in this scheme"
   },
   {
    "link_doctype": "External Identifier",
    "link_fieldname": "scheme",
-   "group": "Identifiers in this scheme",
-   "is_child_table": 1,
-   "parent_doctype": "Place",
-   "table_fieldname": "external_identifiers"
+   "group": "Identifiers in this scheme"
   },
   {
    "link_doctype": "External Identifier",
    "link_fieldname": "scheme",
-   "group": "Events",
-   "is_child_table": 1,
-   "parent_doctype": "Siraj Event",
-   "table_fieldname": "external_identifiers"
+   "group": "Events"
   },
   {
    "link_doctype": "External Identifier",
    "link_fieldname": "scheme",
-   "group": "Identifiers in this scheme",
-   "is_child_table": 1,
-   "parent_doctype": "Source",
-   "table_fieldname": "external_identifiers"
+   "group": "Identifiers in this scheme"
   },
   {
    "link_doctype": "External Identifier",
    "link_fieldname": "scheme",
-   "group": "Identifiers in this scheme",
-   "is_child_table": 1,
-   "parent_doctype": "Relationship",
-   "table_fieldname": "external_identifiers"
+   "group": "Identifiers in this scheme"
   }
  ],
  "actions": [],
@@ -251,5 +233,18 @@
  "icon": "link",
  "description": "The `entity_external_id.scheme` values as a governed list: VIAF, Wikidata, ORCID, library catalogue, legacy spreadsheet number, plus any scheme a project needs. The optional URL template turns a bare value into a resolvable link.",
  "istable": 0,
- "issingle": 0
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0,
+ "allow_copy": 1,
+ "allow_events_in_timeline": 1,
+ "allow_rename": 1,
+ "show_preview_popup": 1,
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
 }

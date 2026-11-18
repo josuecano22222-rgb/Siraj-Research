@@ -438,5 +438,11 @@
  "icon": "send",
  "description": "Operational deployments of a unit, with their own area and coordinates. The source's `operational_deployment` table; its status machine becomes a native Workflow.",
  "istable": 0,
- "issingle": 0
+ "issingle": 0,
+ "creation": "2026-11-17 00:00:00.000000",
+ "modified": "2026-11-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
 }
