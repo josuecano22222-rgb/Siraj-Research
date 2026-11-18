@@ -512,9 +512,9 @@
    "group": "Person"
   },
   {
-   "link_doctype": "Research Event",
+   "link_doctype": "Siraj Event Location",
    "link_fieldname": "place",
-   "group": "Research Event"
+   "group": "Events"
   },
   {
    "link_doctype": "Place",
@@ -534,11 +534,6 @@
   {
    "link_doctype": "Military Unit Location",
    "group": "Military units",
-   "link_fieldname": "place"
-  },
-  {
-   "link_doctype": "Siraj Event Location",
-   "group": "Events",
    "link_fieldname": "place"
   }
  ],

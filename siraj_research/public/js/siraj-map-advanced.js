@@ -52,7 +52,7 @@
 				['Place',          counts.Place||0,          'places'],
 				['Institution',    counts.Institution||0,    'units'],
 				['Military Unit',  counts['Military Unit']||0,'units'],
-				['Research Event', counts['Research Event']||0,'events'],
+				['Siraj Event', counts['Siraj Event']||0,'events'],
 				['Operational Deployment', counts['Operational Deployment']||0, 'deploys'],
 			].filter(([,n])=>n>0);
 			const chips = [

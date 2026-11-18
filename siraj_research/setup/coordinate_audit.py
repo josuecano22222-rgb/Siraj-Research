@@ -12,7 +12,7 @@ import frappe
 from siraj_research.utils.coordinates import bounded_coordinate
 
 # Fixed committed legacy names. The unreleased Event split needs separate review.
-TYPES = ("Person", "Institution", "Place", "Research Event", "Military Unit", "Operational Deployment")
+TYPES = ("Person", "Institution", "Place", "Siraj Event", "Military Unit", "Operational Deployment")
 
 
 def _classify(value, maximum):

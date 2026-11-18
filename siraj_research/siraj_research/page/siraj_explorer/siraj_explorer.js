@@ -1,6 +1,6 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
-const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.43';
+const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.44';
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -160,7 +160,7 @@ class SirajExplorer {
 	 * original Person/Institution/Place/Event/Source pentad).
 	 */
 	openAddRelationshipDialog(subject, object, opts = {}) {
-		const ENDPOINT_TYPES = ['Person','Institution','Place','Research Event','Source','Military Unit','Operational Deployment'];
+		const ENDPOINT_TYPES = ['Person','Institution','Place','Siraj Event','Source','Military Unit','Operational Deployment'];
 		const makeNode = (ref) => ref && ref.doctype && ref.name ? ref : null;
 		const subj = makeNode(subject);
 		const obj  = makeNode(object);
@@ -256,7 +256,7 @@ class SirajExplorer {
 			noMatches: __('No matches'),
 			nMore: n => __('+{0} more', [n]),
 		};
-		const groupOrder = ['Person', 'Institution', 'Place', 'Military Unit', 'Operational Deployment', 'Research Event', 'Source'];
+		const groupOrder = ['Person', 'Institution', 'Place', 'Military Unit', 'Operational Deployment', 'Siraj Event', 'Source'];
 		const glyph = (doctype, size) => {
 			const c = this.colors && this.colors[doctype] ? this.colors[doctype] : '#6a7a7e';
 			const s = size || 14;
@@ -1759,7 +1759,7 @@ class SirajExplorer {
 		// core types plus other relatable endpoints so users can centre on any
 		// person, place, institution, or unit (and deployments/events/sources that
 		// appear as relationship endpoints).
-		const CENTERABLE_TYPES = ['Person', 'Institution', 'Place', 'Military Unit', 'Operational Deployment', 'Research Event', 'Source'];
+		const CENTERABLE_TYPES = ['Person', 'Institution', 'Place', 'Military Unit', 'Operational Deployment', 'Siraj Event', 'Source'];
 		const centerItems = data.nodes
 			.filter(n => CENTERABLE_TYPES.indexOf(n.doctype) >= 0)
 			.map(n => ({ id: this.id(n), label: n.label, sub: n.name, doctype: n.doctype }))
@@ -2521,7 +2521,7 @@ class SirajExplorer {
 			{ id: 'deployments',   label: __('Deployments'),     glyph: 'Operational Deployment', group: __('Military') },
 			{ id: 'missions',      label: __('Missions'),        glyph: 'Mission',              group: __('Military') },
 			{ id: 'exercises',     label: __('Training exercises'), glyph: 'Training Exercise', group: __('Military') },
-			{ id: 'events',        label: __('Research events'), glyph: 'Research Event',       group: __('Research') },
+			{ id: 'events',        label: __('Research events'), glyph: 'Siraj Event',       group: __('Research') },
 			{ id: 'relationships', label: __('Relationships'),   glyph: 'Relationship',         group: __('Research') },
 			{ id: 'sources',       label: __('Sources'),         glyph: 'Source',               group: __('Research') },
 		];

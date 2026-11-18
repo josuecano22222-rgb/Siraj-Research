@@ -171,9 +171,9 @@
  ],
  "links": [
   {
-   "link_doctype": "Research Event",
+   "link_doctype": "Siraj Event",
    "link_fieldname": "event_type",
-   "group": "Research Event"
+   "group": "Events"
   }
  ],
  "actions": [],
@@ -191,5 +191,5 @@
  "search_fields": "label_en,label_ar,code",
  "default_view": "List",
  "icon": "calendar-days",
- "description": "The `event_type` domain: birth, death, founding, merger, conference, destruction, reform …"
+ "description": "The `event_type` domain: birth, death, founding, merger, conference, destruction, reform \u2026"
 }

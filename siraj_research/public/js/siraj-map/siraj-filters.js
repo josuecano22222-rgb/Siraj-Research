@@ -28,7 +28,7 @@
 		{ id:'ppl_inst',    label:__('People + Institutions'),   types:['Person','Institution'] },
 		{ id:'military',    label:__('Military'),                types:['Military Unit','Operational Deployment','Mission','Training Exercise'] },
 		{ id:'places',      label:__('Places'),                  types:['Place'] },
-		{ id:'events',      label:__('Events and operations'),   types:['Research Event','Operational Deployment','Mission','Training Exercise'] },
+		{ id:'events',      label:__('Events and operations'),   types:['Siraj Event','Operational Deployment','Mission','Training Exercise'] },
 		{ id:'sources',     label:__('Sources'),                 types:['Source'] },
 	];
 

@@ -186,9 +186,9 @@
    "group": "Place"
   },
   {
-   "link_doctype": "Research Event",
+   "link_doctype": "Siraj Event",
    "link_fieldname": "documentation_level",
-   "group": "Research Event"
+   "group": "Events"
   },
   {
    "link_doctype": "Relationship",

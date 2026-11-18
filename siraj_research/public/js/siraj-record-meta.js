@@ -16,7 +16,7 @@
 		'Person':              '<circle cx="12" cy="8" r="3"/><path d="M5 19c0-4 3-6 7-6s7 2 7 6"/>',
 		'Institution':         '<path d="M3 9h18L12 3 3 9Zm2 1v8m5-8v8m4-8v8m5-8v8M3 20h18"/>',
 		'Place':               '<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11Z"/><circle cx="12" cy="10" r="2"/>',
-		'Research Event':      '<path d="M12 2l2.5 6 6.5.5-5 4 1.5 6.5-5.5-3.5L6.5 19 8 12.5l-5-4L9.5 8Z"/>',
+		'Siraj Event':      '<path d="M12 2l2.5 6 6.5.5-5 4 1.5 6.5-5.5-3.5L6.5 19 8 12.5l-5-4L9.5 8Z"/>',
 		'Source':              '<path d="M6 3h9l3 3v15H6Z"/><path d="M15 3v4h3"/><path d="M9 10h6M9 14h6M9 18h4"/>',
 		'Military Unit':       '<path d="M12 2 20 5v6c0 5-3 8-8 11-5-3-8-6-8-11V5Z"/><path d="M12 7v10M7 12h10"/>',
 		'Operational Deployment': '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/>',
@@ -104,7 +104,7 @@
 	// Server may have overridden/extended at boot time (future-proofing).
 	const boot = (frappe.boot && frappe.boot.siraj_record_meta) || {};
 	const colours = Object.assign({
-		'Person':'#3577c0','Institution':'#8262b0','Place':'#188c7e','Research Event':'#d08733',
+		'Person':'#3577c0','Institution':'#8262b0','Place':'#188c7e','Siraj Event':'#d08733',
 		'Source':'#aa6b85','Military Unit':'#c3564b',
 		'Operational Deployment':'#867e45','Training Exercise':'#4f8a65','Mission':'#b56d2c',
 		'Unit Classification':'#6f6a8a','Armament':'#5b6c46',
@@ -170,7 +170,7 @@
 		'Person':                { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'birthplace',            silhouette:'bust' },
 		'Institution':           { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'place',                  silhouette:'building' },
 		'Place':                 { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'parent_place',           silhouette:'pin' },
-		'Research Event':        { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'place',                  silhouette:'star' },
+		'Siraj Event':        { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'place',                  silhouette:'star' },
 		'Military Unit':         { lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:'linked_place',           silhouette:'shield' },
 		'Operational Deployment':{ lat_field:'latitude', lon_field:'longitude', uncertainty_field:'geo_uncertainty_m', linked_place_field:null,                     silhouette:'crosshair' },
 	};
@@ -185,8 +185,8 @@
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.43';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .43 Connections links added to all DocTypes (child tables registered in DocType.links so they appear in the header Connections panel as Institutions/Military units/Events/Locations/People/Relationships); fix Invalid LatLng NaN on tab-switch by guarding mousemove before CRS ready and invalidating size on shown.bs.tab"); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.44';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .44 Workspace shortcuts for Siraj Event (Seraj): replace legacy Event/Research Event references across workspace shortcuts/cards/number card/dashboard chart/Relationship subject_type/Place reverse-links/Explorer filters/offline records; drop duplicate DEFAULT_COORDS Siraj Event entry; leave migration scripts in setup/ untouched as historical diagnostics"); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------
 // Compare the JS-built stamp with the server stamp delivered at boot time.

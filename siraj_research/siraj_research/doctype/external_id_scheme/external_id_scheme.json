@@ -108,7 +108,7 @@
    "fieldtype": "Data",
    "label": "URL template",
    "length": 140,
-   "description": "Optional, e.g. https://viaf.org/viaf/{value} — used to build the 'open in the authority file' link from the recorded value."
+   "description": "Optional, e.g. https://viaf.org/viaf/{value} \u2014 used to build the 'open in the authority file' link from the recorded value."
   }
  ],
  "permissions": [
@@ -211,9 +211,9 @@
   {
    "link_doctype": "External Identifier",
    "link_fieldname": "scheme",
-   "group": "Identifiers in this scheme",
+   "group": "Events",
    "is_child_table": 1,
-   "parent_doctype": "Research Event",
+   "parent_doctype": "Siraj Event",
    "table_fieldname": "external_identifiers"
   },
   {

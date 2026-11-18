@@ -4,7 +4,7 @@
 	const NS = 'http://www.w3.org/2000/svg';
 	const W = 1000, H = 640;
 	const DOCTYPE_BY_SOURCE = {
-		people:'Person', institutions:'Institution', places:'Place', events:'Research Event',
+		people:'Person', institutions:'Institution', places:'Place', events:'Siraj Event',
 		relationships:'Relationship', sources:'Source', units:'Military Unit',
 		// 'regions' and 'regions-units' removed 2026-11: command areas are Place
 		// records (place_type="Command Region"); the Places deck already shows
