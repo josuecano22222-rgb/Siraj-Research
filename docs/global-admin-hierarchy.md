@@ -236,6 +236,74 @@ siraj_research.api.geo_resolve.invalidate_cache
 The client package is ETag-keyed on `index_version`, so browsers refetch only
 after a completed import.
 
+## 3.6 Completing the chain to the final local level
+
+The curated reference layer is intentionally a *starter index*: it is complete
+at country and level 1, partial at level 2, and sampled at levels 3–5. No
+single open dataset has uniform six-level coverage worldwide, so the final
+levels are filled by combining three sources in this order:
+
+1. **GADM polygons (levels 1–5)** — authoritative administrative boundaries
+   where published. Import each level as its own dataset:
+
+   ```bash
+   for L in 1 2 3 4 5; do
+     bench --site SITE execute siraj_research.geo_bulk.import_gadm \
+       --kwargs "{\"dataset_code\":\"GADM-ADM$L\",\"file_path\":\"/data/gadm/ADM$L.gpkg\",\"level\":$L}"
+   done
+   ```
+
+2. **GeoNames admin codes + ADM3/4/5 features** — fills names where GADM does
+   not publish a polygon for a level:
+
+   ```bash
+   bench --site SITE execute siraj_research.geo_bulk.import_geonames_admin \
+     --kwargs '{"zip_path":"/data/geonames/allCountries.zip","dataset_code":"GEONAMES-ADMIN"}'
+   ```
+
+   For a smaller first pass, add `"country_codes":["IQ","SY","LB"]`. The
+   importer streams `admin1CodesASCII.txt`, `admin2Codes.txt` and
+   `allCountries.txt`, creates levels 1–5 with parent links, and skips rows
+   whose parent is unknown instead of inventing one.
+
+3. **OSM boundaries (neighbourhood / mahallah)** — OSM is the main open source
+   for level-6 `community`. Map OSM `admin_level` like this:
+
+   | OSM `admin_level` | SIRAJ level | DocType |
+   |---|---|---|
+   | 2 | 0 | Country |
+   | 3–4 | 1 | Governorate |
+   | 5–6 | 2 | District |
+   | 7–8 | 3 | Municipality |
+   | 9 | 4 | Village |
+   | 10+ | 5 | Community |
+
+   Prepare PBF data with `prepare_osm`, then import the resulting GeoJSON with
+   `import_osm` using the mapped level.
+
+### Coverage report
+
+Run this after each import to see exactly which countries still need work:
+
+```bash
+bench --site SITE execute siraj_research.geo_coverage.coverage_report
+bench --site SITE execute siraj_research.geo_coverage.coverage_report --kwargs '{"country":"IQ"}'
+bench --site SITE execute siraj_research.geo_coverage.missing_final_levels
+```
+
+The report returns row counts per level, countries without any village or
+community, and countries that already have a complete chain. A full global
+chain is a *target state*, not a precondition for using the app: partial
+countries remain searchable and gaps are reported by the resolver.
+
+### Code normalisation
+
+Datasets disagree on P-Code punctuation (`IQ.BG` vs `IQ-BG`). `make_code()`
+now normalises dots and spaces to dashes, and `upsert_level()` searches by
+exact code, normalised code, `pcode + parent`, and `label_en + parent` before
+inserting. Re-importing the same area therefore updates rather than
+duplicates it.
+
 ## 4. Manual corrections and modern changes
 
 1. Open the level's DocType (e.g. `District`) and edit the bilingual label,
@@ -257,7 +325,8 @@ Workspace (no bench needed):
 ```bash
 PYTHONPATH=. /tmp/siraj-venv/bin/python -m pytest \
   tests/test_geo_hierarchy.py tests/test_geo_online.py \
-  tests/test_geo_bulk.py tests/test_master_data_dataset.py -q
+  tests/test_geo_bulk.py tests/test_geo_coverage.py \
+  tests/test_master_data_dataset.py -q
 /tmp/siraj-venv/bin/ruff check siraj_research/geo_hierarchy.py siraj_research/geo_online.py \
   siraj_research/geo_bulk.py siraj_research/geo_import.py \
   siraj_research/api/geo_resolve.py siraj_research/setup/master_data.py
@@ -272,6 +341,7 @@ cd ~/frappe-bench
 ./env/bin/python -m pytest apps/siraj_research/tests/test_geo_hierarchy.py \
   apps/siraj_research/tests/test_geo_online.py \
   apps/siraj_research/tests/test_geo_bulk.py \
+  apps/siraj_research/tests/test_geo_coverage.py \
   apps/siraj_research/tests/test_master_data_dataset.py -q
 ./env/bin/ruff check apps/siraj_research/siraj_research/geo_*.py
 bench --site SITE migrate

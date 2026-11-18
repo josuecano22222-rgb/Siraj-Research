@@ -85,6 +85,11 @@ def slug(value: Any, fallback: str = "X") -> str:
 	return digest
 
 
+def normalize_code(pcode: Any) -> str:
+	"""Canonicalise source codes so ``IQ.BG`` and ``IQ-BG`` map to one row."""
+	return re.sub(r"[.\s]+", "-", str(pcode or "").strip().upper()).strip("-")
+
+
 def make_code(pcode: Any, name: Any, parent_code: str | None, level: int | str) -> str:
 	"""Return a stable, Frappe-safe document name for an administrative row.
 
@@ -93,7 +98,7 @@ def make_code(pcode: Any, name: Any, parent_code: str | None, level: int | str) 
 	the label; the hash keeps Arabic-only names deterministic and non-empty.
 	"""
 	spec = level_spec(level)
-	candidate = str(pcode or "").strip().upper().replace(" ", "_")
+	candidate = normalize_code(pcode).replace(" ", "_")
 	if candidate and _CODE_ALLOWED_RE.match(candidate):
 		return candidate[:MAX_CODE_LENGTH]
 	fragment = slug(name, fallback=spec["prefix"])
@@ -274,6 +279,38 @@ def _link_boundary(boundary_name: str | None, doctype: str, docname: str) -> Non
 		boundary.save(ignore_permissions=True)
 
 
+def _find_existing_level(entry: dict, parent_name: str | None, doctype: str,
+                         code: str) -> str | None:
+	"""Find a row created by another importer before inserting a duplicate.
+
+	Codes differ between datasets (GeoNames uses dots, GADM uses dashes, OSM
+	uses numeric relations), so we try several safe matches: exact code,
+	normalised P-Code, indexed ``pcode`` + parent, and bilingual label + parent.
+	Only existing rows are returned; nothing is modified here.
+	"""
+	if frappe is None:
+		return None
+	pcode = normalize_code(entry.get("pcode"))
+	candidates = [code]
+	if pcode and pcode != code:
+		candidates.append(pcode)
+	for candidate in candidates:
+		found = frappe.db.exists(doctype, candidate)
+		if found:
+			return found
+	parent_field = entry.get("parent_field")
+	for field, value in (("pcode", entry.get("pcode")), ("label_en", entry.get("label_en"))):
+		if not value:
+			continue
+		filters = {field: value}
+		if parent_field and parent_name:
+			filters[parent_field] = parent_name
+		found = frappe.db.exists(doctype, filters)
+		if found:
+			return found
+	return None
+
+
 def upsert_level(entry: dict, parent_name: str | None, *, lat=None, lon=None,
                  dataset: str | None = None, create_missing: bool = True) -> dict:
 	"""Create or reuse one administrative DocType row.
@@ -287,7 +324,7 @@ def upsert_level(entry: dict, parent_name: str | None, *, lat=None, lon=None,
 	                                       entry.get("parent_code"), entry.get("level"))
 	if frappe is None:
 		return {"code": code, "name": None, "status": "no_frappe"}
-	existing = frappe.db.exists(doctype, code)
+	existing = _find_existing_level(entry, parent_name, doctype, code)
 	if existing:
 		doc = frappe.get_doc(doctype, existing)
 		if _write_spatial_fields(doc, entry, lat, lon, dataset):

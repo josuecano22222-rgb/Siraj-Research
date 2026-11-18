@@ -138,6 +138,12 @@ def parse_geonames_line(line: str) -> dict | None:
     cc = str(row.get("country_code") or "").upper()
     a1 = str(row.get("admin1_code") or "").strip()
     a2 = str(row.get("admin2_code") or "").strip()
+    a3 = str(row.get("admin3_code") or "").strip()
+    a4 = str(row.get("admin4_code") or "").strip()
+    a1_code = f"{cc}.{a1}" if a1 else None
+    a2_code = f"{cc}.{a1}.{a2}" if a1 and a2 else None
+    a3_code = f"{a2_code}.{a3}" if a2_code and a3 else None
+    a4_code = f"{a3_code}.{a4}" if a3_code and a4 else None
     return {
         "source_id": str(row.get("geonameid") or "")[:120],
         "name_en": (row.get("name") or "")[:140],
@@ -151,8 +157,10 @@ def parse_geonames_line(line: str) -> dict | None:
         "timezone": (row.get("timezone") or "")[:64],
         "modification_date": (row.get("modification_date") or "")[:10] or None,
         "country_code": cc,
-        "admin1_pcode": f"{cc}.{a1}" if a1 else None,
-        "admin2_pcode": f"{cc}.{a1}.{a2}" if a1 and a2 else None,
+        "admin1_pcode": a1_code,
+        "admin2_pcode": a2_code,
+        "admin3_pcode": a3_code,
+        "admin4_pcode": a4_code,
     }
 
 
@@ -249,6 +257,165 @@ def import_geonames(zip_path: str, dataset_code: str = "GEONAMES-CITIES", *,
     if batch:
         count += _bulk_insert_gazetteer(dataset_code, batch)
     return _finish(dataset_code, count, f"GeoNames {path.name} (members: {member_hint})")
+
+
+# ---------------------------------------------------------------------------
+# GeoNames administrative divisions → editable hierarchy
+# ---------------------------------------------------------------------------
+
+GEONAMES_ADMIN_LEVELS = {
+	"admin1": (1, "Governorate", "country"),
+	"admin2": (2, "District", "governorate"),
+	"admin3": (3, "Municipality", "district"),
+	"admin4": (4, "Village", "municipality"),
+	"admin5": (5, "Community", "village"),
+}
+GEONAMES_ADMIN_FEATURE_LEVELS = {"ADM3": 3, "ADM4": 4, "ADM5": 5}
+
+
+def parse_geonames_admin_line(line: str, *, level: int) -> dict | None:
+	"""Parse ``admin1CodesASCII.txt`` / ``admin2Codes.txt`` rows."""
+	parts = line.rstrip("\n").split("\t")
+	if len(parts) < 4:
+		return None
+	code = parts[0].strip()
+	if not code or "." not in code:
+		return None
+	return {
+		"pcode": code,
+		"name_en": (parts[1] or parts[2] or code)[:140],
+		"source_id": str(parts[3] or "")[:120],
+		"level": level,
+		"country_code": code.split(".")[0].upper(),
+	}
+
+
+def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *,
+                          country_codes: Iterable[str] | None = None,
+                          batch_size: int = 500,
+                          include_all_countries: bool = True) -> dict:
+	"""Create hierarchy rows from GeoNames admin1/2 codes and ADM3/4/5 features.
+
+	This is the step that fills the levels the curated reference layer only
+	samples. ``admin1CodesASCII.txt`` and ``admin2Codes.txt`` provide level 1/2;
+	``allCountries.txt`` feature codes ``ADM3``, ``ADM4`` and ``ADM5`` provide
+	the lower levels. Parent rows that are missing are skipped rather than
+	invented, and the skipped count is reported.
+
+	Use ``country_codes`` to process one or a few countries when a full global
+	allCountries archive is too large for the worker.
+	"""
+	from siraj_research.geo_hierarchy import LEVELS, make_code, normalize_code, upsert_level
+
+	path = Path(zip_path)
+	if not path.exists():
+		raise FileNotFoundError(str(path))
+	_ensure_dataset(dataset_code, label_en="GeoNames administrative divisions",
+	                source="GeoNames (geonames.org) admin codes", license_id="CC-BY-4.0",
+	                url="https://www.geonames.org/export/", level=0)
+	wanted = {str(c).upper() for c in country_codes} if country_codes else None
+	countries = _country_cache()
+	name_by_pcode: dict[str, str] = {}
+	count = 0
+	processed = 0
+	missing_parents = 0
+	levels_seen: set[int] = set()
+
+	def _put(level: int, pcode: str, parent_pcode: str | None,
+	         name_en: str, source_id: str | None = None) -> bool:
+		nonlocal count, processed, missing_parents
+		spec = LEVELS[level]
+		parent_field = str(spec["parent"])
+		parent_name = name_by_pcode.get(normalize_code(parent_pcode)) if parent_pcode else None
+		if parent_field == "country":
+			parent_name = countries.get(pcode.split(".")[0].upper()) if parent_name is None else parent_name
+		if not parent_name:
+			missing_parents += 1
+			return False
+		ancestors = {"country": countries.get(str(pcode).split(".")[0].upper())}
+		ancestors = {k: v for k, v in ancestors.items() if v}
+		if parent_pcode:
+			parts = str(parent_pcode).split(".")
+			for ancestor_level in range(1, level):
+				candidate = ".".join(parts[: ancestor_level + 1])
+				ancestor_name = name_by_pcode.get(normalize_code(candidate))
+				if ancestor_name:
+					ancestors[str(LEVELS[ancestor_level]["field"])] = ancestor_name
+		normalised = normalize_code(pcode)
+		entry = {
+			"doctype": spec["doctype"],
+			"level": level,
+			"field": spec["field"],
+			"pcode": pcode,
+			"code": make_code(pcode, name_en, normalize_code(parent_pcode), level),
+			"label_en": name_en,
+			"parent_code": normalize_code(parent_pcode),
+			"parent_field": parent_field,
+			"ancestor_codes": ancestors,
+			"source": "geonames_admin",
+			"admin_level_type": f"GeoNames level {level}",
+		}
+		result = upsert_level(entry, parent_name, dataset=dataset_code)
+		if result.get("name"):
+			name_by_pcode[normalised] = result["name"]
+			levels_seen.add(level)
+			processed += 1
+			count += 1
+			return True
+		missing_parents += 1
+		return False
+
+	for admin_name, level in (("admin1CodesASCII", 1), ("admin2Codes", 2)):
+		for _member, line in _iter_geonames_lines(path, admin_name):
+			if line.startswith("#") or not line.strip():
+				continue
+			row = parse_geonames_admin_line(line, level=level)
+			if not row:
+				continue
+			cc = row["country_code"]
+			if wanted and cc not in wanted:
+				continue
+			if cc not in countries:
+				missing_parents += 1
+				continue
+			if level == 1:
+				# Country parent is resolved from the two-letter prefix inside _put.
+				name_by_pcode[normalize_code(countries[cc])] = countries[cc]
+				parent_pcode = None
+			else:
+				parent_pcode = row["pcode"].rsplit(".", 1)[0]
+			_put(level, row["pcode"], parent_pcode, row["name_en"], row["source_id"])
+			if processed % batch_size == 0 and processed:
+				_progress(dataset_code, count=processed, offset=processed)
+
+	if include_all_countries:
+		for _member, line in _iter_geonames_lines(path, "allCountries"):
+			if line.startswith("#") or not line.strip():
+				continue
+			row = parse_geonames_line(line)
+			if not row:
+				continue
+			level = GEONAMES_ADMIN_FEATURE_LEVELS.get(row["feature_code"])
+			if not level:
+				continue
+			cc = row["country_code"]
+			if wanted and cc not in wanted:
+				continue
+			if level == 3:
+				pcode, parent_pcode = row["admin3_pcode"], row["admin2_pcode"]
+			elif level == 4:
+				pcode, parent_pcode = row["admin4_pcode"], row["admin3_pcode"]
+			else:
+				pcode, parent_pcode = row["source_id"], row["admin4_pcode"]
+			if not pcode or not parent_pcode:
+				missing_parents += 1
+				continue
+			_put(level, pcode, parent_pcode, row["name_en"], row["source_id"])
+			if processed % batch_size == 0 and processed:
+				_progress(dataset_code, count=processed, offset=processed)
+
+	return {**_finish(dataset_code, processed, f"GeoNames admin divisions from {path.name}"),
+	        "levels": sorted(levels_seen), "missing_parents": missing_parents}
 
 
 # ---------------------------------------------------------------------------

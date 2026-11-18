@@ -66,6 +66,8 @@ def test_make_code_handles_arabic_names_and_collisions():
     assert derived.startswith("D-IQ-BG-")
     assert len(derived) <= gh.MAX_CODE_LENGTH
     assert derived == gh.make_code(None, "بغداد", "IQ-BG", 2)
+    assert gh.normalize_code("IQ.BG") == "IQ-BG"
+    assert gh.make_code("IQ.BG", "Baghdad", "IQ", 1) == "IQ-BG"
 
 
 def test_level_helpers_and_editable_fields():

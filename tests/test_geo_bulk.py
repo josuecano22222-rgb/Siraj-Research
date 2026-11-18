@@ -55,6 +55,23 @@ def test_import_geonames_respects_country_filter_and_offset(tmp_path):
     assert result["complete"] is True
 
 
+def test_parse_geonames_admin_codes():
+    first = gb.parse_geonames_admin_line("IQ.BG\tBaghdad\tBaghdad\t123\n", level=1)
+    second = gb.parse_geonames_admin_line("IQ.BG.AL\tAl Adhamiyah\tAl Adhamiyah\t456\n", level=2)
+    assert first["country_code"] == "IQ"
+    assert first["pcode"] == "IQ.BG"
+    assert second["pcode"] == "IQ.BG.AL"
+    assert gb.parse_geonames_admin_line("broken\n", level=1) is None
+
+
+def test_geonames_line_exposes_admin3_and_admin4_codes():
+    row = gb.parse_geonames_line(GEONAMES_LINE)
+    assert row["admin1_pcode"] == "IQ.BG"
+    # The fixture has no admin2/3/4 codes, so deeper codes stay empty.
+    assert row["admin3_pcode"] is None
+    assert row["admin4_pcode"] is None
+
+
 def test_osm_commands_are_argv_lists_not_shell_strings():
     commands = gb.osm_commands("/data/my country.pbf", "/data/out")
     assert len(commands) == 2
