@@ -784,10 +784,24 @@ class SirajExplorer {
 				// Also merge any unmapped nodes into the details panel listing.
 				renderEgo();
 				renderDetails();
-				// Fit bounds to union of selected + visible ego nodes.
-				const pts = [[Number(selectedNode.latitude),Number(selectedNode.longitude)]];
-				egoData.nodes.forEach(n => { if (n.latitude!=null && !n.restricted) pts.push([Number(n.latitude),Number(n.longitude)]); });
-				if (pts.length > 1) map.fitBounds(L.latLngBounds(pts).pad(0.2),{maxZoom:13, padding:[60,60]});
+				// Fit bounds to union of selected + visible ego nodes. Guard
+				// against NaN coordinates and missing map size (fitBounds calls
+				// setView which projects every LatLng; if any point has bad
+				// coords or the canvas is 0x0 Leaflet throws
+				// "Cannot set property '_leaflet_pos'" inside setView).
+				const valid = ll => Array.isArray(ll) && ll.length === 2 && isFinite(ll[0]) && isFinite(ll[1])
+					&& Math.abs(ll[0]) <= 90 && Math.abs(ll[1]) <= 180;
+				const selPt = [Number(selectedNode.latitude),Number(selectedNode.longitude)];
+				const pts = valid(selPt) ? [selPt] : [];
+				egoData.nodes.forEach(n => {
+					const ll = [Number(n.latitude),Number(n.longitude)];
+					if (n.latitude!=null && !n.restricted && valid(ll)) pts.push(ll);
+				});
+				const size = map.getSize();
+				if (pts.length > 1 && size && size.x > 20 && size.y > 20) {
+					try { map.fitBounds(L.latLngBounds(pts).pad(0.2),{maxZoom:13, padding:[60,60]}); }
+					catch(_) { /* ignore projection errors; map stays at current view */ }
+				}
 				mapStatus(egoData.truncated ? __('Showing {0} connections (capped). Refine with type filters.', [egoData.edges.length]) : __('Showing {0} connections.', [egoData.edges.length]));
 			} catch(e) {
 				if (seq !== egoRequestSeq) return;

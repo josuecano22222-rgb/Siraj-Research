@@ -71,7 +71,7 @@ GEO_TYPES = ("Person", "Institution", "Place", "Research Event", "Military Unit"
 GRAPH_TYPES = ("Person", "Institution", "Place", "Research Event", "Source", "Military Unit", "Operational Deployment")
 STRUCTURES = {
 	"people": ("Person", ("nationality", "classification", "workflow_state")),
-	"institutions": ("Institution", ("institution_type", "country", "governance_system")),
+	"institutions": ("Institution", ("institution_type", "place", "governance_system")),
 	"places": ("Place", ("country", "place_type", "geo_precision")),
 	"events": ("Research Event", ("event_type", "place", "documentation_level")),
 	"relationships": ("Relationship", ("relationship_type", "direction", "authentication_level")),
@@ -510,9 +510,11 @@ def structure_data(source="people"):
 	if not frappe.has_permission(doctype, "read"):
 		frappe.throw(_("Not permitted to read {0}").format(_(doctype)), frappe.PermissionError)
 	title = ENTITIES.get(doctype, "display_name")
-	root = _structure_counts(readable_rows(doctype, (*dimensions, title)), dimensions, title)
+	# Drop any dimension that no longer exists on the DocType (schema drift).
 	meta = frappe.get_meta(doctype)
-	labels = [meta.get_field(field).label or field for field in dimensions]
+	valid_dimensions = tuple(f for f in dimensions if meta.get_field(f))
+	root = _structure_counts(readable_rows(doctype, (*valid_dimensions, title)), valid_dimensions, title)
+	labels = [(meta.get_field(f).label or f) for f in valid_dimensions]
 	return {
 		"doctype": doctype,
 		"dimensions": labels,
