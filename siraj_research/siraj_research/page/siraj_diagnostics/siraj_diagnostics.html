@@ -244,6 +244,51 @@
     return setRes(tr, ok, ok?'all '+Object.keys(cfg).length+' DocTypes have admin_fields map':detail.join('; '));
   });
 
+  check('layout.maps_contained', 'Leaflet maps clipped to their canvas (no spillover)', function(tr){
+    const maps = Array.from(document.querySelectorAll('.leaflet-container'));
+    if(!maps.length) return setRes(tr,true,'no map rendered on this page (open a form/explorer and re-run)');
+    const issues = [];
+    maps.forEach((m, i) => {
+      const cs = getComputedStyle(m);
+      if (cs.overflow !== 'hidden' && cs.overflowX !== 'hidden' && cs.overflowY !== 'hidden') {
+        issues.push('#'+i+' overflow='+cs.overflow+' (expected hidden)');
+      }
+      const mRect = m.getBoundingClientRect();
+      const parent = m.parentElement;
+      if (parent) {
+        const pRect = parent.getBoundingClientRect();
+        const pad = 1;
+        if (mRect.left < pRect.left - pad) issues.push('#'+i+' protrudes left by '+Math.round(pRect.left - mRect.left)+'px');
+        if (mRect.right > pRect.right + pad) issues.push('#'+i+' protrudes right by '+Math.round(mRect.right - pRect.right)+'px');
+        if (mRect.top < pRect.top - pad) issues.push('#'+i+' protrudes top by '+Math.round(pRect.top - mRect.top)+'px');
+        if (mRect.bottom > pRect.bottom + pad) issues.push('#'+i+' protrudes bottom by '+Math.round(mRect.bottom - pRect.bottom)+'px');
+      }
+      const skip = /leaflet-(popup|tooltip|control)/i;
+      Array.from(m.querySelectorAll('*')).forEach(el => {
+        if (el === m) return;
+        if (skip.test(el.className || '')) return;
+        const eRect = el.getBoundingClientRect();
+        if (eRect.width > mRect.width + 5 && (eRect.width - mRect.width) > 5) {
+          issues.push('#'+i+' child .'+String(el.className||'').slice(0,40)+' wider than map by '+Math.round(eRect.width - mRect.width)+'px');
+        }
+      });
+    });
+    const pageOver = document.documentElement.scrollWidth - document.documentElement.clientWidth;
+    if (pageOver > 2) issues.push('page horizontal scroll: '+pageOver+'px overflow');
+    return setRes(tr, issues.length===0, issues.length===0?maps.length+' map(s) contained; no page scroll':issues.slice(0,4).join('; '));
+  });
+
+  check('layout.z_index_ordering', 'Frappe navbar/dialogs render above map', function(tr){
+    const maps = Array.from(document.querySelectorAll('.leaflet-container'));
+    if(!maps.length) return setRes(tr,true,'no map rendered on this page');
+    const bad = maps.filter(m => {
+      const z = parseInt(getComputedStyle(m).zIndex, 10);
+      return !isNaN(z) && z >= 1000;
+    });
+    if (bad.length) return setRes(tr,false,bad.length+' map(s) have z-index >= 1000 (would compete with Frappe navbar/dialogs)');
+    return setRes(tr,true,maps.length+' map(s) at z-index 0, isolated; Frappe UI stays on top');
+  });
+
   async function runAll(){
     const tbody = document.querySelector('#siraj-diag-table tbody');
     tbody.innerHTML = '';

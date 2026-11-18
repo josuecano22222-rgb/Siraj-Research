@@ -30,7 +30,7 @@
 	'use strict';
 	// Map engine build tag — mirrors window.SIRAJ_BUILD from siraj-record-meta.js
 	// so diagnostic lines in the console agree on the deployed revision.
-	const SIRAJ_MAP_BUILD = (window.SIRAJ_BUILD) || '2026-11-17.coord-field-slice-a.27';
+	const SIRAJ_MAP_BUILD = (window.SIRAJ_BUILD) || '2026-11-17.coord-field-slice-a.28';
 	console.info('%c[SIRAJ Map]', 'color:#0c5e5b;font-weight:bold', 'build', SIRAJ_MAP_BUILD, '| default engine: maplibre');
 
 	const engines = { maplibre: null, leaflet: null };
@@ -132,7 +132,14 @@
 	async function createLeaflet(container, opts) {
 		await loadLeaflet();
 		const L = window.L;
-		const map = L.map(container, { zoomControl: false, worldCopyJump: true, minZoom: opts.minZoom || 0, maxZoom: opts.maxZoom || 22, scrollWheelZoom: opts.scrollZoom !== false }).setView([(opts.center||[])[1] || 33.3152, (opts.center||[])[0] || 44.3661], opts.zoom || 4);
+		const map = L.map(container, {
+			zoomControl: false, worldCopyJump: true,
+			minZoom: opts.minZoom || 0, maxZoom: opts.maxZoom || 22,
+			scrollWheelZoom: opts.scrollZoom !== false,
+			zoomSnap: 0.25,
+			// Keep pins/popups inside the frame (containers are overflow:hidden).
+			autoPanPadding: [60, 60],
+		}).setView([(opts.center||[])[1] || 33.3152, (opts.center||[])[0] || 44.3661], opts.zoom || 4);
 		L.control.scale({imperial:false, position:'bottomleft'}).addTo(map);
 		return {
 			engine: 'leaflet', map, container, L,

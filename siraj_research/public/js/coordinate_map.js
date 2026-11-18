@@ -535,7 +535,17 @@
 		else if ($sectionBody.length) $sectionBody.append(group);
 		else fields.lon.$wrapper.after(box);
 
-		const map = L.map(canvas[0], { maxZoom: 22, scrollWheelZoom: false, zoomControl: false }).setView([33.3152, 44.3661], 4);
+		// autoPanPadding keeps edge pins/popups inside the visible canvas rather
+		// than spilling outside the frame (we removed overflow:visible from the
+		// container so panes cannot bleed into form sidebars; pan-inside is how
+		// we still keep pins legible at the edge).
+		const map = L.map(canvas[0], {
+			maxZoom: 22, scrollWheelZoom: false, zoomControl: false,
+			zoomSnap: 0.25,
+			autoPanPadding: [60, 60],
+			autoPanPaddingTopLeft: null,
+			autoPanPaddingBottomRight: null,
+		}).setView([33.3152, 44.3661], 4);
 		L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 		if (map.attributionControl) map.attributionControl.addAttribution('Natural Earth');
 

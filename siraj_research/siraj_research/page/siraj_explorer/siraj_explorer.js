@@ -1,3 +1,6 @@
+// Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
+// new CSS ships without requiring a hard refresh.
+const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.28';
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -422,11 +425,16 @@ class SirajExplorer {
 			'/assets/siraj_research/js/siraj-map-toolbar.js',
 			'/assets/siraj_research/css/siraj-map-toolbar.css',
 			'/assets/siraj_research/css/siraj-icons.css',
-			'/assets/siraj_research/css/siraj_explorer.css',
+			('/assets/siraj_research/css/siraj_explorer.css?v='+SIRAJ_EXPLORER_BUILD),
 		]);
 		if (renderId !== this.renderId) return;
 		const Kit = window.SirajMapKit;
-		const map = this.map = L.map(this.canvas[0], { worldCopyJump: true, preferCanvas: true, minZoom: 0, maxZoom: 22, zoomAnimation: false, zoomControl: false }).setView([33.3152, 44.3661], 4);
+		const map = this.map = L.map(this.canvas[0], {
+			worldCopyJump: true, preferCanvas: true,
+			minZoom: 0, maxZoom: 22, zoomAnimation: false, zoomControl: false,
+			zoomSnap: 0.25,
+			autoPanPadding: [60, 60],  // keep pins inside canvas (containers are overflow:hidden)
+		}).setView([33.3152, 44.3661], 4);
 		L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
 		const dms = (value, latitude) => {
 			const n = Number(value), tenths = Math.round(Math.abs(n) * 36000);
@@ -691,7 +699,7 @@ class SirajExplorer {
 				// Fit bounds to union of selected + visible ego nodes.
 				const pts = [[Number(selectedNode.latitude),Number(selectedNode.longitude)]];
 				egoData.nodes.forEach(n => { if (n.latitude!=null && !n.restricted) pts.push([Number(n.latitude),Number(n.longitude)]); });
-				if (pts.length > 1) map.fitBounds(L.latLngBounds(pts).pad(0.2),{maxZoom:13});
+				if (pts.length > 1) map.fitBounds(L.latLngBounds(pts).pad(0.2),{maxZoom:13, padding:[60,60]});
 				mapStatus(egoData.truncated ? __('Showing {0} connections (capped). Refine with type filters.', [egoData.edges.length]) : __('Showing {0} connections.', [egoData.edges.length]));
 			} catch(e) {
 				if (seq !== egoRequestSeq) return;
@@ -724,7 +732,11 @@ class SirajExplorer {
 			selectedNode = p;
 			pointsById.set(this.id(p), p);
 			applyPinSelection(this.id(p));
-			map.panTo([Number(p.latitude),Number(p.longitude)]);
+			// panInside only moves the map if the point is outside the visible
+			// viewport (plus a 60px gutter), so clicking already-visible pins
+			// does not jerk the map. This replaces container overflow:visible
+			// which was previously letting edge pins bleed outside the canvas.
+			map.panInside([Number(p.latitude),Number(p.longitude)], { padding: [60, 60] });
 			loadEgo(egoDepth);
 		};
 		const clearSelection = () => {
@@ -1351,7 +1363,7 @@ class SirajExplorer {
 			.add({ icon:'zoom_out',  label:__('Zoom out'),   key:'nav_out',   tooltip:__('Zoom out'),   hotkey:'-', action: () => map.zoomOut() })
 			.add({ icon:'home',      label:__('Reset view'), key:'nav_home',  tooltip:__('Home view'),  hotkey:'H', action: () => map.setView([33.3152,44.3661],4) })
 			.add({ icon:'fit',       label:__('Fit to data'),key:'nav_fit',   tooltip:__('Fit data to view'), hotkey:'F', action: () => {
-				if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p=>[Number(p.latitude),Number(p.longitude)])).pad(0.15),{maxZoom:12});
+				if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p=>[Number(p.latitude),Number(p.longitude)])).pad(0.15),{maxZoom:12, padding:[60,60]});
 			}})
 			.add({ icon:'locate_me', label:__('My location'),key:'nav_me',    tooltip:__('My location'),hotkey:'M', action: () => map.locate({setView:true,maxZoom:12,enableHighAccuracy:true}) })
 			.add({ icon:'locate',    label:__('Go to coordinates'),key:'nav_goto',tooltip:__('Go to coordinates'),hotkey:'G', mode:'popover', menuTitle:__('Go to coordinates'), menu: pop => {
@@ -1496,11 +1508,25 @@ class SirajExplorer {
 
 		draw();
 		this.showDetails(__('Geographic map'), [[__('About this view'),__('Map tools (navigate, basemap, measure, pick, overlays, selection) live in the dock on the right edge of the map. Records, filters, and export live in the panel at the upper left. Press ? or the Help button for the full hotkey list.')]]);
-		if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p=>[Number(p.latitude),Number(p.longitude)])).pad(0.15),{maxZoom:12});
+		if (currentPoints.length) map.fitBounds(L.latLngBounds(currentPoints.map(p=>[Number(p.latitude),Number(p.longitude)])).pad(0.15),{maxZoom:12, padding:[60,60]});
+		// Invalidate size whenever the canvas or its ancestors resize (grid
+		// reflow, sidebar open, window resize, mobile URL bar collapse) so
+		// the Leaflet viewport tracks its actual bounding box.
 		setTimeout(()=>map.invalidateSize(),0);
+		if (window.ResizeObserver && !this._geoResizeObs) {
+			this._geoResizeObs = new ResizeObserver(() => {
+				if (this.map === map && this.canvas[0].clientWidth && this.canvas[0].clientHeight) map.invalidateSize();
+			});
+			this._geoResizeObs.observe(this.canvas[0]);
+		}
+		if (!this._geoShowHooked) {
+			this._geoShowHooked = true;
+			const revalidate = () => { if (this.map === map) setTimeout(()=>map.invalidateSize(), 50); };
+			$(document).on('page_change section-toggled form-refresh list_view_rendered', revalidate);
+		}
 	}
 	async relationships(data, renderId) {
-		await frappe.require(['/assets/siraj_research/vendor/vis-network/vis-network.min.js', '/assets/siraj_research/css/siraj_explorer.css']);
+		await frappe.require(['/assets/siraj_research/vendor/vis-network/vis-network.min.js', ('/assets/siraj_research/css/siraj_explorer.css?v='+SIRAJ_EXPLORER_BUILD)]);
 		if (renderId !== this.renderId) return;
 		this.canvas.addClass('sx-graph');
 		const types = [...new Set(data.nodes.map(n => n.doctype))];
@@ -2261,7 +2287,7 @@ class SirajExplorer {
 	}
 
 	async structures(renderId) {
-		await frappe.require(['/assets/siraj_research/vendor/d3/d3.min.js', '/assets/siraj_research/css/siraj_explorer.css']);
+		await frappe.require(['/assets/siraj_research/vendor/d3/d3.min.js', ('/assets/siraj_research/css/siraj_explorer.css?v='+SIRAJ_EXPLORER_BUILD)]);
 		await frappe.require('/assets/siraj_research/vendor/d3-sankey/d3-sankey.min.js');
 		await frappe.require('/assets/siraj_research/js/structure_deck.js');
 		if (renderId !== this.renderId) return;

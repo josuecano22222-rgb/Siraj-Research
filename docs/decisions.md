@@ -310,3 +310,37 @@ opening the Boundary Dataset form does not crash; the "Check
 dependencies" button displays the exact `./env/bin/pip install`
 command. This avoids blocking first deployment on a C toolchain.
 
+
+---
+
+## D-13  Maps are always clipped to their canvas (build .28)
+
+To keep pins near the viewport edge legible we set
+`.leaflet-container { overflow:visible !important }` plus overflow:visible
+on `.leaflet-marker/overlay/shadow-pane`. That caused SVG admin polygons
+and basemap tiles to bleed outside the map canvas and render on top of
+form sidebars, Frappe dialogs, and the Explorer details panel.
+
+**Resolution:** All Leaflet containers use `overflow:hidden; isolation:isolate;
+z-index:0; contain:layout paint style; max-width:100%`. Edge pins stay
+visible via Leaflet-native mechanisms:
+
+- `autoPanPadding: [60, 60]` on every map (popups open without clipping).
+- `fitBounds(…, {padding:[60,60]})` on all "zoom to data" calls.
+- `map.panInside(latlng, {padding:[60,60]})` for Explorer record select
+  (instead of panTo which yanks the map even for already-visible pins).
+- Grid/flex wrappers use `min-width:0; max-width:100%; overflow:hidden`
+  so CSS grid 1fr columns cannot overrun.
+- Popups/tooltips keep `overflow:visible` on their own panes (gated
+  pointer-events) so transient open animations aren't clipped.
+
+Toolbar popovers open inward toward the map and are inside
+`.leaflet-control-container`, so they are never clipped by the map's
+overflow:hidden.
+
+A new Diagnostics check `layout.maps_contained` verifies at runtime that
+every `.leaflet-container`'s bounding box lies within its parent and the
+document has no horizontal scrollbar. `layout.z_index_ordering` verifies
+maps stay at z-index ≤ 0 so Frappe's navbar (~1030) and dialogs (~1050)
+always render above them.
+

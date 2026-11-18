@@ -2,7 +2,11 @@
 .sx-tabs, .sx-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
 .sx-tabs button.active { background: var(--primary, #126a68); color: white; }
 .sx-layout { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 14px; }
-.sx-canvas { min-height: 570px; height: min(70vh, 760px); border: 1px solid var(--sx-line); border-radius: 8px; overflow: hidden; background: #e7efed; }
+/* All grid children need min-width:0 so CSS grid doesn't size them by content
+   (a wide Leaflet container will otherwise force its column beyond 1fr and
+   spill into the detail aside — see map-overflow bug). */
+.sx-layout > *, .sx-layout-geo > * { min-width: 0; max-width: 100%; }
+.sx-canvas { position: relative; min-height: 570px; height: min(70vh, 760px); width:100%; border: 1px solid var(--sx-line); border-radius: 8px; overflow: hidden; background: #e7efed; contain: layout paint; }
 .sx-canvas.sx-graph { background: var(--sx-bg); }
 .sx-aside { padding: 18px; border: 1px solid var(--sx-line); border-radius: 8px; background: var(--sx-bg); overflow-wrap: anywhere; }
 .sx-aside h4 { margin-top: 0; } .sx-aside p { margin: 8px 0; } .sx-aside dl { margin-top: 16px; }
