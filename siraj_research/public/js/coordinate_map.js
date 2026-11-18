@@ -552,31 +552,78 @@
 
 		// Defer L.map until canvas is sized (see Explorer geography() for
 		// explanation). Frappe form sections can collapse/expand; mapping at
-		// 0x0 projects tiles to pixel (0,0) and they never paint.
+		// 0x0 projects tiles to pixel (0,0) and they never paint, and mousemove
+		// events against the zero-size CRS throw Invalid LatLng NaN.
+		//
+		// We also apply a .is-zero-size class while hidden so CSS blocks pointer
+		// events before Leaflet ever receives them — this is the last-resort
+		// guard for the Institution tab (where the Position section starts
+		// hidden and Leaflet gets mouse events during tab-switch layout).
+		const boxEl = box[0];
+		function refreshSizeClass() {
+			const w = canvas[0].clientWidth, h = canvas[0].clientHeight;
+			boxEl.classList.toggle('is-zero-size', !(w > 20 && h > 20));
+			return w > 20 && h > 20;
+		}
+		refreshSizeClass();
 		await new Promise(resolve => {
 			const tryInit = delay => {
-				if (!document.body.contains(canvas[0])) return resolve();
-				if (canvas[0].clientWidth > 20 && canvas[0].clientHeight > 20) return resolve();
-				if (delay > 1500) return resolve();
+				if (!document.body.contains(canvas[0])) return resolve('gone');
+				if (refreshSizeClass()) return resolve('ready');
+				if (delay > 1500) return resolve('timeout');
 				setTimeout(() => tryInit(delay * 2), delay);
 			};
 			tryInit(10);
 			requestAnimationFrame(() => tryInit(20));
 		});
 
-		// autoPanPadding keeps edge pins/popups inside the visible canvas rather
-		// than spilling outside the frame.
-		const map = L.map(canvas[0], {
-			maxZoom: 22, scrollWheelZoom: false, zoomControl: false,
-			zoomSnap: 0.25,
-			autoPanPadding: [60, 60],
-			autoPanPaddingTopLeft: null,
-			autoPanPaddingBottomRight: null,
-		});
+		// If canvas is still 0×0 after the deferral, do NOT call L.map() yet.
+		// Re-attempt once a ResizeObserver/MutationObserver/tab event makes it
+		// non-trivial.
+		let map = null;
 		const initCenter = [33.3152, 44.3661], initZoom = 4;
-		map.setView(initCenter, initZoom);
-		L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
-		if (map.attributionControl) map.attributionControl.addAttribution('Natural Earth');
+		function constructMap() {
+			if (map) return true;
+			if (!refreshSizeClass()) return false;
+			map = L.map(canvas[0], {
+				maxZoom: 22, scrollWheelZoom: false, zoomControl: false,
+				zoomSnap: 0.25,
+				autoPanPadding: [60, 60],
+				autoPanPaddingTopLeft: null,
+				autoPanPaddingBottomRight: null,
+			});
+			map.setView(initCenter, initZoom);
+			L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+			if (map.attributionControl) map.attributionControl.addAttribution('Natural Earth');
+			return true;
+		}
+		if (!constructMap()) {
+			// Canvas is still hidden — watch for size changes via a temporary
+			// ResizeObserver, then fall through to wire up the rest once the
+			// map actually exists.
+			let ro, to;
+			await new Promise(resolve => {
+				const tryAgain = () => { if (constructMap()) { cleanup(); resolve(); } };
+				ro = new ResizeObserver(tryAgain);
+				ro.observe(canvas[0]);
+				const mo = new MutationObserver(tryAgain);
+				mo.observe(document.body, { childList:true, subtree:true, attributes:true, attributeFilter:['class','style','hidden','aria-hidden'] });
+				$(document).on('shown.bs.tab', tryAgain);
+				to = setTimeout(() => { cleanup(); resolve(); }, 8000);
+				function cleanup() {
+					try { ro.disconnect(); } catch(_){}
+					try { mo.disconnect(); } catch(_){}
+					try { $(document).off('shown.bs.tab', tryAgain); } catch(_){}
+					try { clearTimeout(to); } catch(_){}
+				}
+			});
+		}
+		if (!map) {
+			// Even after waiting the canvas is hidden — give up. Mount will retry
+			// next refresh.
+			group.remove();
+			return;
+		}
 
 		const state = {
 			key, cfg, lat: fields.lat, lon: fields.lon, docname, box, group, map, status,
@@ -604,8 +651,7 @@
 		}
 		const safeInvalidate = () => {
 			if (states.get(key) !== state) return;
-			const w = canvas[0].clientWidth, h = canvas[0].clientHeight;
-			if (!w || !h) return;
+			if (!refreshSizeClass()) return;
 			try { map.invalidateSize(false); } catch (_) {}
 		};
 		// Invalidate size on tab switch (Bootstrap fires shown.bs.tab on the

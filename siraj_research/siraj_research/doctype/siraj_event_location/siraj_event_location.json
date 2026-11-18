@@ -17,6 +17,14 @@
  ],
  "fields": [
   {
+   "fieldname": "event",
+   "fieldtype": "Link",
+   "options": "Siraj Event",
+   "label": "Siraj Event",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
    "fieldname": "place",
    "fieldtype": "Link",
    "label": "Location",

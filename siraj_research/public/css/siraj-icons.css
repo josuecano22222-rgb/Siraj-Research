@@ -433,6 +433,15 @@
 	height: 380px; width: 100%; background: #dce8ed; border-radius: 8px;
 	border: 1px solid var(--border-color,#d9e2e7); position: relative; overflow: hidden;
 }
+/* When the canvas is inside a hidden/collapsed Frappe tab or section
+ * the layout collapses to 0×0 but Leaflet still gets mousemove events
+ * that it tries to unproject — producing NaN LatLng throws. Disable
+ * pointer events until the container has a real size; the JS toggles
+ * this class back off once the first invalidateSize fires. */
+.siraj-coordinate-map.is-zero-size .siraj-coord-canvas,
+.siraj-coordinate-map.is-zero-size .leaflet-container {
+	pointer-events: none !important;
+}
 .siraj-coordinate-map .siraj-toolbar { z-index: 600; }
 .siraj-coord-chip { display:inline-flex; align-items:center; gap:4px; padding:1px 8px; border-radius:999px; background:#eaf1f1; color:#234; font-size:11px; margin-inline-start:6px; }
 .siraj-coord-chip.is-warn { background:#fce8e6; color:#8a2525; }

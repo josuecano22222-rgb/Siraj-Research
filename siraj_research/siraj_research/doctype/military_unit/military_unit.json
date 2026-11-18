@@ -405,22 +405,29 @@
    "fieldname": "institutions",
    "fieldtype": "Table",
    "label": "Institutions",
-   "options": "Military Unit Institution",
+   "options": "military_unit_institution",
    "group": "Institutions"
   },
   {
    "fieldname": "events_table",
    "fieldtype": "Table",
    "label": "Events",
-   "options": "Military Unit Event",
+   "options": "military_unit_event",
    "group": "Events"
   },
   {
    "fieldname": "locations_table",
    "fieldtype": "Table",
    "label": "Locations",
-   "options": "Military Unit Location",
+   "options": "military_unit_location",
    "group": "Locations"
+  },
+  {
+   "fieldname": "command_personnel",
+   "fieldtype": "Table",
+   "options": "person_military_unit",
+   "label": "Command personnel",
+   "group": "Command personnel"
   },
   {
    "fieldname": "sb_evidence",

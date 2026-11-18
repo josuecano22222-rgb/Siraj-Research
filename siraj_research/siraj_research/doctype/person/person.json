@@ -592,28 +592,28 @@
    "fieldname": "institutions",
    "fieldtype": "Table",
    "label": "Institutions",
-   "options": "Person Institution",
+   "options": "person_institution",
    "group": "Institutions"
   },
   {
    "fieldname": "military_units",
    "fieldtype": "Table",
    "label": "Military units",
-   "options": "Person Military Unit",
+   "options": "person_military_unit",
    "group": "Military units"
   },
   {
    "fieldname": "events_table",
    "fieldtype": "Table",
    "label": "Events",
-   "options": "Person Event",
+   "options": "person_event",
    "group": "Events"
   },
   {
    "fieldname": "locations_table",
    "fieldtype": "Table",
    "label": "Locations",
-   "options": "Person Location",
+   "options": "person_location",
    "group": "Locations"
   },
   {
@@ -831,16 +831,6 @@
    "link_doctype": "Person Location",
    "group": "Locations",
    "link_fieldname": "person"
-  },
-  {
-   "link_doctype": "Institution",
-   "group": "Institutions",
-   "link_fieldname": "primary_contact"
-  },
-  {
-   "link_doctype": "Relationship",
-   "group": "Relationships",
-   "is_dynamic": 0
   }
  ],
  "actions": [

@@ -110,7 +110,7 @@
    "fieldname": "people",
    "fieldtype": "Table",
    "label": "People involved",
-   "options": "Siraj Event Person",
+   "options": "siraj_event_person",
    "group": "People involved"
   },
   {
@@ -122,14 +122,14 @@
    "fieldname": "institutions",
    "fieldtype": "Table",
    "label": "Institutions involved",
-   "options": "Siraj Event Institution",
+   "options": "siraj_event_institution",
    "group": "Institutions involved"
   },
   {
    "fieldname": "military_units",
    "fieldtype": "Table",
    "label": "Military units involved",
-   "options": "Siraj Event Military Unit",
+   "options": "siraj_event_military_unit",
    "group": "Military units involved"
   },
   {
@@ -142,7 +142,7 @@
    "fieldname": "places",
    "fieldtype": "Table",
    "label": "Locations",
-   "options": "Siraj Event Location",
+   "options": "siraj_event_location",
    "group": "Locations"
   },
   {

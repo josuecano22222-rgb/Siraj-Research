@@ -20,6 +20,14 @@
  ],
  "fields": [
   {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "options": "Person",
+   "label": "Person",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
    "fieldname": "event",
    "fieldtype": "Link",
    "label": "Siraj Event",

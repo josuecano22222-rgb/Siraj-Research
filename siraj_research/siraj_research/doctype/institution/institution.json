@@ -447,22 +447,29 @@
    "fieldname": "events_table",
    "fieldtype": "Table",
    "label": "Events",
-   "options": "Institution Event",
+   "options": "institution_event",
    "group": "Events"
   },
   {
    "fieldname": "military_units",
    "fieldtype": "Table",
    "label": "Military units",
-   "options": "Institution Military Unit",
+   "options": "institution_military_unit",
    "group": "Military units"
   },
   {
    "fieldname": "locations_table",
    "fieldtype": "Table",
    "label": "Locations",
-   "options": "Institution Location",
+   "options": "institution_location",
    "group": "Locations"
+  },
+  {
+   "fieldname": "people",
+   "fieldtype": "Table",
+   "options": "person_institution",
+   "label": "People",
+   "group": "People"
   },
   {
    "fieldname": "sb_evidence",
