@@ -2,7 +2,15 @@
 
 import zipfile
 
+import pytest
+
 from siraj_research import geo_bulk as gb
+
+
+@pytest.fixture(autouse=True)
+def _no_frappe(monkeypatch):
+    """These are pure-Python tests even when a bench venv imports Frappe."""
+    monkeypatch.setattr(gb, "frappe", None)
 
 GEONAMES_LINE = "\t".join([
     "1", "Baghdad", "Baghdad", "", "33.3152", "44.3661", "P", "PPLC",
