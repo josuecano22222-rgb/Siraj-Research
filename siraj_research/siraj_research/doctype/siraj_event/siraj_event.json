@@ -53,7 +53,8 @@
   "evidence",
   "sb_identifiers",
   "external_identifiers",
-  "place_name"
+  "place_name",
+  "cb_admin"
  ],
  "fields": [
   {
@@ -109,7 +110,8 @@
    "fieldname": "people",
    "fieldtype": "Table",
    "label": "People involved",
-   "options": "Siraj Event Person"
+   "options": "Siraj Event Person",
+   "group": "People involved"
   },
   {
    "fieldname": "cb_participants",
@@ -120,13 +122,15 @@
    "fieldname": "institutions",
    "fieldtype": "Table",
    "label": "Institutions involved",
-   "options": "Siraj Event Institution"
+   "options": "Siraj Event Institution",
+   "group": "Institutions involved"
   },
   {
    "fieldname": "military_units",
    "fieldtype": "Table",
    "label": "Military units involved",
-   "options": "Siraj Event Military Unit"
+   "options": "Siraj Event Military Unit",
+   "group": "Military units involved"
   },
   {
    "fieldname": "sb_places",
@@ -138,7 +142,8 @@
    "fieldname": "places",
    "fieldtype": "Table",
    "label": "Locations",
-   "options": "Siraj Event Location"
+   "options": "Siraj Event Location",
+   "group": "Locations"
   },
   {
    "fieldname": "linked_place",
@@ -197,9 +202,9 @@
    "options": "Governorate"
   },
   {
-   "fieldname": "cb_geo",
+   "fieldname": "cb_admin",
    "fieldtype": "Column Break",
-   "label": "Cb Geo"
+   "label": null
   },
   {
    "fieldname": "district",
@@ -229,7 +234,12 @@
    "fieldname": "place_name",
    "fieldtype": "Data",
    "label": "Locality / place name",
-   "description": "Nearest named place (village/town) from the gazetteer; auto-filled by reverse-geocoding."
+   "description": "Nearest named place (village/town); auto-filled by reverse-geocoding."
+  },
+  {
+   "fieldname": "cb_geo",
+   "fieldtype": "Column Break",
+   "label": "Cb Geo"
   },
   {
    "fieldname": "sb_evidence",

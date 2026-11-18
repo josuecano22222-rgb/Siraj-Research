@@ -31,8 +31,6 @@
   "closed_date",
   "closed_date_precision",
   "sb_seat",
-  "country",
-  "governorate",
   "cb_seat",
   "place",
   "city_as_stated",
@@ -67,16 +65,12 @@
   "evidence",
   "sb_identifiers",
   "external_identifiers",
-  "cb_admin",
   "district",
   "municipality",
   "village",
   "community",
-  "sb_assoc",
-  "people_note",
   "events_table",
   "military_units",
-  "cb_assoc",
   "locations_table",
   "place_name"
  ],
@@ -275,22 +269,6 @@
    "label": "Seat"
   },
   {
-   "fieldname": "country",
-   "fieldtype": "Link",
-   "label": "Country",
-   "options": "Country",
-   "in_standard_filter": 1,
-   "in_preview": 1,
-   "allow_in_quick_entry": 1
-  },
-  {
-   "fieldname": "governorate",
-   "fieldtype": "Link",
-   "label": "Governorate",
-   "options": "Governorate",
-   "link_filters": "[[\"Governorate\", \"country\", \"=\", \"eval:doc.country\"]]"
-  },
-  {
    "fieldname": "cb_seat",
    "fieldtype": "Column Break",
    "label": ""
@@ -302,76 +280,6 @@
    "options": "Place",
    "description": "The named settlement or building; association only, never a source of coordinates.",
    "in_preview": 1
-  },
-  {
-   "fieldname": "cb_admin",
-   "fieldtype": "Column Break",
-   "label": "Cb Admin"
-  },
-  {
-   "fieldname": "district",
-   "fieldtype": "Link",
-   "label": "District",
-   "options": "District"
-  },
-  {
-   "fieldname": "municipality",
-   "fieldtype": "Link",
-   "label": "Municipality",
-   "options": "Municipality"
-  },
-  {
-   "fieldname": "village",
-   "fieldtype": "Link",
-   "label": "Village / locality",
-   "options": "Village"
-  },
-  {
-   "fieldname": "community",
-   "fieldtype": "Link",
-   "label": "Community / cluster",
-   "options": "Community"
-  },
-  {
-   "fieldname": "place_name",
-   "fieldtype": "Data",
-   "label": "Locality / place name",
-   "description": "Nearest named place (village/town) from the gazetteer; auto-filled by reverse-geocoding."
-  },
-  {
-   "fieldname": "sb_assoc",
-   "fieldtype": "Section Break",
-   "label": "Associations",
-   "collapsible": 1
-  },
-  {
-   "fieldname": "people_note",
-   "fieldtype": "HTML",
-   "label": "Note",
-   "options": "<div class=\"form-note\">People linked to this institution appear via <b>Person \u2192 Institution</b> rows.</div>"
-  },
-  {
-   "fieldname": "events_table",
-   "fieldtype": "Table",
-   "label": "Events",
-   "options": "Institution Event"
-  },
-  {
-   "fieldname": "military_units",
-   "fieldtype": "Table",
-   "label": "Military units",
-   "options": "Institution Military Unit"
-  },
-  {
-   "fieldname": "cb_assoc",
-   "fieldtype": "Column Break",
-   "label": "Cb Assoc"
-  },
-  {
-   "fieldname": "locations_table",
-   "fieldtype": "Table",
-   "label": "Locations",
-   "options": "Institution Location"
   },
   {
    "fieldname": "city_as_stated",
@@ -501,9 +409,60 @@
    "depends_on": "eval:doc.latitude && doc.longitude"
   },
   {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village / locality",
+   "options": "Village"
+  },
+  {
+   "fieldname": "community",
+   "fieldtype": "Link",
+   "label": "Community / cluster",
+   "options": "Community"
+  },
+  {
+   "fieldname": "place_name",
+   "fieldtype": "Data",
+   "label": "Locality / place name",
+   "description": "Nearest named place (village/town); auto-filled by reverse-geocoding."
+  },
+  {
    "fieldname": "tab_provenance",
    "fieldtype": "Tab Break",
    "label": "Provenance & State"
+  },
+  {
+   "fieldname": "events_table",
+   "fieldtype": "Table",
+   "label": "Events",
+   "options": "Institution Event",
+   "group": "Events"
+  },
+  {
+   "fieldname": "military_units",
+   "fieldtype": "Table",
+   "label": "Military units",
+   "options": "Institution Military Unit",
+   "group": "Military units"
+  },
+  {
+   "fieldname": "locations_table",
+   "fieldtype": "Table",
+   "label": "Locations",
+   "options": "Institution Location",
+   "group": "Locations"
   },
   {
    "fieldname": "sb_evidence",

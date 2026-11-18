@@ -86,14 +86,10 @@
   "municipality",
   "village",
   "community",
-  "sb_links",
   "institutions",
   "military_units",
-  "cb_links",
   "events_table",
   "locations_table",
-  "sb_relations_view",
-  "relationships_note",
   "place_name"
  ],
  "fields": [
@@ -555,7 +551,7 @@
   {
    "fieldname": "cb_admin",
    "fieldtype": "Column Break",
-   "label": "Cb Admin"
+   "label": null
   },
   {
    "fieldname": "district",
@@ -585,59 +581,40 @@
    "fieldname": "place_name",
    "fieldtype": "Data",
    "label": "Locality / place name",
-   "description": "Nearest named place (village/town) from the gazetteer; auto-filled by reverse-geocoding."
-  },
-  {
-   "fieldname": "sb_links",
-   "fieldtype": "Section Break",
-   "label": "Associations",
-   "collapsible": 1
-  },
-  {
-   "fieldname": "institutions",
-   "fieldtype": "Table",
-   "label": "Institutions",
-   "options": "Person Institution"
-  },
-  {
-   "fieldname": "military_units",
-   "fieldtype": "Table",
-   "label": "Military units",
-   "options": "Person Military Unit"
-  },
-  {
-   "fieldname": "cb_links",
-   "fieldtype": "Column Break",
-   "label": "Cb Links"
-  },
-  {
-   "fieldname": "events_table",
-   "fieldtype": "Table",
-   "label": "Events",
-   "options": "Person Event"
-  },
-  {
-   "fieldname": "locations_table",
-   "fieldtype": "Table",
-   "label": "Locations",
-   "options": "Person Location"
-  },
-  {
-   "fieldname": "sb_relations_view",
-   "fieldtype": "Section Break",
-   "label": "Relationships",
-   "collapsible": 1
-  },
-  {
-   "fieldname": "relationships_note",
-   "fieldtype": "HTML",
-   "label": "Note",
-   "options": "<div class=\"form-note\">Add directed relationships (subject \u2192 object) using the <b>Relationship</b> DocType. Relationships where this Person is the subject or object will appear here in the Relationship Graph view.</div>"
+   "description": "Nearest named place (village/town); auto-filled by reverse-geocoding."
   },
   {
    "fieldname": "tab_provenance",
    "fieldtype": "Tab Break",
    "label": "Provenance & State"
+  },
+  {
+   "fieldname": "institutions",
+   "fieldtype": "Table",
+   "label": "Institutions",
+   "options": "Person Institution",
+   "group": "Institutions"
+  },
+  {
+   "fieldname": "military_units",
+   "fieldtype": "Table",
+   "label": "Military units",
+   "options": "Person Military Unit",
+   "group": "Military units"
+  },
+  {
+   "fieldname": "events_table",
+   "fieldtype": "Table",
+   "label": "Events",
+   "options": "Person Event",
+   "group": "Events"
+  },
+  {
+   "fieldname": "locations_table",
+   "fieldtype": "Table",
+   "label": "Locations",
+   "options": "Person Location",
+   "group": "Locations"
   },
   {
    "fieldname": "sb_evidence",

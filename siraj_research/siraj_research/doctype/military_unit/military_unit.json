@@ -20,8 +20,6 @@
   "commander",
   "current_deployment",
   "cb_unit_scope",
-  "division",
-  "region",
   "status",
   "direct_personnel",
   "subtree_personnel",
@@ -64,10 +62,8 @@
   "municipality",
   "village",
   "community",
-  "sb_assoc",
   "institutions",
   "events_table",
-  "cb_assoc",
   "locations_table",
   "linked_place",
   "place_name"
@@ -338,7 +334,7 @@
   {
    "fieldname": "cb_admin",
    "fieldtype": "Column Break",
-   "label": "Cb Admin"
+   "label": null
   },
   {
    "fieldname": "district",
@@ -368,36 +364,7 @@
    "fieldname": "place_name",
    "fieldtype": "Data",
    "label": "Locality / place name",
-   "description": "Nearest named place (village/town) from the gazetteer; auto-filled by reverse-geocoding."
-  },
-  {
-   "fieldname": "sb_assoc",
-   "fieldtype": "Section Break",
-   "label": "Associations",
-   "collapsible": 1
-  },
-  {
-   "fieldname": "institutions",
-   "fieldtype": "Table",
-   "label": "Institutions",
-   "options": "Military Unit Institution"
-  },
-  {
-   "fieldname": "events_table",
-   "fieldtype": "Table",
-   "label": "Events",
-   "options": "Military Unit Event"
-  },
-  {
-   "fieldname": "cb_assoc",
-   "fieldtype": "Column Break",
-   "label": "Cb Assoc"
-  },
-  {
-   "fieldname": "locations_table",
-   "fieldtype": "Table",
-   "label": "Locations",
-   "options": "Military Unit Location"
+   "description": "Nearest named place (village/town); auto-filled by reverse-geocoding."
   },
   {
    "fieldname": "geo_description",
@@ -433,6 +400,27 @@
    "fieldname": "tab_provenance",
    "fieldtype": "Tab Break",
    "label": "Provenance & State"
+  },
+  {
+   "fieldname": "institutions",
+   "fieldtype": "Table",
+   "label": "Institutions",
+   "options": "Military Unit Institution",
+   "group": "Institutions"
+  },
+  {
+   "fieldname": "events_table",
+   "fieldtype": "Table",
+   "label": "Events",
+   "options": "Military Unit Event",
+   "group": "Events"
+  },
+  {
+   "fieldname": "locations_table",
+   "fieldtype": "Table",
+   "label": "Locations",
+   "options": "Military Unit Location",
+   "group": "Locations"
   },
   {
    "fieldname": "sb_evidence",
