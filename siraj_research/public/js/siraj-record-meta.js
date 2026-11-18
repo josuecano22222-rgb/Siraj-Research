@@ -185,8 +185,8 @@
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.49';
-try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .49 Hard normalize: rebuild all 14 child tables by copying person_position.json template verbatim (correcting stale quick_entry/issingle/track_changes keys and over-broad permissions that caused Frappe to silently skip importing them); normalize Siraj Event to match the Person master-DocType schema"); } catch (_) {}
+window.SIRAJ_BUILD = '2026-11-17.coord-field-slice-a.50';
+try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| .50 Full doctype audit: add non-empty __init__.py to every DocType package directory (Python 3.12 namespace-package quirk caused ModuleNotFoundError on child tables during bench migrate even though .py files existed); verify all Link/Table/links[] references resolve to existing DocTypes; remove broken Governorate→Institution link"); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------
 // Compare the JS-built stamp with the server stamp delivered at boot time.
