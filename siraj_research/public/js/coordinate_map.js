@@ -621,53 +621,8 @@
 			.add({ icon: 'home',     label: t('Home'), action: () => map.setView([33.3152, 44.3661], 4) })
 			.add({ icon: 'locate_me', label: t('My loc'), action: () => map.locate({ setView: true, maxZoom: 12, enableHighAccuracy: true }) });
 
-		const selectBasemap = val => {
-			if (state.tileLayer) { map.removeLayer(state.tileLayer); state.tileLayer = null; }
-			if (state.packLayer) { map.removeLayer(state.packLayer); state.packLayer = null; }
-			map.setMinZoom(0);
-			const pack = localPacks.get(String(val).replace(/^pack-/, ''));
-			if (pack) {
-				if (state.offlineLayer) map.removeLayer(state.offlineLayer);
-				map.setMinZoom(pack.minzoom);
-				state.packLayer = L.tileLayer('/api/method/siraj_research.local_maps.tile?kind=' + encodeURIComponent(pack.kind) + '&z={z}&x={x}&y={y}', {
-					minZoom: pack.minzoom, maxZoom: 22, maxNativeZoom: pack.maxzoom, attribution: pack.attribution || '',
-				}).addTo(map);
-				state.packLayer.on('tileerror', () => status.text(t('Some local tiles are unavailable at this location or zoom.')));
-			} else if (val === 'online') {
-				if (state.offlineLayer) map.removeLayer(state.offlineLayer);
-				state.tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-					maxZoom: 22, maxNativeZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-				}).addTo(map);
-				status.text(t('Online tiles disclose your IP address and viewed area to OpenStreetMap.'));
-			} else {
-				if (state.offlineLayer) state.offlineLayer.addTo(map).bringToBack();
-			}
-		};
-		const basemapMenu = pop => {
-			const w = $('<div></div>').appendTo(pop);
-			const opt = (val, icon, label, active) => {
-				const b = $('<button type="button" class="siraj-toolbar-opt"></button>')
-					.html((window.sirajIcons ? window.sirajIcons.toolSvg(icon, { size: 16 }) : '') + '<span>' + label + '</span>');
-				if (active) b.addClass('is-active');
-				b.on('click', () => { w.find('.is-active').removeClass('is-active'); b.addClass('is-active'); selectBasemap(val); });
-				b.appendTo(w); return b;
-			};
-			opt('local', 'offline', t('Offline basemap'), true);
-			opt('online', 'online', t('Online: OpenStreetMap'), false);
-			$('<hr>').appendTo(w);
-			$('<div style="font-size:11px;color:var(--text-muted);padding:4px"></div>').text(t('Downloaded local packs appear here.')).appendTo(w);
-			frappe.call({ method: 'siraj_research.local_maps.available_packs', type: 'GET', silent: true }).then(res => {
-				if (states.get(key) !== state || !Array.isArray(res.message)) return;
-				res.message.forEach(pack => {
-					if (pack.unavailable || !['standard', 'aerial'].includes(pack.kind)) return;
-					localPacks.set(pack.kind, pack);
-					opt('pack-' + pack.kind, 'layers', pack.kind === 'aerial' ? t('Local aerial') : t('Local standard'), false);
-				});
-			}).catch(() => {});
-		};
-		toolbar.group(t('Basemap'))
-			.add({ icon: 'layers', label: t('Basemap'), menuTitle: t('Basemap'), menu: basemapMenu });
-
+		// Basemap is server-managed (tile_cache.active_layer); no end-user
+		// switcher on form maps.
 		toolbar.separator();
 
 		toolbar.group(t('Measure'))
@@ -718,35 +673,36 @@
 		requestAnimationFrame(() => { if (states.get(key) === state) map.invalidateSize(false); });
 		setTimeout(() => { if (states.get(key) === state) map.invalidateSize(false); }, 500);
 
-		// Load offline base layer (Natural Earth countries-110m topojson).
-		// Fall back to online OSM tiles if the topojson fetch fails so the
-		// map is never blank after a missed `bench build`.
-		let offlineOk = false;
+		// Natural Earth land polygons (offline, always present as a base).
 		try {
 			const response = await fetch('/assets/siraj_research/vendor/world-atlas/countries-110m.json');
-			if (!response.ok) throw new Error('basemap HTTP ' + response.status);
-			const world = await response.json();
-			if (states.get(key) !== state) return;
-			state.offlineLayer = L.geoJSON(topojson.feature(world, world.objects.countries), {
-				style: { color: '#7793a0', weight: 1, fillColor: '#eef3ed', fillOpacity: 1, interactive: false },
-			});
-			if (!state.tileLayer && !state.packLayer) state.offlineLayer.addTo(map);
-			if (state.marker && state.marker.bringToFront) state.marker.bringToFront();
-			offlineOk = true;
-		} catch (err) {
-			console.warn('[SIRAJ] coordinate map: offline basemap failed:', err && err.message);
-		}
-		if (!offlineOk && states.get(key) === state) {
-			try {
-				state.tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-					maxZoom: 22, maxNativeZoom: 19,
-					attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-				}).addTo(map);
-				status.text(t('Offline basemap unavailable; using OpenStreetMap online tiles.'));
-			} catch (e) {
-				console.warn('[SIRAJ] coordinate map: online fallback failed:', e);
-				status.text(t('Basemap could not be loaded. Check network or run `bench build`.'));
+			if (response.ok) {
+				const world = await response.json();
+				if (states.get(key) === state) {
+					state.offlineLayer = L.geoJSON(topojson.feature(world, world.objects.countries), {
+						style: { color: '#7793a0', weight: 1, fillColor: '#eef3ed', fillOpacity: 1, interactive: false },
+					});
+					if (!state.tileLayer && !state.packLayer) state.offlineLayer.addTo(map);
+					if (state.marker && state.marker.bringToFront) state.marker.bringToFront();
+				}
 			}
+		} catch (err) { console.warn('[SIRAJ] coordinate map: Natural Earth failed:', err && err.message); }
+		// Server-managed cached tile layer — same endpoint as Explorer.
+		if (states.get(key) === state && !state.tileLayer) {
+			try {
+				const r = await frappe.call({ method: 'siraj_research.tile_cache.active_layer', type: 'GET' });
+				const cfg = (r && r.message) || {};
+				if (cfg.layer && cfg.url && states.get(key) === state) {
+					state.tileLayer = L.tileLayer(cfg.url, {
+						maxZoom: cfg.maxZoom || 19, maxNativeZoom: cfg.maxZoom || 19,
+						attribution: cfg.attribution || '',
+					}).addTo(map);
+					if (cfg.overlayUrl) {
+						L.tileLayer(cfg.overlayUrl, { maxZoom: cfg.maxZoom||19, pane:'overlayPane' }).addTo(map);
+					}
+					if (cfg.attribution && map.attributionControl) map.attributionControl.addAttribution(cfg.attribution);
+				}
+			} catch (e) { console.warn('[SIRAJ] coordinate map: cached tile layer unavailable:', e); }
 		}
 
 		// Advanced overlays (coordinate readout + stats dock + minimap).

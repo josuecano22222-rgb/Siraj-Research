@@ -9,6 +9,14 @@
  "sort_order": "DESC",
  "track_changes": 1,
  "field_order": [
+  "sb_tiles",
+  "default_tile_layer",
+  "tile_cache_days",
+  "cb_tiles",
+  "enable_standard_layer",
+  "enable_aerial_layer",
+  "enable_hybrid_layer",
+  "allow_tile_fetch",
   "sb_datasets",
   "active_boundary_dataset",
   "active_gazetteer_dataset",
@@ -31,6 +39,55 @@
   "sea_gap_warning_distance_km"
  ],
  "fields": [
+  {
+   "fieldname": "sb_tiles",
+   "fieldtype": "Section Break",
+   "label": "Map tile layers"
+  },
+  {
+   "fieldname": "default_tile_layer",
+   "fieldtype": "Select",
+   "label": "Default map layer",
+   "options": "\nstandard\naerial\nhybrid",
+   "default": "standard",
+   "description": "Layer rendered on every map. Users do not get a switcher; this is the source of truth."
+  },
+  {
+   "fieldname": "tile_cache_days",
+   "fieldtype": "Int",
+   "label": "Server tile cache TTL (days)",
+   "default": "90",
+   "description": "Tiles are re-fetched after this age."
+  },
+  {
+   "fieldname": "cb_tiles",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "enable_standard_layer",
+   "fieldtype": "Check",
+   "label": "Enable Standard (OSM)",
+   "default": 1
+  },
+  {
+   "fieldname": "enable_aerial_layer",
+   "fieldtype": "Check",
+   "label": "Enable Aerial (Esri)",
+   "default": 1
+  },
+  {
+   "fieldname": "enable_hybrid_layer",
+   "fieldtype": "Check",
+   "label": "Enable Hybrid (aerial+labels)",
+   "default": 0
+  },
+  {
+   "fieldname": "allow_tile_fetch",
+   "fieldtype": "Check",
+   "label": "Allow server to fetch from provider",
+   "default": 1,
+   "description": "When off, only tiles already on disk are served (offline-safe)."
+  },
   {
    "fieldname": "sb_datasets",
    "fieldtype": "Section Break",
@@ -90,7 +147,7 @@
    "fieldtype": "Select",
    "label": "Provider",
    "options": "\nNominatim (OpenStreetMap)\nEsri World Geocoding\nPhoton (Komoot)",
-   "description": "Per-release provider choice — review the provider's ToS and data licence before enabling."
+   "description": "Per-release provider choice \u2014 review the provider's ToS and data licence before enabling."
   },
   {
    "fieldname": "cb_online",

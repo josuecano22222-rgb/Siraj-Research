@@ -1,6 +1,6 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
-const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.37';
+const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.38';
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -500,38 +500,50 @@ class SirajExplorer {
 			if (this.toolbar) this.toolbar.status(text, warn ? 'warning' : null);
 			if (this.note) this.note.text(text).toggleClass('sx-warning', !!warn);
 		};
-		let offlineLayer = null, onlineLayer = null, localPackLayer = null, selectedCircle = null;
-		// Basemap. Prefer offline Natural Earth polygons (no third-party
-		// network); if that fetch fails (e.g. assets not linked after a
-		// deploy) fall back to OSM online tiles so the map is never blank.
-		let offlineOk = false;
+		let offlineLayer = null, onlineLayer = null, overlayLayer = null, selectedCircle = null;
+		// Natural Earth low-detail polygons (offline) — shown underneath
+		// the server-cached tile layer as a permanent land/ocean reference.
 		try {
 			const response = await fetch('/assets/siraj_research/vendor/world-atlas/countries-110m.json');
-			if (!response.ok) throw new Error('offline basemap HTTP ' + response.status);
-			const world = await response.json();
-			if (renderId !== this.renderId) return;
-			offlineLayer = L.geoJSON(topojson.feature(world, world.objects.countries), {
-				interactive: false, style: { color:'#a4b4a8', weight:0.7, fillColor:'#e8e4cf', fillOpacity:1 }
-			}).addTo(map);
-			map.attributionControl.addAttribution('Natural Earth / world-atlas');
-			mapStatus(__('Offline basemap: Natural Earth, low detail.'));
-			offlineOk = true;
-		} catch (err) {
-			console.error('[SIRAJ] offline basemap failed:', err);
-		}
-		if (!offlineOk) {
-			if (renderId !== this.renderId) return;
-			try {
-				onlineLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-					maxZoom: 22, maxNativeZoom: 19,
-					attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-				}).addTo(map);
-				mapStatus(__('Offline basemap unavailable; using OpenStreetMap online tiles.'), true);
-			} catch (e) {
-				console.error('[SIRAJ] fallback online basemap failed:', e);
-				if (renderId !== this.renderId) return;
-				mapStatus(__('Basemap could not be loaded. Check network or run `bench build`.'), true);
+			if (response.ok) {
+				const world = await response.json();
+				if (renderId === this.renderId) {
+					offlineLayer = L.geoJSON(topojson.feature(world, world.objects.countries), {
+						interactive: false, style: { color:'#a4b4a8', weight:0.7, fillColor:'#e8e4cf', fillOpacity:1 }
+					}).addTo(map);
+					map.attributionControl.addAttribution('Natural Earth / world-atlas');
+				}
 			}
+		} catch (err) { console.warn('[SIRAJ] Natural Earth polygons unavailable:', err); }
+		// Server-managed tile layer. Choice is configured in Geo Settings;
+		// all tile traffic is proxied + cached on the server so maps keep
+		// working when the server itself is offline from the internet.
+		let layerCfg = { layer: null };
+		try {
+			const res = await frappe.call({ method: 'siraj_research.tile_cache.active_layer', type: 'GET' });
+			if (res && res.message) layerCfg = res.message;
+		} catch (err) { console.warn('[SIRAJ] active_layer call failed:', err); }
+		if (renderId !== this.renderId) return;
+		if (layerCfg && layerCfg.layer && layerCfg.url) {
+			try {
+				onlineLayer = L.tileLayer(layerCfg.url, {
+					maxZoom: layerCfg.maxZoom || 19, maxNativeZoom: layerCfg.maxZoom || 19,
+					attribution: layerCfg.attribution || '',
+				}).addTo(map);
+				if (layerCfg.overlayUrl) {
+					overlayLayer = L.tileLayer(layerCfg.overlayUrl, {
+						maxZoom: layerCfg.maxZoom||19, maxNativeZoom: layerCfg.maxZoom||19,
+						pane: 'overlayPane',
+					}).addTo(map);
+				}
+				if (layerCfg.attribution) map.attributionControl.addAttribution(layerCfg.attribution);
+				mapStatus(__('Basemap: {0}. Tiles cached on server.', [layerCfg.layer]));
+			} catch (e) {
+				console.error('[SIRAJ] cached tile layer failed:', e);
+				mapStatus(__('Server tile layer unavailable; using offline Natural Earth.'), true);
+			}
+		} else {
+			mapStatus(__('Offline basemap: Natural Earth, low detail.'));
 		}
 		// Icons — teardrop pin anchored at the tip (bottom center).
 		const pinH = s => Math.round(s * 1.15);
@@ -1450,46 +1462,8 @@ class SirajExplorer {
 				});
 			}});
 
-		// Basemap
-		const selectBasemap = val => {
-			if (onlineLayer) { map.removeLayer(onlineLayer); onlineLayer=null; }
-			if (localPackLayer) { map.removeLayer(localPackLayer); localPackLayer=null; }
-			map.setMinZoom(0);
-			const pack = localPacks.get(String(val).replace(/^pack-/,''));
-			if (pack) {
-				if (offlineLayer) map.removeLayer(offlineLayer);
-				map.setMinZoom(pack.minzoom);
-				localPackLayer = L.tileLayer('/api/method/siraj_research.local_maps.tile?kind='+encodeURIComponent(pack.kind)+'&z={z}&x={x}&y={y}',{minZoom:pack.minzoom,maxZoom:22,maxNativeZoom:pack.maxzoom,attribution:pack.attribution||''}).addTo(map);
-				localPackLayer.on('tileerror',()=>mapStatus(__('Some local tiles are unavailable.'),true));
-			} else if (val==='online') {
-				if (offlineLayer) map.removeLayer(offlineLayer);
-				onlineLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
-				mapStatus(__('Online tiles disclose your IP to OpenStreetMap.'));
-			} else {
-				if (offlineLayer) offlineLayer.addTo(map).bringToBack();
-			}
-		};
-		this.toolbar.group(__('Basemap'))
-			.add({ icon:'layers', label:__('Basemap'), key:'basemap', tooltip:__('Basemap'), hotkey:'B', mode:'popover', menuTitle:__('Basemap'), menu: pop => {
-				const w=$('<div></div>').appendTo(pop);
-				const opt=(val,icon,label,active)=>{
-					const b=$('<button type="button" class="siraj-toolbar-opt"></button>').html(window.sirajIcons.toolSvg(icon,{size:16})+'<span>'+label+'</span>');
-					if (active) b.addClass('is-active');
-					b.on('click',()=>{w.find('.is-active').removeClass('is-active');b.addClass('is-active');selectBasemap(val);});
-					b.appendTo(w); return b;
-				};
-				opt('local','offline',__('Offline'),true);
-				opt('online','online',__('Online: OSM'),false);
-				$('<hr>').appendTo(w);
-				frappe.call({method:'siraj_research.local_maps.available_packs',type:'GET',silent:true}).then(res=>{
-					if (!Array.isArray(res.message)) return;
-					res.message.forEach(pack=>{
-						if (pack.unavailable||!['standard','aerial'].includes(pack.kind)) return;
-						localPacks.set(pack.kind,pack);
-						opt('pack-'+pack.kind,'layers',pack.kind==='aerial'?__('Local aerial'):__('Local standard'),false);
-					});
-				}).catch(()=>{});
-			}});
+		// Basemap is server-managed (tile_cache.active_layer). No end-user
+		// basemap switcher is exposed.
 		this.toolbar.separator();
 
 		// Measure group
