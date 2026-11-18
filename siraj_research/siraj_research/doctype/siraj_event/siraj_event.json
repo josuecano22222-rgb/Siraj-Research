@@ -21,9 +21,8 @@
  "allow_copy": 1,
  "allow_events_in_timeline": 1,
  "in_create": 0,
- "title_field": "title_en",
- "image_field": "image",
- "search_fields": "display_name,name_ar,name_en,name_original,name_transliteration",
+ "title_field": "title",
+ "search_fields": "title,description,place_name,event_type",
  "icon": "star",
  "description": "SIRAJ-researched event connecting persons, institutions, military units and places.",
  "fields": [
