@@ -168,7 +168,7 @@ siraj_research.geo_hierarchy.resolve_and_link_point
 - sampled municipalities, villages and communities from `admin_units.json`.
 
 All rows are bilingual (English + Arabic), get stable codes and are tagged
-with `SIRAJ-REFERENCE` as their `Boundary Dataset`. Rerunning is safe:
+with `SIRAJ-REFERENCE` as their `Boundary Dataset` (recorded at level 0 even though the batch spans all levels). Rerunning is safe:
 existing rows with a conflicting parent are skipped, never overwritten.
 
 To refresh without reinstalling:
@@ -256,7 +256,8 @@ Workspace (no bench needed):
 
 ```bash
 PYTHONPATH=. /tmp/siraj-venv/bin/python -m pytest \
-  tests/test_geo_hierarchy.py tests/test_geo_online.py tests/test_geo_bulk.py -q
+  tests/test_geo_hierarchy.py tests/test_geo_online.py \
+  tests/test_geo_bulk.py tests/test_master_data_dataset.py -q
 /tmp/siraj-venv/bin/ruff check siraj_research/geo_hierarchy.py siraj_research/geo_online.py \
   siraj_research/geo_bulk.py siraj_research/geo_import.py \
   siraj_research/api/geo_resolve.py siraj_research/setup/master_data.py
@@ -270,7 +271,8 @@ On a bench (replace `SITE`):
 cd ~/frappe-bench
 ./env/bin/python -m pytest apps/siraj_research/tests/test_geo_hierarchy.py \
   apps/siraj_research/tests/test_geo_online.py \
-  apps/siraj_research/tests/test_geo_bulk.py -q
+  apps/siraj_research/tests/test_geo_bulk.py \
+  apps/siraj_research/tests/test_master_data_dataset.py -q
 ./env/bin/ruff check apps/siraj_research/siraj_research/geo_*.py
 bench --site SITE migrate
 bench --site SITE clear-cache

@@ -159,6 +159,9 @@ def _ensure_reference_dataset():
         doc.label_ar = "المرجع الإداري المنسّق في سراج"
         doc.source = "SIRAJ reference_data/*.json"
         doc.license_id = "Other (see notes)"
+        # One reference batch spans every level; `level` is mandatory on the
+        # dataset DocType, so record it as the country-level anchor (0).
+        doc.level = 0
         doc.import_status = "Complete"
         doc.import_progress = 100
         doc.feature_count = sum(len(_load(name)) for name in (
