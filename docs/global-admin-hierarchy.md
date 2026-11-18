@@ -257,14 +257,27 @@ levels are filled by combining three sources in this order:
    not publish a polygon for a level:
 
    ```bash
+   bench --site SITE execute siraj_research.geo_bulk.enqueue_geonames_admin \
+     --kwargs '{"zip_path":"/data/geonames/admin-with-codes.zip","dataset_code":"GEONAMES-ADMIN"}'
+
+   # Or run synchronously for a small country set:
    bench --site SITE execute siraj_research.geo_bulk.import_geonames_admin \
-     --kwargs '{"zip_path":"/data/geonames/allCountries.zip","dataset_code":"GEONAMES-ADMIN"}'
+     --kwargs '{"zip_path":"/data/geonames/admin-with-codes.zip","country_codes":["IQ"]}'
    ```
 
-   For a smaller first pass, add `"country_codes":["IQ","SY","LB"]`. The
-   importer streams `admin1CodesASCII.txt`, `admin2Codes.txt` and
-   `allCountries.txt`, creates levels 1–5 with parent links, and skips rows
-   whose parent is unknown instead of inventing one.
+   `allCountries.zip` from GeoNames contains only `allCountries.txt`; add
+   `admin1CodesASCII.txt` and `admin2Codes.txt` to the same zip first:
+
+   ```bash
+   cd /data/geonames
+   unzip -o allCountries.zip
+   wget https://download.geonames.org/export/dump/admin1CodesASCII.txt
+   wget https://download.geonames.org/export/dump/admin2Codes.txt
+   zip admin-with-codes.zip allCountries.txt admin1CodesASCII.txt admin2Codes.txt
+   ```
+
+   The importer streams those three files, creates levels 1–5 with parent
+   links, and skips rows whose parent is unknown instead of inventing one.
 
 3. **OSM boundaries (neighbourhood / mahallah)** — OSM is the main open source
    for level-6 `community`. Map OSM `admin_level` like this:

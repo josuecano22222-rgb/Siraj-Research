@@ -418,6 +418,21 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 	        "levels": sorted(levels_seen), "missing_parents": missing_parents}
 
 
+def enqueue_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN",
+                           *, country_codes: Iterable[str] | None = None,
+                           batch_size: int = 500) -> dict:
+    """Run :func:`import_geonames_admin` in the long worker for global files."""
+    if frappe is None:
+        return {"queued": False, "reason": "frappe unavailable"}
+    frappe.enqueue(
+        import_geonames_admin, queue="long", timeout=6 * 60 * 60,
+        zip_path=zip_path, dataset_code=dataset_code,
+        country_codes=list(country_codes or []), batch_size=batch_size,
+        job_id=f"siraj-geonames-admin:{dataset_code}",
+    )
+    return {"queued": True, "dataset": dataset_code}
+
+
 # ---------------------------------------------------------------------------
 # GADM / OSM polygon datasets
 # ---------------------------------------------------------------------------
