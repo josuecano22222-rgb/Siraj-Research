@@ -8,9 +8,9 @@
  "issingle": 0,
  "track_changes": 0,
  "editable_grid": 1,
- "quick_entry": 1,
+ "quick_entry": 0,
  "sort_field": "modified",
- "sort_order": "DESC",
+ "sort_order": "ASC",
  "field_order": [
   "person",
   "event",
@@ -73,7 +73,8 @@
    "import": 1,
    "email": 1,
    "share": 1,
-   "set_user_permissions": 1
+   "set_user_permissions": 1,
+   "permlevel": 0
   },
   {
    "role": "System Manager",
@@ -87,7 +88,8 @@
    "export": 1,
    "import": 1,
    "email": 1,
-   "share": 1
+   "share": 1,
+   "permlevel": 0
   },
   {
    "role": "SIRAJ Reviewer",
@@ -98,7 +100,8 @@
    "report": 1,
    "print": 1,
    "select": 1,
-   "export": 1
+   "export": 1,
+   "permlevel": 0
   },
   {
    "role": "SIRAJ Researcher",
@@ -109,7 +112,8 @@
    "report": 1,
    "print": 1,
    "select": 1,
-   "export": 1
+   "export": 1,
+   "permlevel": 0
   },
   {
    "role": "SIRAJ Viewer",
@@ -120,7 +124,15 @@
    "report": 1,
    "print": 1,
    "select": 1,
-   "export": 1
+   "export": 1,
+   "permlevel": 0
   }
- ]
+ ],
+ "in_create": 0,
+ "row_format": "Dynamic",
+ "autoname": "hash",
+ "description": "",
+ "links": [],
+ "actions": [],
+ "states": []
 }
