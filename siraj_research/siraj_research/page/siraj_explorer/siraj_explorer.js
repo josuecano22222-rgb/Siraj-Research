@@ -1,6 +1,6 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
-const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.35';
+const SIRAJ_EXPLORER_BUILD = '2026-11-17.coord-field-slice-a.36';
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -423,9 +423,13 @@ class SirajExplorer {
 		};
 	}
 	async geography(data, renderId) {
+		try {
 		// Explicitly require shared map assets here. In page contexts (like
 		// /app/siraj-explorer) app_include_js load order is not guaranteed to
 		// have completed by the time page JS runs, so we list them explicitly.
+		// NOTE: siraj-map-advanced.js is loaded in the bundle (app_include_js)
+		// — we don't require it again here; its CSS is listed because it's
+		// only in app_include_css and page-level loads can race that list.
 		await frappe.require([
 			'/assets/siraj_research/vendor/leaflet/leaflet.css',
 			'/assets/siraj_research/vendor/leaflet/leaflet.js',
@@ -434,9 +438,24 @@ class SirajExplorer {
 			'/assets/siraj_research/js/siraj-map-kit.js',
 			'/assets/siraj_research/js/siraj-map-toolbar.js',
 			'/assets/siraj_research/css/siraj-map-toolbar.css',
+			'/assets/siraj_research/css/siraj-map-advanced.css',
 			'/assets/siraj_research/css/siraj-icons.css',
-			('/assets/siraj_research/css/siraj_explorer.css'),
+			'/assets/siraj_research/css/siraj_explorer.css',
 		]);
+		// MarkerCluster CSS files are not shipped in vendor/; inject minimal
+		// rules so cluster icons size correctly (without the official CSS the
+		// cluster divs collapse to 0x0 and pins never appear).
+		if (!document.getElementById('sx-mc-style')) {
+			const st = document.createElement('style');
+			st.id = 'sx-mc-style';
+			st.textContent = [
+				'.leaflet-cluster-anim .leaflet-marker-icon,.leaflet-cluster-anim .leaflet-marker-shadow{-webkit-transition:-webkit-transform 0.3s ease-out;-moz-transition:-moz-transform 0.3s ease-out;-o-transition:-o-transform 0.3s ease-out;transition:transform 0.3s ease-out;}',
+				'.marker-cluster{background-clip:padding-box;border-radius:20px;background:rgba(18,106,104,0.32)!important;}',
+				'.marker-cluster div{width:30px;height:30px;margin-left:5px;margin-top:5px;text-align:center;border-radius:15px;font:12px "Helvetica Neue",Arial,Helvetica,sans-serif;font-weight:bold;color:#fff;line-height:30px;background:#126a68!important;}',
+				'.marker-cluster span{line-height:30px;}',
+			].join('\n');
+			document.head.appendChild(st);
+		}
 		if (renderId !== this.renderId) return;
 		const Kit = window.SirajMapKit;
 
@@ -1732,6 +1751,16 @@ class SirajExplorer {
 			map.on('layeradd layerremove zoomend moveend', refresh);
 			map.on('click', () => setTimeout(refresh, 20));
 			setTimeout(refresh, 100);
+		}
+		} catch (err) {
+			// Top-level diagnostic catch so any mid-render error surfaces in
+			// console instead of silently aborting and leaving a blank map.
+			console.error('[SIRAJ] geography render failed:', err);
+			try {
+				if (this.note) this.note.addClass('sx-warning').text(
+					__('Map failed to render: {0}', [(err && err.message) || String(err)])
+				);
+			} catch (_) {}
 		}
 	}
 	async relationships(data, renderId) {
