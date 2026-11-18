@@ -385,12 +385,25 @@
 		setTimeout(async () => {
 			if (controller.signal.aborted) return;
 			try {
-				const r = await frappe.xcall('siraj_research.api.geo_resolve.resolve_point',
-					{ latitude: lat, longitude: lon });
+				let r = null;
+				// Prefer the local worker (instant if synced, and works
+				// fully offline); fall back to server authoritative call
+				// if the worker isn't ready yet (first load) or returns
+				// empty. Server has the full-resolution STRtree; the worker
+				// uses simplified polygons. Both share the same schema so
+				// applyAdminChain handles either.
+				if (window.SirajGeo && window.SirajGeo.resolve) {
+					try { r = await window.SirajGeo.resolve(lat, lon); } catch(_) { r = null; }
+				}
+				if (!r || !r.on_land) {
+					try {
+						r = await frappe.xcall('siraj_research.api.geo_resolve.resolve_point',
+							{ latitude: lat, longitude: lon });
+					} catch (_) { /* keep worker result or null */ }
+				}
 				if (controller.signal.aborted) return;
 				applyAdminChain(frm, cfg, r);
 			} catch (e) {
-				// Silent failure — auto-fill is a convenience, never blocks saves.
 				try { console.warn('[SIRAJ coord] resolve failed:', e && e.message); } catch(_){}
 			}
 		}, 350);
