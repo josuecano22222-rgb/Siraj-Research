@@ -1,6 +1,7 @@
 """Streaming bulk-import helpers (no bench, no network)."""
 
 import zipfile
+from types import SimpleNamespace
 
 import pytest
 
@@ -112,6 +113,8 @@ def test_osm_commands_are_argv_lists_not_shell_strings():
     assert len(commands) == 2
     assert all(isinstance(command, list) for command in commands)
     assert commands[0][0] == "osmium"
+    assert "--overwrite" in commands[0]
+    assert "--add-unique-id=type_id" in commands[1]
     assert commands[1][-1].endswith("my country-boundaries.geojson")
     assert gb.prepare_osm("/data/x.pbf", "/data/out", run=False)["ran"] is False
 
@@ -120,3 +123,34 @@ def test_sync_levels_preserves_none_for_all_levels():
     assert gb._normalise_sync_levels(None) is None
     assert gb._normalise_sync_levels([3, 5]) == [3, 5]
     assert gb._normalise_sync_levels([]) == []
+
+
+def test_reset_boundary_dataset_removes_old_polygons_and_hierarchy(monkeypatch):
+    calls = []
+
+    class FakeDB:
+        def delete(self, doctype, filters):
+            calls.append((doctype, filters))
+
+        def set_value(self, *args, **kwargs):
+            calls.append(("set_value", args, kwargs))
+
+        def commit(self):
+            calls.append(("commit",))
+
+    fake = SimpleNamespace(
+        get_all=lambda doctype, **kwargs: (
+            ["AB1"] if doctype == "Admin Boundary"
+            else ["D1"] if doctype == "District"
+            else []
+        ),
+        db=FakeDB(),
+    )
+    monkeypatch.setattr(gb, "frappe", fake)
+
+    result = gb.reset_boundary_dataset("OSM-IL-PS")
+    assert result == {"dataset": "OSM-IL-PS", "boundaries_deleted": 1,
+                      "hierarchy_rows_deleted": 1}
+    assert ("Admin Boundary Geom", {"parent": ["in", ["AB1"]]}) in calls
+    assert ("Admin Boundary", {"name": ["in", ["AB1"]]}) in calls
+    assert ("District", {"name": ["in", ["D1"]]}) in calls

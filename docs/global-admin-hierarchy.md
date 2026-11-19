@@ -344,6 +344,20 @@ levels are filled by combining three sources in this order:
    Without it, call `prepare_osm(..., run=False)` and run the printed commands
    yourself, or import an already-prepared GeoJSON/GPKG directly.
 
+### OSM IDs are required for stable codes
+
+`osmium export` does **not** include OSM object IDs by default. `prepare_osm`
+therefore passes `--add-unique-id=type_id`, which adds a stable `@id` property.
+Re-run `prepare_osm` after upgrading; otherwise most features have no P-Code
+and `Admin Boundary` rows are skipped. As a last resort the importer derives
+an `OSM-<hash>` code from level, name and bbox for ID-less features. Before a
+corrected reimport, clear the old rows with:
+
+```bash
+bench --site SITE execute siraj_research.geo_bulk.reset_boundary_dataset \
+  --kwargs '{"dataset_code":"OSM-IL-PS"}'
+```
+
 ### Troubleshooting pyogrio upgrades
 
 `ValueError: too many values to unpack (expected 3)` during a boundary import

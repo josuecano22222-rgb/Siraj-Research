@@ -14,6 +14,7 @@ knows what to do.
 """
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import re
@@ -112,11 +113,11 @@ def _extract_if_zip(path: Path, workdir: Path) -> list[Path]:
 # or Gazetteer Place), plus a list of lower-case aliases seen in common
 # datasets (geoBoundaries, OCHA COD-AB Iraq/Afghanistan, GeoNames, OSM).
 POLYGON_FIELDS = {
-    "pcode":      ["pcode", "adm{pcode}_pcode".format(pcode="{level}"), "shape_pcode", "ocd_id", "ref_pcode", "osm_id", "osm_relation_id", "ref"],
+    "pcode":      ["pcode", "adm{pcode}_pcode".format(pcode="{level}"), "shape_pcode", "ocd_id", "ref_pcode", "@id", "osm_id", "osm_relation_id", "ref"],
     "name_en":    ["name_en", "engtype", "name", "nam", "admin{pcode}_name".format(pcode="{level}"), "shape_en"],
     "name_ar":    ["name_ar", "ar_name", "arname", "name:ar", "admin{pcode}_ar".format(pcode="{level}"), "shape_ar"],
     "parent_pcode":["parent_pcode", "par_pcode", "adm{pcode}_pcode".format(pcode="{parent}"), "parent_adm", "par_id"],
-    "source_id":  ["id", "fid", "objectid", "shape_id", "ogc_fid"],
+    "source_id":  ["@id", "id", "fid", "objectid", "shape_id", "ogc_fid"],
     "country":    ["country", "country_code", "iso", "iso_a2", "cc",
                    "iso3166-1:alpha2", "iso3166-1", "iso3166-2", "adm0_a3"],
     "osm_admin_level": ["admin_level", "adminlevel"],
@@ -393,6 +394,16 @@ def _iter_fiona(file_path: Path, encoding: str):
             yield {"properties": dict(feat.get("properties") or {}), "geometry": geom}
 
 
+def _derived_pcode(level: int, name: str | None, bounds) -> str:
+    """Stable fallback code for features whose source has no ID field."""
+    key = "|".join([
+        str(level),
+        str(name or ""),
+        ",".join(f"{float(value):.7f}" for value in (bounds or ())),
+    ])
+    return "OSM-" + hashlib.sha1(key.encode("utf-8")).hexdigest()[:16].upper()
+
+
 def _wkb_hex(geom) -> str:
     """Return hex WKB as text across Shapely 1.x/2.x."""
     value = shapely.wkb.dumps(geom, hex=True)
@@ -405,11 +416,11 @@ def _wkb_hex(geom) -> str:
 # Upsert helpers
 # ---------------------------------------------------------------------------
 
-def _upsert_admin_boundary(dataset: str, level: int, record: dict, store_geojson: bool = True) -> None:
+def _upsert_admin_boundary(dataset: str, level: int, record: dict, store_geojson: bool = True) -> bool:
     """Insert or update a single Admin Boundary row and its geometry child."""
     pcode = record.get("pcode")
     if not pcode:
-        return  # can't link without pcode
+        return False  # can't link without pcode
     existing = frappe.db.get_value("Admin Boundary",
                                    {"dataset": dataset, "pcode": pcode}, "name")
     doc = frappe.get_doc("Admin Boundary", existing) if existing else frappe.new_doc("Admin Boundary")
@@ -464,6 +475,7 @@ def _upsert_admin_boundary(dataset: str, level: int, record: dict, store_geojson
             doc.append("geometries", child)
     doc.flags.ignore_permissions = True
     doc.save(ignore_permissions=True)
+    return True
 
 
 def _upsert_gazetteer(dataset: str, record: dict) -> None:
@@ -577,6 +589,11 @@ def import_boundary_job(dataset_name: str, file_path_str: str, is_gazetteer: boo
                 record["centroid_lat"] = c.y
                 record["centroid_lon"] = c.x
                 b = geom.bounds
+                if not record.get("pcode"):
+                    derived_level = (osm_level_to_siraj(record.get("osm_admin_level"))
+                                     or level)
+                    record["pcode"] = _derived_pcode(
+                        derived_level, record.get("name_en") or record.get("name_ar"), b)
                 record["bbox"] = ",".join(f"{v:.6f}" for v in b) if b else None
                 if b:
                     record.update({
@@ -610,8 +627,8 @@ def import_boundary_job(dataset_name: str, file_path_str: str, is_gazetteer: boo
                 feature_level = level
                 if record.get("osm_admin_level") is not None:
                     feature_level = osm_level_to_siraj(record["osm_admin_level"]) or level
-                _upsert_admin_boundary(dataset_name, feature_level, record, store_geojson)
-            count += 1
+                if _upsert_admin_boundary(dataset_name, feature_level, record, store_geojson):
+                    count += 1
             if count % batch_size == 0:
                 _set_status(doc, import_progress=min(99, int(count / max(total_estimate or 1, 1) * 100)),
                             feature_count=count, last_processed_offset=count)

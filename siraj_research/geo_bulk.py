@@ -37,7 +37,13 @@ try:  # pragma: no cover - bench only
 except Exception:  # pragma: no cover - pure-Python tests
     frappe = None  # type: ignore[assignment]
 
-from siraj_research.geo_hierarchy import LEVELS, make_code, normalize_code, upsert_level
+from siraj_research.geo_hierarchy import (
+    HIERARCHY_DOCTYPES,
+    LEVELS,
+    make_code,
+    normalize_code,
+    upsert_level,
+)
 
 
 def _ensure_dataset(code: str, *, label_en: str, source: str, level: int = 0,
@@ -554,6 +560,42 @@ def import_and_sync_boundary_job(dataset_name: str, file_path_str: str, level: i
     return result
 
 
+def reset_boundary_dataset(dataset_code: str, *, include_hierarchy: bool = True) -> dict:
+    """Remove rows previously created from a Boundary Dataset before reimport.
+
+    Existing hierarchy rows whose ``source_dataset`` is this dataset are also
+    removed by default, so a corrected export does not leave duplicates.
+    """
+    if frappe is None:
+        return {"error": "frappe unavailable", "dataset": dataset_code}
+    boundaries = frappe.get_all("Admin Boundary",
+                                filters={"dataset": dataset_code},
+                                pluck="name", limit_page_length=0)
+    hierarchy_deleted = 0
+    if include_hierarchy:
+        for doctype in HIERARCHY_DOCTYPES:
+            names = frappe.get_all(doctype,
+                                   filters={"source_dataset": dataset_code},
+                                   pluck="name", limit_page_length=0)
+            if names:
+                frappe.db.delete(doctype, {"name": ["in", names]})
+                hierarchy_deleted += len(names)
+    if boundaries:
+        frappe.db.delete("Admin Boundary Geom", {"parent": ["in", boundaries]})
+        frappe.db.delete("Admin Boundary", {"name": ["in", boundaries]})
+    frappe.db.set_value("Boundary Dataset", dataset_code, {
+        "import_status": "Queued", "import_progress": 0, "feature_count": 0,
+        "last_processed_offset": 0,
+        "import_log": "Reset for reimport - waiting for worker.",
+    }, update_modified=False)
+    frappe.db.commit()
+    return {
+        "dataset": dataset_code,
+        "boundaries_deleted": len(boundaries),
+        "hierarchy_rows_deleted": hierarchy_deleted,
+    }
+
+
 def sync_boundary_hierarchy(dataset_code: str, *, levels: Iterable[int] | None = None,
                             create_missing: bool = True, batch_size: int = 200) -> dict:
     """Create hierarchy rows from an already-imported Boundary Dataset."""
@@ -604,10 +646,12 @@ def osm_commands(input_path: str, output_dir: str) -> list[list[str]]:
     filtered = out / f"{src.stem}-boundaries.osm.pbf"
     geojson = out / f"{src.stem}-boundaries.geojson"
     return [
-        ["osmium", "tags-filter", str(src), "r/boundary=administrative",
-         "w/boundary=administrative", "-o", str(filtered)],
+        ["osmium", "tags-filter", "--overwrite", str(src),
+         "r/boundary=administrative", "w/boundary=administrative",
+         "-o", str(filtered)],
         ["osmium", "export", "--geometry=multipolygon", "--overwrite",
-         "-f", "geojson", str(filtered), "-o", str(geojson)],
+         "--add-unique-id=type_id", "-f", "geojson",
+         str(filtered), "-o", str(geojson)],
     ]
 
 

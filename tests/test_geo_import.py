@@ -102,3 +102,13 @@ def test_wkb_hex_returns_text_with_shapely_two(_fake_frappe):
     value = gi._wkb_hex(Point(0, 0))
     assert isinstance(value, str)
     assert value.startswith("01")
+
+
+def test_derived_pcode_is_stable_without_source_ids(_fake_frappe):
+    gi = _fake_frappe
+    first = gi._derived_pcode(3, "Gaza", (34.2, 31.2, 34.4, 31.4))
+    second = gi._derived_pcode(3, "Gaza", (34.2, 31.2, 34.4, 31.4))
+    other = gi._derived_pcode(3, "Nablus", (35.0, 32.0, 35.2, 32.2))
+    assert first == second
+    assert first.startswith("OSM-")
+    assert first != other
