@@ -80,6 +80,22 @@ def test_iter_geonames_lines_reads_plain_directory(tmp_path):
     assert "Baghdad" in rows[0][1]
 
 
+def test_choose_admin_parent_skips_missing_intermediate_levels():
+    names = {
+        "IQ-BG": "Baghdad Governorate",
+        "IQ-BG-AL": "Al Adhamiyah",
+    }
+    countries = {"IQ": "Iraq"}
+    assert gb.choose_admin_parent(2, "IQ.BG", names, countries) == (
+        "Baghdad Governorate", "governorate", 1)
+    # ADM3 is absent; the village attaches to the deepest known district.
+    assert gb.choose_admin_parent(4, "IQ.BG.AL.MISSING", names, countries) == (
+        "Al Adhamiyah", "district", 2)
+    assert gb.choose_admin_parent(5, "IQ.BG.AL.MISSING.X", names, countries) == (
+        "Al Adhamiyah", "district", 2)
+    assert gb.choose_admin_parent(1, "IQ", names, countries) == ("Iraq", "country", 0)
+
+
 def test_osm_commands_are_argv_lists_not_shell_strings():
     commands = gb.osm_commands("/data/my country.pbf", "/data/out")
     assert len(commands) == 2

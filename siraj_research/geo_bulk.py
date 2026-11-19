@@ -37,6 +37,8 @@ try:  # pragma: no cover - bench only
 except Exception:  # pragma: no cover - pure-Python tests
     frappe = None  # type: ignore[assignment]
 
+from siraj_research.geo_hierarchy import LEVELS, make_code, normalize_code, upsert_level
+
 
 def _ensure_dataset(code: str, *, label_en: str, source: str, level: int = 0,
                     license_id: str = "ODbL-1.0", url: str = "",
@@ -308,6 +310,32 @@ def parse_geonames_admin_line(line: str, *, level: int) -> dict | None:
 	}
 
 
+def choose_admin_parent(level: int, parent_pcode: str | None,
+                        name_by_pcode: dict[str, str],
+                        countries: dict[str, str]) -> tuple[str | None, str, int]:
+    """Pick the nearest available parent when an intermediate level is absent.
+
+    GeoNames often fills ``admin4_code`` while leaving ``admin3_code`` empty.
+    Rather than dropping the village, we attach it to the deepest known
+    ancestor (district, governorate, or country). This keeps the hierarchy
+    honest: a skipped level is represented by a missing Link, not a fake row.
+    """
+    if level == 1:
+        code = str(parent_pcode or "").split(".")[0].upper()
+        return countries.get(code), "country", 0
+    if not parent_pcode:
+        return None, str(LEVELS[max(0, level - 1)]["field"]), level - 1
+    parts = str(parent_pcode).split(".")
+    for ancestor_level in range(level - 1, 0, -1):
+        if len(parts) < ancestor_level + 1:
+            continue
+        candidate = ".".join(parts[: ancestor_level + 1])
+        name = name_by_pcode.get(normalize_code(candidate))
+        if name:
+            return name, str(LEVELS[ancestor_level]["field"]), ancestor_level
+    return countries.get(parts[0].upper()), "country", 0
+
+
 def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *,
                           country_codes: Iterable[str] | None = None,
                           batch_size: int = 500,
@@ -323,8 +351,6 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 	Use ``country_codes`` to process one or a few countries when a full global
 	allCountries archive is too large for the worker.
 	"""
-	from siraj_research.geo_hierarchy import LEVELS, make_code, normalize_code, upsert_level
-
 	path = Path(zip_path)
 	if not path.exists():
 		raise FileNotFoundError(str(path))
@@ -343,10 +369,8 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 	         name_en: str, source_id: str | None = None) -> bool:
 		nonlocal count, processed, missing_parents
 		spec = LEVELS[level]
-		parent_field = str(spec["parent"])
-		parent_name = name_by_pcode.get(normalize_code(parent_pcode)) if parent_pcode else None
-		if parent_field == "country":
-			parent_name = countries.get(pcode.split(".")[0].upper()) if parent_name is None else parent_name
+		parent_name, parent_field, parent_level = choose_admin_parent(
+			level, parent_pcode, name_by_pcode, countries)
 		if not parent_name:
 			missing_parents += 1
 			return False
@@ -354,7 +378,7 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 		ancestors = {k: v for k, v in ancestors.items() if v}
 		if parent_pcode:
 			parts = str(parent_pcode).split(".")
-			for ancestor_level in range(1, level):
+			for ancestor_level in range(1, parent_level + 1):
 				candidate = ".".join(parts[: ancestor_level + 1])
 				ancestor_name = name_by_pcode.get(normalize_code(candidate))
 				if ancestor_name:
@@ -397,9 +421,9 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 				missing_parents += 1
 				continue
 			if level == 1:
-				# Country parent is resolved from the two-letter prefix inside _put.
+				# Pass the code itself so choose_admin_parent can read the ISO prefix.
 				name_by_pcode[normalize_code(countries[cc])] = countries[cc]
-				parent_pcode = None
+				parent_pcode = row["pcode"]
 			else:
 				parent_pcode = row["pcode"].rsplit(".", 1)[0]
 			_put(level, row["pcode"], parent_pcode, row["name_en"], row["source_id"])

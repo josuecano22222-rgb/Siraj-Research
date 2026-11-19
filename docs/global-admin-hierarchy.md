@@ -321,8 +321,14 @@ levels are filled by combining three sources in this order:
 
    ```bash
    bench --site SITE execute siraj_research.geo_bulk.prepare_osm \
-     --kwargs '{"input_path":"/home/frappe/geodata/osm/nl-latest.osm.pbf","output_dir":"/home/frappe/geodata/osm","run": True}'
+     --kwargs '{"input_path":"/home/frappe/frappe-bench/geodata/osm/netherlands-latest.osm.pbf","output_dir":"/home/frappe/frappe-bench/geodata/osm","run": True}'
+
+   bench --site SITE execute siraj_research.geo_bulk.import_osm \
+     --kwargs '{"dataset_code":"OSM-NL-COMMUNITY","file_path":"/home/frappe/frappe-bench/geodata/osm/netherlands-latest.osm-boundaries.geojson","level":5}'
    ```
+
+   Note the output name contains `.osm-boundaries.geojson`; importing
+   `...-boundaries.geojson` points at a file that does not exist.
 
    `prepare_osm` also requires the `osmium` binary (`sudo apt install osmium-tool`).
    Without it, call `prepare_osm(..., run=False)` and run the printed commands
