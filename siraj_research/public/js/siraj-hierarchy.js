@@ -106,6 +106,7 @@
 
   function render(target, result, opts = {}) {
     if (!target) return;
+    try {
     const $box = target.jquery ? target : $(target);
     $box.empty().addClass('siraj-hierarchy').attr('data-hierarchy-build', window.SIRAJ_BUILD || '');
     const levels = result.levels || [];
@@ -155,10 +156,14 @@
     }
     if ((result.warnings || []).length) {
       $('<div class="siraj-hierarchy-warnings"></div>')
-        .text(result.warnings.map(w => t(String(w).replaceAll('_', ' '))).join(' · '))
+        .text(result.warnings.map(w => t(String(w).replace(/_/g, ' '))).join(' · '))
         .appendTo($box);
     }
     return $box;
+    } catch (err) {
+      console.warn('[SIRAJ hierarchy] render failed:', err && err.message);
+      return target && target.jquery ? target : $(target);
+    }
   }
 
   // Desk form integration: one panel per [frm, lat field, lon field].

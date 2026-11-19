@@ -415,7 +415,7 @@
 							t('Resolved to {0}.', [deepest]) +
 							(missing ? ' ' + t('{0} levels not covered by the dataset.', [missing]) : '')
 						);
-					});
+					}).catch(() => {});
 				}
 			} catch (e) {
 				try { console.warn('[SIRAJ coord] resolve failed:', e && e.message); } catch(_){}
@@ -718,19 +718,29 @@
 			.add({ icon: 'home',     label: t('Home'), action: () => map.setView([33.3152, 44.3661], 4) })
 			.add({ icon: 'locate_me', label: t('My loc'), action: () => map.locate({ setView: true, maxZoom: 12, enableHighAccuracy: true }) });
 
-		toolbar.group(t('Geography'))
-			.add({ icon: 'link_chain', label: t('Resolve hierarchy'), tooltip: t('Resolve the full hierarchy at the pin'),
-				action: () => {
-					const doc = frm.doc || {};
-					const lat = parseCoordinate(currentValue(fields.lat, doc, cfg.lat_field), 90);
-					const lon = parseCoordinate(currentValue(fields.lon, doc, cfg.lon_field), 180);
-					if (lat == null || lon == null) {
-						state.status.text(t('Enter or pick valid coordinates first.'));
-						return;
-					}
-					resolveAndApply(frm, cfg, lat, lon);
-					if (window.SirajHierarchy) window.SirajHierarchy.refreshForm(frm, cfg, lat, lon, { force: true });
-				} });
+		// The hierarchy tool is an enhancement: a toolbar/API problem here
+		// must never abort the rest of the map setup and leave a blank canvas.
+		try {
+			toolbar.group(t('Geography'))
+				.add({ icon: 'link_chain', label: t('Resolve hierarchy'), tooltip: t('Resolve the full hierarchy at the pin'),
+					action: () => {
+						const doc = frm.doc || {};
+						const lat = parseCoordinate(currentValue(fields.lat, doc, cfg.lat_field), 90);
+						const lon = parseCoordinate(currentValue(fields.lon, doc, cfg.lon_field), 180);
+						if (lat == null || lon == null) {
+							state.status.text(t('Enter or pick valid coordinates first.'));
+							return;
+						}
+						resolveAndApply(frm, cfg, lat, lon);
+						try {
+							if (window.SirajHierarchy) window.SirajHierarchy.refreshForm(frm, cfg, lat, lon, { force: true });
+						} catch (hierr) {
+							console.warn('[SIRAJ coord] hierarchy refresh failed:', hierr && hierr.message);
+						}
+					} });
+		} catch (err) {
+			console.warn('[SIRAJ coord] hierarchy tool unavailable:', err && err.message);
+		}
 
 		// Basemap switcher (Standard / Satellite / Hybrid / Offline) — shared
 		// Leaflet controller that adds a toolbar group and persists the choice.
