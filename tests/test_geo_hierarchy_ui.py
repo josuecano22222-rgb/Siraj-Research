@@ -397,3 +397,13 @@ def test_offline_bootstrap_source_contains_full_workflow():
     assert "def download_python_wheels(" in source
     assert 'prepare_offline_site' in docs
     assert '"create_missing":True' in docs
+
+
+def test_bootstrap_progress_is_immediate_and_tailable():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "siraj_research/offline_bootstrap.py").read_text()
+    docs = (root / "docs/offline-first.md").read_text()
+    assert "def emit(" in source
+    assert "print(f\"[SIRAJ offline] {stage}: {message}\", flush=True)" in source
+    assert "bootstrap-progress.json" in source
+    assert "tail -f" in docs

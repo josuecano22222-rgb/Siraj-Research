@@ -25,6 +25,14 @@ bench --site frappe.com execute siraj_research.offline_bootstrap.prepare_offline
   --kwargs '{"dataset":"OSM-IL-PS","max_zoom":11}'
 ```
 
+Progress is printed immediately to the terminal and appended to
+`sites/frappe.com/private/offline-cache/bootstrap-progress.json`. In another
+terminal you can watch it live:
+
+```bash
+tail -f ~/frappe-bench/sites/frappe.com/private/offline-cache/bootstrap-progress.json
+```
+
 If you prefer to do each step manually, use the commands below. Remember that
 `bench --kwargs` is evaluated as Python: use `True`, not `true`.
 

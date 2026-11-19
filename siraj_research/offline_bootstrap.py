@@ -7,6 +7,8 @@ site into permanent offline mode. No later operation needs an external host.
 """
 from __future__ import annotations
 
+import datetime as dt
+import json
 import math
 import subprocess
 import sys
@@ -25,6 +27,31 @@ except Exception:  # pragma: no cover
 
 DEFAULT_BBOX = (29.4, 34.2, 33.4, 35.9)  # Israel + Palestine (lat_min, lon_min, lat_max, lon_max)
 OFFLINE_LAYERS = ("standard", "aerial", "hybrid", "hybrid_labels")
+
+def progress_path() -> Path | None:
+    if frappe is None:
+        return None
+    return Path(frappe.get_site_path("private", "offline-cache", "bootstrap-progress.json"))
+
+
+def emit(stage: str, message: str, **extra) -> None:
+    """Report progress immediately to the terminal and a tail-able file."""
+    record = {"at": dt.datetime.now().isoformat(timespec="seconds"),
+              "stage": stage, "message": message, **extra}
+    line = json.dumps(record, ensure_ascii=False, default=str)
+    try:
+        print(f"[SIRAJ offline] {stage}: {message}", flush=True)
+    except Exception:
+        pass
+    try:
+        path = progress_path()
+        if path:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as fh:
+                fh.write(line + "\n")
+    except Exception:
+        pass
+
 
 
 def dataset_bbox(dataset: str | None) -> tuple[float, float, float, float]:
@@ -76,14 +103,18 @@ def download_python_wheels(target_dir: str | Path | None = None) -> dict:
     requirements = app / "requirements-offline.txt"
     target = Path(target_dir) if target_dir else (Path(frappe.get_site_path("private")) if frappe else app) / "offline-cache" / "wheels"
     target.mkdir(parents=True, exist_ok=True)
+    emit("wheels", f"Downloading requirements to {target}", requirements=str(requirements))
     proc = subprocess.run(
         [sys.executable, "-m", "pip", "download", "--dest", str(target), "-r", str(requirements)],
         capture_output=True, text=True, check=False,
     )
+    count = len(list(target.glob("*.whl")))
+    emit("wheels", f"Wheel download {'complete' if proc.returncode == 0 else 'FAILED'}: {count} files",
+         ok=proc.returncode == 0, count=count)
     return {
         "ok": proc.returncode == 0,
         "target": str(target),
-        "wheels": len(list(target.glob("*.whl"))),
+        "wheels": count,
         "stderr": proc.stderr[-1000:],
     }
 
@@ -100,8 +131,10 @@ def prewarm_tiles(dataset: str | None = None, max_zoom: int = 11,
     bbox = dataset_bbox(dataset)
     written = 0
     skipped = 0
+    emit("tiles", f"Starting tile download for {dataset or 'active dataset'}", bbox=bbox, layers=list(layers))
     try:
         for layer in layers:
+            emit("tiles", f"Layer {layer}: starting")
             base, variant = tile_cache._resolve_layer(layer, s)
             spec = tile_cache.LAYERS[base]
             ext = spec["ext"]
@@ -111,7 +144,10 @@ def prewarm_tiles(dataset: str | None = None, max_zoom: int = 11,
                 variant_key = s.get(spec.get("date_field", ""), "") or _dt.datetime.utcnow().strftime("%Y-%m-%d")
             for z in range(int(spec.get("min_zoom", 0)), min(int(max_zoom), int(spec.get("max_zoom", 22))) + 1):
                 xs, ys = tile_range(bbox, z)
+                total = len(xs) * len(ys)
+                emit("tiles", f"Layer {layer} zoom {z}: {total} tiles")
                 url_tpl = tile_cache._resolve_url(spec, s, variant, z)
+                layer_written = 0
                 for x in xs:
                     for y in ys:
                         path = tile_cache._cache_path(base, z, x, y, ext, variant_key)
@@ -129,6 +165,9 @@ def prewarm_tiles(dataset: str | None = None, max_zoom: int = 11,
                         tmp.write_bytes(data)
                         tmp.replace(path)
                         written += 1
+                        layer_written += 1
+                emit("tiles", f"Layer {layer} zoom {z}: done", written=layer_written)
+            emit("tiles", f"Layer {layer}: complete")
     finally:
         frappe.db.set_value("Geo Settings", "Geo Settings", "allow_tile_fetch", int(previous),
                             update_modified=False)
@@ -148,6 +187,7 @@ def lock_offline_mode() -> dict:
     for field, value in values.items():
         frappe.db.set_value("Geo Settings", "Geo Settings", field, value, update_modified=False)
     frappe.db.commit()
+    emit("lock", "External network calls disabled", values=values)
     return values
 
 
@@ -162,6 +202,7 @@ def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
     dataset = dataset or getattr(cfg, "active_boundary_dataset", None)
     if not dataset:
         return {"error": "No active boundary dataset"}
+    emit("start", f"Offline bootstrap started for {dataset}", max_zoom=max_zoom)
     result: dict = {"dataset": dataset}
     if wheels:
         result["wheels"] = download_python_wheels()
@@ -175,4 +216,5 @@ def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
         result["package"] = export_offline_package()
     if lock:
         result["locked"] = lock_offline_mode()
+    emit("done", "Offline bootstrap complete", dataset=dataset)
     return result
