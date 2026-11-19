@@ -72,6 +72,14 @@ def test_geonames_line_exposes_admin3_and_admin4_codes():
     assert row["admin4_pcode"] is None
 
 
+def test_iter_geonames_lines_reads_plain_directory(tmp_path):
+    (tmp_path / "allCountries.txt").write_text(GEONAMES_LINE, encoding="utf-8")
+    rows = list(gb._iter_geonames_lines(tmp_path, "allCountries"))
+    assert len(rows) == 1
+    assert rows[0][0] == "allCountries.txt"
+    assert "Baghdad" in rows[0][1]
+
+
 def test_osm_commands_are_argv_lists_not_shell_strings():
     commands = gb.osm_commands("/data/my country.pbf", "/data/out")
     assert len(commands) == 2

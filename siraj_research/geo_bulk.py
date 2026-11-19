@@ -171,9 +171,26 @@ def _int_or_none(value: Any) -> int | None:
         return None
 
 
-def _iter_geonames_lines(zip_path: Path, member_hint: str = "cities") -> Iterable[tuple[str, str]]:
-    """Stream member lines from a GeoNames zip, one at a time."""
-    with zipfile.ZipFile(zip_path) as zf:
+def _iter_geonames_lines(source: Path, member_hint: str = "cities") -> Iterable[tuple[str, str]]:
+    """Stream GeoNames text lines from a zip **or a plain directory**.
+
+    A directory avoids needing ``zip``/``unzip`` on a minimal bench and lets
+    operators keep ``allCountries.txt``, ``admin1CodesASCII.txt`` and
+    ``admin2Codes.txt`` side by side. A zip still works for single-file
+    exports such as ``cities15000.zip``.
+    """
+    path = Path(source)
+    if path.is_dir():
+        candidates = sorted(p for p in path.glob("*.txt") if p.is_file())
+        if member_hint:
+            preferred = [p for p in candidates if member_hint.lower() in p.name.lower()]
+            candidates = preferred or candidates
+        for member in candidates:
+            with member.open("r", encoding="utf-8", errors="replace") as fh:
+                for line in fh:
+                    yield member.name, line
+        return
+    with zipfile.ZipFile(path) as zf:
         candidates = [n for n in zf.namelist() if n.lower().endswith(".txt")]
         if member_hint:
             preferred = [n for n in candidates if member_hint.lower() in n.lower()]
@@ -217,6 +234,7 @@ def import_geonames(zip_path: str, dataset_code: str = "GEONAMES-CITIES", *,
                     member_hint: str = "cities") -> dict:
     """Stream a GeoNames zip into ``Gazetteer Place`` rows.
 
+    ``zip_path`` may also be a directory of plain ``*.txt`` GeoNames files.
     ``country_codes`` accepts ISO-2 codes. ``offset`` skips that many valid
     lines so a failed run can resume without re-reading the whole archive.
     """

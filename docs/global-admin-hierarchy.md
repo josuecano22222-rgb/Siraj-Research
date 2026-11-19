@@ -256,28 +256,43 @@ levels are filled by combining three sources in this order:
 2. **GeoNames admin codes + ADM3/4/5 features** — fills names where GADM does
    not publish a polygon for a level:
 
-   ```bash
-   bench --site SITE execute siraj_research.geo_bulk.enqueue_geonames_admin \
-     --kwargs '{"zip_path":"/data/geonames/admin-with-codes.zip","dataset_code":"GEONAMES-ADMIN"}'
+   The importer accepts either a zip **or a plain directory** of GeoNames
+   `*.txt` files, so `zip`/`unzip` are not required. Put the three files in a
+   writable directory. If the downloads landed in `~/frappe-bench`:
 
-   # Or run synchronously for a small country set:
-   bench --site SITE execute siraj_research.geo_bulk.import_geonames_admin \
-     --kwargs '{"zip_path":"/data/geonames/admin-with-codes.zip","country_codes":["IQ"]}'
+   ```bash
+   mkdir -p ~/frappe-bench/geodata/geonames
+   cd ~/frappe-bench/geodata/geonames
+   mv ~/frappe-bench/allCountries.zip .
+   mv ~/frappe-bench/admin1CodesASCII.txt ~/frappe-bench/admin2Codes.txt .
+
+   # Extract allCountries.txt with Python (needs ~1.6 GB free disk).
+   ~/frappe-bench/env/bin/python - <<'PY'
+   import shutil, zipfile
+   with zipfile.ZipFile("allCountries.zip") as zf:
+       name = next(n for n in zf.namelist() if n.lower().startswith("allcountries"))
+       with zf.open(name) as src, open("allCountries.txt", "wb") as dst:
+           shutil.copyfileobj(src, dst)
+   PY
    ```
 
-   `allCountries.zip` from GeoNames contains only `allCountries.txt`; add
-   `admin1CodesASCII.txt` and `admin2Codes.txt` to the same zip first:
+   Then test one country synchronously:
 
    ```bash
-   cd /data/geonames
-   unzip -o allCountries.zip
-   wget https://download.geonames.org/export/dump/admin1CodesASCII.txt
-   wget https://download.geonames.org/export/dump/admin2Codes.txt
-   zip admin-with-codes.zip allCountries.txt admin1CodesASCII.txt admin2Codes.txt
+   bench --site SITE execute siraj_research.geo_bulk.import_geonames_admin \
+     --kwargs '{"zip_path":"/home/frappe/frappe-bench/geodata/geonames","country_codes":["IQ"]}'
+   ```
+
+   And queue the global run once the test looks right:
+
+   ```bash
+   bench --site SITE execute siraj_research.geo_bulk.enqueue_geonames_admin \
+     --kwargs '{"zip_path":"/home/frappe/frappe-bench/geodata/geonames","dataset_code":"GEONAMES-ADMIN"}'
    ```
 
    The importer streams those three files, creates levels 1–5 with parent
    links, and skips rows whose parent is unknown instead of inventing one.
+   Paths inside `--kwargs` must be absolute: `~` is not expanded there.
 
 3. **OSM boundaries (neighbourhood / mahallah)** — OSM is the main open source
    for level-6 `community`. Map OSM `admin_level` like this:
@@ -292,7 +307,17 @@ levels are filled by combining three sources in this order:
    | 10+ | 5 | Community |
 
    Prepare PBF data with `prepare_osm`, then import the resulting GeoJSON with
-   `import_osm` using the mapped level.
+   `import_osm` using the mapped level. `bench --kwargs` is evaluated as
+   Python, so booleans are `True` / `False`, not `true` / `false`:
+
+   ```bash
+   bench --site SITE execute siraj_research.geo_bulk.prepare_osm \
+     --kwargs '{"input_path":"/home/frappe/geodata/osm/nl-latest.osm.pbf","output_dir":"/home/frappe/geodata/osm","run": True}'
+   ```
+
+   `prepare_osm` also requires the `osmium` binary (`sudo apt install osmium-tool`).
+   Without it, call `prepare_osm(..., run=False)` and run the printed commands
+   yourself, or import an already-prepared GeoJSON/GPKG directly.
 
 ### Coverage report
 
