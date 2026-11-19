@@ -104,3 +104,17 @@ def missing_final_levels(country: str | None = None) -> dict:
         "countries": missing[:200],
         "truncated": len(missing) > 200,
     }
+
+
+def import_status_report() -> dict:
+    """List Boundary Datasets that are queued, running or failed."""
+    if frappe is None:
+        return {"error": "frappe unavailable"}
+    rows = frappe.get_all(
+        "Boundary Dataset",
+        fields=["name", "import_status", "import_progress", "feature_count",
+                "last_processed_offset", "import_log", "index_version"],
+        filters={"import_status": ["in", ["Queued", "Running", "Failed"]]},
+        limit_page_length=0,
+    )
+    return {"count": len(rows), "datasets": rows}

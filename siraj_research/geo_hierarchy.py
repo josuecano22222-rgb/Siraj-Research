@@ -335,15 +335,23 @@ def upsert_level(entry: dict, parent_name: str | None, *, lat=None, lon=None,
 	if not create_missing or not frappe.has_permission(doctype, "create"):
 		return {"code": code, "name": None, "status": "missing", "reason": "no_create_permission"}
 
+	label_en = entry.get("label_en") or code
 	values: dict[str, Any] = {
 		"doctype": doctype,
 		"code": code,
-		"label_en": entry.get("label_en") or code,
-		"label_ar": entry.get("label_ar"),
+		"label_en": label_en,
+		# Every hierarchy DocType requires label_ar. Open datasets rarely ship
+		# Arabic, so seed the English label as a visible placeholder; researchers
+		# replace it through the normal form without any migration.
+		"label_ar": entry.get("label_ar") or label_en,
 		"sort_order": 100,
 		"disabled": 0,
 		"is_system": 0,
 	}
+	if entry.get("admin_level_type"):
+		values["admin_level_type"] = entry["admin_level_type"]
+	if entry.get("source_kind"):
+		values["source_kind"] = entry["source_kind"]
 	for ancestor_field, ancestor_code in (entry.get("ancestor_codes") or {}).items():
 		if ancestor_field in {spec["field"] for spec in LEVELS}:
 			values[ancestor_field] = ancestor_code

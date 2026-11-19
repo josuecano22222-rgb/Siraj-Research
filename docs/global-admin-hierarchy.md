@@ -292,6 +292,15 @@ levels are filled by combining three sources in this order:
 
    The importer streams those three files, creates levels 1–5 with parent
    links, and skips rows whose parent is unknown instead of inventing one.
+   `label_ar` is mandatory on every hierarchy DocType, so imported rows get
+   the English label as an Arabic placeholder until a researcher translates
+   it on the form.
+
+   Check queued/failed datasets with:
+
+   ```bash
+   bench --site SITE execute siraj_research.geo_coverage.import_status_report
+   ```
    Paths inside `--kwargs` must be absolute: `~` is not expanded there.
 
 3. **OSM boundaries (neighbourhood / mahallah)** — OSM is the main open source
@@ -364,7 +373,7 @@ Workspace (no bench needed):
 PYTHONPATH=. /tmp/siraj-venv/bin/python -m pytest \
   tests/test_geo_hierarchy.py tests/test_geo_online.py \
   tests/test_geo_bulk.py tests/test_geo_coverage.py \
-  tests/test_master_data_dataset.py -q
+  tests/test_geo_upsert_mandatory.py tests/test_master_data_dataset.py -q
 /tmp/siraj-venv/bin/ruff check siraj_research/geo_hierarchy.py siraj_research/geo_online.py \
   siraj_research/geo_bulk.py siraj_research/geo_import.py \
   siraj_research/api/geo_resolve.py siraj_research/setup/master_data.py
@@ -380,6 +389,7 @@ cd ~/frappe-bench
   apps/siraj_research/tests/test_geo_online.py \
   apps/siraj_research/tests/test_geo_bulk.py \
   apps/siraj_research/tests/test_geo_coverage.py \
+  apps/siraj_research/tests/test_geo_upsert_mandatory.py \
   apps/siraj_research/tests/test_master_data_dataset.py -q
 ./env/bin/ruff check apps/siraj_research/siraj_research/geo_*.py
 bench --site SITE migrate
