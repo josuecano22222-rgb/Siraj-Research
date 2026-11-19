@@ -120,9 +120,9 @@ def _load_trees(dataset: str) -> dict:
 	rows = frappe.db.sql(
 		"""SELECT ab.name, ab.pcode, ab.level, ab.name_en, ab.name_ar, ab.country,
 		          ab.parent_pcode, ab.centroid_lat, ab.centroid_lon,
-		          ag.precision, ag.geom_wkb_hex
+		          ag.`precision`, ag.geom_wkb_hex
 		   FROM `tabAdmin Boundary` ab
-		   LEFT JOIN `tabAdmin Boundary Geom` ag ON ag.parent = ab.name AND ag.precision='full'
+		   LEFT JOIN `tabAdmin Boundary Geom` ag ON ag.parent = ab.name AND ag.`precision`='full'
 		   WHERE ab.dataset = %s""",
 		(dataset,),
 		as_dict=True,

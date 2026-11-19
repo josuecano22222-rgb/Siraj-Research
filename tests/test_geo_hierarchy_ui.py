@@ -337,3 +337,11 @@ def test_save_hook_skips_resolution_when_hierarchy_is_already_complete():
     source = (root / "siraj_research/geo_doc_events.py").read_text()
     assert "level_fields" in source
     assert "not hasattr(doc, fieldname) or getattr(doc, fieldname) not in (None, \"\")" in source
+
+
+def test_precision_column_is_backticked_in_spatial_sql():
+    root = Path(__file__).resolve().parents[1]
+    for name in ("siraj_research/api/geo_package.py", "siraj_research/api/geo_resolve.py"):
+        source = (root / name).read_text()
+        assert "ag.`precision`" in source, name
+        assert "precision," not in source.split("ROW_NUMBER()")[0].split("SELECT parent")[-1] or name.endswith("geo_resolve.py")

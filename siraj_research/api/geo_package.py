@@ -93,12 +93,12 @@ def _pack_polygons(dataset: str) -> tuple[list, int]:
     # Prefer 'simplified' geometries (smaller); fall back to 'full'.
     rows = frappe.db.sql(
         """SELECT ab.pcode, ab.parent_pcode, ab.level, ab.name_en, ab.name_ar,
-                  ag.precision, ag.geom_wkb_hex, ag.point_count
+                  ag.`precision`, ag.geom_wkb_hex, ag.point_count
            FROM `tabAdmin Boundary` ab
            LEFT JOIN (
-               SELECT parent, precision, geom_wkb_hex, point_count,
-                      ROW_NUMBER() OVER (PARTITION BY parent ORDER BY
-                          CASE WHEN precision='simplified' THEN 0 ELSE 1 END) AS rn
+               SELECT `parent`, `precision`, geom_wkb_hex, point_count,
+                      ROW_NUMBER() OVER (PARTITION BY `parent` ORDER BY
+                          CASE WHEN `precision`='simplified' THEN 0 ELSE 1 END) AS rn
                FROM `tabAdmin Boundary Geom`
            ) ag ON ag.parent = ab.name AND ag.rn = 1
            WHERE ab.dataset=%s AND ag.geom_wkb_hex IS NOT NULL""",
