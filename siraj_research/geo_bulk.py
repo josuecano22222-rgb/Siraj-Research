@@ -505,7 +505,7 @@ def import_gadm(dataset_code: str, file_path: str, level: int,
                     source="GADM (gadm.org)", level=int(level), license_id=license_id,
                     url="https://gadm.org/data.html")
     return _queue_polygon_import(dataset_code, file_path, level, enqueue=enqueue,
-                                 sync_hierarchy=sync_hierarchy)
+                                 sync_hierarchy=sync_hierarchy, levels=[int(level)])
 
 
 def import_osm(dataset_code: str, file_path: str, level: int,
@@ -518,7 +518,7 @@ def import_osm(dataset_code: str, file_path: str, level: int,
                     source="OpenStreetMap contributors", level=int(level),
                     license_id="ODbL-1.0", url="https://www.openstreetmap.org/copyright")
     return _queue_polygon_import(dataset_code, file_path, level, enqueue=enqueue,
-                                 sync_hierarchy=sync_hierarchy)
+                                 sync_hierarchy=sync_hierarchy, levels=None)
 
 
 def import_and_sync_boundary_job(dataset_name: str, file_path_str: str, level: int,
@@ -544,7 +544,8 @@ def sync_boundary_hierarchy(dataset_code: str, *, levels: Iterable[int] | None =
 
 
 def _queue_polygon_import(dataset: str, file_path: str, level: int, *, enqueue: bool,
-                          sync_hierarchy: bool = True) -> dict:
+                          sync_hierarchy: bool = True,
+                          levels: Iterable[int] | None = None) -> dict:
     if frappe is None:
         return {"queued": False, "dataset": dataset, "file": file_path}
     frappe.db.set_value("Boundary Dataset", dataset, {
@@ -558,7 +559,7 @@ def _queue_polygon_import(dataset: str, file_path: str, level: int, *, enqueue: 
         "file_path_str": file_path,
         "level": int(level),
         "sync_hierarchy": bool(sync_hierarchy),
-        "levels": [int(level)],
+        "levels": list(levels) if levels is not None else None,
     }
     if not enqueue:
         import_and_sync_boundary_job(**kwargs)

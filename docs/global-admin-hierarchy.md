@@ -382,8 +382,11 @@ bench --site SITE execute siraj_research.geo_bulk.import_osm \
   --kwargs '{"dataset_code":"OSM-IL-PS-COMMUNITY","file_path":"/home/frappe/frappe-bench/geodata/osm/israel-and-palestine-latest.osm-boundaries.geojson","level":5}'
 ```
 
-Because `import_osm` now syncs automatically, the level-5 records appear in
-the same job. Re-run with a different `level` for village/municipality layers.
+`import_osm` now syncs automatically and reads each feature's OSM
+`admin_level`, mapping 2→Country, 3–4→Governorate, 5–6→District, 7–8→
+Municipality, 9→Village and 10+→Community. A single import of the prepared
+GeoJSON therefore materialises every level present in the file, including the
+final `Community` rows; the `level` argument is only the dataset default.
 
 ### Coverage report
 

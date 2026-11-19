@@ -117,7 +117,28 @@ POLYGON_FIELDS = {
     "name_ar":    ["name_ar", "ar_name", "arname", "name:ar", "admin{pcode}_ar".format(pcode="{level}"), "shape_ar"],
     "parent_pcode":["parent_pcode", "par_pcode", "adm{pcode}_pcode".format(pcode="{parent}"), "parent_adm", "par_id"],
     "source_id":  ["id", "fid", "objectid", "shape_id", "ogc_fid"],
+    "osm_admin_level": ["admin_level", "adminlevel"],
 }
+
+
+def osm_level_to_siraj(value) -> int | None:
+    """Map OSM ``admin_level`` to SIRAJ's six-level chain."""
+    try:
+        level = int(value)
+    except (TypeError, ValueError):
+        return None
+    if level <= 2:
+        return 0
+    if level <= 4:
+        return 1
+    if level <= 6:
+        return 2
+    if level <= 8:
+        return 3
+    if level == 9:
+        return 4
+    return 5
+
 GAZETTEER_FIELDS = {
     "name_en":     ["name", "name_en", "asciiname", "placename", "full_name", "poi_name"],
     "name_ar":     ["name_ar", "ar_name", "arabic_name"],
@@ -487,7 +508,10 @@ def import_boundary_job(dataset_name: str, file_path_str: str, is_gazetteer: boo
                 record["geom_full"] = geom
                 if tolerance_m > 0:
                     record["geom_simplified"] = geom.simplify(tolerance_m / 111320.0, preserve_topology=True)
-                _upsert_admin_boundary(dataset_name, level, record, store_geojson)
+                feature_level = level
+                if record.get("osm_admin_level") is not None:
+                    feature_level = osm_level_to_siraj(record["osm_admin_level"]) or level
+                _upsert_admin_boundary(dataset_name, feature_level, record, store_geojson)
             count += 1
             if count % batch_size == 0:
                 _set_status(doc, import_progress=min(99, int(count / max(total_estimate or 1, 1) * 100)),
