@@ -521,6 +521,13 @@ def import_osm(dataset_code: str, file_path: str, level: int,
                                  sync_hierarchy=sync_hierarchy, levels=None)
 
 
+def _normalise_sync_levels(levels: Iterable[int] | None) -> list[int] | None:
+    """Keep ``None`` as "all levels"; only an explicit list restricts sync."""
+    if levels is None:
+        return None
+    return [int(value) for value in levels]
+
+
 def import_and_sync_boundary_job(dataset_name: str, file_path_str: str, level: int,
                                  *, sync_hierarchy: bool = True,
                                  levels: Iterable[int] | None = None) -> dict:
@@ -530,8 +537,21 @@ def import_and_sync_boundary_job(dataset_name: str, file_path_str: str, level: i
     if not sync_hierarchy:
         return {"dataset": dataset_name, "imported": True, "synced": False}
     from siraj_research.geo_hierarchy import sync_hierarchy_from_boundaries
-    return sync_hierarchy_from_boundaries(
-        dataset_name, levels=levels or [int(level)], create_missing=True)
+    result = sync_hierarchy_from_boundaries(
+        dataset_name, levels=_normalise_sync_levels(levels), create_missing=True)
+    if frappe is not None:
+        try:
+            existing = frappe.db.get_value("Boundary Dataset", dataset_name, "import_log") or ""
+            summary = " | Hierarchy sync: " + ", ".join(
+                f"L{key}={value.get('created', 0)} created"
+                for key, value in sorted(result.get("by_level", {}).items())
+            )
+            frappe.db.set_value("Boundary Dataset", dataset_name,
+                                "import_log", existing + summary, update_modified=False)
+            frappe.db.commit()
+        except Exception:
+            pass
+    return result
 
 
 def sync_boundary_hierarchy(dataset_code: str, *, levels: Iterable[int] | None = None,

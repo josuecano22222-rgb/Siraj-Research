@@ -114,7 +114,7 @@ def import_status_report() -> dict:
         "Boundary Dataset",
         fields=["name", "import_status", "import_progress", "feature_count",
                 "last_processed_offset", "import_log", "index_version"],
-        filters={"import_status": ["in", ["Queued", "Running", "Failed"]]},
+        filters={"import_status": ["in", ["Queued", "Running", "Failed", "Complete"]]},
         limit_page_length=0,
     )
     return {"count": len(rows), "datasets": rows}

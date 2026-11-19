@@ -397,9 +397,10 @@ bench --site SITE execute siraj_research.geo_bulk.import_osm \
 
 `import_osm` now syncs automatically and reads each feature's OSM
 `admin_level`, mapping 2→Country, 3–4→Governorate, 5–6→District, 7–8→
-Municipality, 9→Village and 10+→Community. A single import of the prepared
-GeoJSON therefore materialises every level present in the file, including the
-final `Community` rows; the `level` argument is only the dataset default.
+Municipality, 9→Village and 10+→Community. OSM passes `levels: None`, which
+the worker interprets as "sync every level present in the file"; the `level`
+argument is only the dataset default. The dataset `import_log` is appended
+with a `Hierarchy sync: L…=… created` summary after the job finishes.
 
 ### Coverage report
 

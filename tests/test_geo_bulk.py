@@ -114,3 +114,9 @@ def test_osm_commands_are_argv_lists_not_shell_strings():
     assert commands[0][0] == "osmium"
     assert commands[1][-1].endswith("my country-boundaries.geojson")
     assert gb.prepare_osm("/data/x.pbf", "/data/out", run=False)["ran"] is False
+
+
+def test_sync_levels_preserves_none_for_all_levels():
+    assert gb._normalise_sync_levels(None) is None
+    assert gb._normalise_sync_levels([3, 5]) == [3, 5]
+    assert gb._normalise_sync_levels([]) == []
