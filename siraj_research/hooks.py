@@ -69,6 +69,7 @@ app_include_js = [
 	"siraj.bundle.js",
 ]
 app_include_css = [
+	"/assets/siraj_research/css/siraj-hierarchy.css" + _CSS_VER,
 	"/assets/siraj_research/css/siraj-map-toolbar.css" + _CSS_VER,
 	"/assets/siraj_research/css/siraj-icons.css" + _CSS_VER,
 	"/assets/siraj_research/css/siraj-map-advanced.css" + _CSS_VER,
@@ -206,13 +207,13 @@ jinja = {
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	dt: {"validate": "siraj_research.geo_doc_events.auto_fill_hierarchy"}
+	for dt in (
+		"Person", "Institution", "Place", "Research Event", "Siraj Event",
+		"Military Unit", "Operational Deployment",
+	)
+}
 
 # Scheduled Tasks
 # ---------------

@@ -305,6 +305,42 @@
    "depends_on": "eval:doc.latitude && doc.longitude"
   },
   {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate"
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village / locality",
+   "options": "Village"
+  },
+  {
+   "fieldname": "community",
+   "fieldtype": "Link",
+   "label": "Community / cluster",
+   "options": "Community"
+  },
+  {
    "fieldname": "tab_provenance",
    "fieldtype": "Tab Break",
    "label": "Provenance & State"

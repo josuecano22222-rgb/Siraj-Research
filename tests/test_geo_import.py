@@ -112,3 +112,35 @@ def test_derived_pcode_is_stable_without_source_ids(_fake_frappe):
     assert first == second
     assert first.startswith("OSM-")
     assert first != other
+
+
+def test_admin_boundary_name_en_falls_back_to_pcode(_fake_frappe):
+    gi = _fake_frappe
+    created = []
+
+    class FakeDoc:
+        def __init__(self, doctype, values=None):
+            self.doctype = doctype
+            self.flags = types.SimpleNamespace()
+            for key, value in (values or {}).items():
+                setattr(self, key, value)
+
+        def get(self, key, default=None):
+            return getattr(self, key, default)
+
+        def save(self, **kwargs):
+            created.append(self)
+
+    db = types.SimpleNamespace(
+        get_value=lambda *a, **k: None,
+        exists=lambda *a, **k: None,
+    )
+    fake = types.SimpleNamespace(
+        db=db,
+        get_doc=lambda dt, name: FakeDoc(dt, {"name": name}),
+        new_doc=lambda dt: FakeDoc(dt),
+        get_meta=lambda dt: types.SimpleNamespace(has_field=lambda f: False),
+    )
+    gi.frappe = fake
+    assert gi._upsert_admin_boundary("DS", 3, {"pcode": "OSM-X"}, False) is True
+    assert created[0].name_en == "OSM-X"

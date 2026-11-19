@@ -436,6 +436,18 @@
    "description": "Nearest named place (village/town); auto-filled by reverse-geocoding."
   },
   {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate"
+  },
+  {
    "fieldname": "tab_provenance",
    "fieldtype": "Tab Break",
    "label": "Provenance & State"

@@ -403,10 +403,37 @@
 				}
 				if (controller.signal.aborted) return;
 				applyAdminChain(frm, cfg, r);
+				if (window.SirajHierarchy && window.SirajHierarchy.refreshForm) {
+					window.SirajHierarchy.refreshForm(frm, cfg, lat, lon).then(h => {
+						if (!h || controller.signal.aborted) return;
+						const state = [...states.values()].find(st => st.frm === frm && st.cfg === cfg);
+						if (!state) return;
+						const deepest = h.deepest_level >= 0
+							? ((h.levels[h.deepest_level] || {}).label_en || '') : '';
+						const missing = (h.gaps || []).length;
+						if (deepest) state.status.text(
+							t('Resolved to {0}.', [deepest]) +
+							(missing ? ' ' + t('{0} levels not covered by the dataset.', [missing]) : '')
+						);
+					});
+				}
 			} catch (e) {
 				try { console.warn('[SIRAJ coord] resolve failed:', e && e.message); } catch(_){}
 			}
 		}, 350);
+	}
+
+	// Manually typed coordinates must resolve too, not only map picks. A
+	// debounce keeps rapid typing cheap; parseCoordinate accepts eastern digits.
+	let manualResolveTimer = null;
+	function resolveFromInputs(frm, cfg) {
+		if (manualResolveTimer) clearTimeout(manualResolveTimer);
+		manualResolveTimer = setTimeout(() => {
+			const doc = frm.doc || {};
+			const lat = parseCoordinate(currentValue(frm.fields_dict[cfg.lat_field], doc, cfg.lat_field), 90);
+			const lon = parseCoordinate(currentValue(frm.fields_dict[cfg.lon_field], doc, cfg.lon_field), 180);
+			if (lat != null && lon != null) resolveAndApply(frm, cfg, lat, lon);
+		}, 600);
 	}
 
 	function applyAdminChain(frm, cfg, res) {
@@ -691,6 +718,20 @@
 			.add({ icon: 'home',     label: t('Home'), action: () => map.setView([33.3152, 44.3661], 4) })
 			.add({ icon: 'locate_me', label: t('My loc'), action: () => map.locate({ setView: true, maxZoom: 12, enableHighAccuracy: true }) });
 
+		toolbar.group(t('Geography'))
+			.add({ icon: 'link_chain', label: t('Resolve hierarchy'), tooltip: t('Resolve the full hierarchy at the pin'),
+				action: () => {
+					const doc = frm.doc || {};
+					const lat = parseCoordinate(currentValue(fields.lat, doc, cfg.lat_field), 90);
+					const lon = parseCoordinate(currentValue(fields.lon, doc, cfg.lon_field), 180);
+					if (lat == null || lon == null) {
+						state.status.text(t('Enter or pick valid coordinates first.'));
+						return;
+					}
+					resolveAndApply(frm, cfg, lat, lon);
+					if (window.SirajHierarchy) window.SirajHierarchy.refreshForm(frm, cfg, lat, lon, { force: true });
+				} });
+
 		// Basemap switcher (Standard / Satellite / Hybrid / Offline) — shared
 		// Leaflet controller that adds a toolbar group and persists the choice.
 		const basemap = window.SirajBasemap.attach(map, { offlineLayer: null });
@@ -721,7 +762,10 @@
 
 		// Wire input fields for bidirectional sync.
 		for (const field of [fields.lat, fields.lon]) {
-			field.$input?.off('.sirajCoordinates').on('input.sirajCoordinates change.sirajCoordinates', () => update(frm, false));
+			field.$input?.off('.sirajCoordinates').on('input.sirajCoordinates change.sirajCoordinates', () => {
+				update(frm, false);
+				resolveFromInputs(frm, cfg);
+			});
 		}
 
 		update(frm, true);

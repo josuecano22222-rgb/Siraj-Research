@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Universal SIRAJ record-metadata registry.
 
 Every DocType that can appear as a marker, graph node, list-row avatar, form
@@ -13,11 +12,9 @@ context.
 """
 from __future__ import annotations
 
-from typing import Dict
-
 #: Canonical palette. Keys match the SVG/JS colour dictionary and CSS custom
 #: properties. All glyphs are drawn on white so colours must meet 4.5:1 contrast.
-COLOURS: Dict[str, str] = {
+COLOURS: dict[str, str] = {
 	"Person":              "#3577c0",  # steel-blue — biography
 	"Institution":         "#8262b0",  # purple — organisations
 	"Place":               "#188c7e",  # teal — geography
@@ -45,7 +42,7 @@ COLOURS: Dict[str, str] = {
 #: 24x24 stroke-only SVG paths (no <svg> wrapper). Same as siraj-icons.js on
 #: the client. Keep the two in lockstep; tests/test_form_integrity.py enforces
 # that every doctype listed here has a matching JS entry.
-GLYPHS: Dict[str, str] = {
+GLYPHS: dict[str, str] = {
 	"Person":              '<circle cx="12" cy="8" r="3"/><path d="M5 19c0-4 3-6 7-6s7 2 7 6"/>',
 	"Institution":         '<path d="M3 9h18L12 3 3 9Zm2 1v8m5-8v8m4-8v8m5-8v8M3 20h18"/>',
 	"Place":               '<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11Z"/><circle cx="12" cy="10" r="2"/>',
@@ -73,7 +70,7 @@ GLYPHS: Dict[str, str] = {
 
 
 #: Toolbar glyphs. Mirrors the JS TOOLS dict in siraj-record-meta.js.
-TOOLS: Dict[str, str] = {
+TOOLS: dict[str, str] = {
 	"search":     '<circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/>',
 	"layers":     '<path d="M12 3 2 8l10 5 10-5Z"/><path d="m4 12 8 4 8-4M4 16l8 4 8-4"/>',
 	"zoom_in":    '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
@@ -159,7 +156,7 @@ def svg(doctype: str, *, size: int = 16, colour: str | None = None) -> str:
 
 
 #: Per-doctype metadata. ``category`` drives grouping on dashboards.
-RECORDS: Dict[str, dict] = {
+RECORDS: dict[str, dict] = {
 	"Person":               {"colour": COLOURS["Person"],              "glyph": GLYPHS["Person"],              "category": "actor"},
 	"Institution":          {"colour": COLOURS["Institution"],         "glyph": GLYPHS["Institution"],         "category": "actor"},
 	"Place":                {"colour": COLOURS["Place"],               "glyph": GLYPHS["Place"],               "category": "geo"},
@@ -202,7 +199,7 @@ INTERNAL = {
 #: delivered in bootinfo.siraj_record_meta.build; the client compares its
 #: window.SIRAJ_BUILD against this value on boot and shows a reload banner
 #: when they differ (catches stale bundles after bench build).
-SIRAJ_BUILD = "2026-11-18.profile-i18n.a.1"
+SIRAJ_BUILD = "2026-11-19.hierarchy-ui.a.1"
 
 
 #: DocTypes that carry coordinate fields and a per-form map editor.
@@ -210,13 +207,18 @@ SIRAJ_BUILD = "2026-11-18.profile-i18n.a.1"
 #: if a DocType uses non-default names), the linked Place field whose
 #: coordinates the editor can copy via "use linked place", and the glyph
 #: silhouette used for the editor pin. Keys are exact DocType names.
-COORDINATE_DOCS: Dict[str, dict] = {
+COORDINATE_DOCS: dict[str, dict] = {
 	"Person": {
 		"lat_field": "latitude",
 		"lon_field": "longitude",
 		"uncertainty_field": "geo_uncertainty_m",
 		"linked_place_field": "birthplace",
 		"silhouette": "bust",
+		"admin_fields": {
+			"country": "country", "governorate": "governorate", "district": "district",
+			"municipality": "municipality", "village": "village", "community": "community",
+			"place_name": "place_name",
+		},
 	},
 	"Institution": {
 		"lat_field": "latitude",
@@ -224,6 +226,11 @@ COORDINATE_DOCS: Dict[str, dict] = {
 		"uncertainty_field": "geo_uncertainty_m",
 		"linked_place_field": "place",
 		"silhouette": "building",
+		"admin_fields": {
+			"country": "country", "governorate": "governorate", "district": "district",
+			"municipality": "municipality", "village": "village", "community": "community",
+			"place_name": "place_name",
+		},
 	},
 	"Place": {
 		"lat_field": "latitude",
@@ -231,6 +238,10 @@ COORDINATE_DOCS: Dict[str, dict] = {
 		"uncertainty_field": "geo_uncertainty_m",
 		"linked_place_field": "parent_place",
 		"silhouette": "pin",
+		"admin_fields": {
+			"country": "country", "governorate": "governorate", "district": "district",
+			"municipality": "municipality", "village": "village", "community": "community",
+		},
 	},
 	"Research Event": {
 		"lat_field": "latitude",
@@ -238,6 +249,22 @@ COORDINATE_DOCS: Dict[str, dict] = {
 		"uncertainty_field": "geo_uncertainty_m",
 		"linked_place_field": "place",
 		"silhouette": "star",
+		"admin_fields": {
+			"country": "country", "governorate": "governorate", "district": "district",
+			"municipality": "municipality", "village": "village", "community": "community",
+		},
+	},
+	"Siraj Event": {
+		"lat_field": "latitude",
+		"lon_field": "longitude",
+		"uncertainty_field": "geo_uncertainty_m",
+		"linked_place_field": "place",
+		"silhouette": "star",
+		"admin_fields": {
+			"country": "country", "governorate": "governorate", "district": "district",
+			"municipality": "municipality", "village": "village", "community": "community",
+			"place_name": "place_name",
+		},
 	},
 	"Military Unit": {
 		"lat_field": "latitude",
@@ -245,6 +272,11 @@ COORDINATE_DOCS: Dict[str, dict] = {
 		"uncertainty_field": "geo_uncertainty_m",
 		"linked_place_field": "linked_place",
 		"silhouette": "shield",
+		"admin_fields": {
+			"country": "country", "governorate": "governorate", "district": "district",
+			"municipality": "municipality", "village": "village", "community": "community",
+			"place_name": "place_name",
+		},
 	},
 	"Operational Deployment": {
 		"lat_field": "latitude",
@@ -252,6 +284,11 @@ COORDINATE_DOCS: Dict[str, dict] = {
 		"uncertainty_field": "geo_uncertainty_m",
 		"linked_place_field": None,   # free-text `location` only
 		"silhouette": "crosshair",
+		"admin_fields": {
+			"country": "country", "governorate": "governorate", "district": "district",
+			"municipality": "municipality", "village": "village", "community": "community",
+			"place_name": "location",
+		},
 	},
 }
 

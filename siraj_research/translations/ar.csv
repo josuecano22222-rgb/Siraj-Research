@@ -1311,3 +1311,22 @@ Cache online results (days),تخزين نتائج الشبكة (أيام)
 Google Geocoding,تحديد المواقع من Google
 GeoJSON (same precision),GeoJSON (بالدقة نفسها)
 Optional when a source dataset skips this level. Use Parent P-Code to preserve the original lineage.,اختياري عندما تتخطى مجموعة البيانات هذا المستوى. استخدم رمز الأصل للحفاظ على السلسلة الأصلية.
+Administrative hierarchy,التسلسل الإداري
+offline,غير متصل
+online fallback,بديل عبر الإنترنت
+Copy,نسخ
+Refresh,تحديث
+Nearest place,أقرب مكان
+Resolve hierarchy,تحديد التسلسل الإداري
+Resolve coordinates,تحديد الإحداثيات
+Hierarchy of selected,التسلسل الإداري للعنصر المحدد
+Administrative hierarchy at this point,التسلسل الإداري عند هذه النقطة
+Resolving hierarchy…,جارٍ تحديد التسلسل الإداري…
+Resolve,تحديد
+Enter or pick valid coordinates first.,أدخل إحداثيات صحيحة أو اختر نقطة أولاً.
+Resolved to {0}.,تم التحديد إلى {0}.
+{0} levels not covered by the dataset.,{0} مستويات غير مغطاة بمجموعة البيانات.
+Click a point to resolve its full administrative hierarchy.,انقر نقطة لتحديد تسلسلها الإداري الكامل.
+Latitude,خط العرض
+Longitude,خط الطول
+Accepts eastern-Arabic digits and decimal notation.,يقبل الأرقام العربية الشرقية والكسور العشرية.

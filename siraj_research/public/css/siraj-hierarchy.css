@@ -1,0 +1,42 @@
+/* Full administrative hierarchy panel shared by Desk forms and Explorer. */
+.siraj-hierarchy {
+  border: 1px solid var(--border-color, #d8dedc);
+  border-radius: 6px;
+  background: var(--fg-color, #fff);
+  padding: 8px 10px;
+  margin: 8px 0;
+  font-size: 12px;
+}
+.siraj-hierarchy-head {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.siraj-hierarchy-head strong { font-size: 12px; }
+.siraj-hierarchy-chain {
+  display: flex; flex-wrap: wrap; align-items: stretch; gap: 4px;
+}
+.siraj-level {
+  display: inline-flex; flex-direction: column; gap: 1px;
+  min-width: 100px; max-width: 190px;
+  padding: 4px 7px; border-radius: 4px;
+  border: 1px solid var(--border-color, #d8dedc);
+  background: var(--control-bg, #f7f9f8);
+}
+.siraj-level.is-gap { border-style: dashed; opacity: .65; }
+.siraj-level.is-online { border-color: #c69a21; }
+.siraj-level-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-muted, #6a7a7e);
+}
+.siraj-level-value { font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.siraj-level-code { font-size: 10px; color: var(--text-muted, #6a7a7e); }
+a.siraj-level-value { color: inherit; text-decoration: underline dotted; }
+.siraj-hierarchy-summary {
+  margin-top: 6px; color: var(--text-muted, #6a7a7e);
+  overflow-wrap: anywhere;
+}
+.siraj-hierarchy-warnings { margin-top: 6px; color: #8a2525; }
+.siraj-hierarchy-actions { margin-left: auto; display: flex; gap: 4px; }
+.siraj-hierarchy .btn-xs { padding: 2px 6px; font-size: 11px; }
+.sx-hierarchy-popover { max-width: 340px; }
+.sx-hierarchy-popover .siraj-hierarchy { border: 0; padding: 0; margin: 0; }

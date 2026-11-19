@@ -427,7 +427,9 @@ def _upsert_admin_boundary(dataset: str, level: int, record: dict, store_geojson
     doc.dataset = dataset
     doc.level = level
     doc.pcode = pcode
-    doc.name_en = record.get("name_en") or doc.get("name_en")
+    # name_en is mandatory; OSM features without a name tag still need a
+    # stable visible label, so fall back to the P-Code.
+    doc.name_en = record.get("name_en") or doc.get("name_en") or pcode
     doc.name_ar = record.get("name_ar")
     doc.parent_pcode = record.get("parent_pcode")
     doc.country = record.get("country")

@@ -17,5 +17,6 @@ import './siraj-list-icons.js';
 import './siraj-compat.js';
 import './coordinate_map.js';
 import './siraj-geo.js';
+import './siraj-hierarchy.js';
 import './siraj-icons.js';
 import './siraj-profile-fields.js';

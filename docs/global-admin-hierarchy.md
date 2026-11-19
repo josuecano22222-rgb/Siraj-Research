@@ -12,6 +12,32 @@ covers `emirate`, `region`, `state`, `province`, `parish`, `prefecture`, etc. vi
 `admin_level_type`; a country that has no district level simply leaves that link
 empty. **We never invent placeholder rows just to make a chain look deep.**
 
+## Universal point-to-hierarchy feature
+
+The full six-level chain is now a shared application capability, not a Place-only
+feature. Selecting a coordinate on a form map, typing latitude/longitude by hand,
+or using the Siraj Explorer map resolves the point to
+`Country → Governorate → District → Municipality → Village → Community`.
+
+- Server: `siraj_research.geo_hierarchy_ui.hierarchy_for_point` is whitelisted and
+  returns bilingual levels, P-Codes, linked DocType names, gaps, confidence and
+  provenance. Local polygons win; online fallback is marked `medium`.
+- Forms: `public/js/siraj-hierarchy.js` renders a chain panel below the coordinate
+  map on Person, Institution, Place, Research Event, Siraj Event, Military Unit
+  and Operational Deployment. It refreshes on map picks and debounced manual
+  coordinate edits.
+- Save hook: `geo_doc_events.auto_fill_hierarchy` fills only empty hierarchy
+  fields on those DocTypes before save; researcher-entered values are never
+  overwritten.
+- Explorer: the Pick toolbar has **Resolve hierarchy** (click a map point),
+  **Resolve coordinates** (type a pair), and **Hierarchy of selected** for a
+  mapped record.
+- Offline: when the server is unreachable, the panel uses `window.SirajGeo` and
+  labels values `offline` / `medium` confidence.
+
+Institution, Research Event and Operational Deployment received the missing
+hierarchy Link fields additively; `bench migrate` adds their columns.
+
 ## 1. Architecture at a glance
 
 ```mermaid

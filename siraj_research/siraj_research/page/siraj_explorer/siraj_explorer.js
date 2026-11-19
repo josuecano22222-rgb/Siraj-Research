@@ -1496,6 +1496,20 @@ class SirajExplorer {
 			measure.activate('pick');
 		};
 
+		// ------ Full hierarchy picker (map click / manual coordinates) ------
+		const startResolvePick = () => {
+			mapStatus(__('Click a point to resolve its full administrative hierarchy.'));
+			measure.onPick = latlng => {
+				measure.onPick = null;
+				L.circleMarker(latlng, { radius: 6, color: '#1a6670', weight: 2, fillOpacity: 0.35 })
+					.addTo(map).bindTooltip(dms(latlng.lat, true) + ' · ' + dms(latlng.lng, false)).openTooltip();
+				if (window.SirajHierarchy && window.SirajHierarchy.showPoint) {
+					window.SirajHierarchy.showPoint(latlng);
+				}
+			};
+			measure.activate('pick');
+		};
+
 		// ------ In-map toolbar (MAP TOOLS ONLY) ------
 		this.toolbar = L.control.sirajToolbar({ position:'topright' }).addTo(map);
 		const localPacks = new Map();
@@ -1543,7 +1557,9 @@ class SirajExplorer {
 
 		// Pick
 		this.toolbar.group(__('Pick'))
-			.add({ icon:'pick', label:__('Pick point to link'), key:'pick', tooltip:__('Pick a point to link a record'), hotkey:'P', action: startPick });
+			.add({ icon:'pick', label:__('Pick point to link'), key:'pick', tooltip:__('Pick a point to link a record'), hotkey:'P', action: startPick })
+			.add({ icon:'link_chain', label:__('Resolve hierarchy'), key:'hierarchy_pick', tooltip:__('Resolve country to community at a map point'), hotkey:'V', action: startResolvePick })
+			.add({ icon:'coordinates', label:__('Resolve coordinates'), key:'hierarchy_coords', tooltip:__('Type latitude and longitude to resolve the hierarchy'), action: () => { if (window.SirajHierarchy) window.SirajHierarchy.showCoordinateDialog(); } });
 		this.toolbar.separator();
 
 		// Overlays (toggles)
@@ -1570,6 +1586,10 @@ class SirajExplorer {
 		selGroup.add({ icon:'ego',      label:__('Show connections'),  key:'sel_ego',     tooltip:__('Show connections of selected'), hotkey:'S', action: () => { if (!selectedNode) { mapStatus(__('Select a record first.'),true); return; } loadEgo(egoDepth); }});
 		selGroup.add({ icon:'isolate',  label:__('Isolate selection'), key:'sel_isolate', tooltip:__('Isolate selection'), hotkey:'I', mode:'toggle', active:false, action: function() { isolateSelected=!isolateSelected; this.toolbar.setActive('sel_isolate',isolateSelected); if(selectedNode) renderEgo(); }.bind(this) });
 		selGroup.add({ icon:'link_add', label:__('Add relationship'),  key:'link_add',    tooltip:__('Add relationship to selected'), hotkey:'N', action: () => { if(!selectedNode){mapStatus(__('Select a record first.'),true);return;} addRelationship(null); }});
+		selGroup.add({ icon:'link_chain', label:__('Hierarchy of selected'), key:'hierarchy_selected', tooltip:__('Resolve the full hierarchy of the selected record'), action: () => {
+			if (!selectedNode || selectedNode.latitude == null || selectedNode.longitude == null) { mapStatus(__('Select a mapped record first.'), true); return; }
+			if (window.SirajHierarchy) window.SirajHierarchy.showPoint({ lat: selectedNode.latitude, lng: selectedNode.longitude });
+		}});
 		selGroup.add({ icon:'back',     label:__('Back'),              key:'sel_back',    tooltip:__('Back to previous selection'), hotkey:'Backspace', action: function() { if (selectionTrail.length) { const prev = selectionTrail.pop(); const n = pointsById.get(this.id(prev)); if(n) selectNode(n); else { selectionTrail.length=0; clearSelection(); } } else clearSelection(); }.bind(this) });
 		selGroup.add({ icon:'eraser',   label:__('Clear selection'),   key:'sel_clear',   tooltip:__('Clear selection'), hotkey:'Esc', action: clearSelection });
 
