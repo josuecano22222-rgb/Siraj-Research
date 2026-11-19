@@ -395,6 +395,8 @@ def test_offline_bootstrap_source_contains_full_workflow():
     assert "def lock_offline_mode(" in source
     assert "def prewarm_tiles(" in source
     assert "def download_python_wheels(" in source
+    assert "from siraj_research.geo_bulk import sync_boundary_hierarchy" in source
+    assert "def _step(" in source
     assert 'prepare_offline_site' in docs
     assert '"create_missing":True' in docs
 
@@ -407,3 +409,13 @@ def test_bootstrap_progress_is_immediate_and_tailable():
     assert "print(f\"[SIRAJ offline] {stage}: {message}\", flush=True)" in source
     assert "bootstrap-progress.json" in source
     assert "tail -f" in docs
+
+
+def test_bootstrap_step_failure_does_not_abort_remaining_stages():
+    from siraj_research.offline_bootstrap import _step
+
+    def broken(**kwargs):
+        raise RuntimeError("demo failure")
+
+    result = _step("demo", broken)
+    assert "demo failure" in result["error"]

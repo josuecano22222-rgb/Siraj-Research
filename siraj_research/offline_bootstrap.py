@@ -54,6 +54,18 @@ def emit(stage: str, message: str, **extra) -> None:
 
 
 
+def _step(stage: str, fn, **kwargs) -> dict:
+	"""Run one bootstrap stage without aborting the remaining stages."""
+	emit(stage, "starting")
+	try:
+		result = fn(**kwargs)
+	except Exception as exc:  # noqa: BLE001 - keep the bootstrap going
+		emit(stage, f"FAILED: {exc}")
+		return {"error": f"{type(exc).__name__}: {exc}"}
+	emit(stage, "finished")
+	return result
+
+
 def dataset_bbox(dataset: str | None) -> tuple[float, float, float, float]:
     """Return (lat_min, lon_min, lat_max, lon_max) for a boundary dataset."""
     if frappe is None:
@@ -205,16 +217,17 @@ def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
     emit("start", f"Offline bootstrap started for {dataset}", max_zoom=max_zoom)
     result: dict = {"dataset": dataset}
     if wheels:
-        result["wheels"] = download_python_wheels()
+        result["wheels"] = _step("wheels", download_python_wheels)
     if tiles:
-        result["tiles"] = prewarm_tiles(dataset, max_zoom=max_zoom)
+        result["tiles"] = _step("tiles", prewarm_tiles, dataset=dataset, max_zoom=max_zoom)
     if hierarchy:
-        from siraj_research.geo_hierarchy import sync_boundary_hierarchy
-        result["hierarchy"] = sync_boundary_hierarchy(dataset, create_missing=True)
+        from siraj_research.geo_bulk import sync_boundary_hierarchy
+        result["hierarchy"] = _step(
+            "hierarchy", sync_boundary_hierarchy, dataset_code=dataset, create_missing=True)
     if package:
         from siraj_research.api.geo_package import export_offline_package
-        result["package"] = export_offline_package()
+        result["package"] = _step("package", export_offline_package)
     if lock:
-        result["locked"] = lock_offline_mode()
+        result["locked"] = _step("lock", lock_offline_mode)
     emit("done", "Offline bootstrap complete", dataset=dataset)
     return result
