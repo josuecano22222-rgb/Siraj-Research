@@ -10,6 +10,8 @@ import frappe
 from frappe import _
 from frappe.model.meta import get_meta
 
+from siraj_research.profile_presentation import organise_profile
+
 
 # Fieldtypes we render directly (everything structural/break/button is skipped).
 SKIP_FIELDTYPES = {
@@ -46,7 +48,8 @@ def _fmt_value(doc, f):
 	if ft == "Password":
 		return PASSWORD_PLACEHOLDER
 	if ft == "Check":
-		return _("Yes") if val else _("No")
+		# The client translates booleans in the active UI language.
+		return bool(val)
 	if ft in ("Attach", "Attach Image", "Image"):
 		return {"type": "attach", "url": val}
 	if ft == "Link":
@@ -71,7 +74,9 @@ def _fmt_value(doc, f):
 			pass
 		return {"type": "link", "doctype": target_doctype, "name": val, "title": val}
 	if ft == "Select":
-		return _(val)
+		# Preserve the recorded option; profile_presentation marks it as
+		# translatable so the client can show source/translation side by side.
+		return val
 	return val
 
 
@@ -134,7 +139,7 @@ def get_relationship_profile(name, **kwargs):
 
 	for f in meta.fields:
 		if f.fieldtype in SKIP_FIELDTYPES:
-			if f.fieldtype == "Section Break":
+			if f.fieldtype in ("Section Break", "Tab Break"):
 				if cur["fields"]:
 					sections.append(cur)
 				cur = {"heading": (f.label or _("Relationship")), "fields": []}
@@ -185,6 +190,8 @@ def get_relationship_profile(name, **kwargs):
 				if v is not None:
 					r[cf.fieldname] = {
 						"label": (cf.label or cf.fieldname).strip(),
+						"fieldtype": cf.fieldtype,
+						"options": cf.options,
 						"value": v,
 					}
 			if r:
@@ -194,6 +201,7 @@ def get_relationship_profile(name, **kwargs):
 				"label": table_meta.label or fn,
 				"total": len(out_rows),
 				"rows": out_rows[:50],
+				"column_order": [cf.fieldname for cf in child_fields],
 				"truncated": len(out_rows) > 50,
 			}
 
@@ -219,7 +227,7 @@ def get_relationship_profile(name, **kwargs):
 		"can_create": bool(frappe.has_permission("Relationship", "create")),
 	}
 
-	return {
+	profile = {
 		"header": header,
 		"sections": sections,
 		"children": children,
@@ -227,3 +235,4 @@ def get_relationship_profile(name, **kwargs):
 		"counters": counters,
 		"permissions": permissions,
 	}
+	return organise_profile(profile, doctype="Relationship", lang=getattr(frappe.local, "lang", None) or "en")

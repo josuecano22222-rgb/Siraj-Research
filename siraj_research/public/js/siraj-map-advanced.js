@@ -128,7 +128,7 @@
 				touchZoom: false, keyboard: false, boxZoom: false,
 				worldCopyJump: true,
 			});
-			const url = (opts && opts.tileUrl) || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+			const url = (opts && opts.tileUrl) || '/api/method/siraj_research.tile_cache.tile?layer=standard&z={z}&x={x}&y={y}';
 			tileLayer = L.tileLayer(url, { maxZoom: 22, maxNativeZoom: 19 }).addTo(miniMap);
 			miniRect = L.rectangle(map.getBounds(), {
 				color: '#126a68', weight: 2, fillOpacity: 0.10, interactive: false,

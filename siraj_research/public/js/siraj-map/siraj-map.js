@@ -30,7 +30,7 @@
 	'use strict';
 	// Map engine build tag — mirrors window.SIRAJ_BUILD from siraj-record-meta.js
 	// so diagnostic lines in the console agree on the deployed revision.
-	const SIRAJ_MAP_BUILD = (window.SIRAJ_BUILD) || '2026-11-17.coord-field-slice-a.57';
+	const SIRAJ_MAP_BUILD = (window.SIRAJ_BUILD) || '2026-11-20.hierarchy-ui.d.15';
 	console.info('%c[SIRAJ Map]', 'color:#0c5e5b;font-weight:bold', 'build', SIRAJ_MAP_BUILD, '| default engine: maplibre');
 
 	const engines = { maplibre: null, leaflet: null };
@@ -75,7 +75,7 @@
 			sources: {
 				'basemap': {
 					type: 'raster',
-					tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+					tiles: ['/api/method/siraj_research.tile_cache.tile?layer=standard&z={z}&x={x}&y={y}'],
 					tileSize: 256,
 					attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 				},
@@ -88,7 +88,7 @@
 			sources: {
 				'basemap': {
 					type: 'raster',
-					tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+					tiles: ['/api/method/siraj_research.tile_cache.tile?layer=aerial&z={z}&x={x}&y={y}'],
 					tileSize: 256,
 					attribution: '© Esri World Imagery',
 				},
@@ -101,13 +101,13 @@
 			sources: {
 				'sat': {
 					type: 'raster',
-					tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+					tiles: ['/api/method/siraj_research.tile_cache.tile?layer=hybrid&z={z}&x={x}&y={y}'],
 					tileSize: 256,
 					attribution: '© Esri',
 				},
 				'labels': {
 					type: 'raster',
-					tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],
+					tiles: ['/api/method/siraj_research.tile_cache.tile?layer=hybrid_labels&z={z}&x={x}&y={y}'],
 					tileSize: 256,
 				},
 			},

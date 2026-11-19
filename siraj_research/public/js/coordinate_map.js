@@ -46,6 +46,7 @@
 		const fromBoot = (window.sirajCoordinateDocs && window.sirajCoordinateDocs[doctype]) || {};
 		return Object.assign({
 			lat_field: 'latitude', lon_field: 'longitude',
+			map_field: 'geo_point', origin_confirmed_field: 'coordinate_origin_confirmed',
 			uncertainty_field: 'geo_uncertainty_m', linked_place_field: null,
 			silhouette: 'pin',
 		}, DEFAULT_COORDS[doctype] || {}, fromBoot);
@@ -70,11 +71,29 @@
 				'/assets/siraj_research/vendor/leaflet/leaflet.js',
 				'/assets/siraj_research/vendor/topojson/topojson-client.min.js',
 			])).then(() => {
+				// Install eagerly if the bundle evaluated before Leaflet (the
+				// lazy frappe.require above just loaded it). The toolbar's own
+				// polling is only a fallback.
+				if (window.L && window.SirajMapToolbar && window.SirajMapToolbar.install) {
+					try { window.SirajMapToolbar.install(window.L); } catch (_) {}
+				}
 				// siraj-map-toolbar.js installs itself after Leaflet appears;
 				// wait for both SirajMapKit and the toolbar control so mount()
 				// never sees L.control.sirajToolbar === undefined.
 				return new Promise(res => {
-					const check = () => (window.SirajMapKit && window.L && window.L.control && window.L.control.sirajToolbar) ? res() : setTimeout(check, 30);
+					const started = Date.now();
+					const check = () => {
+						if (window.SirajMapKit && window.L) {
+							if (window.L.control && window.L.control.sirajToolbar) return res();
+							// The toolbar is an enhancement. Never block the whole
+							// form map forever if its optional registration fails.
+							if (Date.now() - started > 3000) {
+								try { console.warn('[SIRAJ coord] toolbar unavailable; mounting map without it'); } catch (_) {}
+								return res();
+							}
+						}
+						setTimeout(check, 30);
+					};
 					check();
 				});
 			}).catch(err => { assetsPromise = null; throw err; });
@@ -306,6 +325,11 @@
 		}
 	}
 
+	function originConfirmed(frm, cfg) {
+		const field = cfg.origin_confirmed_field;
+		return !!(field && frm && frm.doc && (frm.doc[field] === 1 || frm.doc[field] === '1' || frm.doc[field] === true));
+	}
+
 	function diagnoseCoordinates(lat, lon, aText, bText) {
 		// Return a warning message (or null) describing suspicious input.
 		if (lat === null || lon === null) {
@@ -340,10 +364,32 @@
 			const b = currentValue(fields.lon, frm.doc, state.cfg.lon_field);
 			const lat = parseCoordinate(a, 90), lon = parseCoordinate(b, 180);
 			const warning = diagnoseCoordinates(lat, lon, a, b);
-			if (lat === null || lon === null) {
+			// (0,0) is ambiguous in legacy Float data: a filled pair often
+			// meant "unset", but it can also be a real origin. Do not draw a
+			// misleading pin until the researcher explicitly confirms it.
+			const zeroPair = lat === 0 && lon === 0 && !originConfirmed(frm, state.cfg);
+			if (lat === null || lon === null || zeroPair) {
 				if (state.marker) { state.map.removeLayer(state.marker); state.marker = null; }
 				if (state.uncertaintyCircle) { state.map.removeLayer(state.uncertaintyCircle); state.uncertaintyCircle = null; }
-				state.status.text(warning || t('Click the map to pick a point, or type coordinates above.'));
+				if (zeroPair) {
+					state.status.empty().append(
+						$('<span></span>').text(t('Coordinates are exactly (0,0). This is treated as unset until confirmed.'))
+					);
+					if (fields.editable) {
+						$('<button type="button" class="siraj-coord-confirm-zero"></button>')
+							.text(t('Confirm 0,0 as a real point'))
+							.on('click', async ev => {
+								ev.preventDefault(); ev.stopPropagation();
+								try {
+									await frm.set_value(state.cfg.origin_confirmed_field, 1);
+									update(frm, false);
+								} catch (_) { state.status.text(t('Could not confirm the origin point.')); }
+							})
+							.appendTo(state.status);
+					}
+				} else {
+					state.status.text(warning || t('Click the map to pick a point, or type coordinates above.'));
+				}
 				syncLinkedChip(state);
 			} else {
 				const dt = frm.doctype || 'Place';
@@ -379,34 +425,86 @@
 	function resolveAndApply(frm, cfg, lat, lon) {
 		if (resolveAbort) { try { resolveAbort.abort(); } catch(_){} resolveAbort = null; }
 		if (!cfg.admin_fields) return;
-		if (!frm.fields_dict || !frm.fields_dict.latitude) return;
+		if (!frm.fields_dict || !frm.fields_dict[cfg.lat_field]) return;
+		// An unconfirmed zero pair is legacy "unset" data, not a location.
+		if (lat === 0 && lon === 0 && !originConfirmed(frm, cfg)) return;
 		const controller = new AbortController();
 		resolveAbort = controller;
 		setTimeout(async () => {
 			if (controller.signal.aborted) return;
 			try {
 				let r = null;
-				// Prefer the local worker (instant if synced, and works
-				// fully offline); fall back to server authoritative call
-				// if the worker isn't ready yet (first load) or returns
-				// empty. Server has the full-resolution STRtree; the worker
-				// uses simplified polygons. Both share the same schema so
-				// applyAdminChain handles either.
-				if (window.SirajGeo && window.SirajGeo.resolve) {
-					try { r = await window.SirajGeo.resolve(lat, lon); } catch(_) { r = null; }
-				}
-				if (!r || !r.on_land) {
+				// Authoritative path first: hierarchy_for_point creates/reuses
+				// the linked hierarchy rows and returns their real DocType names.
+				// Writing raw P-Codes into Link fields causes a save-time
+				// LinkValidationError, so never auto-fill from the loose
+				// resolver payload unless no linked result is available.
+				if (window.SirajHierarchy && window.SirajHierarchy.resolve) {
 					try {
-						r = await frappe.xcall('siraj_research.api.geo_resolve.resolve_point',
-							{ latitude: lat, longitude: lon });
-					} catch (_) { /* keep worker result or null */ }
+						r = await window.SirajHierarchy.resolve(lat, lon, {
+							createMissing: true, useOnline: true,
+						});
+					} catch (_) { r = null; }
+				}
+				if (!r || r.error) {
+					if (window.SirajHierarchy && window.SirajHierarchy.resolve) {
+						// Force the worker path but still use the shared
+						// normaliser, so offline rows carry real linked names.
+						try { r = await window.SirajHierarchy.resolve(lat, lon, { offlineOnly: true }); }
+						catch (_) { r = null; }
+					}
+				}
+				if ((!r || r.error) && !(window.SirajHierarchy && window.SirajHierarchy.resolve)) {
+					// Legacy fallback when the shared hierarchy module is not
+					// loaded: Data fields only, never Link fields.
+					if (window.SirajGeo && window.SirajGeo.resolve) {
+						try { r = await window.SirajGeo.resolve(lat, lon); } catch(_) { r = null; }
+					}
+					if (!r || !r.on_land) {
+						try {
+							r = await frappe.xcall('siraj_research.api.geo_resolve.resolve_point',
+								{ latitude: lat, longitude: lon, use_online: 1 });
+						} catch (_) { /* keep worker result or null */ }
+					}
 				}
 				if (controller.signal.aborted) return;
 				applyAdminChain(frm, cfg, r);
+				if (window.SirajHierarchy && window.SirajHierarchy.refreshForm) {
+					window.SirajHierarchy.refreshForm(frm, cfg, lat, lon).then(h => {
+						if (!h || controller.signal.aborted) return;
+						const state = [...states.values()].find(st => st.frm === frm && st.cfg === cfg);
+						if (!state) return;
+						const deepest = h.deepest_level >= 0
+							? ((h.levels[h.deepest_level] || {}).label_en || '') : '';
+						const missing = (h.gaps || []).length;
+						if (deepest) state.status.text(
+							t('Resolved to {0}.', [deepest]) +
+							(missing ? ' ' + t('{0} levels not covered by the dataset.', [missing]) : '')
+						);
+					}).catch(() => {});
+				}
 			} catch (e) {
 				try { console.warn('[SIRAJ coord] resolve failed:', e && e.message); } catch(_){}
 			}
 		}, 350);
+	}
+
+	// Manually typed coordinates must resolve too, not only map picks. A
+	// debounce keeps rapid typing cheap; parseCoordinate accepts eastern digits.
+	let manualResolveTimer = null;
+	function resolveFromInputs(frm, cfg) {
+		if (manualResolveTimer) clearTimeout(manualResolveTimer);
+		manualResolveTimer = setTimeout(() => {
+			const doc = frm.doc || {};
+			const lat = parseCoordinate(currentValue(frm.fields_dict[cfg.lat_field], doc, cfg.lat_field), 90);
+			const lon = parseCoordinate(currentValue(frm.fields_dict[cfg.lon_field], doc, cfg.lon_field), 180);
+			if (lat != null && lon != null) {
+				if (!(lat === 0 && lon === 0 && !originConfirmed(frm, cfg))) {
+					resolveAndApply(frm, cfg, lat, lon);
+				}
+				syncMapField(frm, cfg, lat, lon);
+			}
+		}, 600);
 	}
 
 	function applyAdminChain(frm, cfg, res) {
@@ -421,14 +519,26 @@
 			if (field.get_status() !== 'Write') return;
 			let value = null;
 			if (chainKey === 'place_name') {
-				value = res.nearest_place ? (res.nearest_place.name_en || res.nearest_place.name_ar || null) : null;
+				value = res.nearest_place_name
+					|| (res.nearest_place ? (res.nearest_place.name_en || res.nearest_place.name_ar || null) : null);
 			} else {
-				const node = res.admin_chain && res.admin_chain[chainKey];
-				// Link fields want the linked DocType name, but the server
-				// returns pcode; if no matching Place exists locally yet we
-				// skip (a future Slice-E enhancement will create/link Place
-				// records automatically).
-				value = node && node.pcode ? node.pcode : (node ? node.name_en : null);
+				const isLink = field.df && field.df.fieldtype === 'Link';
+				const row = res.by_field && res.by_field[chainKey];
+				if (row) {
+					// hierarchy_for_point returns a *linked* DocType name. Only
+					// that is safe to write into a Link field; a P-Code or label
+					// would be accepted by the client but rejected on save.
+					if (isLink) {
+						value = (row.status === 'linked' && row.name) ? row.name : null;
+					} else {
+						value = row.name || row.code || row.label_en || null;
+					}
+				} else {
+					// Legacy/offline resolver payload. Never write its P-Code
+					// into a Link field; Data fields can still show the label.
+					const node = res.admin_chain && res.admin_chain[chainKey];
+					value = isLink ? null : (node ? (node.name_en || node.pcode || null) : null);
+				}
 			}
 			if (value == null) return;
 			const current = (field.$input && field.$input.val()) || (frm.doc && frm.doc[fieldname]) || '';
@@ -475,12 +585,35 @@
 		d.show();
 	}
 
+	function syncMapField(frm, cfg, lat, lon) {
+		const helpers = window.SirajGeoPointCore;
+		const name = cfg.map_field;
+		if (!helpers || !name || !frm.fields_dict || !frm.fields_dict[name]) return;
+		const control = frm.fields_dict[name];
+		if (!control.df || control.df.fieldtype !== 'Geolocation') return;
+		if (typeof control.get_status === 'function' && control.get_status() !== 'Write') return;
+		const zero = helpers.isZero(lat, lon);
+		const originField = cfg.origin_confirmed_field;
+		const confirmed = originField && frm.doc && [1, '1', true].includes(frm.doc[originField]);
+		const value = (zero && !confirmed) ? '' : helpers.encode(lat, lon, { source: 'siraj_coordinate_map' });
+		if (!value || String(frm.doc[name] || '') === value) return;
+		try { frm.set_value(name, value); } catch (_) {}
+	}
+
 	async function writePoint(frm, cfg, latlng, doMove = true) {
 		const state = [...states.values()].find(s => s.frm === frm && s.cfg === cfg);
 		if (!state || !state.editable) return;
 		const latitude = Number(latlng.lat), longitude = Number(latlng.lng);
 		if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return;
 		const values = { [cfg.lat_field]: decimalText(latitude), [cfg.lon_field]: decimalText(longitude) };
+		syncMapField(frm, cfg, latitude, longitude);
+		if (latitude === 0 && longitude === 0 && cfg.origin_confirmed_field
+			&& frm.fields_dict[cfg.origin_confirmed_field]
+			&& frm.fields_dict[cfg.origin_confirmed_field].get_status() === 'Write') {
+			// Choosing the point on the map is an explicit confirmation that
+			// the origin is real, unlike a legacy Float default.
+			values[cfg.origin_confirmed_field] = 1;
+		}
 		if (frm.fields_dict.geocoding_method && frm.fields_dict.geocoding_method.get_status() === 'Write') {
 			values.geocoding_method = 'map_pick';
 		}
@@ -526,8 +659,28 @@
 
 		// Mount as a real Frappe .form-group row inside the section so the
 		// map participates in column/flex layout, RTL, and print styles.
+		// When the DocType has a native Geolocation field, mount the enhanced
+		// map INSIDE that field: the field remains the visible, real field
+		// while the stock Leaflet canvas is replaced by our cached, switchable
+		// map with hierarchy support.
 		const $sectionBody = fields.lon.$wrapper.closest('.form-section').find('.section-body').first();
 		const $anchor = fields.lon.$wrapper.closest('.frappe-control').addBack().last();
+		const mapControl = cfg.map_field && frm.fields_dict && frm.fields_dict[cfg.map_field];
+		const $nativeWrapper = (mapControl && mapControl.df && mapControl.df.fieldtype === 'Geolocation')
+			? (mapControl.$wrapper || null) : null;
+		if ($nativeWrapper) {
+			$nativeWrapper.find('.map-wrapper').hide();
+			// Stop the stock map from requesting uncached tiles. Frappe may
+			// recreate it on refresh; mount() runs again and hides it anew.
+			if (mapControl.map) {
+				try { mapControl.map.remove(); } catch (_) {}
+				mapControl.map = null;
+			}
+			// Some Frappe forms (notably new docs opened from quick entry)
+			// do not initialize `frm.flags` until later in the lifecycle.
+			frm.flags = frm.flags || {};
+			frm.flags.siraj_custom_map = true;
+		}
 		const box = $('<div class="siraj-coordinate-map"></div>')
 			.attr('data-siraj-build', window.SIRAJ_BUILD || '')
 			.attr('data-doctype', frm.doctype)
@@ -546,7 +699,12 @@
 			.attr('aria-label', t('Coordinate map'))
 			.appendTo(box);
 		const status = $('<div role="status" aria-live="polite" class="siraj-coord-status"></div>').appendTo(box);
+		// Anchor after longitude (inside the Location section). The native
+		// Geolocation wrapper can be hidden by Frappe's read-only/permission
+		// layout; anchoring to longitude keeps the enhanced map visible even
+		// when the stock control itself is not.
 		if ($anchor.length) $anchor.after(group);
+		else if ($nativeWrapper && $nativeWrapper.length) $nativeWrapper.append(group);
 		else if ($sectionBody.length) $sectionBody.append(group);
 		else fields.lon.$wrapper.after(box);
 
@@ -681,7 +839,19 @@
 		});
 
 		/* ------ Toolbar (shared declarative registry, form-map subset) ------ */
-		const toolbar = L.control.sirajToolbar({ position: 'topright' }).addTo(map);
+		// The map must remain usable even when the optional toolbar is not
+		// registered. A chainable no-op keeps every toolbar pack below safe.
+		const fallbackToolbar = () => {
+			const api = {
+				_buttons: new Map(),
+				addTo: () => api, group: () => api, add: () => api,
+				separator: () => api, remove: () => api,
+			};
+			return api;
+		};
+		const toolbar = (L.control && L.control.sirajToolbar)
+			? L.control.sirajToolbar({ position: 'topright' }).addTo(map)
+			: fallbackToolbar();
 		state.toolbar = toolbar;
 		const localPacks = new Map();
 
@@ -690,6 +860,30 @@
 			.add({ icon: 'zoom_out', label: t('Out'),  action: () => map.zoomOut() })
 			.add({ icon: 'home',     label: t('Home'), action: () => map.setView([33.3152, 44.3661], 4) })
 			.add({ icon: 'locate_me', label: t('My loc'), action: () => map.locate({ setView: true, maxZoom: 12, enableHighAccuracy: true }) });
+
+		// The hierarchy tool is an enhancement: a toolbar/API problem here
+		// must never abort the rest of the map setup and leave a blank canvas.
+		try {
+			toolbar.group(t('Geography'))
+				.add({ icon: 'link_chain', label: t('Resolve hierarchy'), tooltip: t('Resolve the full hierarchy at the pin'),
+					action: () => {
+						const doc = frm.doc || {};
+						const lat = parseCoordinate(currentValue(fields.lat, doc, cfg.lat_field), 90);
+						const lon = parseCoordinate(currentValue(fields.lon, doc, cfg.lon_field), 180);
+						if (lat == null || lon == null) {
+							state.status.text(t('Enter or pick valid coordinates first.'));
+							return;
+						}
+						resolveAndApply(frm, cfg, lat, lon);
+						try {
+							if (window.SirajHierarchy) window.SirajHierarchy.refreshForm(frm, cfg, lat, lon, { force: true });
+						} catch (hierr) {
+							console.warn('[SIRAJ coord] hierarchy refresh failed:', hierr && hierr.message);
+						}
+					} });
+		} catch (err) {
+			console.warn('[SIRAJ coord] hierarchy tool unavailable:', err && err.message);
+		}
 
 		// Basemap switcher (Standard / Satellite / Hybrid / Offline) — shared
 		// Leaflet controller that adds a toolbar group and persists the choice.
@@ -721,7 +915,10 @@
 
 		// Wire input fields for bidirectional sync.
 		for (const field of [fields.lat, fields.lon]) {
-			field.$input?.off('.sirajCoordinates').on('input.sirajCoordinates change.sirajCoordinates', () => update(frm, false));
+			field.$input?.off('.sirajCoordinates').on('input.sirajCoordinates change.sirajCoordinates', () => {
+				update(frm, false);
+				resolveFromInputs(frm, cfg);
+			});
 		}
 
 		update(frm, true);
@@ -828,7 +1025,12 @@
 			const cfg = docConfig(frm.doctype);
 			[cfg.lat_field, cfg.lon_field].forEach(fn => {
 				frappe.ui.form.on(frm.doctype, {
-					[fn](frm2) { update(frm2); },
+					[fn](frm2) {
+					update(frm2);
+					// Manual coordinates must resolve even when the visual map
+					// cannot mount (hidden tab, permission-only field, etc.).
+					resolveFromInputs(frm2, cfg);
+				},
 				});
 			});
 		}
@@ -859,7 +1061,10 @@
 			states.forEach(s => { if (s.frm === frm) removeState(s); });
 			return;
 		}
-		cfgs.forEach(c => mount(frm, c));
+		cfgs.forEach(c => {
+			mount(frm, c);
+			resolveFromInputs(frm, c);
+		});
 	}
 
 	$(document).on('form-refresh.sirajCoordinates', (_e, frm) => {
@@ -869,4 +1074,7 @@
 	// Expose module version + config for Diagnostics.
 	window.SIRAJ_COORDINATE_MAP_VERSION = MODULE_VERSION;
 	window.SIRAJ_COORDINATE_DOCS_ACTIVE = DEFAULT_COORDS;
+	window.SirajCoordinateMap = {
+		docConfig, parseCoordinate, resolveAndApply, applyAdminChain,
+	};
 })();

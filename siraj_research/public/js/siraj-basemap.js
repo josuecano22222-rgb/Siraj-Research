@@ -26,7 +26,9 @@
 			label: () => __('Satellite'),
 			icon: 'basemap_satellite',
 			tooltip: () => __('Satellite imagery (Esri World Imagery)'),
-			tileUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+			// Every raster request goes through the SIRAJ server proxy so the
+			// tile is written to the shared on-disk cache on first view.
+			tileUrl: '/api/method/siraj_research.tile_cache.tile?layer=aerial&z={z}&x={x}&y={y}',
 			attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
 			maxZoom: 19,
 		},
@@ -34,8 +36,8 @@
 			label: () => __('Hybrid'),
 			icon: 'basemap_hybrid',
 			tooltip: () => __('Satellite imagery with labels and borders'),
-			tileUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-			overlayUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+			tileUrl: '/api/method/siraj_research.tile_cache.tile?layer=hybrid&z={z}&x={x}&y={y}',
+			overlayUrl: '/api/method/siraj_research.tile_cache.tile?layer=hybrid_labels&z={z}&x={x}&y={y}',
 			attribution: 'Imagery © Esri; labels © Esri, HERE, Garmin, OpenStreetMap contributors',
 			maxZoom: 19,
 		},

@@ -18,11 +18,20 @@
   "end_date",
   "status",
   "sb_deployment_area",
-  "location",
   "area_of_operations",
   "sb_geo",
+  "sb_location",
   "latitude",
   "longitude",
+  "geo_point",
+  "country",
+  "governorate",
+  "district",
+  "municipality",
+  "village",
+  "community",
+  "location",
+  "coordinate_origin_confirmed",
   "geo_precision",
   "geocoding_method",
   "geo_uncertainty_m",
@@ -139,12 +148,6 @@
    "label": "Area of operations"
   },
   {
-   "fieldname": "location",
-   "fieldtype": "Data",
-   "label": "Location (as stated)",
-   "length": 140
-  },
-  {
    "fieldname": "area_of_operations",
    "fieldtype": "Small Text",
    "label": "Area of operations"
@@ -157,19 +160,90 @@
    "collapsible_depends_on": "eval:doc.latitude && doc.longitude"
   },
   {
+   "fieldname": "sb_location",
+   "label": "Location",
+   "fieldtype": "Section Break"
+  },
+  {
    "fieldname": "latitude",
    "fieldtype": "Float",
    "label": "Latitude",
    "precision": "6",
    "description": "This record's own latitude, independent of any linked place.",
-   "in_standard_filter": 0
+   "in_standard_filter": 0,
+   "insert_after": "sb_location"
   },
   {
    "fieldname": "longitude",
    "fieldtype": "Float",
    "label": "Longitude",
    "precision": "6",
-   "description": "This record's own longitude, independent of any linked place."
+   "description": "This record's own longitude, independent of any linked place.",
+   "insert_after": "latitude"
+  },
+  {
+   "fieldname": "geo_point",
+   "label": "Geolocation",
+   "fieldtype": "Geolocation",
+   "insert_after": "longitude",
+   "description": "Select a point on the map. It is mirrored into the latitude and longitude fields and resolves the administrative hierarchy."
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "insert_after": "geo_point"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate",
+   "insert_after": "country"
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District",
+   "insert_after": "governorate"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality",
+   "insert_after": "district"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village / locality",
+   "options": "Village",
+   "insert_after": "municipality"
+  },
+  {
+   "fieldname": "community",
+   "fieldtype": "Link",
+   "label": "Community / cluster",
+   "options": "Community",
+   "insert_after": "village"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Location (as stated)",
+   "length": 140,
+   "insert_after": "community"
+  },
+  {
+   "fieldname": "coordinate_origin_confirmed",
+   "label": "0,0 is an actual point",
+   "fieldtype": "Check",
+   "default": "0",
+   "insert_after": "longitude",
+   "description": "Tick only when latitude 0 and longitude 0 are a deliberate real location; otherwise the zero pair is treated as unset."
   },
   {
    "fieldname": "geo_precision",

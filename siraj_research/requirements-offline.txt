@@ -1,0 +1,6 @@
+# Optional geospatial dependencies needed for boundary import and resolution.
+# Download while online with offline_bootstrap.download_python_wheels(), then
+# reinstall later with pip --no-index --find-links=<wheel dir>.
+shapely>=2,<3
+pyproj>=3.6,<4
+pyogrio>=0.7,<1

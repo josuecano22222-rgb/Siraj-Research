@@ -1,0 +1,169 @@
+/* SIRAJ profile presentation engine — fields & child tables.
+ *
+ * Loaded after siraj_explorer.css; all layout uses logical properties so the
+ * same panel works in LTR and RTL without a second stylesheet. Values carry
+ * dir=auto, so Arabic data reads right-to-left inside an English UI.
+ */
+
+.sx-profile-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.sx-profile-filter {
+  flex: 1 1 150px;
+  min-width: 120px;
+  height: 28px;
+  font-size: 12px;
+  background: var(--subtle-fg, #f5f7f5);
+  border-color: var(--sx-line, #d8e0e0);
+}
+.sx-profile-modes {
+  display: inline-flex;
+  flex: 0 0 auto;
+  border: 1px solid var(--sx-line, #d8e0e0);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.sx-profile-modes button {
+  border-radius: 0 !important;
+  border: 0 !important;
+  margin: 0 !important;
+  padding: 3px 7px !important;
+  font-size: 11px;
+  line-height: 18px;
+}
+.sx-profile-modes button + button {
+  border-inline-start: 1px solid var(--sx-line, #d8e0e0) !important;
+}
+.sx-profile-section-host > .sx-section:first-child { margin-top: 0; }
+
+/* Definition list rows are wrapped in <div> so they can be filtered/hidden
+   without breaking the dt/dd pairing. */
+.sx-profile-fields { display: block; }
+.sx-profile-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 38%) minmax(0, 1fr);
+  gap: 4px 10px;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px dashed var(--sx-line, #e2e8e8);
+}
+.sx-profile-row:last-child { border-bottom: 0; }
+.sx-profile-row dt {
+  margin: 0;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.sx-profile-row dd {
+  margin: 0;
+  font-size: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.sx-profile-row dt .sx-demo-badge { margin-inline-start: 4px; }
+
+.sx-i18n-label { display: inline; }
+.sx-i18n-source {
+  display: block;
+  font-size: 10px;
+  line-height: 1.25;
+  color: var(--text-muted);
+  font-style: italic;
+  opacity: 0.85;
+}
+.sx-demo-badge {
+  display: inline-block;
+  padding: 0 4px;
+  border: 1px dashed #b98a3d;
+  border-radius: 3px;
+  color: #8a641f;
+  background: #fff8e9;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 14px;
+  vertical-align: middle;
+  cursor: help;
+}
+html[data-theme="dark"] .sx-demo-badge,
+[data-theme="dark"] .sx-demo-badge {
+  color: #f0cf8c;
+  background: #46381d;
+  border-color: #b98a3d;
+}
+
+.sx-profile-value { min-width: 0; overflow-wrap: anywhere; }
+.sx-profile-value.is-rtl { text-align: start; }
+.sx-profile-link {
+  padding: 0 !important;
+  text-align: start;
+  white-space: normal;
+  word-break: break-word;
+}
+.sx-profile-json { display: inline-flex; gap: 4px 8px; flex-wrap: wrap; }
+.sx-profile-json-pair { white-space: nowrap; }
+.sx-profile-json-pair b { font-weight: 600; color: var(--text-muted); }
+.sx-profile-copy {
+  margin-inline-start: auto;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 0 2px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  cursor: copy;
+}
+.sx-profile-row:hover .sx-profile-copy,
+.sx-profile-copy:focus { opacity: 0.75; }
+.sx-profile-copy.is-copied { color: var(--primary, #0c5e5b); opacity: 1; }
+
+/* Tables */
+.sx-profile-table-wrap { width: 100%; margin-top: 2px; }
+.sx-profile-table-wrap.is-empty {
+  padding: 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-style: italic;
+}
+.sx-profile-table { width: 100%; table-layout: auto; }
+.sx-profile-table th { white-space: nowrap; vertical-align: middle; }
+.sx-profile-table td { vertical-align: top; max-width: 220px; overflow-wrap: anywhere; }
+.sx-profile-table th .sx-i18n-source { font-weight: 400; }
+.sx-profile-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+  text-align: start;
+}
+.sx-profile-sort-arrow { color: var(--text-muted); font-size: 10px; }
+.sx-profile-table th[aria-sort] .sx-profile-sort-arrow { color: var(--primary, #0c5e5b); }
+.sx-profile-table-note {
+  padding: 6px 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--sx-line, #e2e8e8);
+}
+.sx-profile-no-match { padding-top: 10px; }
+
+@media (max-width: 480px) {
+  .sx-profile-row { grid-template-columns: 1fr; gap: 1px; }
+  .sx-profile-modes { width: 100%; }
+  .sx-profile-modes button { flex: 1; }
+}

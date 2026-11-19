@@ -99,14 +99,85 @@
    "collapsible": 1
   },
   {
+   "fieldname": "sb_location",
+   "label": "Location",
+   "fieldtype": "Section Break"
+  },
+  {
    "fieldname": "latitude",
    "fieldtype": "Float",
-   "label": "Latitude"
+   "label": "Latitude",
+   "insert_after": "sb_location"
   },
   {
    "fieldname": "longitude",
    "fieldtype": "Float",
-   "label": "Longitude"
+   "label": "Longitude",
+   "insert_after": "latitude"
+  },
+  {
+   "fieldname": "geo_point",
+   "label": "Geolocation",
+   "fieldtype": "Geolocation",
+   "insert_after": "longitude",
+   "description": "Select a point on the map. It is mirrored into the latitude and longitude fields and resolves the administrative hierarchy."
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "insert_after": "geo_point"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate",
+   "insert_after": "country"
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District",
+   "insert_after": "governorate"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality",
+   "insert_after": "district"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village / locality",
+   "options": "Village",
+   "insert_after": "municipality"
+  },
+  {
+   "fieldname": "community",
+   "fieldtype": "Link",
+   "label": "Community / cluster",
+   "options": "Community",
+   "insert_after": "village"
+  },
+  {
+   "fieldname": "place_name",
+   "fieldtype": "Data",
+   "label": "Locality / place name",
+   "description": "Nearest named place (village/town); auto-filled by reverse-geocoding.",
+   "insert_after": "community"
+  },
+  {
+   "fieldname": "coordinate_origin_confirmed",
+   "label": "0,0 is an actual point",
+   "fieldtype": "Check",
+   "default": "0",
+   "insert_after": "longitude",
+   "description": "Tick only when latitude 0 and longitude 0 are a deliberate real location; otherwise the zero pair is treated as unset."
   },
   {
    "fieldname": "geo_precision",
@@ -131,51 +202,9 @@
    "label": "Point source"
   },
   {
-   "fieldname": "country",
-   "fieldtype": "Link",
-   "label": "Country",
-   "options": "Country"
-  },
-  {
-   "fieldname": "governorate",
-   "fieldtype": "Link",
-   "label": "Governorate",
-   "options": "Governorate"
-  },
-  {
    "fieldname": "cb_admin",
    "fieldtype": "Column Break",
    "label": null
-  },
-  {
-   "fieldname": "district",
-   "fieldtype": "Link",
-   "label": "District",
-   "options": "District"
-  },
-  {
-   "fieldname": "municipality",
-   "fieldtype": "Link",
-   "label": "Municipality",
-   "options": "Municipality"
-  },
-  {
-   "fieldname": "village",
-   "fieldtype": "Link",
-   "label": "Village / locality",
-   "options": "Village"
-  },
-  {
-   "fieldname": "community",
-   "fieldtype": "Link",
-   "label": "Community / cluster",
-   "options": "Community"
-  },
-  {
-   "fieldname": "place_name",
-   "fieldtype": "Data",
-   "label": "Locality / place name",
-   "description": "Nearest named place (village/town); auto-filled by reverse-geocoding."
   },
   {
    "fieldname": "cb_geo",
@@ -256,19 +285,24 @@
   "sb_places",
   "linked_place",
   "sb_geo",
+  "sb_location",
   "latitude",
   "longitude",
-  "geo_precision",
-  "geocoding_method",
-  "geo_uncertainty_m",
-  "geometry_source",
+  "geo_point",
   "country",
   "governorate",
-  "cb_geo",
   "district",
   "municipality",
   "village",
   "community",
+  "place_name",
+  "coordinate_origin_confirmed",
+  "geo_precision",
+  "geocoding_method",
+  "geo_uncertainty_m",
+  "geometry_source",
+  "cb_admin",
+  "cb_geo",
   "sb_evidence",
   "primary_source",
   "documentation_level",
@@ -278,9 +312,7 @@
   "sb_evidence_table",
   "evidence",
   "sb_identifiers",
-  "external_identifiers",
-  "place_name",
-  "cb_admin"
+  "external_identifiers"
  ],
  "links": [
   {

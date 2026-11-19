@@ -20,6 +20,7 @@
   "participant_count",
   "cb_training_staff",
   "lead_trainer",
+  "sb_location",
   "location",
   "sb_training_notes",
   "notes",
@@ -142,10 +143,16 @@
    "length": 140
   },
   {
+   "fieldname": "sb_location",
+   "label": "Location",
+   "fieldtype": "Section Break"
+  },
+  {
    "fieldname": "location",
    "fieldtype": "Data",
    "label": "Location (as stated)",
-   "length": 140
+   "length": 140,
+   "insert_after": "sb_location"
   },
   {
    "fieldname": "sb_training_notes",

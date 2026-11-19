@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Spatial data package endpoint for client-side offline reverse geocoding.
 
 For every active Boundary Dataset the server produces a compact, compressed
@@ -13,18 +12,20 @@ Package format
 ``GET /api/method/siraj_research.api.geo_package.current`` returns
 ``application/json``:
 
-    {
+    {"message": {
       "dataset": "<code>",
       "version": <int>,              // ETag
       "levels":  [0,1,2,3,4],        // admin levels present
       "polygons": [                  // simplified (tolerance_m) polygons
         [level, pcode, parent_pcode, name_en, name_ar,
-         [ [ [lon,lat], ... ] ] ]   // GeoJSON-style coordinates (MultiPolygon)
+         [ [ [lon,lat], ... ] ], // GeoJSON-style coordinates (MultiPolygon)
+         "<linked doc name>"      // deterministic name if a hierarchy row exists
       ],
       "places": [                    // gazetteer points
         [lat, lon, pcode, name_en, feature_code, admin1_pcode, admin2_pcode]
-      ]
-    }
+      ],
+      "etag": "<dataset>:<version>"
+    }}
 
 Coordinates are already EPSG:4326. The polygon geometries are the *simplified*
 variant (see Boundary Dataset.simplification_tolerance_m) so a typical
@@ -50,10 +51,12 @@ import hashlib
 import json
 import math
 from typing import Optional
+from pathlib import Path
 
 import frappe
 
 from siraj_research.geo_import import deps_ok, shapely
+from siraj_research.geo_hierarchy import LEVELS, _country_names, level_spec, make_code, normalize_code
 
 
 def _settings() -> dict:
@@ -74,9 +77,7 @@ def _flat_coords(geom) -> list:
     """
     gtype = geom.geom_type
     if gtype == "Polygon":
-        return [list(ring.coords) for ring in geom.geoms if False] if False else \
-               [list(ring.coords) for ring in list(getattr(geom, "interiors", [])) + []] or \
-               _poly_coords(geom)
+        return _poly_coords(geom)
     if gtype == "MultiPolygon":
         return [_poly_coords(p) for p in geom.geoms]
     return []
@@ -90,17 +91,43 @@ def _poly_coords(poly):
     return rings
 
 
+def _linked_name_maps() -> dict[str, dict[str, str]]:
+	"""Map pcode/code → real DocType name for every hierarchy level.
+
+	The offline worker can only write a Link field safely when it knows the
+	linked document exists. Shipping these names with the package lets it
+	fill Country/Governorate (and deeper levels) with no server round-trip.
+	"""
+	maps: dict[str, dict[str, str]] = {}
+	for spec in LEVELS[1:]:
+		field = str(spec["field"])
+		maps[field] = {}
+		try:
+			rows = frappe.get_all(spec["doctype"], fields=["name", "code", "pcode"],
+			                      limit_page_length=0)
+		except Exception:
+			continue
+		for row in rows:
+			name = str(row.get("name") or "")
+			if not name:
+				continue
+			for value in (row.get("pcode"), row.get("code")):
+				if value:
+					maps[field][normalize_code(value)] = name
+	return maps
+
+
 def _pack_polygons(dataset: str) -> tuple[list, int]:
     version = int(frappe.db.get_value("Boundary Dataset", dataset, "index_version") or 0)
     # Prefer 'simplified' geometries (smaller); fall back to 'full'.
     rows = frappe.db.sql(
         """SELECT ab.pcode, ab.parent_pcode, ab.level, ab.name_en, ab.name_ar,
-                  ag.precision, ag.geom_wkb_hex, ag.point_count
+                  ag.`precision`, ag.geom_wkb_hex, ag.point_count
            FROM `tabAdmin Boundary` ab
            LEFT JOIN (
-               SELECT parent, precision, geom_wkb_hex, point_count,
-                      ROW_NUMBER() OVER (PARTITION BY parent ORDER BY
-                          CASE WHEN precision='simplified' THEN 0 ELSE 1 END) AS rn
+               SELECT `parent`, `precision`, geom_wkb_hex, point_count,
+                      ROW_NUMBER() OVER (PARTITION BY `parent` ORDER BY
+                          CASE WHEN `precision`='simplified' THEN 0 ELSE 1 END) AS rn
                FROM `tabAdmin Boundary Geom`
            ) ag ON ag.parent = ab.name AND ag.rn = 1
            WHERE ab.dataset=%s AND ag.geom_wkb_hex IS NOT NULL""",
@@ -110,6 +137,8 @@ def _pack_polygons(dataset: str) -> tuple[list, int]:
     out = []
     if not shapely:
         return out, version
+    linked_maps = _linked_name_maps()
+    countries = _country_names()
     for r in rows:
         try:
             g = shapely.wkb.loads(bytes.fromhex(r.geom_wkb_hex))
@@ -123,24 +152,39 @@ def _pack_polygons(dataset: str) -> tuple[list, int]:
         # Round to 5 decimals (~1.1 m) to shrink payload further without
         # meaningfully affecting point-in-polygon accuracy.
         coords = _round_coords(coords, 5)
+        level = int(r.level or 0)
+        pcode = r.pcode or ""
+        name_en = (r.name_en or "")[:120]
+        # Only reuse a real document name; never invent one offline.
+        linked_name = ""
+        if level == 0:
+            linked_name = countries.get(pcode.upper()) or countries.get(name_en) or ""
+        else:
+            field = str(level_spec(level)["field"])
+            candidates = [pcode, make_code(pcode, name_en, r.parent_pcode or "", level)]
+            for candidate in candidates:
+                linked_name = linked_maps.get(field, {}).get(normalize_code(candidate), "")
+                if linked_name:
+                    break
         out.append([
-            int(r.level or 0),
-            r.pcode or "",
+            level,
+            pcode,
             r.parent_pcode or "",
-            (r.name_en or "")[:120],
+            name_en,
             (r.name_ar or "")[:120],
             coords,
+            linked_name,
         ])
     return out, version
 
 
 def _round_coords(obj, ndigits):
-    if isinstance(obj, (int, float)):
+    if isinstance(obj, int | float):
         return round(obj, ndigits)
     return [_round_coords(x, ndigits) for x in obj]
 
 
-def _pack_places(dataset: Optional[str]) -> list:
+def _pack_places(dataset: str | None) -> list:
     if not dataset:
         return []
     rows = frappe.db.sql(
@@ -165,47 +209,78 @@ def _pack_places(dataset: Optional[str]) -> list:
     return out
 
 
+def build_package(dataset: str | None, gazetteer: str | None = None) -> dict:
+    """Build the client package entirely from local bench data."""
+    if not dataset:
+        return {"dataset": None, "version": 0, "levels": [], "polygons": [],
+                "places": [], "etag": "none:0"}
+    ok, missing = deps_ok()
+    if not ok:
+        return {"dataset": dataset, "version": 0, "levels": [], "polygons": [],
+                "places": [], "etag": f"{dataset}:0", "error": "missing_dependencies",
+                "missing": missing}
+    polygons, version = _pack_polygons(dataset)
+    places = _pack_places(gazetteer)
+    return {
+        "dataset": dataset,
+        "version": int(version or 0),
+        "levels": sorted({row[0] for row in polygons}),
+        "polygons": polygons,
+        "places": places,
+        "etag": f"{dataset}:{int(version or 0)}",
+    }
+
+
 @frappe.whitelist(methods=["GET"])
 def current():
-    """Return the active spatial package as JSON.
+    """Return the active spatial package as a normal JSON response.
 
-    The response sets ETag = str(version) and honours If-None-Match so the
-    client can skip re-download when unchanged. Gzip is applied when the
-    client accepts it (payload compresses ~75%).
+    Frappe serialises the returned dict through its normal JSON
+    machinery; writing raw gzip bytes there serialised every byte as an
+    integer array and produced a 500 once the package became non-empty.
+    Clients send the last etag as ``?version=`` and get a 304 when nothing
+    changed, which keeps repeat loads cheap.
     """
     if not frappe.has_permission("Place", "read"):
         frappe.throw("Not permitted.", frappe.PermissionError)
     cfg = _settings()
-    dataset = cfg["active_boundary"]
-    if not dataset:
-        return {"dataset": None, "version": 0, "levels": [], "polygons": [], "places": []}
-    ok, missing = deps_ok()
-    polygons, version = _pack_polygons(dataset)
-    places = _pack_places(cfg["active_gazetteer"])
-    levels = sorted({row[0] for row in polygons})
-    payload = {
-        "dataset": dataset,
-        "version": int(version or 0),
-        "levels": levels,
-        "polygons": polygons,
-        "places": places,
-    }
-    body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-    etag = '"' + hashlib.sha1(str(version).encode() + dataset.encode()).hexdigest()[:16] + '"'
-    inm = frappe.request.headers.get("If-None-Match", "") if frappe.request else ""
-    if inm and etag in inm:
+    payload = build_package(cfg["active_boundary"], cfg["active_gazetteer"])
+    inm = ""
+    if frappe.request:
+        inm = frappe.request.headers.get("If-None-Match", "") or ""
+    inm = inm or str((getattr(frappe, "form_dict", None) or {}).get("version") or "")
+    if payload.get("etag") and payload["etag"] in inm:
         frappe.response["http_status_code"] = 304
         return ""
-    accept_enc = (frappe.request.headers.get("Accept-Encoding", "") if frappe.request else "")
-    if "gzip" in accept_enc:
-        body = gzip.compress(body, compresslevel=6)
-        frappe.response["headers"] = {"Content-Encoding": "gzip"}
-    frappe.response["data"] = body
-    frappe.response["type"] = "application/json; charset=utf-8"
-    frappe.response["headers"] = frappe.response.get("headers") or {}
-    frappe.response["headers"].update({
-        "ETag": etag,
-        "Cache-Control": "public, max-age=0, must-revalidate",
-        "Vary": "Accept-Encoding",
-    })
-    return ""
+    return payload
+
+
+def export_offline_package(path: str | None = None) -> dict:
+    """Materialise the package as a same-origin static asset.
+
+    This is the zero-internet bootstrap: run it on the bench after local
+    imports, then the browser can load ``/assets/siraj_research/data/
+    geo-package.json`` without calling any remote service.
+    """
+    cfg = _settings()
+    if not cfg["active_boundary"]:
+        return {"error": "No active boundary dataset", "written": False}
+    payload = build_package(cfg["active_boundary"], cfg["active_gazetteer"])
+    if payload.get("error"):
+        return {**payload, "written": False}
+    target = Path(path) if path else Path(frappe.get_app_path(
+        "siraj_research", "public", "data", "geo-package.json"))
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_suffix(target.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, separators=(",", ":"), ensure_ascii=False),
+                   encoding="utf-8")
+    tmp.replace(target)
+    return {
+        "written": True,
+        "path": str(target),
+        "dataset": payload["dataset"],
+        "version": payload["version"],
+        "polygons": len(payload["polygons"]),
+        "places": len(payload["places"]),
+        "etag": payload["etag"],
+    }

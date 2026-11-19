@@ -16,8 +16,26 @@
   "disabled",
   "is_system",
   "sb_scope",
+  "sb_geo_profile",
+  "pcode",
+  "parent_pcode",
+  "admin_level_type",
+  "cb_geo_profile",
+  "sb_location",
+  "latitude",
+  "longitude",
+  "geo_point",
+  "country",
   "governorate",
-  "country"
+  "coordinate_origin_confirmed",
+  "bbox",
+  "sb_geo_geometry",
+  "boundary",
+  "geojson",
+  "cb_geo_geometry",
+  "source_dataset",
+  "source_kind",
+  "last_verified_on"
  ],
  "fields": [
   {
@@ -105,12 +123,62 @@
    "label": "Scope"
   },
   {
-   "fieldname": "governorate",
-   "fieldtype": "Link",
-   "label": "Governorate",
-   "options": "Governorate",
-   "reqd": 1,
-   "in_standard_filter": 1
+   "fieldname": "sb_geo_profile",
+   "fieldtype": "Section Break",
+   "label": "Geography and spatial index",
+   "description": "Administrative identity, coordinates and source provenance for this level. Values imported from a dataset may be corrected manually later."
+  },
+  {
+   "fieldname": "pcode",
+   "fieldtype": "Data",
+   "label": "Source P-Code",
+   "search_index": 1,
+   "in_standard_filter": 1,
+   "length": 140,
+   "description": "Stable identifier from GADM, GeoNames, OSM or another imported dataset."
+  },
+  {
+   "fieldname": "parent_pcode",
+   "fieldtype": "Data",
+   "label": "Parent P-Code",
+   "length": 140
+  },
+  {
+   "fieldname": "admin_level_type",
+   "fieldtype": "Data",
+   "label": "Local level name",
+   "length": 140,
+   "description": "For example: emirate, parish, region, commune or mahallah. Lets countries with different terminology keep their own names."
+  },
+  {
+   "fieldname": "cb_geo_profile",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sb_location",
+   "label": "Location",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude",
+   "in_list_view": 1,
+   "insert_after": "sb_location"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude",
+   "in_list_view": 1,
+   "insert_after": "latitude"
+  },
+  {
+   "fieldname": "geo_point",
+   "label": "Geolocation",
+   "fieldtype": "Geolocation",
+   "insert_after": "longitude",
+   "description": "Select a point on the map. It is mirrored into the latitude and longitude fields and resolves the administrative hierarchy."
   },
   {
    "fieldname": "country",
@@ -119,7 +187,73 @@
    "options": "Country",
    "read_only": 1,
    "fetch_from": "governorate.country",
-   "description": "Fetched from the governorate so a district can never sit in a country its governorate does not belong to."
+   "description": "Fetched from the governorate so a district can never sit in a country its governorate does not belong to.",
+   "insert_after": "geo_point"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate",
+   "reqd": 0,
+   "in_standard_filter": 1,
+   "description": "Optional when a source dataset skips this level. Use Parent P-Code to preserve the original lineage.",
+   "insert_after": "country"
+  },
+  {
+   "fieldname": "coordinate_origin_confirmed",
+   "label": "0,0 is an actual point",
+   "fieldtype": "Check",
+   "default": "0",
+   "insert_after": "longitude",
+   "description": "Tick only when latitude 0 and longitude 0 are a deliberate real location; otherwise the zero pair is treated as unset."
+  },
+  {
+   "fieldname": "bbox",
+   "fieldtype": "Data",
+   "label": "Bounding box (W,S,E,N)",
+   "length": 140
+  },
+  {
+   "fieldname": "sb_geo_geometry",
+   "fieldtype": "Section Break",
+   "label": "Geometry and provenance"
+  },
+  {
+   "fieldname": "boundary",
+   "fieldtype": "Link",
+   "label": "Boundary",
+   "options": "Admin Boundary",
+   "description": "Full-resolution polygon lives in Admin Boundary; this Link keeps the editable record connected to it."
+  },
+  {
+   "fieldname": "geojson",
+   "fieldtype": "Long Text",
+   "label": "GeoJSON (simplified)",
+   "description": "Compact polygon for display and offline use. Always regenerable from the linked Admin Boundary."
+  },
+  {
+   "fieldname": "cb_geo_geometry",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "source_dataset",
+   "fieldtype": "Link",
+   "label": "Source dataset",
+   "options": "Boundary Dataset"
+  },
+  {
+   "fieldname": "source_kind",
+   "fieldtype": "Select",
+   "label": "Source kind",
+   "options": "Manual\nImported\nOnline\nVerified\nDisputed",
+   "default": "Manual",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "last_verified_on",
+   "fieldtype": "Date",
+   "label": "Last verified on"
   }
  ],
  "permissions": [

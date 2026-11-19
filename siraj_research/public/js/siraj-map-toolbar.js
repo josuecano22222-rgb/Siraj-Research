@@ -32,7 +32,14 @@
 	// briefly and retry on load/async CSS/JS ready events instead of bailing
 	// out (which previously left L.control.sirajToolbar undefined).
 	function register() {
-		if (window.L && window.L.Control && window.L.DomUtil) return install(window.L);
+		if (window.L && window.L.Control && window.L.DomUtil) {
+			try { return install(window.L); }
+			catch (err) {
+				register._tried = false;
+				console.warn('[SIRAJ] toolbar install failed; will retry:', err && err.message);
+				return;
+			}
+		}
 		if (register._tried) return;
 		register._tried = true;
 		const retry = () => { register._tried = false; register(); };
@@ -416,6 +423,17 @@
 
 	L.control.sirajToolbar = options => new L.Control.SirajToolbar(options);
 	} // install(L)
+
+	// Explicit entry point for lazy callers: Leaflet may load after this
+	// bundle, and a polling retry must not be the only way to install.
+	window.SirajMapToolbar = {
+		install(L) {
+			if (!L || !L.Control || !L.DomUtil) return false;
+			try { install(L); return true; }
+			catch (err) { console.warn('[SIRAJ] toolbar install failed:', err && err.message); return false; }
+		},
+		register,
+	};
 
 	register();
 })();

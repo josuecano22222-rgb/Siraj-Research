@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Administrative-hierarchy and gazetteer resolution (Phase 3).
 
 Given a lat/lon, ``resolve_point`` walks the ACTIVE Boundary Dataset and
@@ -60,7 +59,7 @@ import frappe
 from siraj_research.geo_import import deps_ok, shapely  # shapely is required for resolve
 
 _CACHE: dict[str, tuple] = {}
-_COORD_CACHE: "OrderedDict[tuple, dict]" = OrderedDict()
+_COORD_CACHE: OrderedDict[tuple, dict] = OrderedDict()
 _COORD_CACHE_MAX = 1024
 
 
@@ -69,11 +68,12 @@ _COORD_CACHE_MAX = 1024
 # ---------------------------------------------------------------------------
 
 DEFAULT_LEVELS = [  # (level, DocType field on returned record, label)
-	(0, "country",    "Country"),
-	(1, "governorate","Governorate"),
-	(2, "district",   "District"),
+	(0, "country",     "Country"),
+	(1, "governorate", "Governorate"),
+	(2, "district",    "District"),
 	(3, "municipality","Municipality"),
-	(4, "community",  "Community"),
+	(4, "village",     "Village"),
+	(5, "community",   "Community"),
 ]
 
 
@@ -107,7 +107,6 @@ def _settings() -> dict:
 
 def _load_trees(dataset: str) -> dict:
 	"""Build STRtree(s) for `dataset` if not already cached at current version."""
-	cfg = _settings()
 	version = frappe.db.get_value("Boundary Dataset", dataset, "index_version") or 0
 	cache_key = f"{dataset}:{version}"
 	if cache_key in _CACHE:
@@ -121,9 +120,9 @@ def _load_trees(dataset: str) -> dict:
 	rows = frappe.db.sql(
 		"""SELECT ab.name, ab.pcode, ab.level, ab.name_en, ab.name_ar, ab.country,
 		          ab.parent_pcode, ab.centroid_lat, ab.centroid_lon,
-		          ag.precision, ag.geom_wkb_hex
+		          ag.`precision`, ag.geom_wkb_hex
 		   FROM `tabAdmin Boundary` ab
-		   LEFT JOIN `tabAdmin Boundary Geom` ag ON ag.parent = ab.name AND ag.precision='full'
+		   LEFT JOIN `tabAdmin Boundary Geom` ag ON ag.parent = ab.name AND ag.`precision`='full'
 		   WHERE ab.dataset = %s""",
 		(dataset,),
 		as_dict=True,
@@ -228,7 +227,7 @@ def _nearest_gazetteer(lat, lon, dataset, max_m, feature_codes=None):
 
 
 def _validate(lat, lon):
-	if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
+	if not isinstance(lat, int | float) or not isinstance(lon, int | float):
 		return None, "latitude and longitude must be numbers"
 	if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
 		return None, "coordinates out of range (lat −90..90, lon −180..180)"
@@ -367,25 +366,77 @@ def _resolve_one(lat, lon):
 # Public API
 # ---------------------------------------------------------------------------
 
+def _merge_online(local: dict, online: dict) -> dict:
+	"""Merge external reverse-geocoding results into a local resolution.
+
+	Local polygons always win. Online values are used only to fill missing
+	levels or missing P-Codes, and are labelled as medium confidence so the
+	UI and ``geo_hierarchy`` can show that they are not survey-verified.
+	"""
+	chain = dict(local.get("admin_chain") or {})
+	online_chain = dict(online.get("admin_chain") or {})
+	provider = online.get("provider") or "online"
+	for field, entry in online_chain.items():
+		if not isinstance(entry, dict) or not entry.get("name_en"):
+			continue
+		if field not in chain:
+			chain[field] = {**entry, "source": provider, "confidence": "medium"}
+		elif not chain[field].get("pcode") and entry.get("pcode"):
+			chain[field] = {**chain[field], "pcode": entry["pcode"]}
+	local["admin_chain"] = chain
+	if not local.get("nearest_place") and online.get("nearest_place"):
+		local["nearest_place"] = {**online["nearest_place"], "source": provider,
+		                          "confidence": "medium"}
+	if chain and not local.get("on_land"):
+		local["on_land"] = True
+	provenance = list(local.get("provenance") or [])
+	if "online_reverse_geocode" not in provenance:
+		provenance.append("online_reverse_geocode")
+	local["provenance"] = provenance
+	local["online_provider"] = provider
+	if online.get("error"):
+		local["warnings"].append("online_fallback_failed")
+	return local
+
+
+def _with_fallback(result: dict, lat: float, lon: float, use_online: bool) -> dict:
+	if not use_online or result.get("error"):
+		return result
+	from siraj_research.geo_online import lookup, should_fallback
+	if not should_fallback(result):
+		return result
+	online = lookup(lat, lon)
+	if online.get("admin_chain") or online.get("nearest_place"):
+		return _merge_online(result, online)
+	if online.get("error"):
+		result.setdefault("warnings", []).append("online_fallback_failed")
+	return result
+
+
 @frappe.whitelist()
-def resolve_point(latitude, longitude):
+def resolve_point(latitude, longitude, use_online=0):
 	"""Resolve a single (lat, lon) to an admin chain + nearest place.
 
 	Used by the client coordinate picker to auto-fill fields when the
-	user clicks the map or drags the pin.
+	user clicks the map or drags the pin. ``use_online=1`` additionally
+	consults the configured external reverse geocoder when local data is
+	incomplete; the setting itself can disable that request entirely.
 	"""
 	if not frappe.has_permission("Place", "read"):
 		frappe.throw("Not permitted to resolve coordinates.", frappe.PermissionError)
 	try:
-		lat = float(latitude); lon = float(longitude)
+		lat = float(latitude)
+		lon = float(longitude)
 	except Exception:
 		frappe.throw("latitude and longitude must be numbers")
-	# Rounded-coordinate LRU.
-	key = (round(lat, 4), round(lon, 4))
+	use_online = str(use_online) in ("1", "true", "True")
+	# Rounded-coordinate LRU, keyed by fallback mode so an offline result is
+	# never mistaken for a fallback-enriched one.
+	key = (round(lat, 4), round(lon, 4), use_online)
 	if key in _COORD_CACHE:
 		_COORD_CACHE.move_to_end(key)
 		return _COORD_CACHE[key]
-	result = _resolve_one(lat, lon)
+	result = _with_fallback(_resolve_one(lat, lon), lat, lon, use_online)
 	_COORD_CACHE[key] = result
 	_COORD_CACHE.move_to_end(key)
 	while len(_COORD_CACHE) > _COORD_CACHE_MAX:
@@ -426,17 +477,18 @@ def resolve_area(geojson):
 
 
 @frappe.whitelist()
-def resolve_batch(points):
+def resolve_batch(points, use_online=0):
 	"""Resolve an array of [lat, lon] pairs (used by batch import wizard)."""
 	if not frappe.has_permission("Place", "read"):
 		frappe.throw("Not permitted.", frappe.PermissionError)
 	import json as _json
 	pts = _json.loads(points) if isinstance(points, str) else points
+	use_online = str(use_online) in ("1", "true", "True")
 	out = []
 	for p in pts[:500]:
 		try:
 			lat, lon = float(p[0]), float(p[1])
-			out.append(_resolve_one(lat, lon))
+			out.append(_with_fallback(_resolve_one(lat, lon), lat, lon, use_online))
 		except Exception as e:
 			out.append({"error": str(e)})
 	return out

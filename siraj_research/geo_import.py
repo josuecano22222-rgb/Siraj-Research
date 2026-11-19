@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Boundary / gazetteer import pipeline (Phase 2).
 
 Background job that reads a zipped shapefile / GeoJSON / GeoPackage the
@@ -15,15 +14,16 @@ knows what to do.
 """
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import re
 import zipfile
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
 import frappe
-
 
 # ---------------------------------------------------------------------------
 # Optional dependency handling
@@ -34,9 +34,9 @@ try:
     import shapely
     import shapely.wkb
     import shapely.wkt
-    from shapely.geometry import shape, mapping
-    from shapely.validation import make_valid
+    from shapely.geometry import mapping, shape
     from shapely.ops import transform as sh_transform
+    from shapely.validation import make_valid
 except Exception:  # pragma: no cover
     shapely = None
     _MISSING.append("shapely")
@@ -113,12 +113,87 @@ def _extract_if_zip(path: Path, workdir: Path) -> list[Path]:
 # or Gazetteer Place), plus a list of lower-case aliases seen in common
 # datasets (geoBoundaries, OCHA COD-AB Iraq/Afghanistan, GeoNames, OSM).
 POLYGON_FIELDS = {
-    "pcode":      ["pcode", "adm{pcode}_pcode".format(pcode="{level}"),  "shape_pcode", "ocd_id", "ref_pcode"],
+    "pcode":      ["pcode", "adm{pcode}_pcode".format(pcode="{level}"), "shape_pcode", "ocd_id", "ref_pcode", "@id", "osm_id", "osm_relation_id", "ref"],
     "name_en":    ["name_en", "engtype", "name", "nam", "admin{pcode}_name".format(pcode="{level}"), "shape_en"],
-    "name_ar":    ["name_ar", "ar_name", "arname", "admin{pcode}_ar".format(pcode="{level}"), "shape_ar"],
+    "name_ar":    ["name_ar", "ar_name", "arname", "name:ar", "admin{pcode}_ar".format(pcode="{level}"), "shape_ar"],
     "parent_pcode":["parent_pcode", "par_pcode", "adm{pcode}_pcode".format(pcode="{parent}"), "parent_adm", "par_id"],
-    "source_id":  ["id", "fid", "objectid", "shape_id", "ogc_fid"],
+    "source_id":  ["@id", "id", "fid", "objectid", "shape_id", "ogc_fid"],
+    "country":    ["country", "country_code", "iso", "iso_a2", "cc",
+                   "iso3166-1:alpha2", "iso3166-1", "iso3166-2", "adm0_a3"],
+    "osm_admin_level": ["admin_level", "adminlevel"],
 }
+
+
+def _country_lookup() -> tuple[dict[str, str], dict[str, str]]:
+    """Map Country codes and names to canonical Country document names."""
+    by_code: dict[str, str] = {}
+    by_name: dict[str, str] = {}
+    if frappe is None:
+        return by_code, by_name
+    try:
+        rows = frappe.get_all("Country", fields=["name", "code"], limit_page_length=0)
+    except Exception:
+        return by_code, by_name
+    for row in rows:
+        name = row.get("name")
+        if not name:
+            continue
+        by_name[str(name).strip().upper()] = name
+        if row.get("code"):
+            by_code[str(row["code"]).strip().upper()] = name
+    return by_code, by_name
+
+
+def _resolve_country_name(value, by_code: dict[str, str], by_name: dict[str, str]) -> str | None:
+    """Resolve a source country tag/code to an existing Country document."""
+    text = str(value or "").strip()
+    if not text:
+        return None
+    upper = text.upper()
+    if upper in by_code:
+        return by_code[upper]
+    if upper in by_name:
+        return by_name[upper]
+    match = re.match(r"^([A-Z]{2})(?:[-:_.\s]|$)", upper)
+    if match and match.group(1) in by_code:
+        return by_code[match.group(1)]
+    return None
+
+
+def _source_country_value(props: dict) -> str | None:
+    """Read an ISO/country tag from already-lowercased source properties."""
+    for key in ("iso3166-1:alpha2", "iso3166-1", "iso3166-2",
+                "country", "country_code", "iso_a2", "cc"):
+        value = props.get(key)
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def _country_candidates_from_dataset(dataset: str, by_code: dict[str, str]) -> list[str]:
+    """Extract likely ISO-2 codes from a dataset name such as ``OSM-IL-PS``."""
+    return [token for token in re.findall(r"(?<![A-Z])[A-Z]{2}(?![A-Z])", str(dataset).upper())
+            if token in by_code]
+
+
+def osm_level_to_siraj(value) -> int | None:
+    """Map OSM ``admin_level`` to SIRAJ's six-level chain."""
+    try:
+        level = int(value)
+    except (TypeError, ValueError):
+        return None
+    if level <= 2:
+        return 0
+    if level <= 4:
+        return 1
+    if level <= 6:
+        return 2
+    if level <= 8:
+        return 3
+    if level == 9:
+        return 4
+    return 5
+
 GAZETTEER_FIELDS = {
     "name_en":     ["name", "name_en", "asciiname", "placename", "full_name", "poi_name"],
     "name_ar":     ["name_ar", "ar_name", "arabic_name"],
@@ -139,7 +214,7 @@ GAZETTEER_FIELDS = {
 }
 
 
-def _pick_field(columns: dict, aliases: Iterable[str], *, level: int = 0) -> Optional[str]:
+def _pick_field(columns: dict, aliases: Iterable[str], *, level: int = 0) -> str | None:
     """Return the first column whose name matches one of the aliases,
     substituting {level} / {parent} into alias templates.
     """
@@ -168,10 +243,14 @@ def _pick_field(columns: dict, aliases: Iterable[str], *, level: int = 0) -> Opt
 # Feature iteration (abstracts over pyogrio vs fiona)
 # ---------------------------------------------------------------------------
 
-def _iter_features(file_path: Path, encoding: str = "utf-8") -> Iterable[dict]:
-    """Yield dicts with keys: properties (dict), geometry (shapely geom)."""
+def _iter_features(file_path: Path, encoding: str = "utf-8", batch_size: int = 500) -> Iterable[dict]:
+    """Yield dicts with keys: properties (dict), geometry (shapely geom).
+
+    ``batch_size`` controls pyogrio's ``max_features`` window so a country-
+    sized shapefile never has to be decoded into worker memory at once.
+    """
     if _IO_BACKEND == "pyogrio":
-        return _iter_pyogrio(file_path, encoding)
+        return _iter_pyogrio(file_path, encoding, batch_size)
     if _IO_BACKEND == "fiona":
         return _iter_fiona(file_path, encoding)
     raise RuntimeError(
@@ -180,52 +259,111 @@ def _iter_features(file_path: Path, encoding: str = "utf-8") -> Iterable[dict]:
     )
 
 
-def _iter_pyogrio(file_path: Path, encoding: str):
-	"""Iterate features using pyogrio's low-level raw API — no geopandas
-	dependency. Returns one dict per feature with `properties` (dict) and
-	`geometry` (shapely geometry in EPSG:4326).
-	"""
-	import pyogrio as _pyogrio
-	import numpy as np
+def _normalize_pyogrio_result(result) -> tuple[dict, tuple, object]:
+    """Normalise pyogrio's changing ``raw.read`` return contract.
 
-	meta, flds, geom_wkb = _pyogrio.raw.read(
-		str(file_path), encoding=encoding, read_geometry=True,
-	)
-	# meta includes: 'crs', 'encoding', 'fields', 'geometry_type'
-	crs_info = meta.get("crs") or ""
+    pyogrio <= 0.6 returns ``(meta, field_data, geometry)``; newer releases
+    return ``(meta, fids, geometry, field_data)``. Accept both so the worker
+    doesn't fail after a dependency upgrade.
+    """
+    values = tuple(result)
+    if len(values) == 4:
+        meta, _fids, geometry, field_data = values
+        return meta, field_data, geometry
+    if len(values) == 3:
+        meta, field_data, geometry = values
+        return meta, field_data, geometry
+    raise RuntimeError(f"Unexpected pyogrio raw.read result length: {len(values)}")
+
+
+def _iter_pyogrio(file_path: Path, encoding: str, batch_size: int = 500):
+	"""Stream raw pyogrio features in bounded batches (no geopandas).
+
+	``pyogrio.raw.read`` supports ``skip_features`` / ``max_features`` in
+	modern releases. We call it repeatedly with a small window so memory
+	usage stays flat even for a whole-country GADM layer. Older pyogrio
+	versions fall back to one-shot decoding, which still works but is only
+	recommended for small files.
+	"""
+	import numpy as np
+	import pyogrio as _pyogrio
+
+	total = 0
+	try:
+		info = _pyogrio.read_info(str(file_path), encoding=encoding)
+		total = int(info.get("features") or 0)
+	except Exception:
+		pass
+
+	offset = 0
+	one_shot = False
 	transformer = None
-	if pyproj and crs_info and "EPSG:4326" not in str(crs_info).upper() and "WGS 84" not in str(crs_info).upper():
+	field_names: list[str] = []
+	while True:
+		kwargs = dict(encoding=encoding, read_geometry=True)
+		if one_shot:
+			pass
+		else:
+			kwargs.update(skip_features=offset, max_features=max(1, batch_size))
 		try:
-			from_srs = pyproj.CRS.from_user_input(crs_info)
-			to_srs = pyproj.CRS.from_epsg(4326)
-			transformer = pyproj.Transformer.from_crs(from_srs, to_srs, always_xy=True).transform
-		except Exception:
-			transformer = None
-	field_names = list(meta.get("fields") or [])
-	for i in range(len(geom_wkb)):
-		props = {}
-		for col_idx, name in enumerate(field_names):
-			val = flds[col_idx][i] if col_idx < len(flds) else None
-			if isinstance(val, (np.integer,)):
-				val = int(val)
-			elif isinstance(val, (np.floating,)):
-				val = float(val) if np.isfinite(val) else None
-			elif isinstance(val, bytes):
-				try:
-					val = val.decode(encoding or "utf-8", errors="replace")
-				except Exception:
-					val = None
-			props[name] = val
-		wkb = geom_wkb[i] if i < len(geom_wkb) else None
-		geom = None
-		if wkb is not None and len(wkb) > 0:
+			result = _pyogrio.raw.read(str(file_path), **kwargs)
+		except TypeError:
+			# pyogrio < 0.5 has no slice arguments.
+			one_shot = True
 			try:
-				geom = shapely.wkb.loads(bytes(wkb))
-				if transformer is not None:
-					geom = sh_transform(transformer, geom)
-			except Exception:
-				geom = None
-		yield {"properties": props, "geometry": geom}
+				result = _pyogrio.raw.read(str(file_path), encoding=encoding,
+				                           read_geometry=True)
+			except TypeError:
+				# Very old releases also lack `encoding`.
+				result = _pyogrio.raw.read(str(file_path))
+		meta, flds, geom_wkb = _normalize_pyogrio_result(result)
+		if transformer is None and not field_names:
+			crs_info = meta.get("crs") or ""
+			if pyproj and crs_info and "EPSG:4326" not in str(crs_info).upper() \
+					and "WGS 84" not in str(crs_info).upper():
+				try:
+					from_srs = pyproj.CRS.from_user_input(crs_info)
+					to_srs = pyproj.CRS.from_epsg(4326)
+					transformer = pyproj.Transformer.from_crs(
+						from_srs, to_srs, always_xy=True).transform
+				except Exception:
+					transformer = None
+			fields = meta.get("fields")
+			# pyogrio returns a numpy array here; `or []` would evaluate its
+			# truth value and raise "truth value of an array is ambiguous".
+			field_names = list(fields if fields is not None else [])
+
+		count = len(geom_wkb)
+		if count == 0:
+			break
+		for i in range(count):
+			props = {}
+			for col_idx, name in enumerate(field_names):
+				val = flds[col_idx][i] if col_idx < len(flds) else None
+				if isinstance(val, np.integer):
+					val = int(val)
+				elif isinstance(val, np.floating):
+					val = float(val) if np.isfinite(val) else None
+				elif isinstance(val, bytes):
+					try:
+						val = val.decode(encoding or "utf-8", errors="replace")
+					except Exception:
+						val = None
+				props[name] = val
+			wkb = geom_wkb[i] if i < count else None
+			geom = None
+			if wkb is not None and len(wkb) > 0:
+				try:
+					geom = shapely.wkb.loads(bytes(wkb))
+					if transformer is not None:
+						geom = sh_transform(transformer, geom)
+				except Exception:
+					geom = None
+			yield {"properties": props, "geometry": geom}
+
+		offset += count
+		if one_shot or (total and offset >= total):
+			break
 
 
 def _iter_fiona(file_path: Path, encoding: str):
@@ -256,31 +394,69 @@ def _iter_fiona(file_path: Path, encoding: str):
             yield {"properties": dict(feat.get("properties") or {}), "geometry": geom}
 
 
+def _derived_pcode(level: int, name: str | None, bounds) -> str:
+    """Stable fallback code for features whose source has no ID field."""
+    key = "|".join([
+        str(level),
+        str(name or ""),
+        ",".join(f"{float(value):.7f}" for value in (bounds or ())),
+    ])
+    return "OSM-" + hashlib.sha1(key.encode("utf-8")).hexdigest()[:16].upper()
+
+
+def _wkb_hex(geom) -> str:
+    """Return hex WKB as text across Shapely 1.x/2.x."""
+    value = shapely.wkb.dumps(geom, hex=True)
+    if isinstance(value, bytes):
+        return value.decode("ascii")
+    return str(value)
+
+
 # ---------------------------------------------------------------------------
 # Upsert helpers
 # ---------------------------------------------------------------------------
 
-def _upsert_admin_boundary(dataset: str, level: int, record: dict) -> None:
+def _upsert_admin_boundary(dataset: str, level: int, record: dict, store_geojson: bool = True) -> bool:
     """Insert or update a single Admin Boundary row and its geometry child."""
     pcode = record.get("pcode")
     if not pcode:
-        return  # can't link without pcode
-    name = record.get("name_en") or record.get("name_ar") or pcode
+        return False  # can't link without pcode
     existing = frappe.db.get_value("Admin Boundary",
                                    {"dataset": dataset, "pcode": pcode}, "name")
+    is_new = not existing
     doc = frappe.get_doc("Admin Boundary", existing) if existing else frappe.new_doc("Admin Boundary")
     doc.dataset = dataset
-    doc.level = level
-    doc.pcode = pcode
-    doc.name_en = record.get("name_en") or doc.get("name_en")
+    # level, pcode and country are `set_only_once` on Admin Boundary. Assign
+    # them only on insert; re-importing a polygon must not rewrite them or
+    # Frappe raises CannotChangeConstantError.
+    if is_new or doc.get("level") in (None, ""):
+        doc.level = level
+    if is_new or doc.get("pcode") in (None, ""):
+        doc.pcode = pcode
+    # name_en is mandatory; OSM features without a name tag still need a
+    # stable visible label, so fall back to the P-Code.
+    doc.name_en = record.get("name_en") or doc.get("name_en") or pcode
     doc.name_ar = record.get("name_ar")
     doc.parent_pcode = record.get("parent_pcode")
-    doc.country = record.get("country")
+    if is_new or doc.get("country") in (None, ""):
+        doc.country = record.get("country")
     doc.source_id = str(record.get("source_id") or "")[:120]
     doc.centroid_lat = record.get("centroid_lat")
     doc.centroid_lon = record.get("centroid_lon")
     doc.bbox = record.get("bbox")
+    for field in ("bbox_min_lon", "bbox_min_lat", "bbox_max_lon", "bbox_max_lat"):
+        if hasattr(doc, field) and record.get(field) is not None:
+            doc.set(field, record[field])
     doc.area_m2 = record.get("area_m2")
+    hierarchy_doctype = {
+        1: "Governorate", 2: "District", 3: "Municipality",
+        4: "Village", 5: "Community",
+    }.get(int(level))
+    if hierarchy_doctype and hasattr(doc, "linked_hierarchy_doctype") \
+            and not doc.get("linked_hierarchy") \
+            and frappe.db.exists(hierarchy_doctype, pcode):
+        doc.linked_hierarchy_doctype = hierarchy_doctype
+        doc.linked_hierarchy = pcode
     if shapely and record.get("geom_full") is not None:
         # Replace geometries child rows (full + simplified).
         doc.set("geometries", [])
@@ -288,16 +464,27 @@ def _upsert_admin_boundary(dataset: str, level: int, record: dict) -> None:
                             ("simplified", record.get("geom_simplified"))):
             if geom is None:
                 continue
-            doc.append("geometries", {
+            child = {
                 "precision": label,
                 "srid": 4326,
                 "point_count": (sum(1 for _ in getattr(geom, 'exterior', []).coords)
                                 if geom.geom_type == "Polygon"
                                 else 0),
-                "geom_wkb_hex": shapely.wkb.dumps(geom, hex=True).decode("ascii"),
-            })
+                "geom_wkb_hex": _wkb_hex(geom),
+            }
+            try:
+                geom_meta = frappe.get_meta("Admin Boundary Geom")
+                supports_geojson = geom_meta.has_field("geom_geojson")
+            except Exception:
+                supports_geojson = False
+            if store_geojson and supports_geojson and (
+                    label == "simplified" or record.get("geom_simplified") is None):
+                child["geom_geojson"] = json.dumps(
+                    shapely.geometry.mapping(geom), separators=(",", ":"), ensure_ascii=False)
+            doc.append("geometries", child)
     doc.flags.ignore_permissions = True
     doc.save(ignore_permissions=True)
+    return True
 
 
 def _upsert_gazetteer(dataset: str, record: dict) -> None:
@@ -305,7 +492,6 @@ def _upsert_gazetteer(dataset: str, record: dict) -> None:
     lon = record.get("longitude")
     if lat is None or lon is None:
         return
-    pcode = record.get("pcode")
     key = {"dataset": dataset, "latitude": lat, "longitude": lon, "name_en": record.get("name_en")}
     existing = frappe.db.exists("Gazetteer Place", key)
     doc = frappe.get_doc("Gazetteer Place", existing) if existing else frappe.new_doc("Gazetteer Place")
@@ -365,10 +551,13 @@ def import_boundary_job(dataset_name: str, file_path_str: str, is_gazetteer: boo
         encoding = doc.encoding or "utf-8"
         level = int(doc.level or 1)
         tolerance_m = float(doc.simplification_tolerance_m or 0)
-
+        batch_size = max(50, int(doc.import_batch_size or 500))
+        store_geojson = bool(getattr(doc, "store_geojson", 1))
+        by_code, by_name = _country_lookup()
+        dataset_countries = _country_candidates_from_dataset(dataset_name, by_code)
         total_estimate = 0
         count = 0
-        for idx, feat in enumerate(_iter_features(data_file, encoding)):
+        for feat in _iter_features(data_file, encoding, batch_size):
             props = {k.lower(): v for k, v in (feat["properties"] or {}).items()}
             geom = feat["geometry"]
             if is_gazetteer:
@@ -409,7 +598,17 @@ def import_boundary_job(dataset_name: str, file_path_str: str, is_gazetteer: boo
                 record["centroid_lat"] = c.y
                 record["centroid_lon"] = c.x
                 b = geom.bounds
+                if not record.get("pcode"):
+                    derived_level = (osm_level_to_siraj(record.get("osm_admin_level"))
+                                     or level)
+                    record["pcode"] = _derived_pcode(
+                        derived_level, record.get("name_en") or record.get("name_ar"), b)
                 record["bbox"] = ",".join(f"{v:.6f}" for v in b) if b else None
+                if b:
+                    record.update({
+                        "bbox_min_lon": b[0], "bbox_min_lat": b[1],
+                        "bbox_max_lon": b[2], "bbox_max_lat": b[3],
+                    })
                 # Area in m² using a rough AEQD centered on centroid. Skip
                 # if pyproj not available.
                 if pyproj:
@@ -421,15 +620,29 @@ def import_boundary_job(dataset_name: str, file_path_str: str, is_gazetteer: boo
                         record["area_m2"] = projected.area
                     except Exception:
                         record["area_m2"] = None
+                if not record.get("country"):
+                    source_country = _source_country_value(props)
+                    if source_country:
+                        record["country"] = source_country
+                if not record.get("country") and len(dataset_countries) == 1:
+                    record["country"] = dataset_countries[0]
+                if record.get("country"):
+                    resolved_country = _resolve_country_name(
+                        record["country"], by_code, by_name)
+                    record["country"] = resolved_country
                 record["geom_full"] = geom
                 if tolerance_m > 0:
                     record["geom_simplified"] = geom.simplify(tolerance_m / 111320.0, preserve_topology=True)
-                _upsert_admin_boundary(dataset_name, level, record)
-            count += 1
-            if count % 100 == 0:
+                feature_level = level
+                if record.get("osm_admin_level") is not None:
+                    feature_level = osm_level_to_siraj(record["osm_admin_level"]) or level
+                if _upsert_admin_boundary(dataset_name, feature_level, record, store_geojson):
+                    count += 1
+            if count % batch_size == 0:
                 _set_status(doc, import_progress=min(99, int(count / max(total_estimate or 1, 1) * 100)),
-                            feature_count=count)
-                # Free the savepoint cache periodically.
+                            feature_count=count, last_processed_offset=count)
+                # Free the savepoint cache periodically so long imports never
+                # accumulate one giant transaction.
                 frappe.db.commit()
         # Done: bump index_version so STRtree caches invalidate.
         doc.reload()
@@ -439,6 +652,7 @@ def import_boundary_job(dataset_name: str, file_path_str: str, is_gazetteer: boo
         doc.db_set("imported_at", frappe.utils.now(), update_modified=False)
         doc.db_set("index_version", (doc.index_version or 0) + 1, update_modified=False)
         doc.db_set("import_log", f"Imported {count} features from {data_file.name}", update_modified=False)
+        doc.db_set("last_processed_offset", count, update_modified=False)
         frappe.db.commit()
     except Exception as e:
         frappe.db.rollback()

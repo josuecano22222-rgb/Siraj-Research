@@ -127,8 +127,15 @@ LAYERS = {
 _COORD = re.compile(r"^[0-9]{1,10}$")
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _DEFAULT_CACHE_DAYS = 90
-_HTTP_TIMEOUT = 10
+_HTTP_TIMEOUT = 4
 _MAX_TILE_BYTES = 2 * 1024 * 1024  # 2 MiB (some Esri tiles are slightly larger than 256KB)
+# 1x1 transparent PNG used when an upstream tile is unreachable. Serving a
+# valid image keeps Leaflet from retry storms and returns immediately.
+_EMPTY_PNG = bytes.fromhex(
+    "89504e470d0a1a0a0000000d4948445200000001000000010806000000"
+    "1f15c4890000000b49444154789c6360000200000500017a5eab3f0000"
+    "000049454e44ae426082"
+)
 
 
 def _settings():
@@ -378,9 +385,16 @@ def tile(layer, z, x, y):
                 return _serve(path.read_bytes(), ctype, hit=True)  # stale-while-revalidate
         except OSError:
             pass
-        frappe.log_error(f"Tile fetch failed {layer} {z}/{x}/{y}: {e}", "siraj.tile_cache")
-        frappe.response["http_status_code"] = 502
-        return _serve(b"", "image/png", hit=False)
+        # A missing upstream tile must never hold a Desk request hostage.
+        # Return a valid empty PNG immediately and log cheaply (log_error
+        # creates an Error Log document per tile, which stalled saves).
+        try:
+            frappe.logger("siraj.tile_cache").warning(
+                f"Tile fetch failed {layer} {z}/{x}/{y}: {e}"
+            )
+        except Exception:
+            pass
+        return _serve(_EMPTY_PNG, "image/png", hit=False)
     # 3) Persist atomically + serve.
     try:
         tmp = path.with_suffix(path.suffix + ".tmp")
@@ -389,3 +403,27 @@ def tile(layer, z, x, y):
     except OSError as e:
         frappe.log_error(f"Tile cache write failed: {e}", "siraj.tile_cache")
     return _serve(data, ctype, hit=False)
+
+
+def enable_shared_basemaps():
+	"""Enable standard, aerial and hybrid layers for shared server caching.
+
+	Bench-only helper (no web endpoint): every viewed tile is written once to
+	the site's private disk cache and can then be served to any user, even if
+	the upstream provider is unreachable. Optional keyed layers are untouched.
+	"""
+	settings = frappe.get_single("Geo Settings")
+	settings.enable_standard_layer = 1
+	settings.enable_aerial_layer = 1
+	settings.enable_hybrid_layer = 1
+	settings.allow_tile_fetch = 1
+	if int(settings.tile_cache_days or 0) < 90:
+		settings.tile_cache_days = 90
+	settings.save(ignore_permissions=True)
+	return {
+		"standard": 1,
+		"aerial": 1,
+		"hybrid": 1,
+		"allow_tile_fetch": 1,
+		"tile_cache_days": int(settings.tile_cache_days),
+	}

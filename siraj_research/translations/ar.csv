@@ -1233,3 +1233,114 @@ Labels,التسميات
 Icons only,أيقونات فقط
 Auto,تلقائي
 Icons + text,أيقونات ونص
+Translated,مترجم
+Source text,النص الأصلي
+Both languages,اللغتان
+Display language,لغة العرض
+Filter fields and tables,تصفية الحقول والجداول
+No matching fields,لا حقول مطابقة
+Copy value,نسخ القيمة
+Copied,تم النسخ
+Demo data,بيانات تجريبية
+No rows recorded,لا صفوف مسجلة
+Other fields,حقول أخرى
+Timing,التواريخ
+Sort by {0},ترتيب حسب {0}
+Showing {0} of {1},عرض {0} من {1}
+supports,يدعم
+contradicts,يناقض
+contextualizes,يوضّح السياق
+map_pick,تحديد على الخريطة
+centroid,مركز
+year,عام
+Partial,جزئي
+Iraq,العراق
+United States,الولايات المتحدة
+Major General,لواء
+Telegram,تيليجرام
+Geography and spatial index,الجغرافيا والفهرس المكاني
+"Administrative identity, coordinates and source provenance for this level. Values imported from a dataset may be corrected manually later.",الهوية الإدارية والإحداثيات ومصدر المستوى. يمكن تصحيح القيم المستوردة يدوياً لاحقاً.
+Source P-Code,رمز المصدر
+"Stable identifier from GADM, GeoNames, OSM or another imported dataset.",معرّف ثابت من GADM أو GeoNames أو OSM أو أي مجموعة بيانات مستوردة أخرى.
+Parent P-Code,رمز الأصل
+Local level name,المسمى المحلي للمستوى
+"For example: emirate, parish, region, commune or mahallah. Lets countries with different terminology keep their own names.",مثال: إمارة أو أبرشية أو إقليم أو بلدية أو محلة. يسمح للبلدان ذات المصطلحات المختلفة بالاحتفاظ بأسمائها.
+Center latitude,خط العرض للمركز
+Center longitude,خط الطول للمركز
+"Bounding box (W,S,E,N)",المستطيل المحيط (غ،ج،ش،م)
+Geometry and provenance,الهندسة والمصدر
+Boundary,الحدود
+Full-resolution polygon lives in Admin Boundary; this Link keeps the editable record connected to it.,يُحفظ المضلع كامل الدقة في الحدود الإدارية، وهذا الربط يُبقي السجل القابل للتحرير متصلاً به.
+GeoJSON (simplified),GeoJSON (مبسّط)
+Compact polygon for display and offline use. Always regenerable from the linked Admin Boundary.,مضلع مضغوط للعرض والاستخدام دون اتصال، ويمكن إعادة توليده دائماً من الحدود الإدارية المرتبطة.
+Source dataset,مجموعة البيانات المصدر
+Source kind,نوع المصدر
+Manual,يدوي
+Imported,مستورد
+Online,إلكتروني
+Last verified on,تاريخ آخر تحقق
+Indexed bounding box,المستطيل المحيط المفهرس
+West (lon),الغرب (الطول)
+South (lat),الجنوب (العرض)
+East (lon),الشرق (الطول)
+North (lat),الشمال (العرض)
+Linked hierarchy record,سجل التسلسل الهرمي المرتبط
+Hierarchy DocType,نوع مستند التسلسل الهرمي
+Hierarchy record,سجل التسلسل الهرمي
+Scalable import,استيراد قابل للتوسّع
+Store GeoJSON copy,تخزين نسخة GeoJSON
+Write a compact GeoJSON copy beside WKB. Disable for very large datasets to save disk.,اكتب نسخة GeoJSON مضغوطة بجوار WKB. عطّلها للمجموعات الكبيرة جداً لتوفير المساحة.
+Import batch size,حجم دفعة الاستيراد
+Features per streaming batch. Lower this if the worker runs out of memory.,عدد المعالم في الدفعة المتدفقة. قلّله إذا نفدت ذاكرة العامل.
+Last processed offset,آخر إزاحة معالجة
+Resume point for chunked imports; reset to 0 only when reloading a whole dataset.,نقطة الاستئناف للاستيراد المجزّأ؛ لا تُعاد إلى صفر إلا عند إعادة تحميل المجموعة كاملة.
+Coordinate resolution,تحليل الإحداثيات
+Create missing hierarchy records,إنشاء سجلات التسلسل الناقصة
+"When a resolved coordinate names a level that does not exist yet, create it if the user has create permission.",عندما يشير إحداثي مُحلّل إلى مستوى غير موجود بعد، يُنشأ إذا كان لدى المستخدم إذن الإنشاء.
+Use nearest gazetteer place as village,استخدام أقرب مكان في الفهرس كقرية
+Only used when no polygon-derived village or community exists; marked low confidence.,يُستخدم فقط عند غياب قرية أو تجمع مشتق من مضلع، ويُوسم بثقة منخفضة.
+Use online fallback when,استخدام الاحتياط الإلكتروني عند
+Missing country,غياب البلد
+Missing any level,غياب أي مستوى
+Always,دائماً
+Online User-Agent,وكيل المستخدم الإلكتروني
+Required by Nominatim. Include a contact address; a generic browser agent may be blocked.,مطلوب في Nominatim. أدرج عنوان اتصال؛ قد يُحظر وكيل المتصفح العام.
+Minimum seconds between online calls,أقل ثوانٍ بين الطلبات الإلكترونية
+Global per-worker throttle for public geocoders.,تحكم عام لكل عامل في طلبات خدمات التحديد العامة.
+Cache online results (days),تخزين نتائج الشبكة (أيام)
+Google Geocoding,تحديد المواقع من Google
+GeoJSON (same precision),GeoJSON (بالدقة نفسها)
+Optional when a source dataset skips this level. Use Parent P-Code to preserve the original lineage.,اختياري عندما تتخطى مجموعة البيانات هذا المستوى. استخدم رمز الأصل للحفاظ على السلسلة الأصلية.
+Administrative hierarchy,التسلسل الإداري
+offline,غير متصل
+online fallback,بديل عبر الإنترنت
+Copy,نسخ
+Refresh,تحديث
+Nearest place,أقرب مكان
+Resolve hierarchy,تحديد التسلسل الإداري
+Resolve coordinates,تحديد الإحداثيات
+Hierarchy of selected,التسلسل الإداري للعنصر المحدد
+Administrative hierarchy at this point,التسلسل الإداري عند هذه النقطة
+Resolving hierarchy…,جارٍ تحديد التسلسل الإداري…
+Resolve,تحديد
+Enter or pick valid coordinates first.,أدخل إحداثيات صحيحة أو اختر نقطة أولاً.
+Resolved to {0}.,تم التحديد إلى {0}.
+{0} levels not covered by the dataset.,{0} مستويات غير مغطاة بمجموعة البيانات.
+Click a point to resolve its full administrative hierarchy.,انقر نقطة لتحديد تسلسلها الإداري الكامل.
+Latitude,خط العرض
+Longitude,خط الطول
+Accepts eastern-Arabic digits and decimal notation.,يقبل الأرقام العربية الشرقية والكسور العشرية.
+Map (point),الخريطة (نقطة)
+Select a point on the map. It is mirrored into the latitude and longitude fields and resolves the administrative hierarchy.,اختر نقطة على الخريطة. تُنقل إلى حقلي خط العرض وخط الطول وتُستخدم لتحديد التسلسل الإداري.
+"0,0 is an actual point",الإحداثيان ٠،٠ نقطة حقيقية
+Tick only when latitude 0 and longitude 0 are a deliberate real location; otherwise the zero pair is treated as unset.,ضع علامة فقط عندما يكون خط العرض ٠ وخط الطول ٠ موقعاً حقيقياً مقصوداً؛ وإلا يُعتبر الزوج صفرياً غير محدد.
+"Coordinates are exactly (0,0). This is treated as unset until confirmed.",الإحداثيات بالضبط (٠،٠). تُعتبر غير محددة إلى أن يتم تأكيدها.
+"Confirm 0,0 as a real point",تأكيد ٠،٠ كنقطة حقيقية
+Could not confirm the origin point.,تعذر تأكيد نقطة الأصل.
+"Coordinates are exactly (0,0). Confirm that this is a real point.",الإحداثيات بالضبط (٠،٠). أكّد أنها نقطة حقيقية.
+"Coordinates are exactly (0,0). No marker is shown until you confirm it is real.",الإحداثيات بالضبط (٠،٠). لا تظهر علامة على الخريطة حتى تؤكد أنها حقيقية.
+Coordinates and hierarchy updated from the map.,تم تحديث الإحداثيات والتسلسل الإداري من الخريطة.
+Geolocation,الجغرافيا المحددة
+Village / locality,القرية / المحلة
+Locality / place name,المحلة / اسم المكان
+Location section,قسم الموقع

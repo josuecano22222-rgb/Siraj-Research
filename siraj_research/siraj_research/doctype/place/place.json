@@ -20,21 +20,24 @@
   "place_type",
   "tab_administration",
   "sb_admin",
-  "country",
-  "governorate",
   "cb_admin",
-  "district",
-  "municipality",
-  "village",
-  "community",
   "locality_as_stated",
   "image",
   "image_url",
   "image_alt",
   "tab_evidence",
   "sb_geo",
+  "sb_location",
   "latitude",
   "longitude",
+  "geo_point",
+  "country",
+  "governorate",
+  "district",
+  "municipality",
+  "village",
+  "community",
+  "coordinate_origin_confirmed",
   "geo_precision",
   "geocoding_method",
   "geo_uncertainty_m",
@@ -166,62 +169,9 @@
    "label": "Administrative units"
   },
   {
-   "fieldname": "country",
-   "fieldtype": "Link",
-   "label": "Country",
-   "options": "Country",
-   "in_standard_filter": 1,
-   "remember_last_selected_value": 1,
-   "in_preview": 1,
-   "allow_in_quick_entry": 1
-  },
-  {
-   "fieldname": "governorate",
-   "fieldtype": "Link",
-   "label": "Governorate",
-   "options": "Governorate",
-   "description": "Only governorates of the chosen country are offered.",
-   "remember_last_selected_value": 1,
-   "in_preview": 1,
-   "allow_in_quick_entry": 1,
-   "link_filters": "[[\"Governorate\", \"country\", \"=\", \"eval:doc.country\"]]"
-  },
-  {
    "fieldname": "cb_admin",
    "fieldtype": "Column Break",
    "label": ""
-  },
-  {
-   "fieldname": "district",
-   "fieldtype": "Link",
-   "label": "District / region",
-   "options": "District",
-   "description": "Third level of the six-level chain. Only districts of the chosen governorate are offered.",
-   "link_filters": "[[\"District\", \"governorate\", \"=\", \"eval:doc.governorate\"]]"
-  },
-  {
-   "fieldname": "municipality",
-   "fieldtype": "Link",
-   "label": "Municipality",
-   "options": "Municipality",
-   "description": "Third level of the administrative chain (country \u2192 governorate \u2192 district \u2192 municipality \u2192 village \u2192 community); only municipalities of the chosen district are offered.",
-   "link_filters": "[[\"Municipality\", \"district\", \"=\", \"eval:doc.district\"]]"
-  },
-  {
-   "fieldname": "village",
-   "fieldtype": "Link",
-   "label": "Neighbourhood / village",
-   "options": "Village",
-   "description": "Fourth level: only villages of the chosen municipality.",
-   "link_filters": "[[\"Village\", \"municipality\", \"=\", \"eval:doc.municipality\"]]"
-  },
-  {
-   "fieldname": "community",
-   "fieldtype": "Link",
-   "label": "Community / cluster",
-   "options": "Community",
-   "description": "Fifth level: only communities of the chosen village.",
-   "link_filters": "[[\"Community\", \"village\", \"=\", \"eval:doc.village\"]]"
   },
   {
    "fieldname": "locality_as_stated",
@@ -261,13 +211,19 @@
    "collapsible_depends_on": "eval:doc.latitude && doc.longitude"
   },
   {
+   "fieldname": "sb_location",
+   "label": "Location",
+   "fieldtype": "Section Break"
+  },
+  {
    "fieldname": "latitude",
    "fieldtype": "Float",
    "label": "Latitude",
    "precision": "6",
    "description": "This record's own latitude, independent of any linked place.",
    "in_standard_filter": 0,
-   "in_preview": 1
+   "in_preview": 1,
+   "insert_after": "sb_location"
   },
   {
    "fieldname": "longitude",
@@ -275,7 +231,82 @@
    "label": "Longitude",
    "precision": "6",
    "description": "This record's own longitude, independent of any linked place.",
-   "in_preview": 1
+   "in_preview": 1,
+   "insert_after": "latitude"
+  },
+  {
+   "fieldname": "geo_point",
+   "label": "Geolocation",
+   "fieldtype": "Geolocation",
+   "insert_after": "longitude",
+   "description": "Select a point on the map. It is mirrored into the latitude and longitude fields and resolves the administrative hierarchy."
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "in_standard_filter": 1,
+   "remember_last_selected_value": 1,
+   "in_preview": 1,
+   "allow_in_quick_entry": 1,
+   "insert_after": "geo_point"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate",
+   "description": "Only governorates of the chosen country are offered.",
+   "remember_last_selected_value": 1,
+   "in_preview": 1,
+   "allow_in_quick_entry": 1,
+   "link_filters": "[[\"Governorate\", \"country\", \"=\", \"eval:doc.country\"]]",
+   "insert_after": "country"
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District",
+   "description": "Third level of the six-level chain. Only districts of the chosen governorate are offered.",
+   "link_filters": "[[\"District\", \"governorate\", \"=\", \"eval:doc.governorate\"]]",
+   "insert_after": "governorate"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality",
+   "description": "Third level of the administrative chain (country \u2192 governorate \u2192 district \u2192 municipality \u2192 village \u2192 community); only municipalities of the chosen district are offered.",
+   "link_filters": "[[\"Municipality\", \"district\", \"=\", \"eval:doc.district\"]]",
+   "insert_after": "district"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village / locality",
+   "options": "Village",
+   "description": "Fourth level: only villages of the chosen municipality.",
+   "link_filters": "[[\"Village\", \"municipality\", \"=\", \"eval:doc.municipality\"]]",
+   "insert_after": "municipality"
+  },
+  {
+   "fieldname": "community",
+   "fieldtype": "Link",
+   "label": "Community / cluster",
+   "options": "Community",
+   "description": "Fifth level: only communities of the chosen village.",
+   "link_filters": "[[\"Community\", \"village\", \"=\", \"eval:doc.village\"]]",
+   "insert_after": "village"
+  },
+  {
+   "fieldname": "coordinate_origin_confirmed",
+   "label": "0,0 is an actual point",
+   "fieldtype": "Check",
+   "default": "0",
+   "insert_after": "longitude",
+   "description": "Tick only when latitude 0 and longitude 0 are a deliberate real location; otherwise the zero pair is treated as unset."
   },
   {
    "fieldname": "geo_precision",

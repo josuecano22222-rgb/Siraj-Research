@@ -20,6 +20,7 @@
   "name_ar",
   "local_name",
   "cb_identity",
+  "sb_location",
   "country",
   "parent_pcode",
   "parent_admin_boundary",
@@ -35,7 +36,16 @@
   "source_id",
   "validity_notes",
   "cb_geom_child",
-  "geometries"
+  "geometries",
+  "sb_bbox",
+  "bbox_min_lon",
+  "bbox_min_lat",
+  "bbox_max_lon",
+  "bbox_max_lat",
+  "cb_bbox",
+  "sb_hierarchy",
+  "linked_hierarchy_doctype",
+  "linked_hierarchy"
  ],
  "fields": [
   {
@@ -102,13 +112,19 @@
    "label": ""
   },
   {
+   "fieldname": "sb_location",
+   "label": "Location",
+   "fieldtype": "Section Break"
+  },
+  {
    "fieldname": "country",
    "fieldtype": "Link",
    "label": "Country",
    "options": "Country",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "set_only_once": 1
+   "set_only_once": 1,
+   "insert_after": "sb_location"
   },
   {
    "fieldname": "parent_pcode",
@@ -207,6 +223,56 @@
    "label": "Geometries",
    "options": "Admin Boundary Geom",
    "description": "Full + simplified WKB geometries."
+  },
+  {
+   "fieldname": "sb_bbox",
+   "fieldtype": "Section Break",
+   "label": "Indexed bounding box"
+  },
+  {
+   "fieldname": "bbox_min_lon",
+   "fieldtype": "Float",
+   "label": "West (lon)",
+   "search_index": 1
+  },
+  {
+   "fieldname": "bbox_min_lat",
+   "fieldtype": "Float",
+   "label": "South (lat)",
+   "search_index": 1
+  },
+  {
+   "fieldname": "bbox_max_lon",
+   "fieldtype": "Float",
+   "label": "East (lon)",
+   "search_index": 1
+  },
+  {
+   "fieldname": "bbox_max_lat",
+   "fieldtype": "Float",
+   "label": "North (lat)",
+   "search_index": 1
+  },
+  {
+   "fieldname": "cb_bbox",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sb_hierarchy",
+   "fieldtype": "Section Break",
+   "label": "Linked hierarchy record"
+  },
+  {
+   "fieldname": "linked_hierarchy_doctype",
+   "fieldtype": "Link",
+   "label": "Hierarchy DocType",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "linked_hierarchy",
+   "fieldtype": "Dynamic Link",
+   "label": "Hierarchy record",
+   "options": "linked_hierarchy_doctype"
   }
  ],
  "permissions": [

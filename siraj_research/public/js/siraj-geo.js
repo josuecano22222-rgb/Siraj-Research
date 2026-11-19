@@ -106,16 +106,38 @@
 		currentPackage = pkg;
 	}
 
-	// Fetch package from server. Send If-None-Match to avoid re-download.
+	// Fetch package from the local static asset first when the site is
+	// configured for zero-internet operation; otherwise try the API and
+	// fall back to the same-origin static file. No remote host is contacted.
+	function unwrap(wrapped, etag) {
+		const body = (wrapped && wrapped.message !== undefined) ? wrapped.message : wrapped;
+		return { etag: (body && body.etag) || etag || '', body: body };
+	}
+	function fetchStaticPackage(etag) {
+		return fetch('/assets/siraj_research/data/geo-package.json',
+			{ headers: { 'Accept': 'application/json' }, credentials: 'same-origin', cache: 'no-store' })
+			.then(res => {
+				if (!res.ok) throw new Error('static package HTTP ' + res.status);
+				return res.json();
+			})
+			.then(body => unwrap(body, etag));
+	}
 	function fetchPackage(etag) {
-		const headers = { 'Accept': 'application/json', 'Accept-Encoding': 'gzip' };
+		if (window.SIRAJ_OFFLINE_BOOTSTRAP) return fetchStaticPackage(etag);
+		const headers = { 'Accept': 'application/json' };
 		if (etag) headers['If-None-Match'] = etag;
-		return fetch('/api/method/siraj_research.api.geo_package.current', { headers, credentials: 'same-origin' })
+		const query = etag ? ('?version=' + encodeURIComponent(etag)) : '';
+		const api = fetch('/api/method/siraj_research.api.geo_package.current' + query,
+			{ headers, credentials: 'same-origin' })
 			.then(res => {
 				if (res.status === 304) return { __notModified: true, etag };
 				if (!res.ok) throw new Error('HTTP ' + res.status);
-				return res.json().then(body => ({ etag: res.headers.get('ETag') || '', body: body }));
+				return res.json().then(w => unwrap(w, etag));
 			});
+		// A short timeout keeps startup responsive when the API is absent.
+		const timed = new Promise((_, reject) => setTimeout(
+			() => reject(new Error('geo package API timeout')), 1500));
+		return Promise.race([api, timed]).catch(() => fetchStaticPackage(etag));
 	}
 
 	async function sync() {
