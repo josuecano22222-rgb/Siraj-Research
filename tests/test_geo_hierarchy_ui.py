@@ -132,3 +132,14 @@ def test_doc_event_hook_ignores_unconfigured_doctypes():
 
     doc = SimpleNamespace(doctype="Country", flags=SimpleNamespace())
     geo_doc_events.auto_fill_hierarchy(doc)
+
+
+def test_js_build_stamps_match_server_stamp():
+    from siraj_research.record_icons import SIRAJ_BUILD
+
+    root = Path(__file__).resolve().parents[1]
+    for relative in (
+        "siraj_research/public/js/siraj-record-meta.js",
+        "siraj_research/public/js/siraj-map/siraj-map.js",
+    ):
+        assert SIRAJ_BUILD in (root / relative).read_text()
