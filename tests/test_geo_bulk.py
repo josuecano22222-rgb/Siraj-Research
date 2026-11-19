@@ -80,6 +80,17 @@ def test_iter_geonames_lines_reads_plain_directory(tmp_path):
     assert "Baghdad" in rows[0][1]
 
 
+def test_geonames_line_builds_deepest_code_when_admin3_is_empty():
+    parts = GEONAMES_LINE.rstrip("\n").split("\t")
+    parts[7] = "ADM4"
+    parts[11] = "AL"
+    parts[12] = ""
+    parts[13] = "X"
+    row = gb.parse_geonames_line("\t".join(parts) + "\n")
+    assert row["admin3_pcode"] is None
+    assert row["admin4_pcode"] == "IQ.BG.AL.X"
+
+
 def test_choose_admin_parent_skips_missing_intermediate_levels():
     names = {
         "IQ-BG": "Baghdad Governorate",

@@ -296,11 +296,18 @@ levels are filled by combining three sources in this order:
    the English label as an Arabic placeholder until a researcher translates
    it on the form.
 
+   The import result includes `admin_features_seen`, which tells you how many
+   `ADM3`/`ADM4`/`ADM5` features the source actually contains for the selected
+   countries. A level stays empty when the source has no feature for it.
+
    Check queued/failed datasets with:
 
    ```bash
    bench --site SITE execute siraj_research.geo_coverage.import_status_report
    ```
+
+   If `bench restart` is interrupted, run it again before expecting queued
+   jobs to start. Requeueing a polygon dataset clears its old failure log.
    Paths inside `--kwargs` must be absolute: `~` is not expanded there.
 
 3. **OSM boundaries (neighbourhood / mahallah)** — OSM is the main open source

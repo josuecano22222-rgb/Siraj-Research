@@ -143,9 +143,19 @@ def parse_geonames_line(line: str) -> dict | None:
     a3 = str(row.get("admin3_code") or "").strip()
     a4 = str(row.get("admin4_code") or "").strip()
     a1_code = f"{cc}.{a1}" if a1 else None
-    a2_code = f"{cc}.{a1}.{a2}" if a1 and a2 else None
-    a3_code = f"{a2_code}.{a3}" if a2_code and a3 else None
-    a4_code = f"{a3_code}.{a4}" if a3_code and a4 else None
+    a2_code = f"{a1_code}.{a2}" if a1_code and a2 else None
+    # GeoNames frequently leaves a higher code empty while filling a lower
+    # one. Build the deepest chain available instead of dropping the row.
+    a3_code = None
+    if a3:
+        a3_code = f"{a2_code}.{a3}" if a2_code else (f"{a1_code}.{a3}" if a1_code else a3)
+    a4_code = None
+    if a4:
+        for base in (a3_code, a2_code, a1_code):
+            if base:
+                a4_code = f"{base}.{a4}"
+                break
+        a4_code = a4_code or a4
     return {
         "source_id": str(row.get("geonameid") or "")[:120],
         "name_en": (row.get("name") or "")[:140],
@@ -364,6 +374,7 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 	processed = 0
 	missing_parents = 0
 	levels_seen: set[int] = set()
+	feature_seen: dict[str, int] = {}
 
 	def _put(level: int, pcode: str, parent_pcode: str | None,
 	         name_en: str, source_id: str | None = None) -> bool:
@@ -443,12 +454,18 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 			cc = row["country_code"]
 			if wanted and cc not in wanted:
 				continue
+			feature_seen[row["feature_code"]] = feature_seen.get(row["feature_code"], 0) + 1
 			if level == 3:
-				pcode, parent_pcode = row["admin3_pcode"], row["admin2_pcode"]
+				pcode = row["admin3_pcode"]
+				parent_pcode = row["admin2_pcode"] or row["admin1_pcode"]
 			elif level == 4:
-				pcode, parent_pcode = row["admin4_pcode"], row["admin3_pcode"]
+				pcode = row["admin4_pcode"]
+				parent_pcode = (row["admin3_pcode"] or row["admin2_pcode"]
+				                or row["admin1_pcode"])
 			else:
-				pcode, parent_pcode = row["source_id"], row["admin4_pcode"]
+				pcode = row["source_id"]
+				parent_pcode = (row["admin4_pcode"] or row["admin3_pcode"]
+				                or row["admin2_pcode"] or row["admin1_pcode"])
 			if not pcode or not parent_pcode:
 				missing_parents += 1
 				continue
@@ -457,7 +474,8 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 				_progress(dataset_code, count=processed, offset=processed)
 
 	return {**_finish(dataset_code, processed, f"GeoNames admin divisions from {path.name}"),
-	        "levels": sorted(levels_seen), "missing_parents": missing_parents}
+	        "levels": sorted(levels_seen), "missing_parents": missing_parents,
+	        "admin_features_seen": feature_seen}
 
 
 def enqueue_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN",
@@ -507,6 +525,7 @@ def _queue_polygon_import(dataset: str, file_path: str, level: int, *, enqueue: 
     frappe.db.set_value("Boundary Dataset", dataset, {
         "import_status": "Queued", "import_progress": 0,
         "last_processed_offset": 0, "level": int(level),
+        "import_log": "Queued - waiting for worker.",
     }, update_modified=False)
     frappe.db.commit()
     if not enqueue:
