@@ -283,3 +283,31 @@ def test_form_autofill_uses_linked_server_rows_and_survives_missing_toolbar():
     assert "value = (row.status === 'linked' && row.name) ? row.name : null;" in source
     assert "const fallbackToolbar = () => {" in source
     assert "if (opts.force) { cache.delete(k); inflight.delete(k); }" in hierarchy
+
+
+def test_all_browser_tiles_route_through_server_cache():
+    root = Path(__file__).resolve().parents[1]
+    js_root = root / "siraj_research" / "public" / "js"
+    for path in js_root.rglob("*.js"):
+        if "vendor" in path.parts:
+            continue
+        source = path.read_text()
+        assert "tile.openstreetmap.org" not in source, str(path)
+
+
+def test_toolbar_installs_eagerly_after_leaflet_require():
+    root = Path(__file__).resolve().parents[1]
+    toolbar = (root / "siraj_research/public/js/siraj-map-toolbar.js").read_text()
+    coord = (root / "siraj_research/public/js/coordinate_map.js").read_text()
+    assert "window.SirajMapToolbar = {" in toolbar
+    assert "window.SirajMapToolbar.install(window.L);" in coord
+
+
+def test_hierarchy_upsert_is_parent_safe_and_duplicate_tolerant():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "siraj_research/geo_hierarchy.py").read_text()
+    assert "def _resolve_link_name(" in source
+    assert '"reason": "parent_not_found"' in source
+    assert '"Duplicate entry" in message' in source
+    bulk = (root / "siraj_research/geo_bulk.py").read_text()
+    assert '"active_boundary_dataset", dataset' in bulk

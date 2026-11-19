@@ -311,6 +311,33 @@ def _find_existing_level(entry: dict, parent_name: str | None, doctype: str,
 	return None
 
 
+def _parent_doctype_for(parent_field: str | None) -> str | None:
+	"""Doctype linked by a hierarchy row's ``parent_<level>`` field."""
+	if not parent_field:
+		return None
+	if parent_field == "country":
+		return "Country"
+	for spec in LEVELS[1:]:
+		if spec["parent"] == parent_field:
+			return "Country" if spec["level"] == 1 else level_spec(spec["level"] - 1)["doctype"]
+	return None
+
+
+def _resolve_link_name(doctype: str, value: Any) -> str | None:
+	"""Resolve a code/name carried by a resolver chain to a real DocType name."""
+	if frappe is None or not value:
+		return None
+	if doctype == "Country":
+		return _resolve_country(value)
+	if frappe.db.exists(doctype, value):
+		return value
+	for field in ("code", "pcode", "name"):
+		found = frappe.db.exists(doctype, {field: value})
+		if found:
+			return found
+	return None
+
+
 def upsert_level(entry: dict, parent_name: str | None, *, lat=None, lon=None,
                  dataset: str | None = None, create_missing: bool = True) -> dict:
 	"""Create or reuse one administrative DocType row.
@@ -324,7 +351,22 @@ def upsert_level(entry: dict, parent_name: str | None, *, lat=None, lon=None,
 	                                       entry.get("parent_code"), entry.get("level"))
 	if frappe is None:
 		return {"code": code, "name": None, "status": "no_frappe"}
-	existing = _find_existing_level(entry, parent_name, doctype, code)
+
+	parent_field = entry.get("parent_field")
+	parent_doctype = _parent_doctype_for(parent_field)
+	resolved_parent = None
+	if parent_doctype and parent_name:
+		resolved_parent = _resolve_link_name(parent_doctype, parent_name)
+		if not resolved_parent:
+			# Never create a child pointing at a missing parent: Frappe's
+			# _validate_links would raise and abort the whole resolution.
+			return {
+				"code": code, "name": None, "status": "missing",
+				"reason": "parent_not_found", "parent_doctype": parent_doctype,
+				"parent_value": parent_name,
+			}
+
+	existing = _find_existing_level(entry, resolved_parent, doctype, code)
 	if existing:
 		doc = frappe.get_doc(doctype, existing)
 		if _write_spatial_fields(doc, entry, lat, lon, dataset):
@@ -352,12 +394,12 @@ def upsert_level(entry: dict, parent_name: str | None, *, lat=None, lon=None,
 		values["admin_level_type"] = entry["admin_level_type"]
 	if entry.get("source_kind"):
 		values["source_kind"] = entry["source_kind"]
-	for ancestor_field, ancestor_code in (entry.get("ancestor_codes") or {}).items():
-		if ancestor_field in {spec["field"] for spec in LEVELS}:
-			values[ancestor_field] = ancestor_code
-	parent_field = entry.get("parent_field")
-	if parent_field and parent_name:
-		values[parent_field] = parent_name
+	# Only the immediate parent Link is required. Resolver ancestor_codes are
+	# deterministic *document names* for hierarchy DocTypes but not for the
+	# built-in Country DocType, so writing them verbatim used to produce
+	# "Could not find Country: PS". Ancestors are walked via parent Links.
+	if parent_field and resolved_parent:
+		values[parent_field] = resolved_parent
 	if entry.get("pcode"):
 		values["pcode"] = entry["pcode"]
 	if lat is not None:
@@ -371,7 +413,20 @@ def upsert_level(entry: dict, parent_name: str | None, *, lat=None, lon=None,
 	if entry.get("boundary"):
 		values["boundary"] = entry["boundary"]
 	doc = frappe.get_doc(values)
-	doc.insert(ignore_permissions=True)
+	try:
+		doc.insert(ignore_permissions=True)
+	except Exception as exc:
+		# Two concurrent map events (drag-end + field change) can race the
+		# same deterministic code. Treat a duplicate as a successful reuse
+		# instead of returning HTTP 409 to the form.
+		duplicate = frappe.DuplicateEntryError if hasattr(frappe, "DuplicateEntryError") else ()
+		message = str(exc)
+		if duplicate and isinstance(exc, duplicate) or "Duplicate entry" in message:
+			reused = frappe.db.exists(doctype, code)
+			if reused:
+				_link_boundary(entry.get("boundary"), doctype, reused)
+				return {"code": code, "name": reused, "status": "existing"}
+		raise
 	_link_boundary(entry.get("boundary"), doctype, doc.name)
 	return {"code": code, "name": doc.name, "status": "created"}
 

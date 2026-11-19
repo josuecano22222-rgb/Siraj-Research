@@ -71,6 +71,12 @@
 				'/assets/siraj_research/vendor/leaflet/leaflet.js',
 				'/assets/siraj_research/vendor/topojson/topojson-client.min.js',
 			])).then(() => {
+				// Install eagerly if the bundle evaluated before Leaflet (the
+				// lazy frappe.require above just loaded it). The toolbar's own
+				// polling is only a fallback.
+				if (window.L && window.SirajMapToolbar && window.SirajMapToolbar.install) {
+					try { window.SirajMapToolbar.install(window.L); } catch (_) {}
+				}
 				// siraj-map-toolbar.js installs itself after Leaflet appears;
 				// wait for both SirajMapKit and the toolbar control so mount()
 				// never sees L.control.sirajToolbar === undefined.

@@ -31,7 +31,11 @@ class FakeDoc:
 
 
 class FakeDB:
-    def exists(self, *args, **kwargs):
+    def exists(self, doctype, filters=None, *args, **kwargs):
+        # Model a seeded Country document so parent-link resolution keeps the
+        # real doc name instead of an ISO code.
+        if doctype == "Country" and filters in ({"name": "Iraq"}, "Iraq"):
+            return "Iraq"
         return None
 
 

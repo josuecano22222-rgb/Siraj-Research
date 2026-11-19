@@ -98,6 +98,16 @@ def _finish(dataset: str, count: int, note: str) -> dict:
         "index_version": int(getattr(values, "index_version", 0) or 0) + 1,
         "import_log": (previous + "\n" if previous else "") + note,
     }, update_modified=False)
+    # A first successful import becomes the active offline package so the
+    # browser immediately has polygons to cache. Never override an operator's
+    # explicit choice once one has been made.
+    try:
+        s = frappe.get_single("Geo Settings")
+        if not getattr(s, "active_boundary_dataset", None):
+            frappe.db.set_value("Geo Settings", "Geo Settings",
+                                "active_boundary_dataset", dataset, update_modified=False)
+    except Exception:
+        pass
     frappe.db.commit()
     return {"dataset": dataset, "count": count, "note": note, "complete": True}
 

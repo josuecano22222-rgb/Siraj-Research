@@ -228,7 +228,7 @@
 						// Build standard (OSM) layer that MapView would have added.
 						let std = null;
 						try {
-							std = nativeTileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+							std = nativeTileLayer('/api/method/siraj_research.tile_cache.tile?layer=standard&z={z}&x={x}&y={y}', {
 								maxZoom:19, attribution:'&copy; OpenStreetMap contributors',
 							});
 						} catch(_) {}
