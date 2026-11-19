@@ -42,6 +42,18 @@ def test_admin_boundary_stores_bbox_index_geojson_and_hierarchy_link():
     assert "geom_geojson" in geom
 
 
+def test_parent_links_are_optional_when_a_level_is_skipped():
+    for slug, parent_field in (
+        ("district", "governorate"),
+        ("municipality", "district"),
+        ("village", "municipality"),
+        ("community", "village"),
+    ):
+        fields = {f["fieldname"]: f for f in _load(slug)["fields"]}
+        assert fields[parent_field].get("reqd", 0) == 0, slug
+        assert "Parent P-Code" in fields[parent_field].get("description", "")
+
+
 def test_settings_allow_auto_creation_and_all_providers():
     fields = {f["fieldname"]: f for f in _load("geo_settings")["fields"]}
     assert {"auto_create_missing", "link_gazetteer_as_village",

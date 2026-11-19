@@ -290,11 +290,14 @@ levels are filled by combining three sources in this order:
      --kwargs '{"zip_path":"/home/frappe/frappe-bench/geodata/geonames","dataset_code":"GEONAMES-ADMIN"}'
    ```
 
-   The importer streams those three files, creates levels 1–5 with parent
-   links, and skips rows whose parent is unknown instead of inventing one.
-   `label_ar` is mandatory on every hierarchy DocType, so imported rows get
-   the English label as an Arabic placeholder until a researcher translates
-   it on the form.
+   The importer streams those three files and creates levels 1–5. When a
+   higher code is blank, it builds the deepest available code chain and
+   attaches the row to the deepest existing ancestor instead of dropping it.
+   The skipped intermediate Link stays empty — no fake row is created. On
+   District, Municipality, Village and Community the immediate parent Link is
+   therefore optional; `parent_pcode` preserves the original source lineage.
+   `label_ar` is mandatory, so imported rows get the English label as an
+   Arabic placeholder until a researcher translates it on the form.
 
    The import result includes `admin_features_seen`, which tells you how many
    `ADM3`/`ADM4`/`ADM5` features the source actually contains for the selected

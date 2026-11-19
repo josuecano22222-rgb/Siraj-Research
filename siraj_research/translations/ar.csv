@@ -1310,3 +1310,4 @@ Global per-worker throttle for public geocoders.,تحكم عام لكل عامل
 Cache online results (days),تخزين نتائج الشبكة (أيام)
 Google Geocoding,تحديد المواقع من Google
 GeoJSON (same precision),GeoJSON (بالدقة نفسها)
+Optional when a source dataset skips this level. Use Parent P-Code to preserve the original lineage.,اختياري عندما تتخطى مجموعة البيانات هذا المستوى. استخدم رمز الأصل للحفاظ على السلسلة الأصلية.

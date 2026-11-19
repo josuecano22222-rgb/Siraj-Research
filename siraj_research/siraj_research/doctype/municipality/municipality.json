@@ -125,8 +125,9 @@
    "fieldtype": "Link",
    "label": "District",
    "options": "District",
-   "reqd": 1,
-   "in_standard_filter": 1
+   "reqd": 0,
+   "in_standard_filter": 1,
+   "description": "Optional when a source dataset skips this level. Use Parent P-Code to preserve the original lineage."
   },
   {
    "fieldname": "governorate",
