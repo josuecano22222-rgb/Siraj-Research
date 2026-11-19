@@ -190,7 +190,7 @@
 
 // Build stamp — bump on every bundle change so stale caches are obvious in the console.
 // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
-window.SIRAJ_BUILD = '2026-11-19.hierarchy-ui.c.2';
+window.SIRAJ_BUILD = '2026-11-19.hierarchy-ui.c.3';
 try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| Full coordinate-to-hierarchy UI with isolated map setup."); } catch (_) {}
 
 // ---------- Stale-bundle banner ----------

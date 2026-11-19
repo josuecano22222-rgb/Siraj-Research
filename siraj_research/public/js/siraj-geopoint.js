@@ -172,6 +172,7 @@
 	}
 
 	function register(doctype, cfg) {
+		if (!frappe.ui.form || !frappe.ui.form.on) return false;
 		if (registered.has(doctype)) return;
 		registered.add(doctype);
 		const handlers = {

@@ -199,7 +199,7 @@ INTERNAL = {
 #: delivered in bootinfo.siraj_record_meta.build; the client compares its
 #: window.SIRAJ_BUILD against this value on boot and shows a reload banner
 #: when they differ (catches stale bundles after bench build).
-SIRAJ_BUILD = "2026-11-19.hierarchy-ui.c.2"
+SIRAJ_BUILD = "2026-11-19.hierarchy-ui.c.3"
 
 
 #: DocTypes that carry coordinate fields and a per-form map editor.
