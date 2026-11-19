@@ -1340,3 +1340,7 @@ Could not confirm the origin point.,تعذر تأكيد نقطة الأصل.
 "Coordinates are exactly (0,0). Confirm that this is a real point.",الإحداثيات بالضبط (٠،٠). أكّد أنها نقطة حقيقية.
 "Coordinates are exactly (0,0). No marker is shown until you confirm it is real.",الإحداثيات بالضبط (٠،٠). لا تظهر علامة على الخريطة حتى تؤكد أنها حقيقية.
 Coordinates and hierarchy updated from the map.,تم تحديث الإحداثيات والتسلسل الإداري من الخريطة.
+Geolocation,الجغرافيا المحددة
+Village / locality,القرية / المحلة
+Locality / place name,المحلة / اسم المكان
+Location section,قسم الموقع

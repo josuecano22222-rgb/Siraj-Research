@@ -24,6 +24,7 @@
   "version_tag",
   "url",
   "cb_meta",
+  "sb_location",
   "country",
   "level",
   "encoding",
@@ -121,13 +122,19 @@
    "label": ""
   },
   {
+   "fieldname": "sb_location",
+   "label": "Location",
+   "fieldtype": "Section Break"
+  },
+  {
    "fieldname": "country",
    "fieldtype": "Link",
    "label": "Country",
    "options": "Country",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "search_index": 1
+   "search_index": 1,
+   "insert_after": "sb_location"
   },
   {
    "fieldname": "level",
@@ -143,7 +150,7 @@
    "label": "Encoding",
    "default": "UTF-8",
    "length": 32,
-   "description": "Shapefile DBF encoding (UTF-8, Windows-1256, ISO-8859-6, …)."
+   "description": "Shapefile DBF encoding (UTF-8, Windows-1256, ISO-8859-6, \u2026)."
   },
   {
    "fieldname": "simplification_tolerance_m",
@@ -222,7 +229,7 @@
    "label": "SRID",
    "default": 4326,
    "read_only": 1,
-   "description": "All geometry stored in EPSG:4326 (WGS 84 lon/lat) — server reprojects on import."
+   "description": "All geometry stored in EPSG:4326 (WGS 84 lon/lat) \u2014 server reprojects on import."
   },
   {
    "fieldname": "sb_bulk",

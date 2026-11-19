@@ -140,3 +140,33 @@ sudo supervisorctl restart frappe-bench-web:frappe-bench-frappe-web
 
 The Float-to-Data conversion is **not** part of this merge. It needs its own
 approved maintenance window, independent typed-value backup and rehearsal.
+
+## One Location section on every form
+
+All SIRAJ coordinate and hierarchy fields are now emitted as a single block:
+
+```text
+Location
+  Latitude
+  Longitude
+  Geolocation
+  Country
+  Governorate
+  District
+  Municipality
+  Village / locality
+  Community / cluster
+  Locality / place name
+```
+
+`location_layout.py` is the canonical, pure-Python layout rule. Repository
+tests verify that every shipped DocType exposing any of these fields has
+exactly one section labelled `Location` and that `field_order` still matches
+the field list. The Geolocation field label is now **Geolocation** (the
+fieldname remains `geo_point`).
+
+A small runtime guard (`public/js/siraj-location-layout.js`) runs before the
+map modules mount. For site-specific DocTypes or Custom Fields that still
+scatter these fieldnames, it moves the controls into one `Location` section
+on form refresh without changing any value. Shipped forms already correct are
+left untouched.

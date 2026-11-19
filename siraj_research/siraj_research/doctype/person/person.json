@@ -58,14 +58,23 @@
   "social_accounts",
   "tab_evidence",
   "sb_geo",
+  "sb_location",
   "latitude",
   "longitude",
   "geo_point",
+  "country",
+  "governorate",
+  "district",
+  "municipality",
+  "village",
+  "community",
+  "place_name",
   "coordinate_origin_confirmed",
   "geo_precision",
   "geocoding_method",
   "geo_uncertainty_m",
   "geometry_source",
+  "cb_admin",
   "tab_provenance",
   "sb_evidence",
   "primary_source",
@@ -79,15 +88,7 @@
   "sb_identifiers",
   "external_identifiers",
   "tab_quality",
-  "completeness_score",
-  "country",
-  "governorate",
-  "cb_admin",
-  "district",
-  "municipality",
-  "village",
-  "community",
-  "place_name"
+  "completeness_score"
  ],
  "fields": [
   {
@@ -478,26 +479,82 @@
    "collapsible_depends_on": "eval:doc.latitude && doc.longitude"
   },
   {
+   "fieldname": "sb_location",
+   "label": "Location",
+   "fieldtype": "Section Break"
+  },
+  {
    "fieldname": "latitude",
    "fieldtype": "Float",
    "label": "Latitude",
    "precision": "6",
    "description": "This record's own latitude, independent of any linked place.",
-   "in_standard_filter": 0
+   "in_standard_filter": 0,
+   "insert_after": "sb_location"
   },
   {
    "fieldname": "longitude",
    "fieldtype": "Float",
    "label": "Longitude",
    "precision": "6",
-   "description": "This record's own longitude, independent of any linked place."
+   "description": "This record's own longitude, independent of any linked place.",
+   "insert_after": "latitude"
   },
   {
    "fieldname": "geo_point",
-   "label": "Map (point)",
+   "label": "Geolocation",
    "fieldtype": "Geolocation",
    "insert_after": "longitude",
    "description": "Select a point on the map. It is mirrored into the latitude and longitude fields and resolves the administrative hierarchy."
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "insert_after": "geo_point"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate",
+   "insert_after": "country"
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District",
+   "insert_after": "governorate"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality",
+   "insert_after": "district"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village / locality",
+   "options": "Village",
+   "insert_after": "municipality"
+  },
+  {
+   "fieldname": "community",
+   "fieldtype": "Link",
+   "label": "Community / cluster",
+   "options": "Community",
+   "insert_after": "village"
+  },
+  {
+   "fieldname": "place_name",
+   "fieldtype": "Data",
+   "label": "Locality / place name",
+   "description": "Nearest named place (village/town); auto-filled by reverse-geocoding.",
+   "insert_after": "community"
   },
   {
    "fieldname": "coordinate_origin_confirmed",
@@ -540,51 +597,9 @@
    "depends_on": "eval:doc.latitude && doc.longitude"
   },
   {
-   "fieldname": "country",
-   "fieldtype": "Link",
-   "label": "Country",
-   "options": "Country"
-  },
-  {
-   "fieldname": "governorate",
-   "fieldtype": "Link",
-   "label": "Governorate",
-   "options": "Governorate"
-  },
-  {
    "fieldname": "cb_admin",
    "fieldtype": "Column Break",
    "label": null
-  },
-  {
-   "fieldname": "district",
-   "fieldtype": "Link",
-   "label": "District",
-   "options": "District"
-  },
-  {
-   "fieldname": "municipality",
-   "fieldtype": "Link",
-   "label": "Municipality",
-   "options": "Municipality"
-  },
-  {
-   "fieldname": "village",
-   "fieldtype": "Link",
-   "label": "Village / locality",
-   "options": "Village"
-  },
-  {
-   "fieldname": "community",
-   "fieldtype": "Link",
-   "label": "Community / cluster",
-   "options": "Community"
-  },
-  {
-   "fieldname": "place_name",
-   "fieldtype": "Data",
-   "label": "Locality / place name",
-   "description": "Nearest named place (village/town); auto-filled by reverse-geocoding."
   },
   {
    "fieldname": "tab_provenance",

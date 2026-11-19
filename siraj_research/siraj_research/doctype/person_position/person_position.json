@@ -20,6 +20,7 @@
   "institution",
   "cb_1",
   "place",
+  "sb_location",
   "country",
   "role",
   "start_date",
@@ -97,10 +98,16 @@
    "columns": 2
   },
   {
+   "fieldname": "sb_location",
+   "label": "Location",
+   "fieldtype": "Section Break"
+  },
+  {
    "fieldname": "country",
    "fieldtype": "Link",
    "label": "Country",
-   "options": "Country"
+   "options": "Country",
+   "insert_after": "sb_location"
   },
   {
    "fieldname": "role",

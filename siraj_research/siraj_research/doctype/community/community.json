@@ -16,19 +16,20 @@
   "disabled",
   "is_system",
   "sb_scope",
-  "village",
-  "municipality",
-  "district",
-  "governorate",
-  "country",
   "sb_geo_profile",
   "pcode",
   "parent_pcode",
   "admin_level_type",
   "cb_geo_profile",
+  "sb_location",
   "latitude",
   "longitude",
   "geo_point",
+  "country",
+  "governorate",
+  "district",
+  "municipality",
+  "village",
   "coordinate_origin_confirmed",
   "bbox",
   "sb_geo_geometry",
@@ -125,47 +126,6 @@
    "label": "Scope"
   },
   {
-   "fieldname": "village",
-   "fieldtype": "Link",
-   "label": "Village",
-   "options": "Village",
-   "reqd": 0,
-   "in_standard_filter": 1,
-   "description": "Optional when a source dataset skips this level. Use Parent P-Code to preserve the original lineage."
-  },
-  {
-   "fieldname": "municipality",
-   "fieldtype": "Link",
-   "label": "Municipality",
-   "options": "Municipality",
-   "read_only": 1,
-   "fetch_from": "village.municipality"
-  },
-  {
-   "fieldname": "district",
-   "fieldtype": "Link",
-   "label": "District",
-   "options": "District",
-   "read_only": 1,
-   "fetch_from": "village.district"
-  },
-  {
-   "fieldname": "governorate",
-   "fieldtype": "Link",
-   "label": "Governorate",
-   "options": "Governorate",
-   "read_only": 1,
-   "fetch_from": "village.governorate"
-  },
-  {
-   "fieldname": "country",
-   "fieldtype": "Link",
-   "label": "Country",
-   "options": "Country",
-   "read_only": 1,
-   "fetch_from": "village.country"
-  },
-  {
    "fieldname": "sb_geo_profile",
    "fieldtype": "Section Break",
    "label": "Geography and spatial index",
@@ -198,23 +158,76 @@
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "sb_location",
+   "label": "Location",
+   "fieldtype": "Section Break"
+  },
+  {
    "fieldname": "latitude",
    "fieldtype": "Float",
-   "label": "Center latitude",
-   "in_list_view": 1
+   "label": "Latitude",
+   "in_list_view": 1,
+   "insert_after": "sb_location"
   },
   {
    "fieldname": "longitude",
    "fieldtype": "Float",
-   "label": "Center longitude",
-   "in_list_view": 1
+   "label": "Longitude",
+   "in_list_view": 1,
+   "insert_after": "latitude"
   },
   {
    "fieldname": "geo_point",
-   "label": "Map (point)",
+   "label": "Geolocation",
    "fieldtype": "Geolocation",
    "insert_after": "longitude",
    "description": "Select a point on the map. It is mirrored into the latitude and longitude fields and resolves the administrative hierarchy."
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "read_only": 1,
+   "fetch_from": "village.country",
+   "insert_after": "geo_point"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate",
+   "read_only": 1,
+   "fetch_from": "village.governorate",
+   "insert_after": "country"
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District",
+   "read_only": 1,
+   "fetch_from": "village.district",
+   "insert_after": "governorate"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality",
+   "read_only": 1,
+   "fetch_from": "village.municipality",
+   "insert_after": "district"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village / locality",
+   "options": "Village",
+   "reqd": 0,
+   "in_standard_filter": 1,
+   "description": "Optional when a source dataset skips this level. Use Parent P-Code to preserve the original lineage.",
+   "insert_after": "municipality"
   },
   {
    "fieldname": "coordinate_origin_confirmed",
