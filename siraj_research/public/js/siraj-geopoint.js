@@ -81,6 +81,7 @@
 	}
 
 	async function fromMap(frm, cfg) {
+		if (frm.flags && frm.flags.siraj_custom_map) return;  // enhanced map owns the field
 		const helpers = core();
 		if (!helpers) return;
 		const raw = frm.doc && frm.doc[cfg.map_field];
@@ -113,6 +114,7 @@
 	}
 
 	async function toMap(frm, cfg) {
+		if (frm.flags && frm.flags.siraj_custom_map) return;  // enhanced map owns the field
 		const helpers = core();
 		if (!helpers) return;
 		const lat = helpers.latitude(frm.doc && frm.doc[cfg.lat_field]);
@@ -157,6 +159,7 @@
 	}
 
 	function attach(frm, cfg) {
+		if (frm.flags && frm.flags.siraj_custom_map) return;  // enhanced map owns the field
 		const control = field(frm, cfg.map_field);
 		if (!control || !control.df || control.df.fieldtype !== 'Geolocation') return;
 		if (control.$wrapper) control.$wrapper.attr('data-siraj-geopoint', '1');

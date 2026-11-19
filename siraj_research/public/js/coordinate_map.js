@@ -460,7 +460,10 @@
 			const doc = frm.doc || {};
 			const lat = parseCoordinate(currentValue(frm.fields_dict[cfg.lat_field], doc, cfg.lat_field), 90);
 			const lon = parseCoordinate(currentValue(frm.fields_dict[cfg.lon_field], doc, cfg.lon_field), 180);
-			if (lat != null && lon != null) resolveAndApply(frm, cfg, lat, lon);
+			if (lat != null && lon != null) {
+			resolveAndApply(frm, cfg, lat, lon);
+			syncMapField(frm, cfg, lat, lon);
+		}
 		}, 600);
 	}
 
@@ -530,12 +533,28 @@
 		d.show();
 	}
 
+	function syncMapField(frm, cfg, lat, lon) {
+		const helpers = window.SirajGeoPointCore;
+		const name = cfg.map_field;
+		if (!helpers || !name || !frm.fields_dict || !frm.fields_dict[name]) return;
+		const control = frm.fields_dict[name];
+		if (!control.df || control.df.fieldtype !== 'Geolocation') return;
+		if (typeof control.get_status === 'function' && control.get_status() !== 'Write') return;
+		const zero = helpers.isZero(lat, lon);
+		const originField = cfg.origin_confirmed_field;
+		const confirmed = originField && frm.doc && [1, '1', true].includes(frm.doc[originField]);
+		const value = (zero && !confirmed) ? '' : helpers.encode(lat, lon, { source: 'siraj_coordinate_map' });
+		if (!value || String(frm.doc[name] || '') === value) return;
+		try { frm.set_value(name, value); } catch (_) {}
+	}
+
 	async function writePoint(frm, cfg, latlng, doMove = true) {
 		const state = [...states.values()].find(s => s.frm === frm && s.cfg === cfg);
 		if (!state || !state.editable) return;
 		const latitude = Number(latlng.lat), longitude = Number(latlng.lng);
 		if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return;
 		const values = { [cfg.lat_field]: decimalText(latitude), [cfg.lon_field]: decimalText(longitude) };
+		syncMapField(frm, cfg, latitude, longitude);
 		if (latitude === 0 && longitude === 0 && cfg.origin_confirmed_field
 			&& frm.fields_dict[cfg.origin_confirmed_field]
 			&& frm.fields_dict[cfg.origin_confirmed_field].get_status() === 'Write') {
@@ -588,8 +607,25 @@
 
 		// Mount as a real Frappe .form-group row inside the section so the
 		// map participates in column/flex layout, RTL, and print styles.
+		// When the DocType has a native Geolocation field, mount the enhanced
+		// map INSIDE that field: the field remains the visible, real field
+		// while the stock Leaflet canvas is replaced by our cached, switchable
+		// map with hierarchy support.
 		const $sectionBody = fields.lon.$wrapper.closest('.form-section').find('.section-body').first();
 		const $anchor = fields.lon.$wrapper.closest('.frappe-control').addBack().last();
+		const mapControl = cfg.map_field && frm.fields_dict && frm.fields_dict[cfg.map_field];
+		const $nativeWrapper = (mapControl && mapControl.df && mapControl.df.fieldtype === 'Geolocation')
+			? (mapControl.$wrapper || null) : null;
+		if ($nativeWrapper) {
+			$nativeWrapper.find('.map-wrapper').hide();
+			// Stop the stock map from requesting uncached tiles. Frappe may
+			// recreate it on refresh; mount() runs again and hides it anew.
+			if (mapControl.map) {
+				try { mapControl.map.remove(); } catch (_) {}
+				mapControl.map = null;
+			}
+			frm.flags.siraj_custom_map = true;
+		}
 		const box = $('<div class="siraj-coordinate-map"></div>')
 			.attr('data-siraj-build', window.SIRAJ_BUILD || '')
 			.attr('data-doctype', frm.doctype)
@@ -608,7 +644,8 @@
 			.attr('aria-label', t('Coordinate map'))
 			.appendTo(box);
 		const status = $('<div role="status" aria-live="polite" class="siraj-coord-status"></div>').appendTo(box);
-		if ($anchor.length) $anchor.after(group);
+		if ($nativeWrapper && $nativeWrapper.length) $nativeWrapper.append(group);
+		else if ($anchor.length) $anchor.after(group);
 		else if ($sectionBody.length) $sectionBody.append(group);
 		else fields.lon.$wrapper.after(box);
 
@@ -906,17 +943,6 @@
 
 	function mountAllFor(frm) {
 		if (!frm || !frm.doctype) return;
-		// When the DocType exposes a native Geolocation (map) field, that
-		// control is the authoritative picker; siraj-geopoint.js bridges it
-		// to latitude/longitude and the hierarchy. Mounting a second map here
-		// produces duplicate pins and competing writes.
-		const nativeMap = docConfig(frm.doctype).map_field;
-		if (nativeMap && frm.fields_dict && frm.fields_dict[nativeMap]
-			&& frm.fields_dict[nativeMap].df
-			&& frm.fields_dict[nativeMap].df.fieldtype === 'Geolocation') {
-			states.forEach(s => { if (s.frm === frm) removeState(s); });
-			return;
-		}
 		// Register once per doctype so native field change events (when user
 		// types into latitude/longitude) trigger update.
 		if (!registered.has(frm.doctype)) {

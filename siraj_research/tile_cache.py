@@ -389,3 +389,27 @@ def tile(layer, z, x, y):
     except OSError as e:
         frappe.log_error(f"Tile cache write failed: {e}", "siraj.tile_cache")
     return _serve(data, ctype, hit=False)
+
+
+def enable_shared_basemaps():
+	"""Enable standard, aerial and hybrid layers for shared server caching.
+
+	Bench-only helper (no web endpoint): every viewed tile is written once to
+	the site's private disk cache and can then be served to any user, even if
+	the upstream provider is unreachable. Optional keyed layers are untouched.
+	"""
+	settings = frappe.get_single("Geo Settings")
+	settings.enable_standard_layer = 1
+	settings.enable_aerial_layer = 1
+	settings.enable_hybrid_layer = 1
+	settings.allow_tile_fetch = 1
+	if int(settings.tile_cache_days or 0) < 90:
+		settings.tile_cache_days = 90
+	settings.save(ignore_permissions=True)
+	return {
+		"standard": 1,
+		"aerial": 1,
+		"hybrid": 1,
+		"allow_tile_fetch": 1,
+		"tile_cache_days": int(settings.tile_cache_days),
+	}

@@ -195,3 +195,32 @@ def test_doc_event_hook_ignores_unconfirmed_zero_pair(monkeypatch):
     geo_doc_events.auto_fill_hierarchy(doc)
     assert calls == []
     assert doc.flags.siraj_hierarchy_resolved is False
+
+
+def test_all_map_layers_use_shared_server_tile_cache():
+    root = Path(__file__).resolve().parents[1]
+    sources = {
+        name: (root / path).read_text()
+        for name, path in {
+            "basemap": "siraj_research/public/js/siraj-basemap.js",
+            "maplibre": "siraj_research/public/js/siraj-map/siraj-map.js",
+        }.items()
+    }
+    for name, source in sources.items():
+        assert "tile_cache.tile?layer=standard" in source or name == "basemap", name
+        assert "tile_cache.tile?layer=aerial" in source, name
+        assert "tile_cache.tile?layer=hybrid" in source, name
+        assert "tile_cache.tile?layer=hybrid_labels" in source, name
+        assert "server.arcgisonline.com" not in source, name
+        assert "tile.openstreetmap.org" not in source, name
+
+    tile_cache_source = (root / "siraj_research/tile_cache.py").read_text()
+    assert "def enable_shared_basemaps()" in tile_cache_source
+
+
+def test_enhanced_map_mirrors_pick_into_geolocation_field():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "siraj_research/public/js/coordinate_map.js").read_text()
+    assert "function syncMapField(frm, cfg, lat, lon)" in source
+    assert "syncMapField(frm, cfg, latitude, longitude);" in source
+    assert "$nativeWrapper.append(group);" in source

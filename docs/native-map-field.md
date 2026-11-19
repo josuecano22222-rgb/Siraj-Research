@@ -64,9 +64,41 @@ coordinate fields:
 4. `SirajHierarchy.refreshForm` displays the full bilingual chain, gaps and
    provenance.
 
-`coordinate_map.js` detects the native Geolocation field and does not mount a
-second map. It remains the fallback for DocTypes that still use only the two
+`coordinate_map.js` detects the native Geolocation field and mounts the
+enhanced SIRAJ map **inside that field**, hiding the stock Leaflet canvas.
+That is why the visible map has the SIRAJ dock: navigation, basemap switching,
+measure tools, hierarchy and the shared server-cached tiles. The native
+field remains the stored DocType field; the bridge stands down when the
+enhanced map is active, so there is only one writer.
+
+`siraj-geopoint.js` remains the fallback for DocTypes that expose only the two
 coordinate fields.
+
+## Shared server-side layer cache
+
+Every raster tile in Standard, Satellite/Aerial and Hybrid now comes from:
+
+```text
+/api/method/siraj_research.tile_cache.tile?layer=<layer>&z={z}&x={x}&y={y}
+```
+
+Hybrid labels use `layer=hybrid_labels`. No browser talks directly to OSM or
+Esri. The server fetches a missing tile once, writes it atomically to
+`site/private/siraj_tile_cache/`, and serves subsequent requests from disk with
+long-lived browser caching headers. If the upstream provider is offline, a
+cached tile is still served (stale-while-revalidate), so any user of the same
+site sees previously viewed areas.
+
+Enable the three shared layers once:
+
+```bash
+cd ~/frappe-bench
+bench --site frappe.com execute siraj_research.tile_cache.enable_shared_basemaps
+```
+
+This enables Standard, Aerial and Hybrid, allows upstream fetches and keeps
+tiles for at least 90 days. Optional layers that need Stadia/NASA credentials
+are not enabled by that helper.
 
 ## Why `0,0` used to show a pin
 
