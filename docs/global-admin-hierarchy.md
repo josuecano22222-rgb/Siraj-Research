@@ -344,6 +344,13 @@ levels are filled by combining three sources in this order:
    Without it, call `prepare_osm(..., run=False)` and run the printed commands
    yourself, or import an already-prepared GeoJSON/GPKG directly.
 
+### Troubleshooting pyogrio upgrades
+
+`ValueError: too many values to unpack (expected 3)` during a boundary import
+means pyogrio >= 0.7 was installed. The importer now accepts both the old
+three-value `raw.read()` contract and the current four-value contract
+`(meta, fids, geometry, fields)`. Re-run the failed dataset after updating.
+
 ### Polygon-to-hierarchy synchronisation
 
 Importing polygons alone is not enough: `Admin Boundary` stores geometry, but
@@ -351,6 +358,8 @@ the editable hierarchy needs real DocType rows. Every GADM/OSM import now runs
 `geo_hierarchy.sync_hierarchy_from_boundaries()` at the end of the same worker
 job. That step:
 
+- resolves `country` from OSM `ISO3166-1`/`ISO3166-2` tags or a single-code
+  dataset name such as `OSM-IL-PS`;
 - reads full/simplified WKB from the dataset;
 - uses `parent_pcode` when the source supplies it;
 - otherwise finds the smallest containing polygon at each lower level with an

@@ -117,8 +117,52 @@ POLYGON_FIELDS = {
     "name_ar":    ["name_ar", "ar_name", "arname", "name:ar", "admin{pcode}_ar".format(pcode="{level}"), "shape_ar"],
     "parent_pcode":["parent_pcode", "par_pcode", "adm{pcode}_pcode".format(pcode="{parent}"), "parent_adm", "par_id"],
     "source_id":  ["id", "fid", "objectid", "shape_id", "ogc_fid"],
+    "country":    ["country", "country_code", "iso", "iso_a2", "cc",
+                   "iso3166-1:alpha2", "iso3166-1", "iso3166-2", "adm0_a3"],
     "osm_admin_level": ["admin_level", "adminlevel"],
 }
+
+
+def _country_lookup() -> tuple[dict[str, str], dict[str, str]]:
+    """Map Country codes and names to canonical Country document names."""
+    by_code: dict[str, str] = {}
+    by_name: dict[str, str] = {}
+    if frappe is None:
+        return by_code, by_name
+    try:
+        rows = frappe.get_all("Country", fields=["name", "code"], limit_page_length=0)
+    except Exception:
+        return by_code, by_name
+    for row in rows:
+        name = row.get("name")
+        if not name:
+            continue
+        by_name[str(name).strip().upper()] = name
+        if row.get("code"):
+            by_code[str(row["code"]).strip().upper()] = name
+    return by_code, by_name
+
+
+def _resolve_country_name(value, by_code: dict[str, str], by_name: dict[str, str]) -> str | None:
+    """Resolve a source country tag/code to an existing Country document."""
+    text = str(value or "").strip()
+    if not text:
+        return None
+    upper = text.upper()
+    if upper in by_code:
+        return by_code[upper]
+    if upper in by_name:
+        return by_name[upper]
+    match = re.match(r"^([A-Z]{2})(?:[-:_.\s]|$)", upper)
+    if match and match.group(1) in by_code:
+        return by_code[match.group(1)]
+    return None
+
+
+def _country_candidates_from_dataset(dataset: str, by_code: dict[str, str]) -> list[str]:
+    """Extract likely ISO-2 codes from a dataset name such as ``OSM-IL-PS``."""
+    return [token for token in re.findall(r"(?<![A-Z])[A-Z]{2}(?![A-Z])", str(dataset).upper())
+            if token in by_code]
 
 
 def osm_level_to_siraj(value) -> int | None:
@@ -204,6 +248,23 @@ def _iter_features(file_path: Path, encoding: str = "utf-8", batch_size: int = 5
     )
 
 
+def _normalize_pyogrio_result(result) -> tuple[dict, tuple, object]:
+    """Normalise pyogrio's changing ``raw.read`` return contract.
+
+    pyogrio <= 0.6 returns ``(meta, field_data, geometry)``; newer releases
+    return ``(meta, fids, geometry, field_data)``. Accept both so the worker
+    doesn't fail after a dependency upgrade.
+    """
+    values = tuple(result)
+    if len(values) == 4:
+        meta, _fids, geometry, field_data = values
+        return meta, field_data, geometry
+    if len(values) == 3:
+        meta, field_data, geometry = values
+        return meta, field_data, geometry
+    raise RuntimeError(f"Unexpected pyogrio raw.read result length: {len(values)}")
+
+
 def _iter_pyogrio(file_path: Path, encoding: str, batch_size: int = 500):
 	"""Stream raw pyogrio features in bounded batches (no geopandas).
 
@@ -234,12 +295,17 @@ def _iter_pyogrio(file_path: Path, encoding: str, batch_size: int = 500):
 		else:
 			kwargs.update(skip_features=offset, max_features=max(1, batch_size))
 		try:
-			meta, flds, geom_wkb = _pyogrio.raw.read(str(file_path), **kwargs)
+			result = _pyogrio.raw.read(str(file_path), **kwargs)
 		except TypeError:
 			# pyogrio < 0.5 has no slice arguments.
 			one_shot = True
-			meta, flds, geom_wkb = _pyogrio.raw.read(str(file_path), encoding=encoding,
-			                                         read_geometry=True)
+			try:
+				result = _pyogrio.raw.read(str(file_path), encoding=encoding,
+				                           read_geometry=True)
+			except TypeError:
+				# Very old releases also lack `encoding`.
+				result = _pyogrio.raw.read(str(file_path))
+		meta, flds, geom_wkb = _normalize_pyogrio_result(result)
 		if transformer is None and not field_names:
 			crs_info = meta.get("crs") or ""
 			if pyproj and crs_info and "EPSG:4326" not in str(crs_info).upper() \
@@ -445,6 +511,8 @@ def import_boundary_job(dataset_name: str, file_path_str: str, is_gazetteer: boo
         tolerance_m = float(doc.simplification_tolerance_m or 0)
         batch_size = max(50, int(doc.import_batch_size or 500))
         store_geojson = bool(getattr(doc, "store_geojson", 1))
+        by_code, by_name = _country_lookup()
+        dataset_countries = _country_candidates_from_dataset(dataset_name, by_code)
         total_estimate = 0
         count = 0
         for feat in _iter_features(data_file, encoding, batch_size):
@@ -505,6 +573,18 @@ def import_boundary_job(dataset_name: str, file_path_str: str, is_gazetteer: boo
                         record["area_m2"] = projected.area
                     except Exception:
                         record["area_m2"] = None
+                if not record.get("country"):
+                    for source_key in ("ISO3166-1:alpha2", "ISO3166-1", "ISO3166-2",
+                                       "country", "country_code", "iso_a2", "cc"):
+                        if props.get(source_key):
+                            record["country"] = props[source_key]
+                            break
+                if not record.get("country") and len(dataset_countries) == 1:
+                    record["country"] = dataset_countries[0]
+                if record.get("country"):
+                    resolved_country = _resolve_country_name(
+                        record["country"], by_code, by_name)
+                    record["country"] = resolved_country
                 record["geom_full"] = geom
                 if tolerance_m > 0:
                     record["geom_simplified"] = geom.simplify(tolerance_m / 111320.0, preserve_topology=True)
