@@ -232,3 +232,10 @@ def test_geopoint_bridge_does_not_construct_missing_leaflet_draw_plugin():
     assert "L.Control.Draw is not a constructor" in source
     assert "C.prototype.make_map = function (value)" in source
     assert "new L.Control.Draw" not in source
+
+
+def test_map_mount_initializes_form_flags_before_setting_marker():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "siraj_research/public/js/coordinate_map.js").read_text()
+    assert "frm.flags = frm.flags || {};" in source
+    assert source.index("frm.flags = frm.flags || {};") < source.index("frm.flags.siraj_custom_map = true;")

@@ -624,6 +624,9 @@
 				try { mapControl.map.remove(); } catch (_) {}
 				mapControl.map = null;
 			}
+			// Some Frappe forms (notably new docs opened from quick entry)
+			// do not initialize `frm.flags` until later in the lifecycle.
+			frm.flags = frm.flags || {};
 			frm.flags.siraj_custom_map = true;
 		}
 		const box = $('<div class="siraj-coordinate-map"></div>')
