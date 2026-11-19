@@ -223,7 +223,9 @@ def test_enhanced_map_mirrors_pick_into_geolocation_field():
     source = (root / "siraj_research/public/js/coordinate_map.js").read_text()
     assert "function syncMapField(frm, cfg, lat, lon)" in source
     assert "syncMapField(frm, cfg, latitude, longitude);" in source
-    assert "$nativeWrapper.append(group);" in source
+    assert "$anchor.after(group);" in source
+    assert "resolveFromInputs(frm2, cfg);" in source
+    assert "if (lat === 0 && lon === 0 && !originConfirmed(frm, cfg)) return;" in source
 
 
 def test_geopoint_bridge_does_not_construct_missing_leaflet_draw_plugin():

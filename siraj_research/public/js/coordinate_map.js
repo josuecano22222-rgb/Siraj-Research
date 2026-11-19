@@ -407,7 +407,9 @@
 	function resolveAndApply(frm, cfg, lat, lon) {
 		if (resolveAbort) { try { resolveAbort.abort(); } catch(_){} resolveAbort = null; }
 		if (!cfg.admin_fields) return;
-		if (!frm.fields_dict || !frm.fields_dict.latitude) return;
+		if (!frm.fields_dict || !frm.fields_dict[cfg.lat_field]) return;
+		// An unconfirmed zero pair is legacy "unset" data, not a location.
+		if (lat === 0 && lon === 0 && !originConfirmed(frm, cfg)) return;
 		const controller = new AbortController();
 		resolveAbort = controller;
 		setTimeout(async () => {
@@ -461,7 +463,9 @@
 			const lat = parseCoordinate(currentValue(frm.fields_dict[cfg.lat_field], doc, cfg.lat_field), 90);
 			const lon = parseCoordinate(currentValue(frm.fields_dict[cfg.lon_field], doc, cfg.lon_field), 180);
 			if (lat != null && lon != null) {
-			resolveAndApply(frm, cfg, lat, lon);
+			if (!(lat === 0 && lon === 0 && !originConfirmed(frm, cfg))) {
+				resolveAndApply(frm, cfg, lat, lon);
+			}
 			syncMapField(frm, cfg, lat, lon);
 		}
 		}, 600);
@@ -647,8 +651,12 @@
 			.attr('aria-label', t('Coordinate map'))
 			.appendTo(box);
 		const status = $('<div role="status" aria-live="polite" class="siraj-coord-status"></div>').appendTo(box);
-		if ($nativeWrapper && $nativeWrapper.length) $nativeWrapper.append(group);
-		else if ($anchor.length) $anchor.after(group);
+		// Anchor after longitude (inside the Location section). The native
+		// Geolocation wrapper can be hidden by Frappe's read-only/permission
+		// layout; anchoring to longitude keeps the enhanced map visible even
+		// when the stock control itself is not.
+		if ($anchor.length) $anchor.after(group);
+		else if ($nativeWrapper && $nativeWrapper.length) $nativeWrapper.append(group);
 		else if ($sectionBody.length) $sectionBody.append(group);
 		else fields.lon.$wrapper.after(box);
 
@@ -957,7 +965,12 @@
 			const cfg = docConfig(frm.doctype);
 			[cfg.lat_field, cfg.lon_field].forEach(fn => {
 				frappe.ui.form.on(frm.doctype, {
-					[fn](frm2) { update(frm2); },
+					[fn](frm2) {
+				update(frm2);
+				// Manual coordinates must resolve even when the visual map
+				// cannot mount (hidden tab, permission-only field, etc.).
+				resolveFromInputs(frm2, cfg);
+			},
 				});
 			});
 		}
@@ -988,7 +1001,10 @@
 			states.forEach(s => { if (s.frm === frm) removeState(s); });
 			return;
 		}
-		cfgs.forEach(c => mount(frm, c));
+		cfgs.forEach(c => {
+			mount(frm, c);
+			resolveFromInputs(frm, c);
+		});
 	}
 
 	$(document).on('form-refresh.sirajCoordinates', (_e, frm) => {
