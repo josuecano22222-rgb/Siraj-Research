@@ -349,7 +349,9 @@ levels are filled by combining three sources in this order:
 `ValueError: too many values to unpack (expected 3)` during a boundary import
 means pyogrio >= 0.7 was installed. The importer now accepts both the old
 three-value `raw.read()` contract and the current four-value contract
-`(meta, fids, geometry, fields)`. Re-run the failed dataset after updating.
+`(meta, fids, geometry, fields)`. It also handles numpy arrays in `meta`,
+Shapely 2 hex-WKB strings, and OSM `ISO3166-2` tags on child objects whose
+`ISO3166-1:alpha2` value is null. Re-run the failed dataset after updating.
 
 ### Polygon-to-hierarchy synchronisation
 

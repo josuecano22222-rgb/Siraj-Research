@@ -159,6 +159,16 @@ def _resolve_country_name(value, by_code: dict[str, str], by_name: dict[str, str
     return None
 
 
+def _source_country_value(props: dict) -> str | None:
+    """Read an ISO/country tag from already-lowercased source properties."""
+    for key in ("iso3166-1:alpha2", "iso3166-1", "iso3166-2",
+                "country", "country_code", "iso_a2", "cc"):
+        value = props.get(key)
+        if value not in (None, ""):
+            return value
+    return None
+
+
 def _country_candidates_from_dataset(dataset: str, by_code: dict[str, str]) -> list[str]:
     """Extract likely ISO-2 codes from a dataset name such as ``OSM-IL-PS``."""
     return [token for token in re.findall(r"(?<![A-Z])[A-Z]{2}(?![A-Z])", str(dataset).upper())
@@ -317,7 +327,10 @@ def _iter_pyogrio(file_path: Path, encoding: str, batch_size: int = 500):
 						from_srs, to_srs, always_xy=True).transform
 				except Exception:
 					transformer = None
-			field_names = list(meta.get("fields") or [])
+			fields = meta.get("fields")
+			# pyogrio returns a numpy array here; `or []` would evaluate its
+			# truth value and raise "truth value of an array is ambiguous".
+			field_names = list(fields if fields is not None else [])
 
 		count = len(geom_wkb)
 		if count == 0:
@@ -380,6 +393,14 @@ def _iter_fiona(file_path: Path, encoding: str):
             yield {"properties": dict(feat.get("properties") or {}), "geometry": geom}
 
 
+def _wkb_hex(geom) -> str:
+    """Return hex WKB as text across Shapely 1.x/2.x."""
+    value = shapely.wkb.dumps(geom, hex=True)
+    if isinstance(value, bytes):
+        return value.decode("ascii")
+    return str(value)
+
+
 # ---------------------------------------------------------------------------
 # Upsert helpers
 # ---------------------------------------------------------------------------
@@ -429,7 +450,7 @@ def _upsert_admin_boundary(dataset: str, level: int, record: dict, store_geojson
                 "point_count": (sum(1 for _ in getattr(geom, 'exterior', []).coords)
                                 if geom.geom_type == "Polygon"
                                 else 0),
-                "geom_wkb_hex": shapely.wkb.dumps(geom, hex=True).decode("ascii"),
+                "geom_wkb_hex": _wkb_hex(geom),
             }
             try:
                 geom_meta = frappe.get_meta("Admin Boundary Geom")
@@ -574,11 +595,9 @@ def import_boundary_job(dataset_name: str, file_path_str: str, is_gazetteer: boo
                     except Exception:
                         record["area_m2"] = None
                 if not record.get("country"):
-                    for source_key in ("ISO3166-1:alpha2", "ISO3166-1", "ISO3166-2",
-                                       "country", "country_code", "iso_a2", "cc"):
-                        if props.get(source_key):
-                            record["country"] = props[source_key]
-                            break
+                    source_country = _source_country_value(props)
+                    if source_country:
+                        record["country"] = source_country
                 if not record.get("country") and len(dataset_countries) == 1:
                     record["country"] = dataset_countries[0]
                 if record.get("country"):

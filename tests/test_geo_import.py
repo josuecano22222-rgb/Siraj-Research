@@ -52,7 +52,8 @@ def test_iter_features_reads_new_pyogrio_four_tuple(monkeypatch, _fake_frappe):
     import numpy as np
 
     gi = _fake_frappe
-    meta = {"fields": ["name", "admin_level"]}
+    # pyogrio returns `fields` as a numpy array, not a list.
+    meta = {"fields": np.array(["name", "admin_level"])}
     fields = (np.array(["Gaza"]), np.array([8]))
     fake_raw = types.SimpleNamespace(
         read=lambda path, **kwargs: (meta, None, [None], fields),
@@ -81,3 +82,23 @@ def test_country_resolution_helpers(_fake_frappe):
     ) == "Palestinian Territory, Occupied"
     assert gi._country_candidates_from_dataset("OSM-IL-PS", by_code) == ["IL", "PS"]
     assert gi._country_candidates_from_dataset("GADM-ADM5", by_code) == []
+
+
+def test_source_country_value_uses_lowercased_osm_tags(_fake_frappe):
+    gi = _fake_frappe
+    props = {
+        "name": "Gaza",
+        "iso3166-1:alpha2": None,
+        "iso3166-2": "PS-GZ",
+    }
+    assert gi._source_country_value(props) == "PS-GZ"
+
+
+def test_wkb_hex_returns_text_with_shapely_two(_fake_frappe):
+    pytest.importorskip("shapely")
+    from shapely.geometry import Point
+
+    gi = _fake_frappe
+    value = gi._wkb_hex(Point(0, 0))
+    assert isinstance(value, str)
+    assert value.startswith("01")
