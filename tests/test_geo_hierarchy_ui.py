@@ -242,3 +242,44 @@ def test_map_mount_initializes_form_flags_before_setting_marker():
     source = (root / "siraj_research/public/js/coordinate_map.js").read_text()
     assert "frm.flags = frm.flags || {};" in source
     assert source.index("frm.flags = frm.flags || {};") < source.index("frm.flags.siraj_custom_map = true;")
+
+
+def test_field_values_never_writes_unlinked_pcodes_into_link_fields(monkeypatch):
+    result = {
+        "by_field": {
+            "country": {"status": "resolved", "name": None, "code": "PS", "label_en": "Palestine"},
+            "governorate": {"status": "linked", "name": "Gaza", "code": "PS-GZ", "label_en": "Gaza"},
+            "district": {"status": "gap"},
+        },
+        "nearest_place_name": "Khan Yunis Camp",
+    }
+
+    class Field:
+        def __init__(self, fieldtype):
+            self.fieldtype = fieldtype
+
+    class Meta:
+        def has_field(self, name):
+            return name in {"country", "governorate", "district", "place_name"}
+
+        def get_field(self, name):
+            return Field("Data" if name == "place_name" else "Link")
+
+    fake_frappe = SimpleNamespace(get_meta=lambda dt: Meta())
+    monkeypatch.setattr(ui, "frappe", fake_frappe)
+    values = ui.field_values("Person", result)
+    assert "country" not in values  # raw PS is not a valid Country doc name
+    assert values["governorate"] == "Gaza"
+    assert "district" not in values
+    assert values["place_name"] == "Khan Yunis Camp"
+
+
+def test_form_autofill_uses_linked_server_rows_and_survives_missing_toolbar():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "siraj_research/public/js/coordinate_map.js").read_text()
+    hierarchy = (root / "siraj_research/public/js/siraj-hierarchy.js").read_text()
+    assert "window.SirajHierarchy.resolve(lat, lon, {" in source
+    assert "createMissing: true, useOnline: true, force: true," in source
+    assert "value = (row.status === 'linked' && row.name) ? row.name : null;" in source
+    assert "const fallbackToolbar = () => {" in source
+    assert "if (opts.force) { cache.delete(k); inflight.delete(k); }" in hierarchy

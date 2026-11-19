@@ -145,6 +145,7 @@ def field_values(doctype: str, result: dict) -> dict[str, Any]:
         # Graceful fallback for custom DocTypes using conventional names.
         mapping = {meta["field"]: meta["field"] for meta in LEVEL_META}
     values: dict[str, Any] = {}
+    meta = frappe.get_meta(doctype) if frappe is not None else None
     for chain_key, fieldname in mapping.items():
         if not fieldname:
             continue
@@ -152,7 +153,15 @@ def field_values(doctype: str, result: dict) -> dict[str, Any]:
             value = result.get("nearest_place_name")
         else:
             row = (result.get("by_field") or {}).get(chain_key) or {}
-            value = row.get("name") or row.get("code") or row.get("label_en")
+            # A Link field only accepts a real DocType name. Falling back to a
+            # P-Code/label here passes client validation but fails Frappe's
+            # save-time _validate_links with LinkValidationError.
+            linked_name = row.get("name") if row.get("status") == "linked" else None
+            value = linked_name
+            if value is None and meta is not None and meta.has_field(fieldname):
+                field = meta.get_field(fieldname)
+                if field is not None and getattr(field, "fieldtype", None) != "Link":
+                    value = row.get("code") or row.get("label_en")
         if value:
             values[fieldname] = value
     return values

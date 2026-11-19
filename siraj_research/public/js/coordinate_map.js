@@ -75,7 +75,19 @@
 				// wait for both SirajMapKit and the toolbar control so mount()
 				// never sees L.control.sirajToolbar === undefined.
 				return new Promise(res => {
-					const check = () => (window.SirajMapKit && window.L && window.L.control && window.L.control.sirajToolbar) ? res() : setTimeout(check, 30);
+					const started = Date.now();
+					const check = () => {
+						if (window.SirajMapKit && window.L) {
+							if (window.L.control && window.L.control.sirajToolbar) return res();
+							// The toolbar is an enhancement. Never block the whole
+							// form map forever if its optional registration fails.
+							if (Date.now() - started > 3000) {
+								try { console.warn('[SIRAJ coord] toolbar unavailable; mounting map without it'); } catch (_) {}
+								return res();
+							}
+						}
+						setTimeout(check, 30);
+					};
 					check();
 				});
 			}).catch(err => { assetsPromise = null; throw err; });
@@ -416,20 +428,31 @@
 			if (controller.signal.aborted) return;
 			try {
 				let r = null;
-				// Prefer the local worker (instant if synced, and works
-				// fully offline); fall back to server authoritative call
-				// if the worker isn't ready yet (first load) or returns
-				// empty. Server has the full-resolution STRtree; the worker
-				// uses simplified polygons. Both share the same schema so
-				// applyAdminChain handles either.
-				if (window.SirajGeo && window.SirajGeo.resolve) {
-					try { r = await window.SirajGeo.resolve(lat, lon); } catch(_) { r = null; }
-				}
-				if (!r || !r.on_land) {
+				// Authoritative path first: hierarchy_for_point creates/reuses
+				// the linked hierarchy rows and returns their real DocType names.
+				// Writing raw P-Codes into Link fields causes a save-time
+				// LinkValidationError, so never auto-fill from the loose
+				// resolver payload unless no linked result is available.
+				if (window.SirajHierarchy && window.SirajHierarchy.resolve) {
 					try {
-						r = await frappe.xcall('siraj_research.api.geo_resolve.resolve_point',
-							{ latitude: lat, longitude: lon, use_online: 1 });
-					} catch (_) { /* keep worker result or null */ }
+						r = await window.SirajHierarchy.resolve(lat, lon, {
+							createMissing: true, useOnline: true, force: true,
+						});
+					} catch (_) { r = null; }
+				}
+				if (!r || r.error) {
+					// Offline worker keeps the chain visible without a server,
+					// but its rows are not linked records. applyAdminChain only
+					// writes them into Data fields, never into Link fields.
+					if (window.SirajGeo && window.SirajGeo.resolve) {
+						try { r = await window.SirajGeo.resolve(lat, lon); } catch(_) { r = null; }
+					}
+					if (!r || !r.on_land) {
+						try {
+							r = await frappe.xcall('siraj_research.api.geo_resolve.resolve_point',
+								{ latitude: lat, longitude: lon, use_online: 1 });
+						} catch (_) { /* keep worker result or null */ }
+					}
 				}
 				if (controller.signal.aborted) return;
 				applyAdminChain(frm, cfg, r);
@@ -483,14 +506,26 @@
 			if (field.get_status() !== 'Write') return;
 			let value = null;
 			if (chainKey === 'place_name') {
-				value = res.nearest_place ? (res.nearest_place.name_en || res.nearest_place.name_ar || null) : null;
+				value = res.nearest_place_name
+					|| (res.nearest_place ? (res.nearest_place.name_en || res.nearest_place.name_ar || null) : null);
 			} else {
-				const node = res.admin_chain && res.admin_chain[chainKey];
-				// Link fields want the linked DocType name, but the server
-				// returns pcode; if no matching Place exists locally yet we
-				// skip (a future Slice-E enhancement will create/link Place
-				// records automatically).
-				value = node && node.pcode ? node.pcode : (node ? node.name_en : null);
+				const isLink = field.df && field.df.fieldtype === 'Link';
+				const row = res.by_field && res.by_field[chainKey];
+				if (row) {
+					// hierarchy_for_point returns a *linked* DocType name. Only
+					// that is safe to write into a Link field; a P-Code or label
+					// would be accepted by the client but rejected on save.
+					if (isLink) {
+						value = (row.status === 'linked' && row.name) ? row.name : null;
+					} else {
+						value = row.name || row.code || row.label_en || null;
+					}
+				} else {
+					// Legacy/offline resolver payload. Never write its P-Code
+					// into a Link field; Data fields can still show the label.
+					const node = res.admin_chain && res.admin_chain[chainKey];
+					value = isLink ? null : (node ? (node.name_en || node.pcode || null) : null);
+				}
 			}
 			if (value == null) return;
 			const current = (field.$input && field.$input.val()) || (frm.doc && frm.doc[fieldname]) || '';
@@ -791,7 +826,19 @@
 		});
 
 		/* ------ Toolbar (shared declarative registry, form-map subset) ------ */
-		const toolbar = L.control.sirajToolbar({ position: 'topright' }).addTo(map);
+		// The map must remain usable even when the optional toolbar is not
+		// registered. A chainable no-op keeps every toolbar pack below safe.
+		const fallbackToolbar = () => {
+			const api = {
+				_buttons: new Map(),
+				addTo: () => api, group: () => api, add: () => api,
+				separator: () => api, remove: () => api,
+			};
+			return api;
+		};
+		const toolbar = (L.control && L.control.sirajToolbar)
+			? L.control.sirajToolbar({ position: 'topright' }).addTo(map)
+			: fallbackToolbar();
 		state.toolbar = toolbar;
 		const localPacks = new Map();
 
@@ -966,11 +1013,11 @@
 			[cfg.lat_field, cfg.lon_field].forEach(fn => {
 				frappe.ui.form.on(frm.doctype, {
 					[fn](frm2) {
-				update(frm2);
-				// Manual coordinates must resolve even when the visual map
-				// cannot mount (hidden tab, permission-only field, etc.).
-				resolveFromInputs(frm2, cfg);
-			},
+					update(frm2);
+					// Manual coordinates must resolve even when the visual map
+					// cannot mount (hidden tab, permission-only field, etc.).
+					resolveFromInputs(frm2, cfg);
+				},
 				});
 			});
 		}

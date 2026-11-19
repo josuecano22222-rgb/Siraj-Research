@@ -74,6 +74,9 @@
     const createMissing = opts.createMissing !== false;
     const useOnline = !!opts.useOnline;
     const k = key(lat, lon, createMissing, useOnline);
+    // A pin move or a corrected coordinate must re-check the authoritative
+    // server result instead of replaying a stale negative cache entry.
+    if (opts.force) { cache.delete(k); inflight.delete(k); }
     if (cache.has(k)) return cache.get(k);
     if (inflight.has(k)) return inflight.get(k);
     const job = (async () => {
