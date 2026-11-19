@@ -540,7 +540,7 @@ def containing_ancestors(level: int, point, candidates: Iterable[dict]) -> dict[
             candidate_level = int(record.get("level") or 0)
         except (TypeError, ValueError):
             continue
-        if candidate_level <= 0 or candidate_level >= level:
+        if candidate_level < 0 or candidate_level >= level:
             continue
         geom = record.get("geom")
         if geom is None:
@@ -554,6 +554,22 @@ def containing_ancestors(level: int, point, candidates: Iterable[dict]) -> dict[
         if candidate_level not in best or area < best[candidate_level][0]:
             best[candidate_level] = (area, record)
     return best
+
+
+def _resolve_country_document(value, countries: dict[str, str]) -> str | None:
+    """Resolve a source country tag/code to a known Country document name."""
+    text = str(value or "").strip()
+    if not text:
+        return None
+    if text in countries:
+        return countries[text]
+    upper = text.upper()
+    if upper in countries:
+        return countries[upper]
+    match = re.match(r"^([A-Z]{2})(?:[-:_.\s]|$)", upper)
+    if match and match.group(1) in countries:
+        return countries[match.group(1)]
+    return None
 
 
 def _country_names() -> dict[str, str]:
@@ -661,6 +677,18 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
         iso = (record["country"] or _iso_from_pcode(pcode)
                or _iso_from_pcode(record["source_id"]))
         country_name = countries.get(iso) if iso else None
+
+        point = record["geom"].representative_point()
+        candidates = [records[i] for i in tree.query(point)] if tree is not None else []
+        best = containing_ancestors(level, point, candidates)
+        if not country_name and 0 in best:
+            # OSM child objects rarely carry an ISO tag. Inherit the country
+            # from the containing admin_level=2 polygon in the same dataset.
+            country_record = best[0][1]
+            country_name = _resolve_country_document(
+                country_record.get("country") or country_record.get("name_en"),
+                countries,
+            )
         if not country_name:
             skipped += 1
             continue
@@ -677,15 +705,15 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
             except (TypeError, ValueError, KeyError):
                 parent_level = level - 1
         else:
-            point = record["geom"].representative_point()
-            candidates = [records[i] for i in tree.query(point)] if tree is not None else []
-            best = containing_ancestors(level, point, candidates)
             for ancestor_level, (_, ancestor_record) in best.items():
+                if ancestor_level == 0:
+                    continue
                 ancestor_name = name_by_pcode.get(normalize_code(ancestor_record["pcode"]))
                 if ancestor_name:
                     ancestors[str(LEVELS[ancestor_level]["field"])] = ancestor_name
-            if best:
-                parent_level = max(best)
+            ancestor_levels = {level_key for level_key in best if level_key > 0}
+            if ancestor_levels:
+                parent_level = max(ancestor_levels)
                 parent_record = best[parent_level][1]
                 parent_name = name_by_pcode.get(normalize_code(parent_record["pcode"]))
                 inferred_parents += 1

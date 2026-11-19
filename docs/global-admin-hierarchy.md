@@ -361,6 +361,8 @@ job. That step:
 - resolves `country` from OSM `ISO3166-1`/`ISO3166-2` tags or a single-code
   dataset name such as `OSM-IL-PS`;
 - reads full/simplified WKB from the dataset;
+- inherits `country` from the containing `admin_level=2` polygon when OSM
+  child objects have no ISO tag;
 - uses `parent_pcode` when the source supplies it;
 - otherwise finds the smallest containing polygon at each lower level with an
   STRtree and links to that parent;

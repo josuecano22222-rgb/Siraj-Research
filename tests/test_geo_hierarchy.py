@@ -104,3 +104,20 @@ def test_level_helpers_and_editable_fields():
     assert "label_ar" in gh.editable_fields(2)
     assert "boundary" in gh.editable_fields(4)
     assert gh.hierarchy_settings()["auto_create_missing"] is True
+
+
+def test_containing_ancestors_includes_country_polygon():
+    candidates = [
+        {"level": 0, "pcode": "IL", "country": "Israel", "geom": _FakeGeom(1000, True)},
+        {"level": 2, "pcode": "IL-01", "geom": _FakeGeom(20, True)},
+    ]
+    ancestors = gh.containing_ancestors(3, (0, 0), candidates)
+    assert set(ancestors) == {0, 2}
+    assert ancestors[0][1]["country"] == "Israel"
+
+
+def test_resolve_country_document_accepts_iso_codes_and_names():
+    countries = {"IL": "Israel", "Israel": "Israel", "PS": "Palestinian Territory, Occupied"}
+    assert gh._resolve_country_document("IL", countries) == "Israel"
+    assert gh._resolve_country_document("PS-WE", countries) == "Palestinian Territory, Occupied"
+    assert gh._resolve_country_document("Israel", countries) == "Israel"
