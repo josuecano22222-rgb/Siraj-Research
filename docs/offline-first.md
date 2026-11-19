@@ -12,6 +12,22 @@ data must come from the bench or from a same-origin static asset.
 - **Saved records** with valid hierarchy Links, provided the linked documents
   were created once from local data.
 
+
+## Full online-to-offline bootstrap (recommended)
+
+Run this **once while online**. It downloads the optional Python wheels,
+pre-caches tiles for the active dataset, creates hierarchy records, exports the
+static geo package, and then permanently disables external calls:
+
+```bash
+cd ~/frappe-bench
+bench --site frappe.com execute siraj_research.offline_bootstrap.prepare_offline_site \
+  --kwargs '{"dataset":"OSM-IL-PS","max_zoom":11}'
+```
+
+If you prefer to do each step manually, use the commands below. Remember that
+`bench --kwargs` is evaluated as Python: use `True`, not `true`.
+
 ## One-time bootstrap on the bench
 
 1. Import your boundary and gazetteer files from local disk (GeoJSON/GPKG/OSM
@@ -31,7 +47,7 @@ data must come from the bench or from a same-origin static asset.
 
    ```bash
    bench --site frappe.com execute siraj_research.geo_hierarchy.sync_boundary_hierarchy \
-     --kwargs '{"dataset":"OSM-IL-PS","create_missing":true}'
+     --kwargs '{"dataset":"OSM-IL-PS","create_missing":True}'
    ```
 
 4. Export the browser package as a same-origin static file:

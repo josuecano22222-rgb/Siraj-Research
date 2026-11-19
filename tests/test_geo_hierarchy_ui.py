@@ -372,3 +372,28 @@ def test_zero_internet_bootstrap_assets_exist():
     assert "SIRAJ_OFFLINE_BOOTSTRAP" in client
     assert "allow_tile_fetch" in docs
     assert "Offline" in docs
+
+
+def test_offline_bootstrapTile_math_and_lock():
+    import math
+
+    from siraj_research.offline_bootstrap import DEFAULT_BBOX, _lat_to_y, _lon_to_x, tile_range
+
+    xs, ys = tile_range(DEFAULT_BBOX, 4)
+    assert xs.start <= xs.stop and ys.start <= ys.stop
+    for z in (0, 4, 11):
+        assert 0 <= _lon_to_x(0.0, z) < 2 ** z
+        assert 0 <= _lat_to_y(0.0, z) < 2 ** z
+    assert math.isfinite(DEFAULT_BBOX[0])
+
+
+def test_offline_bootstrap_source_contains_full_workflow():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "siraj_research/offline_bootstrap.py").read_text()
+    docs = (root / "docs/offline-first.md").read_text()
+    assert "def prepare_offline_site(" in source
+    assert "def lock_offline_mode(" in source
+    assert "def prewarm_tiles(" in source
+    assert "def download_python_wheels(" in source
+    assert 'prepare_offline_site' in docs
+    assert '"create_missing":True' in docs
