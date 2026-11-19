@@ -144,3 +144,44 @@ def test_admin_boundary_name_en_falls_back_to_pcode(_fake_frappe):
     gi.frappe = fake
     assert gi._upsert_admin_boundary("DS", 3, {"pcode": "OSM-X"}, False) is True
     assert created[0].name_en == "OSM-X"
+
+
+def test_reimport_does_not_rewrite_set_only_once_admin_fields(_fake_frappe):
+    gi = _fake_frappe
+    saved = []
+
+    class FakeDoc:
+        def __init__(self, doctype, values=None):
+            self.doctype = doctype
+            self.flags = types.SimpleNamespace()
+            for key, value in (values or {}).items():
+                setattr(self, key, value)
+
+        def get(self, key, default=None):
+            return getattr(self, key, default)
+
+        def save(self, **kwargs):
+            saved.append(self)
+
+    doc = FakeDoc("Admin Boundary", {
+        "name": "AB1", "level": 2, "pcode": "OSM-X", "country": "Israel",
+    })
+    db = types.SimpleNamespace(
+        get_value=lambda *a, **k: "AB1",
+        exists=lambda *a, **k: None,
+    )
+    fake = types.SimpleNamespace(
+        db=db,
+        get_doc=lambda dt, name: doc,
+        new_doc=lambda dt: FakeDoc(dt),
+        get_meta=lambda dt: types.SimpleNamespace(has_field=lambda f: False),
+    )
+    gi.frappe = fake
+    assert gi._upsert_admin_boundary("DS", 5, {
+        "pcode": "OSM-X", "name_en": "New name", "country": "Palestinian Territory, Occupied",
+    }, False) is True
+    assert saved == [doc]
+    assert doc.level == 2
+    assert doc.pcode == "OSM-X"
+    assert doc.country == "Israel"
+    assert doc.name_en == "New name"

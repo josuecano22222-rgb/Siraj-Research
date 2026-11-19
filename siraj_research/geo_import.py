@@ -423,16 +423,23 @@ def _upsert_admin_boundary(dataset: str, level: int, record: dict, store_geojson
         return False  # can't link without pcode
     existing = frappe.db.get_value("Admin Boundary",
                                    {"dataset": dataset, "pcode": pcode}, "name")
+    is_new = not existing
     doc = frappe.get_doc("Admin Boundary", existing) if existing else frappe.new_doc("Admin Boundary")
     doc.dataset = dataset
-    doc.level = level
-    doc.pcode = pcode
+    # level, pcode and country are `set_only_once` on Admin Boundary. Assign
+    # them only on insert; re-importing a polygon must not rewrite them or
+    # Frappe raises CannotChangeConstantError.
+    if is_new or doc.get("level") in (None, ""):
+        doc.level = level
+    if is_new or doc.get("pcode") in (None, ""):
+        doc.pcode = pcode
     # name_en is mandatory; OSM features without a name tag still need a
     # stable visible label, so fall back to the P-Code.
     doc.name_en = record.get("name_en") or doc.get("name_en") or pcode
     doc.name_ar = record.get("name_ar")
     doc.parent_pcode = record.get("parent_pcode")
-    doc.country = record.get("country")
+    if is_new or doc.get("country") in (None, ""):
+        doc.country = record.get("country")
     doc.source_id = str(record.get("source_id") or "")[:120]
     doc.centroid_lat = record.get("centroid_lat")
     doc.centroid_lon = record.get("centroid_lon")
