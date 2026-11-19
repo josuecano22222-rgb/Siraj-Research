@@ -428,7 +428,7 @@
 				if (!r || !r.on_land) {
 					try {
 						r = await frappe.xcall('siraj_research.api.geo_resolve.resolve_point',
-							{ latitude: lat, longitude: lon });
+							{ latitude: lat, longitude: lon, use_online: 1 });
 					} catch (_) { /* keep worker result or null */ }
 				}
 				if (controller.signal.aborted) return;
@@ -463,11 +463,11 @@
 			const lat = parseCoordinate(currentValue(frm.fields_dict[cfg.lat_field], doc, cfg.lat_field), 90);
 			const lon = parseCoordinate(currentValue(frm.fields_dict[cfg.lon_field], doc, cfg.lon_field), 180);
 			if (lat != null && lon != null) {
-			if (!(lat === 0 && lon === 0 && !originConfirmed(frm, cfg))) {
-				resolveAndApply(frm, cfg, lat, lon);
+				if (!(lat === 0 && lon === 0 && !originConfirmed(frm, cfg))) {
+					resolveAndApply(frm, cfg, lat, lon);
+				}
+				syncMapField(frm, cfg, lat, lon);
 			}
-			syncMapField(frm, cfg, lat, lon);
-		}
 		}, 600);
 	}
 

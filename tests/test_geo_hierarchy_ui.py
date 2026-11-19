@@ -226,6 +226,7 @@ def test_enhanced_map_mirrors_pick_into_geolocation_field():
     assert "$anchor.after(group);" in source
     assert "resolveFromInputs(frm2, cfg);" in source
     assert "if (lat === 0 && lon === 0 && !originConfirmed(frm, cfg)) return;" in source
+    assert "use_online: 1" in source
 
 
 def test_geopoint_bridge_does_not_construct_missing_leaflet_draw_plugin():
