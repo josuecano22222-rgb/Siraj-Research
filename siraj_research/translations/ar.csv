@@ -1330,3 +1330,13 @@ Click a point to resolve its full administrative hierarchy.,انقر نقطة ل
 Latitude,خط العرض
 Longitude,خط الطول
 Accepts eastern-Arabic digits and decimal notation.,يقبل الأرقام العربية الشرقية والكسور العشرية.
+Map (point),الخريطة (نقطة)
+Select a point on the map. It is mirrored into the latitude and longitude fields and resolves the administrative hierarchy.,اختر نقطة على الخريطة. تُنقل إلى حقلي خط العرض وخط الطول وتُستخدم لتحديد التسلسل الإداري.
+"0,0 is an actual point",الإحداثيان ٠،٠ نقطة حقيقية
+Tick only when latitude 0 and longitude 0 are a deliberate real location; otherwise the zero pair is treated as unset.,ضع علامة فقط عندما يكون خط العرض ٠ وخط الطول ٠ موقعاً حقيقياً مقصوداً؛ وإلا يُعتبر الزوج صفرياً غير محدد.
+"Coordinates are exactly (0,0). This is treated as unset until confirmed.",الإحداثيات بالضبط (٠،٠). تُعتبر غير محددة إلى أن يتم تأكيدها.
+"Confirm 0,0 as a real point",تأكيد ٠،٠ كنقطة حقيقية
+Could not confirm the origin point.,تعذر تأكيد نقطة الأصل.
+"Coordinates are exactly (0,0). Confirm that this is a real point.",الإحداثيات بالضبط (٠،٠). أكّد أنها نقطة حقيقية.
+"Coordinates are exactly (0,0). No marker is shown until you confirm it is real.",الإحداثيات بالضبط (٠،٠). لا تظهر علامة على الخريطة حتى تؤكد أنها حقيقية.
+Coordinates and hierarchy updated from the map.,تم تحديث الإحداثيات والتسلسل الإداري من الخريطة.

@@ -26,6 +26,10 @@ or using the Siraj Explorer map resolves the point to
   map on Person, Institution, Place, Research Event, Siraj Event, Military Unit
   and Operational Deployment. It refreshes on map picks and debounced manual
   coordinate edits.
+- Map field: each coordinate-bearing DocType now has a native Frappe
+  **Geolocation** field (`geo_point`). See [point picking and the Geolocation field](native-map-field.md)
+  for why this field, not a Float latitude, is the map, and how the point is
+  mirrored into the text/numeric coordinate fields.
 - Save hook: `geo_doc_events.auto_fill_hierarchy` fills only empty hierarchy
   fields on those DocTypes before save; researcher-entered values are never
   overwritten.

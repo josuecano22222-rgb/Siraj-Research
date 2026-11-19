@@ -40,3 +40,25 @@ a.siraj-level-value { color: inherit; text-decoration: underline dotted; }
 .siraj-hierarchy .btn-xs { padding: 2px 6px; font-size: 11px; }
 .sx-hierarchy-popover { max-width: 340px; }
 .sx-hierarchy-popover .siraj-hierarchy { border: 0; padding: 0; margin: 0; }
+
+/* Native Geolocation ("map") field bridge: mirror of latitude/longitude and
+ * hierarchy into a real DocType field. */
+.frappe-control[data-fieldname="geo_point"] .siraj-geopoint-status {
+	font-size: 11px;
+	line-height: 1.4;
+	margin-top: 6px;
+	color: var(--text-muted, #6c757d);
+}
+.frappe-control[data-fieldname="geo_point"] .siraj-geopoint-status.is-warning,
+button.siraj-coord-confirm-zero {
+	color: #8a2525;
+}
+button.siraj-coord-confirm-zero {
+	background: #fff4f2;
+	border: 1px solid #e7b8b1;
+	border-radius: 3px;
+	cursor: pointer;
+	font-size: 11px;
+	margin-inline-start: 6px;
+	padding: 2px 7px;
+}

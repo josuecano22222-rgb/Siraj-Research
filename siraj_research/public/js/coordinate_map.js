@@ -46,6 +46,7 @@
 		const fromBoot = (window.sirajCoordinateDocs && window.sirajCoordinateDocs[doctype]) || {};
 		return Object.assign({
 			lat_field: 'latitude', lon_field: 'longitude',
+			map_field: 'geo_point', origin_confirmed_field: 'coordinate_origin_confirmed',
 			uncertainty_field: 'geo_uncertainty_m', linked_place_field: null,
 			silhouette: 'pin',
 		}, DEFAULT_COORDS[doctype] || {}, fromBoot);
@@ -306,6 +307,11 @@
 		}
 	}
 
+	function originConfirmed(frm, cfg) {
+		const field = cfg.origin_confirmed_field;
+		return !!(field && frm && frm.doc && (frm.doc[field] === 1 || frm.doc[field] === '1' || frm.doc[field] === true));
+	}
+
 	function diagnoseCoordinates(lat, lon, aText, bText) {
 		// Return a warning message (or null) describing suspicious input.
 		if (lat === null || lon === null) {
@@ -340,10 +346,32 @@
 			const b = currentValue(fields.lon, frm.doc, state.cfg.lon_field);
 			const lat = parseCoordinate(a, 90), lon = parseCoordinate(b, 180);
 			const warning = diagnoseCoordinates(lat, lon, a, b);
-			if (lat === null || lon === null) {
+			// (0,0) is ambiguous in legacy Float data: a filled pair often
+			// meant "unset", but it can also be a real origin. Do not draw a
+			// misleading pin until the researcher explicitly confirms it.
+			const zeroPair = lat === 0 && lon === 0 && !originConfirmed(frm, state.cfg);
+			if (lat === null || lon === null || zeroPair) {
 				if (state.marker) { state.map.removeLayer(state.marker); state.marker = null; }
 				if (state.uncertaintyCircle) { state.map.removeLayer(state.uncertaintyCircle); state.uncertaintyCircle = null; }
-				state.status.text(warning || t('Click the map to pick a point, or type coordinates above.'));
+				if (zeroPair) {
+					state.status.empty().append(
+						$('<span></span>').text(t('Coordinates are exactly (0,0). This is treated as unset until confirmed.'))
+					);
+					if (fields.editable) {
+						$('<button type="button" class="siraj-coord-confirm-zero"></button>')
+							.text(t('Confirm 0,0 as a real point'))
+							.on('click', async ev => {
+								ev.preventDefault(); ev.stopPropagation();
+								try {
+									await frm.set_value(state.cfg.origin_confirmed_field, 1);
+									update(frm, false);
+								} catch (_) { state.status.text(t('Could not confirm the origin point.')); }
+							})
+							.appendTo(state.status);
+					}
+				} else {
+					state.status.text(warning || t('Click the map to pick a point, or type coordinates above.'));
+				}
 				syncLinkedChip(state);
 			} else {
 				const dt = frm.doctype || 'Place';
@@ -508,6 +536,13 @@
 		const latitude = Number(latlng.lat), longitude = Number(latlng.lng);
 		if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return;
 		const values = { [cfg.lat_field]: decimalText(latitude), [cfg.lon_field]: decimalText(longitude) };
+		if (latitude === 0 && longitude === 0 && cfg.origin_confirmed_field
+			&& frm.fields_dict[cfg.origin_confirmed_field]
+			&& frm.fields_dict[cfg.origin_confirmed_field].get_status() === 'Write') {
+			// Choosing the point on the map is an explicit confirmation that
+			// the origin is real, unlike a legacy Float default.
+			values[cfg.origin_confirmed_field] = 1;
+		}
 		if (frm.fields_dict.geocoding_method && frm.fields_dict.geocoding_method.get_status() === 'Write') {
 			values.geocoding_method = 'map_pick';
 		}
@@ -871,6 +906,17 @@
 
 	function mountAllFor(frm) {
 		if (!frm || !frm.doctype) return;
+		// When the DocType exposes a native Geolocation (map) field, that
+		// control is the authoritative picker; siraj-geopoint.js bridges it
+		// to latitude/longitude and the hierarchy. Mounting a second map here
+		// produces duplicate pins and competing writes.
+		const nativeMap = docConfig(frm.doctype).map_field;
+		if (nativeMap && frm.fields_dict && frm.fields_dict[nativeMap]
+			&& frm.fields_dict[nativeMap].df
+			&& frm.fields_dict[nativeMap].df.fieldtype === 'Geolocation') {
+			states.forEach(s => { if (s.frm === frm) removeState(s); });
+			return;
+		}
 		// Register once per doctype so native field change events (when user
 		// types into latitude/longitude) trigger update.
 		if (!registered.has(frm.doctype)) {
@@ -923,4 +969,7 @@
 	// Expose module version + config for Diagnostics.
 	window.SIRAJ_COORDINATE_MAP_VERSION = MODULE_VERSION;
 	window.SIRAJ_COORDINATE_DOCS_ACTIVE = DEFAULT_COORDS;
+	window.SirajCoordinateMap = {
+		docConfig, parseCoordinate, resolveAndApply, applyAdminChain,
+	};
 })();

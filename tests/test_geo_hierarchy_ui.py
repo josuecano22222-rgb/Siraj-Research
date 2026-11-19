@@ -143,3 +143,55 @@ def test_js_build_stamps_match_server_stamp():
         "siraj_research/public/js/siraj-map/siraj-map.js",
     ):
         assert SIRAJ_BUILD in (root / relative).read_text()
+
+
+def test_every_coordinate_doctype_has_native_map_and_zero_confirmation_field():
+    import json
+
+    from siraj_research.record_icons import COORDINATE_DOCS
+
+    root = Path(__file__).resolve().parents[1]
+    checked = 0
+    for path in (root / "siraj_research/siraj_research/doctype").glob("*/*.json"):
+        meta = json.loads(path.read_text())
+        fields = meta.get("fields", [])
+        names = {field.get("fieldname") for field in fields}
+        if "latitude" not in names or "longitude" not in names:
+            continue
+        checked += 1
+        by_name = {field.get("fieldname"): field for field in fields}
+        assert by_name["geo_point"]["fieldtype"] == "Geolocation", meta["name"]
+        assert by_name["coordinate_origin_confirmed"]["fieldtype"] == "Check", meta["name"]
+        assert by_name["geo_point"]["insert_after"] == "longitude"
+    assert checked >= 7
+    for doctype, cfg in COORDINATE_DOCS.items():
+        assert cfg["map_field"] == "geo_point", doctype
+        assert cfg["origin_confirmed_field"] == "coordinate_origin_confirmed", doctype
+
+
+def test_bundle_imports_native_map_bridge():
+    root = Path(__file__).resolve().parents[1]
+    bundle = (root / "siraj_research/public/js/siraj.bundle.js").read_text()
+    assert "import './siraj-geopoint-core.js';" in bundle
+    assert "import './siraj-geopoint.js';" in bundle
+
+
+def test_doc_event_hook_ignores_unconfirmed_zero_pair(monkeypatch):
+    from siraj_research import geo_doc_events
+
+    class FakeFlags:
+        siraj_hierarchy_resolved = False
+
+    doc = SimpleNamespace(doctype="Place", latitude=0, longitude=0,
+                          coordinate_origin_confirmed=0, country="",
+                          flags=FakeFlags())
+    calls = []
+
+    def fake_apply(doc, **kwargs):
+        calls.append(kwargs)
+        return {"updated": []}
+
+    monkeypatch.setattr("siraj_research.geo_hierarchy_ui.apply_to_doc", fake_apply)
+    geo_doc_events.auto_fill_hierarchy(doc)
+    assert calls == []
+    assert doc.flags.siraj_hierarchy_resolved is False

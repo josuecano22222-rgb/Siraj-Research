@@ -199,7 +199,7 @@ INTERNAL = {
 #: delivered in bootinfo.siraj_record_meta.build; the client compares its
 #: window.SIRAJ_BUILD against this value on boot and shows a reload banner
 #: when they differ (catches stale bundles after bench build).
-SIRAJ_BUILD = "2026-11-19.hierarchy-ui.b.2"
+SIRAJ_BUILD = "2026-11-19.hierarchy-ui.c.2"
 
 
 #: DocTypes that carry coordinate fields and a per-form map editor.
@@ -209,6 +209,8 @@ SIRAJ_BUILD = "2026-11-19.hierarchy-ui.b.2"
 #: silhouette used for the editor pin. Keys are exact DocType names.
 COORDINATE_DOCS: dict[str, dict] = {
 	"Person": {
+		"map_field": "geo_point",
+		"origin_confirmed_field": "coordinate_origin_confirmed",
 		"lat_field": "latitude",
 		"lon_field": "longitude",
 		"uncertainty_field": "geo_uncertainty_m",
@@ -221,6 +223,8 @@ COORDINATE_DOCS: dict[str, dict] = {
 		},
 	},
 	"Institution": {
+		"map_field": "geo_point",
+		"origin_confirmed_field": "coordinate_origin_confirmed",
 		"lat_field": "latitude",
 		"lon_field": "longitude",
 		"uncertainty_field": "geo_uncertainty_m",
@@ -233,6 +237,8 @@ COORDINATE_DOCS: dict[str, dict] = {
 		},
 	},
 	"Place": {
+		"map_field": "geo_point",
+		"origin_confirmed_field": "coordinate_origin_confirmed",
 		"lat_field": "latitude",
 		"lon_field": "longitude",
 		"uncertainty_field": "geo_uncertainty_m",
@@ -244,6 +250,8 @@ COORDINATE_DOCS: dict[str, dict] = {
 		},
 	},
 	"Research Event": {
+		"map_field": "geo_point",
+		"origin_confirmed_field": "coordinate_origin_confirmed",
 		"lat_field": "latitude",
 		"lon_field": "longitude",
 		"uncertainty_field": "geo_uncertainty_m",
@@ -255,6 +263,8 @@ COORDINATE_DOCS: dict[str, dict] = {
 		},
 	},
 	"Siraj Event": {
+		"map_field": "geo_point",
+		"origin_confirmed_field": "coordinate_origin_confirmed",
 		"lat_field": "latitude",
 		"lon_field": "longitude",
 		"uncertainty_field": "geo_uncertainty_m",
@@ -267,6 +277,8 @@ COORDINATE_DOCS: dict[str, dict] = {
 		},
 	},
 	"Military Unit": {
+		"map_field": "geo_point",
+		"origin_confirmed_field": "coordinate_origin_confirmed",
 		"lat_field": "latitude",
 		"lon_field": "longitude",
 		"uncertainty_field": "geo_uncertainty_m",
@@ -279,6 +291,8 @@ COORDINATE_DOCS: dict[str, dict] = {
 		},
 	},
 	"Operational Deployment": {
+		"map_field": "geo_point",
+		"origin_confirmed_field": "coordinate_origin_confirmed",
 		"lat_field": "latitude",
 		"lon_field": "longitude",
 		"uncertainty_field": "geo_uncertainty_m",

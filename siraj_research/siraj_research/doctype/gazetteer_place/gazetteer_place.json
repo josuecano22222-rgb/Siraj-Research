@@ -27,6 +27,8 @@
   "sb_loc",
   "latitude",
   "longitude",
+  "geo_point",
+  "coordinate_origin_confirmed",
   "elevation_m",
   "cb_loc",
   "population",
@@ -147,6 +149,21 @@
    "reqd": 1,
    "in_list_view": 1,
    "precision": 9
+  },
+  {
+   "fieldname": "geo_point",
+   "label": "Map (point)",
+   "fieldtype": "Geolocation",
+   "insert_after": "longitude",
+   "description": "Select a point on the map. It is mirrored into the latitude and longitude fields and resolves the administrative hierarchy."
+  },
+  {
+   "fieldname": "coordinate_origin_confirmed",
+   "label": "0,0 is an actual point",
+   "fieldtype": "Check",
+   "default": "0",
+   "insert_after": "longitude",
+   "description": "Tick only when latitude 0 and longitude 0 are a deliberate real location; otherwise the zero pair is treated as unset."
   },
   {
    "fieldname": "elevation_m",

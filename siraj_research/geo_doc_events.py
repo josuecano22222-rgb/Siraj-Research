@@ -26,8 +26,14 @@ def auto_fill_hierarchy(doc, method=None):
 	if lat in (None, "") or lon in (None, ""):
 		return
 	try:
-		float(lat), float(lon)
+		latitude, longitude = float(lat), float(lon)
 	except (TypeError, ValueError):
+		return
+	# A legacy (0,0) pair often means "unset". Do not resolve a misleading
+	# hierarchy for it unless the researcher explicitly confirmed the origin.
+	origin_field = cfg.get("origin_confirmed_field") or "coordinate_origin_confirmed"
+	confirmed = getattr(doc, origin_field, None) in (1, True, "1")
+	if latitude == 0 and longitude == 0 and not confirmed:
 		return
 	try:
 		from siraj_research.geo_hierarchy_ui import apply_to_doc
