@@ -224,3 +224,11 @@ def test_enhanced_map_mirrors_pick_into_geolocation_field():
     assert "function syncMapField(frm, cfg, lat, lon)" in source
     assert "syncMapField(frm, cfg, latitude, longitude);" in source
     assert "$nativeWrapper.append(group);" in source
+
+
+def test_geopoint_bridge_does_not_construct_missing_leaflet_draw_plugin():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "siraj_research/public/js/siraj-geopoint.js").read_text()
+    assert "L.Control.Draw is not a constructor" in source
+    assert "C.prototype.make_map = function (value)" in source
+    assert "new L.Control.Draw" not in source

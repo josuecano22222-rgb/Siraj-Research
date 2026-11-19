@@ -135,26 +135,22 @@
 		await showHierarchy(frm, cfg, lat, lon);
 	}
 
-	// Keep our map field a point picker. Frappe's stock Geolocation control
-	// also offers polygons, lines and circles, which cannot be represented by
-	// latitude/longitude and would be silently lost by the mirror. Other apps'
-	// Geolocation fields keep their native controls.
-	function installPointOnlyControl() {
+	// The enhanced SIRAJ map is mounted inside the Geolocation field, so the
+	// stock Leaflet map must not initialise at all. Frappe's Geolocation
+	// control assumes its Leaflet.Draw and Locate plugins are present; on
+	// this bench they are not always loaded at form-render time, which threw
+	// `L.Control.Draw is not a constructor` and could abort form refresh.
+	// Suppress only our `geo_point` fields; other Geolocation fields keep
+	// Frappe's native behaviour.
+	function suppressStockGeoPointMap() {
 		const C = frappe.ui.form && frappe.ui.form.ControlGeolocation;
-		if (!C || C._sirajPointOnly || !C.prototype.get_leaflet_controls) return false;
-		const original = C.prototype.get_leaflet_controls;
-		C.prototype.get_leaflet_controls = function () {
-			if (!this.df || this.df.fieldname !== 'geo_point') return original.call(this);
-			return new L.Control.Draw({
-				position: 'topleft',
-				draw: {
-					marker: true, polyline: false, polygon: false,
-					circle: false, rectangle: false, circlemarker: false,
-				},
-				edit: { featureGroup: this.editableLayers, remove: true },
-			});
+		if (!C || C._sirajQuietMap || !C.prototype.make_map) return false;
+		const original = C.prototype.make_map;
+		C.prototype.make_map = function (value) {
+			if (this.df && this.df.fieldname === 'geo_point') return;
+			return original.call(this, value);
 		};
-		C._sirajPointOnly = true;
+		C._sirajQuietMap = true;
 		return true;
 	}
 
@@ -190,13 +186,13 @@
 	}
 
 	function boot() {
-		installPointOnlyControl();
+		suppressStockGeoPointMap();
 		const docs = window.sirajCoordinateDocs || {};
 		Object.keys(docs).forEach(doctype => register(doctype, configFor(doctype)));
 		// Generic fallback covers custom DocTypes that use our standard field
 		// names but have no entry in the boot registry.
 		$(document).on('form-refresh.sirajGeopoint', (_event, frm) => {
-			installPointOnlyControl();
+			suppressStockGeoPointMap();
 			if (!frm || !frm.doctype) return;
 			const cfg = configFor(frm.doctype);
 			register(frm.doctype, cfg);

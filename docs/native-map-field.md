@@ -65,7 +65,10 @@ coordinate fields:
    provenance.
 
 `coordinate_map.js` detects the native Geolocation field and mounts the
-enhanced SIRAJ map **inside that field**, hiding the stock Leaflet canvas.
+enhanced SIRAJ map **inside that field**. `siraj-geopoint.js` suppresses the
+stock Geolocation `make_map()` for `geo_point` fields entirely, so Frappe
+never tries to instantiate Leaflet.Draw/Locate plugins that are not present
+on this bench. Other Geolocation fields are untouched.
 That is why the visible map has the SIRAJ dock: navigation, basemap switching,
 measure tools, hierarchy and the shared server-cached tiles. The native
 field remains the stored DocType field; the bridge stands down when the
