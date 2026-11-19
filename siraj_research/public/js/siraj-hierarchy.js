@@ -30,18 +30,22 @@
     const levels = CHAIN.map((field, level) => {
       const node = raw && raw.admin_chain && raw.admin_chain[field];
       const label = node && (node.name_ar || node.name_en);
+      // The offline package carries the real DocType name when a hierarchy
+      // row already exists. Only that value is safe to write into a Link
+      // field; otherwise we display the label but leave the Link empty.
+      const linkedName = node && node.linked_name ? node.linked_name : null;
       return {
         level, field,
         doctype: field === 'country' ? 'Country' : field[0].toUpperCase() + field.slice(1),
         label: field[0].toUpperCase() + field.slice(1),
         label_ar: field,
-        name: null,
+        name: linkedName,
         label_en: node && node.name_en ? node.name_en : null,
         label_ar_value: node && node.name_ar ? node.name_ar : null,
         code: node && node.pcode ? node.pcode : null,
         confidence: 'medium',
         source: 'offline-worker',
-        status: label ? 'resolved' : 'gap',
+        status: linkedName ? 'linked' : (label ? 'resolved' : 'gap'),
       };
     });
     const place = raw && raw.nearest_place;

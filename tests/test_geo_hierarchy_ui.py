@@ -345,3 +345,18 @@ def test_precision_column_is_backticked_in_spatial_sql():
         source = (root / name).read_text()
         assert "ag.`precision`" in source, name
         assert "precision," not in source.split("ROW_NUMBER()")[0].split("SELECT parent")[-1] or name.endswith("geo_resolve.py")
+
+
+def test_offline_package_carries_real_linked_names():
+    root = Path(__file__).resolve().parents[1]
+    server = (root / "siraj_research/api/geo_package.py").read_text()
+    worker = (root / "siraj_research/public/js/siraj-geo-worker.js").read_text()
+    hierarchy = (root / "siraj_research/public/js/siraj-hierarchy.js").read_text()
+    coord = (root / "siraj_research/public/js/coordinate_map.js").read_text()
+    assert "def _linked_name_maps(" in server
+    assert "linked_name," in server
+    assert "linked_name: row[6]||''" in worker
+    assert "linked_name: cur.linked_name" in worker
+    assert "const linkedName = node && node.linked_name" in hierarchy
+    assert "name: linkedName" in hierarchy
+    assert "{ offlineOnly: true }" in coord

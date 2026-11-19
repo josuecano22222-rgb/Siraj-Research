@@ -447,9 +447,16 @@
 					} catch (_) { r = null; }
 				}
 				if (!r || r.error) {
-					// Offline worker keeps the chain visible without a server,
-					// but its rows are not linked records. applyAdminChain only
-					// writes them into Data fields, never into Link fields.
+					if (window.SirajHierarchy && window.SirajHierarchy.resolve) {
+						// Force the worker path but still use the shared
+						// normaliser, so offline rows carry real linked names.
+						try { r = await window.SirajHierarchy.resolve(lat, lon, { offlineOnly: true }); }
+						catch (_) { r = null; }
+					}
+				}
+				if ((!r || r.error) && !(window.SirajHierarchy && window.SirajHierarchy.resolve)) {
+					// Legacy fallback when the shared hierarchy module is not
+					// loaded: Data fields only, never Link fields.
 					if (window.SirajGeo && window.SirajGeo.resolve) {
 						try { r = await window.SirajGeo.resolve(lat, lon); } catch(_) { r = null; }
 					}

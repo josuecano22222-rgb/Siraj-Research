@@ -18,7 +18,8 @@ Package format
       "levels":  [0,1,2,3,4],        // admin levels present
       "polygons": [                  // simplified (tolerance_m) polygons
         [level, pcode, parent_pcode, name_en, name_ar,
-         [ [ [lon,lat], ... ] ] ]   // GeoJSON-style coordinates (MultiPolygon)
+         [ [ [lon,lat], ... ] ], // GeoJSON-style coordinates (MultiPolygon)
+         "<linked doc name>"      // deterministic name if a hierarchy row exists
       ],
       "places": [                    // gazetteer points
         [lat, lon, pcode, name_en, feature_code, admin1_pcode, admin2_pcode]
@@ -54,6 +55,7 @@ from typing import Optional
 import frappe
 
 from siraj_research.geo_import import deps_ok, shapely
+from siraj_research.geo_hierarchy import LEVELS, _country_names, level_spec, make_code, normalize_code
 
 
 def _settings() -> dict:
@@ -88,6 +90,32 @@ def _poly_coords(poly):
     return rings
 
 
+def _linked_name_maps() -> dict[str, dict[str, str]]:
+	"""Map pcode/code → real DocType name for every hierarchy level.
+
+	The offline worker can only write a Link field safely when it knows the
+	linked document exists. Shipping these names with the package lets it
+	fill Country/Governorate (and deeper levels) with no server round-trip.
+	"""
+	maps: dict[str, dict[str, str]] = {}
+	for spec in LEVELS[1:]:
+		field = str(spec["field"])
+		maps[field] = {}
+		try:
+			rows = frappe.get_all(spec["doctype"], fields=["name", "code", "pcode"],
+			                      limit_page_length=0)
+		except Exception:
+			continue
+		for row in rows:
+			name = str(row.get("name") or "")
+			if not name:
+				continue
+			for value in (row.get("pcode"), row.get("code")):
+				if value:
+					maps[field][normalize_code(value)] = name
+	return maps
+
+
 def _pack_polygons(dataset: str) -> tuple[list, int]:
     version = int(frappe.db.get_value("Boundary Dataset", dataset, "index_version") or 0)
     # Prefer 'simplified' geometries (smaller); fall back to 'full'.
@@ -108,6 +136,8 @@ def _pack_polygons(dataset: str) -> tuple[list, int]:
     out = []
     if not shapely:
         return out, version
+    linked_maps = _linked_name_maps()
+    countries = _country_names()
     for r in rows:
         try:
             g = shapely.wkb.loads(bytes.fromhex(r.geom_wkb_hex))
@@ -121,13 +151,28 @@ def _pack_polygons(dataset: str) -> tuple[list, int]:
         # Round to 5 decimals (~1.1 m) to shrink payload further without
         # meaningfully affecting point-in-polygon accuracy.
         coords = _round_coords(coords, 5)
+        level = int(r.level or 0)
+        pcode = r.pcode or ""
+        name_en = (r.name_en or "")[:120]
+        # Only reuse a real document name; never invent one offline.
+        linked_name = ""
+        if level == 0:
+            linked_name = countries.get(pcode.upper()) or countries.get(name_en) or ""
+        else:
+            field = str(level_spec(level)["field"])
+            candidates = [pcode, make_code(pcode, name_en, r.parent_pcode or "", level)]
+            for candidate in candidates:
+                linked_name = linked_maps.get(field, {}).get(normalize_code(candidate), "")
+                if linked_name:
+                    break
         out.append([
-            int(r.level or 0),
-            r.pcode or "",
+            level,
+            pcode,
             r.parent_pcode or "",
-            (r.name_en or "")[:120],
+            name_en,
             (r.name_ar or "")[:120],
             coords,
+            linked_name,
         ])
     return out, version
 

@@ -137,7 +137,7 @@
 					const rec = {
 						id: i, level: row[0]|0, pcode: row[1]||'',
 						parent: row[2]||'', name_en: row[3]||'', name_ar: row[4]||'',
-						rings: row[5], bbox: ringBBox(row[5]||[]),
+						rings: row[5], bbox: ringBBox(row[5]||[]), linked_name: row[6]||'',
 					};
 					polys.push(rec);
 					byId.push(rec);
@@ -221,7 +221,8 @@
 				const [lvl, key] = LEVELS[li];
 				if (!cur) break;
 				if (cur.level === lvl) {
-					res.admin_chain[key] = { pcode: cur.pcode, name_en: cur.name_en, name_ar: cur.name_ar };
+					res.admin_chain[key] = { pcode: cur.pcode, name_en: cur.name_en,
+					                         name_ar: cur.name_ar, linked_name: cur.linked_name || '' };
 					cur = cur.parent ? pcodeIndex[cur.parent] : null;
 				} else if (cur.level > lvl) {
 					cur = cur.parent ? pcodeIndex[cur.parent] : null;
