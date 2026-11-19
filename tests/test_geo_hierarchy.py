@@ -70,6 +70,34 @@ def test_make_code_handles_arabic_names_and_collisions():
     assert gh.make_code("IQ.BG", "Baghdad", "IQ", 1) == "IQ-BG"
 
 
+class _FakeGeom:
+    def __init__(self, area, contains):
+        self.area = area
+        self._contains = contains
+
+    def contains(self, point):
+        return self._contains
+
+
+def test_iso_from_pcode_handles_dots_and_dashes():
+    assert gh._iso_from_pcode("IL.01.123") == "IL"
+    assert gh._iso_from_pcode("PS-BTH-BL") == "PS"
+    assert gh._iso_from_pcode("442267") is None
+
+
+def test_containing_ancestors_prefers_smallest_polygon_per_level():
+    candidates = [
+        {"level": 1, "pcode": "IL", "geom": _FakeGeom(100, True)},
+        {"level": 2, "pcode": "IL-01", "geom": _FakeGeom(20, True)},
+        {"level": 2, "pcode": "IL-02", "geom": _FakeGeom(10, False)},
+        {"level": 3, "pcode": "IL-01-A", "geom": _FakeGeom(2, True)},
+        {"level": 5, "pcode": "IL-01-A-Q", "geom": _FakeGeom(0.5, True)},
+    ]
+    ancestors = gh.containing_ancestors(4, (0, 0), candidates)
+    assert set(ancestors) == {1, 2, 3}
+    assert ancestors[2][1]["pcode"] == "IL-01"
+
+
 def test_level_helpers_and_editable_fields():
     assert gh.field_to_level("community") == 5
     assert gh.level_spec("3")["doctype"] == "Municipality"

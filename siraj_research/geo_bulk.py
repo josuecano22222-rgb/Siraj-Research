@@ -498,28 +498,53 @@ def enqueue_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN",
 # ---------------------------------------------------------------------------
 
 def import_gadm(dataset_code: str, file_path: str, level: int,
-                *, enqueue: bool = True, license_id: str = "CC-BY-NC-SA-4.0") -> dict:
-    """Queue a GADM layer for the streaming polygon importer."""
+                *, enqueue: bool = True, sync_hierarchy: bool = True,
+                license_id: str = "CC-BY-NC-SA-4.0") -> dict:
+    """Queue a GADM layer, then create hierarchy rows from its polygons."""
     _ensure_dataset(dataset_code, label_en=f"GADM level {level}",
                     source="GADM (gadm.org)", level=int(level), license_id=license_id,
                     url="https://gadm.org/data.html")
-    return _queue_polygon_import(dataset_code, file_path, level, enqueue=enqueue)
+    return _queue_polygon_import(dataset_code, file_path, level, enqueue=enqueue,
+                                 sync_hierarchy=sync_hierarchy)
 
 
 def import_osm(dataset_code: str, file_path: str, level: int,
-               *, enqueue: bool = True) -> dict:
-    """Queue an OSM-derived GeoPackage/shapefile/GeoJSON boundary layer.
+               *, enqueue: bool = True, sync_hierarchy: bool = True) -> dict:
+    """Queue an OSM-derived boundary layer, then sync hierarchy rows.
 
     Raw ``.osm.pbf`` files must first be converted with :func:`osm_commands`.
     """
     _ensure_dataset(dataset_code, label_en=f"OSM administrative level {level}",
                     source="OpenStreetMap contributors", level=int(level),
                     license_id="ODbL-1.0", url="https://www.openstreetmap.org/copyright")
-    return _queue_polygon_import(dataset_code, file_path, level, enqueue=enqueue)
+    return _queue_polygon_import(dataset_code, file_path, level, enqueue=enqueue,
+                                 sync_hierarchy=sync_hierarchy)
 
 
-def _queue_polygon_import(dataset: str, file_path: str, level: int, *, enqueue: bool) -> dict:
+def import_and_sync_boundary_job(dataset_name: str, file_path_str: str, level: int,
+                                 *, sync_hierarchy: bool = True,
+                                 levels: Iterable[int] | None = None) -> dict:
+    """Long-worker entry point: import polygons, then materialise DocTypes."""
     from siraj_research.geo_import import import_boundary_job
+    import_boundary_job(dataset_name, file_path_str, is_gazetteer=False)
+    if not sync_hierarchy:
+        return {"dataset": dataset_name, "imported": True, "synced": False}
+    from siraj_research.geo_hierarchy import sync_hierarchy_from_boundaries
+    return sync_hierarchy_from_boundaries(
+        dataset_name, levels=levels or [int(level)], create_missing=True)
+
+
+def sync_boundary_hierarchy(dataset_code: str, *, levels: Iterable[int] | None = None,
+                            create_missing: bool = True, batch_size: int = 200) -> dict:
+    """Create hierarchy rows from an already-imported Boundary Dataset."""
+    from siraj_research.geo_hierarchy import sync_hierarchy_from_boundaries
+    return sync_hierarchy_from_boundaries(
+        dataset_code, levels=levels, create_missing=create_missing,
+        batch_size=batch_size)
+
+
+def _queue_polygon_import(dataset: str, file_path: str, level: int, *, enqueue: bool,
+                          sync_hierarchy: bool = True) -> dict:
     if frappe is None:
         return {"queued": False, "dataset": dataset, "file": file_path}
     frappe.db.set_value("Boundary Dataset", dataset, {
@@ -528,15 +553,22 @@ def _queue_polygon_import(dataset: str, file_path: str, level: int, *, enqueue: 
         "import_log": "Queued - waiting for worker.",
     }, update_modified=False)
     frappe.db.commit()
+    kwargs = {
+        "dataset_name": dataset,
+        "file_path_str": file_path,
+        "level": int(level),
+        "sync_hierarchy": bool(sync_hierarchy),
+        "levels": [int(level)],
+    }
     if not enqueue:
-        import_boundary_job(dataset, file_path, is_gazetteer=False)
-        return {"queued": False, "dataset": dataset, "imported": True}
+        import_and_sync_boundary_job(**kwargs)
+        return {"queued": False, "dataset": dataset, "imported": True,
+                "synced": bool(sync_hierarchy)}
     frappe.enqueue(
-        import_boundary_job, queue="long", timeout=6 * 60 * 60,
-        dataset_name=dataset, file_path_str=file_path, is_gazetteer=False,
-        job_id=f"siraj-bulk-boundary:{dataset}",
+        import_and_sync_boundary_job, queue="long", timeout=6 * 60 * 60,
+        job_id=f"siraj-bulk-boundary:{dataset}", **kwargs,
     )
-    return {"queued": True, "dataset": dataset}
+    return {"queued": True, "dataset": dataset, "synced": bool(sync_hierarchy)}
 
 
 def osm_commands(input_path: str, output_dir: str) -> list[list[str]]:
@@ -552,7 +584,7 @@ def osm_commands(input_path: str, output_dir: str) -> list[list[str]]:
     geojson = out / f"{src.stem}-boundaries.geojson"
     return [
         ["osmium", "tags-filter", str(src), "r/boundary=administrative",
-         "-o", str(filtered)],
+         "w/boundary=administrative", "-o", str(filtered)],
         ["osmium", "export", "--geometry=multipolygon", "--overwrite",
          "-f", "geojson", str(filtered), "-o", str(geojson)],
     ]

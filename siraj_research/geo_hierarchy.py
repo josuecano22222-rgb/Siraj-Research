@@ -512,3 +512,227 @@ def editable_fields(level: int) -> tuple[str, ...]:
 	return ("label_en", "label_ar", "description_en", "description_ar",
 	        "latitude", "longitude", "bbox", "boundary", "source_dataset",
 	        "source_kind", "last_verified_on", "sort_order", "disabled")
+
+
+# ---------------------------------------------------------------------------
+# Polygon → hierarchy synchronisation
+# ---------------------------------------------------------------------------
+
+def _iso_from_pcode(pcode: Any) -> str | None:
+    text = str(pcode or "").strip().upper()
+    if "." in text:
+        candidate = text.split(".", 1)[0]
+        if len(candidate) in (2, 3) and candidate.isalpha():
+            return candidate
+    match = re.match(r"^([A-Z]{2,3})", text)
+    return match.group(1) if match else None
+
+
+def containing_ancestors(level: int, point, candidates: Iterable[dict]) -> dict[int, tuple[float, dict]]:
+    """Return the smallest containing polygon for each level below ``level``.
+
+    ``candidates`` is an iterable of records carrying ``level`` and ``geom``.
+    This is pure geometry logic; the caller supplies the STRtree candidates.
+    """
+    best: dict[int, tuple[float, dict]] = {}
+    for record in candidates or []:
+        try:
+            candidate_level = int(record.get("level") or 0)
+        except (TypeError, ValueError):
+            continue
+        if candidate_level <= 0 or candidate_level >= level:
+            continue
+        geom = record.get("geom")
+        if geom is None:
+            continue
+        try:
+            if not geom.contains(point):
+                continue
+            area = float(getattr(geom, "area", 0) or 0)
+        except Exception:
+            continue
+        if candidate_level not in best or area < best[candidate_level][0]:
+            best[candidate_level] = (area, record)
+    return best
+
+
+def _country_names() -> dict[str, str]:
+    if frappe is None:
+        return {}
+    rows = frappe.get_all("Country", fields=["name", "code"], limit_page_length=0)
+    result: dict[str, str] = {}
+    for row in rows:
+        if row.get("code"):
+            result[str(row["code"]).upper()] = row["name"]
+        result[row["name"]] = row["name"]
+    return result
+
+
+def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None = None,
+                                   create_missing: bool = True,
+                                   batch_size: int = 200) -> dict:
+    """Create/update hierarchy rows from every polygon in a Boundary Dataset.
+
+    This is the step that turns imported GADM/OSM geometry into actual
+    Governorate/District/Municipality/Village/Community records at the final
+    level. Parents come from ``parent_pcode`` when present; otherwise they are
+    inferred spatially from the smallest containing polygon at each lower
+    level. Existing rows are never overwritten — only empty spatial fields are
+    back-filled by :func:`upsert_level`.
+    """
+    if frappe is None:
+        return {"error": "frappe unavailable", "dataset": dataset}
+    from siraj_research.geo_import import deps_ok, shapely
+    ok, missing = deps_ok()
+    if not ok or shapely is None:
+        return {"error": "geospatial dependencies missing: " + ",".join(missing),
+                "dataset": dataset}
+    from shapely import wkb as shapely_wkb
+    from shapely.strtree import STRtree
+
+    rows = frappe.db.sql(
+        """SELECT ab.name, ab.pcode, ab.level, ab.name_en, ab.name_ar, ab.country,
+                  ab.parent_pcode, ab.centroid_lat, ab.centroid_lon, ab.bbox,
+                  ab.source_id, ag_s.geom_wkb_hex AS simplified_wkb,
+                  ag_f.geom_wkb_hex AS full_wkb
+           FROM `tabAdmin Boundary` ab
+           LEFT JOIN `tabAdmin Boundary Geom` ag_s
+             ON ag_s.parent = ab.name AND ag_s.precision='simplified'
+           LEFT JOIN `tabAdmin Boundary Geom` ag_f
+             ON ag_f.parent = ab.name AND ag_f.precision='full'
+           WHERE ab.dataset = %s""",
+        (dataset,),
+        as_dict=True,
+    )
+    records: list[dict] = []
+    geoms: list = []
+    by_pcode: dict[str, dict] = {}
+    for row in rows:
+        hex_wkb = row.simplified_wkb or row.full_wkb
+        if not hex_wkb:
+            continue
+        try:
+            geom = shapely_wkb.loads(bytes.fromhex(hex_wkb))
+        except Exception:
+            continue
+        if geom is None or geom.is_empty:
+            continue
+        try:
+            level = int(row.level or 0)
+        except (TypeError, ValueError):
+            continue
+        record = {
+            "name": row.name,
+            "pcode": row.pcode or row.source_id,
+            "source_id": row.source_id,
+            "level": level,
+            "name_en": row.name_en,
+            "name_ar": row.name_ar,
+            "country": row.country,
+            "parent_pcode": row.parent_pcode,
+            "centroid_lat": row.centroid_lat,
+            "centroid_lon": row.centroid_lon,
+            "bbox": row.bbox,
+            "geom": geom,
+        }
+        records.append(record)
+        geoms.append(geom)
+        if record["pcode"]:
+            by_pcode[normalize_code(record["pcode"])] = record
+    tree = STRtree(geoms) if geoms else None
+    records.sort(key=lambda rec: (rec["level"], str(rec["pcode"] or "")))
+
+    wanted_levels = {int(level) for level in levels} if levels else {1, 2, 3, 4, 5}
+    countries = _country_names()
+    name_by_pcode: dict[str, str] = {}
+    counts: dict[int, dict[str, int]] = {}
+    inferred_parents = 0
+    skipped = 0
+    processed = 0
+
+    for record in records:
+        level = record["level"]
+        if level not in wanted_levels or level < 1 or level > 5:
+            continue
+        pcode = record["pcode"] or record["name"]
+        if not pcode:
+            skipped += 1
+            continue
+        iso = (record["country"] or _iso_from_pcode(pcode)
+               or _iso_from_pcode(record["source_id"]))
+        country_name = countries.get(iso) if iso else None
+        if not country_name:
+            skipped += 1
+            continue
+
+        ancestors: dict[str, str] = {"country": country_name}
+        parent_name: str | None = None
+        parent_level = 0
+        parent_code = normalize_code(record["parent_pcode"]) if record["parent_pcode"] else None
+        if parent_code and parent_code in name_by_pcode:
+            parent_name = name_by_pcode[parent_code]
+            parent_record = by_pcode.get(parent_code)
+            try:
+                parent_level = int(parent_record["level"]) if parent_record else level - 1
+            except (TypeError, ValueError, KeyError):
+                parent_level = level - 1
+        else:
+            point = record["geom"].representative_point()
+            candidates = [records[i] for i in tree.query(point)] if tree is not None else []
+            best = containing_ancestors(level, point, candidates)
+            for ancestor_level, (_, ancestor_record) in best.items():
+                ancestor_name = name_by_pcode.get(normalize_code(ancestor_record["pcode"]))
+                if ancestor_name:
+                    ancestors[str(LEVELS[ancestor_level]["field"])] = ancestor_name
+            if best:
+                parent_level = max(best)
+                parent_record = best[parent_level][1]
+                parent_name = name_by_pcode.get(normalize_code(parent_record["pcode"]))
+                inferred_parents += 1
+        if not parent_name:
+            # Last resort: attach to the country. Intermediate Links stay
+            # empty, which the DocTypes now explicitly allow.
+            parent_name = country_name
+            parent_level = 0
+
+        parent_field = "country" if parent_level == 0 else str(LEVELS[parent_level]["field"])
+        spec = LEVELS[level]
+        entry = {
+            "doctype": spec["doctype"],
+            "level": level,
+            "field": spec["field"],
+            "pcode": pcode,
+            "code": make_code(pcode, record["name_en"], normalize_code(parent_code), level),
+            "label_en": record["name_en"] or str(pcode),
+            "label_ar": record["name_ar"],
+            "parent_code": parent_code,
+            "parent_field": parent_field,
+            "ancestor_codes": ancestors,
+            "boundary": record["name"],
+            "bbox": record["bbox"],
+            "source": dataset,
+            "admin_level_type": f"Imported level {level}",
+        }
+        result = upsert_level(
+            entry, parent_name,
+            lat=record["centroid_lat"], lon=record["centroid_lon"],
+            dataset=dataset, create_missing=create_missing,
+        )
+        if result.get("name"):
+            name_by_pcode[normalize_code(pcode)] = result["name"]
+        bucket = counts.setdefault(level, {"created": 0, "existing": 0, "missing": 0})
+        status = result.get("status", "missing")
+        bucket[status] = bucket.get(status, 0) + 1
+        processed += 1
+        if processed % max(1, batch_size) == 0:
+            frappe.db.commit()
+
+    frappe.db.commit()
+    return {
+        "dataset": dataset,
+        "boundaries": len(records),
+        "synced": processed,
+        "skipped": skipped,
+        "inferred_parents": inferred_parents,
+        "by_level": {str(level): counts.get(level, {}) for level in sorted(wanted_levels)},
+    }

@@ -112,9 +112,9 @@ def _extract_if_zip(path: Path, workdir: Path) -> list[Path]:
 # or Gazetteer Place), plus a list of lower-case aliases seen in common
 # datasets (geoBoundaries, OCHA COD-AB Iraq/Afghanistan, GeoNames, OSM).
 POLYGON_FIELDS = {
-    "pcode":      ["pcode", "adm{pcode}_pcode".format(pcode="{level}"),  "shape_pcode", "ocd_id", "ref_pcode"],
+    "pcode":      ["pcode", "adm{pcode}_pcode".format(pcode="{level}"), "shape_pcode", "ocd_id", "ref_pcode", "osm_id", "osm_relation_id", "ref"],
     "name_en":    ["name_en", "engtype", "name", "nam", "admin{pcode}_name".format(pcode="{level}"), "shape_en"],
-    "name_ar":    ["name_ar", "ar_name", "arname", "admin{pcode}_ar".format(pcode="{level}"), "shape_ar"],
+    "name_ar":    ["name_ar", "ar_name", "arname", "name:ar", "admin{pcode}_ar".format(pcode="{level}"), "shape_ar"],
     "parent_pcode":["parent_pcode", "par_pcode", "adm{pcode}_pcode".format(pcode="{parent}"), "parent_adm", "par_id"],
     "source_id":  ["id", "fid", "objectid", "shape_id", "ogc_fid"],
 }

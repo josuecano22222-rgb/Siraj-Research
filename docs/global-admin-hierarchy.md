@@ -344,6 +344,47 @@ levels are filled by combining three sources in this order:
    Without it, call `prepare_osm(..., run=False)` and run the printed commands
    yourself, or import an already-prepared GeoJSON/GPKG directly.
 
+### Polygon-to-hierarchy synchronisation
+
+Importing polygons alone is not enough: `Admin Boundary` stores geometry, but
+the editable hierarchy needs real DocType rows. Every GADM/OSM import now runs
+`geo_hierarchy.sync_hierarchy_from_boundaries()` at the end of the same worker
+job. That step:
+
+- reads full/simplified WKB from the dataset;
+- uses `parent_pcode` when the source supplies it;
+- otherwise finds the smallest containing polygon at each lower level with an
+  STRtree and links to that parent;
+- creates missing `Governorate … Community` rows with deterministic codes,
+  bilingual labels, bbox, center coordinates and a Link to the polygon;
+- never overwrites a researcher's edits.
+
+For an already-imported dataset, run it manually:
+
+```bash
+bench --site SITE execute siraj_research.geo_bulk.sync_boundary_hierarchy \
+  --kwargs '{"dataset_code":"OSM-IL-COMMUNITY","levels":[5]}'
+```
+
+This is the mechanism that reaches the final `Community` level: GeoNames has
+no ADM4/ADM5 features for Israel or Palestine, so OSM/GADM polygons are the
+source of those rows.
+
+For Israel and Palestine, prepare an OSM extract such as
+`israel-and-palestine-latest.osm.pbf`, then:
+
+```bash
+bench --site SITE execute siraj_research.geo_bulk.prepare_osm \
+  --kwargs '{"input_path":"/home/frappe/frappe-bench/geodata/osm/israel-and-palestine-latest.osm.pbf","output_dir":"/home/frappe/frappe-bench/geodata/osm","run": True}'
+
+# Level 5 = Community / neighbourhood.
+bench --site SITE execute siraj_research.geo_bulk.import_osm \
+  --kwargs '{"dataset_code":"OSM-IL-PS-COMMUNITY","file_path":"/home/frappe/frappe-bench/geodata/osm/israel-and-palestine-latest.osm-boundaries.geojson","level":5}'
+```
+
+Because `import_osm` now syncs automatically, the level-5 records appear in
+the same job. Re-run with a different `level` for village/municipality layers.
+
 ### Coverage report
 
 Run this after each import to see exactly which countries still need work:
