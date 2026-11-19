@@ -51,6 +51,7 @@ import hashlib
 import json
 import math
 from typing import Optional
+from pathlib import Path
 
 import frappe
 
@@ -208,6 +209,28 @@ def _pack_places(dataset: str | None) -> list:
     return out
 
 
+def build_package(dataset: str | None, gazetteer: str | None = None) -> dict:
+    """Build the client package entirely from local bench data."""
+    if not dataset:
+        return {"dataset": None, "version": 0, "levels": [], "polygons": [],
+                "places": [], "etag": "none:0"}
+    ok, missing = deps_ok()
+    if not ok:
+        return {"dataset": dataset, "version": 0, "levels": [], "polygons": [],
+                "places": [], "etag": f"{dataset}:0", "error": "missing_dependencies",
+                "missing": missing}
+    polygons, version = _pack_polygons(dataset)
+    places = _pack_places(gazetteer)
+    return {
+        "dataset": dataset,
+        "version": int(version or 0),
+        "levels": sorted({row[0] for row in polygons}),
+        "polygons": polygons,
+        "places": places,
+        "etag": f"{dataset}:{int(version or 0)}",
+    }
+
+
 @frappe.whitelist(methods=["GET"])
 def current():
     """Return the active spatial package as a normal JSON response.
@@ -221,31 +244,43 @@ def current():
     if not frappe.has_permission("Place", "read"):
         frappe.throw("Not permitted.", frappe.PermissionError)
     cfg = _settings()
-    dataset = cfg["active_boundary"]
-    if not dataset:
-        return {"dataset": None, "version": 0, "levels": [], "polygons": [],
-                "places": [], "etag": "none:0"}
-    ok, missing = deps_ok()
-    if not ok:
-        return {"dataset": dataset, "version": 0, "levels": [], "polygons": [],
-                "places": [], "etag": f"{dataset}:0", "error": "missing_dependencies",
-                "missing": missing}
-    polygons, version = _pack_polygons(dataset)
-    places = _pack_places(cfg["active_gazetteer"])
-    levels = sorted({row[0] for row in polygons})
-    etag = f"{dataset}:{int(version or 0)}"
+    payload = build_package(cfg["active_boundary"], cfg["active_gazetteer"])
     inm = ""
     if frappe.request:
         inm = frappe.request.headers.get("If-None-Match", "") or ""
-    inm = inm or str(frappe.form_dict.get("version") or "")
-    if etag and etag in inm:
+    inm = inm or str((getattr(frappe, "form_dict", None) or {}).get("version") or "")
+    if payload.get("etag") and payload["etag"] in inm:
         frappe.response["http_status_code"] = 304
         return ""
+    return payload
+
+
+def export_offline_package(path: str | None = None) -> dict:
+    """Materialise the package as a same-origin static asset.
+
+    This is the zero-internet bootstrap: run it on the bench after local
+    imports, then the browser can load ``/assets/siraj_research/data/
+    geo-package.json`` without calling any remote service.
+    """
+    cfg = _settings()
+    if not cfg["active_boundary"]:
+        return {"error": "No active boundary dataset", "written": False}
+    payload = build_package(cfg["active_boundary"], cfg["active_gazetteer"])
+    if payload.get("error"):
+        return {**payload, "written": False}
+    target = Path(path) if path else Path(frappe.get_app_path(
+        "siraj_research", "public", "data", "geo-package.json"))
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_suffix(target.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, separators=(",", ":"), ensure_ascii=False),
+                   encoding="utf-8")
+    tmp.replace(target)
     return {
-        "dataset": dataset,
-        "version": int(version or 0),
-        "levels": levels,
-        "polygons": polygons,
-        "places": places,
-        "etag": etag,
+        "written": True,
+        "path": str(target),
+        "dataset": payload["dataset"],
+        "version": payload["version"],
+        "polygons": len(payload["polygons"]),
+        "places": len(payload["places"]),
+        "etag": payload["etag"],
     }

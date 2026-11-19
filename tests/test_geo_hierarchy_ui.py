@@ -318,7 +318,7 @@ def test_geo_package_returns_json_dict_and_client_unwraps_message():
     server = (root / "siraj_research/api/geo_package.py").read_text()
     client = (root / "siraj_research/public/js/siraj-geo.js").read_text()
     assert 'frappe.response["data"]' not in server
-    assert '"etag": etag' in server
+    assert '"etag": f"{dataset}:{int(version or 0)}"' in server
     assert '?version=' in client
     assert "wrapped.message !== undefined" in client
 
@@ -360,3 +360,15 @@ def test_offline_package_carries_real_linked_names():
     assert "const linkedName = node && node.linked_name" in hierarchy
     assert "name: linkedName" in hierarchy
     assert "{ offlineOnly: true }" in coord
+
+
+def test_zero_internet_bootstrap_assets_exist():
+    root = Path(__file__).resolve().parents[1]
+    server = (root / "siraj_research/api/geo_package.py").read_text()
+    client = (root / "siraj_research/public/js/siraj-geo.js").read_text()
+    docs = (root / "docs/offline-first.md").read_text()
+    assert "def export_offline_package(" in server
+    assert "/assets/siraj_research/data/geo-package.json" in client
+    assert "SIRAJ_OFFLINE_BOOTSTRAP" in client
+    assert "allow_tile_fetch" in docs
+    assert "Offline" in docs
