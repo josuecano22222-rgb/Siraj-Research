@@ -442,7 +442,7 @@
 				if (window.SirajHierarchy && window.SirajHierarchy.resolve) {
 					try {
 						r = await window.SirajHierarchy.resolve(lat, lon, {
-							createMissing: true, useOnline: true, force: true,
+							createMissing: true, useOnline: true,
 						});
 					} catch (_) { r = null; }
 				}

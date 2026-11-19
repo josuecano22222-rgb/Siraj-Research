@@ -279,7 +279,7 @@ def test_form_autofill_uses_linked_server_rows_and_survives_missing_toolbar():
     source = (root / "siraj_research/public/js/coordinate_map.js").read_text()
     hierarchy = (root / "siraj_research/public/js/siraj-hierarchy.js").read_text()
     assert "window.SirajHierarchy.resolve(lat, lon, {" in source
-    assert "createMissing: true, useOnline: true, force: true," in source
+    assert "createMissing: true, useOnline: true," in source
     assert "value = (row.status === 'linked' && row.name) ? row.name : null;" in source
     assert "const fallbackToolbar = () => {" in source
     assert "if (opts.force) { cache.delete(k); inflight.delete(k); }" in hierarchy
@@ -311,3 +311,29 @@ def test_hierarchy_upsert_is_parent_safe_and_duplicate_tolerant():
     assert '"Duplicate entry" in message' in source
     bulk = (root / "siraj_research/geo_bulk.py").read_text()
     assert '"active_boundary_dataset", dataset' in bulk
+
+
+def test_geo_package_returns_json_dict_and_client_unwraps_message():
+    root = Path(__file__).resolve().parents[1]
+    server = (root / "siraj_research/api/geo_package.py").read_text()
+    client = (root / "siraj_research/public/js/siraj-geo.js").read_text()
+    assert 'frappe.response["data"]' not in server
+    assert '"etag": etag' in server
+    assert '?version=' in client
+    assert "wrapped.message !== undefined" in client
+
+
+def test_tile_failures_are_fast_and_cheap():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "siraj_research/tile_cache.py").read_text()
+    assert "_HTTP_TIMEOUT = 4" in source
+    assert "_EMPTY_PNG" in source
+    assert 'frappe.logger("siraj.tile_cache").warning' in source
+    assert 'frappe.log_error(f"Tile fetch failed' not in source
+
+
+def test_save_hook_skips_resolution_when_hierarchy_is_already_complete():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "siraj_research/geo_doc_events.py").read_text()
+    assert "level_fields" in source
+    assert "not hasattr(doc, fieldname) or getattr(doc, fieldname) not in (None, \"\")" in source

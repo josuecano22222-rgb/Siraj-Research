@@ -12,7 +12,7 @@ Package format
 ``GET /api/method/siraj_research.api.geo_package.current`` returns
 ``application/json``:
 
-    {
+    {"message": {
       "dataset": "<code>",
       "version": <int>,              // ETag
       "levels":  [0,1,2,3,4],        // admin levels present
@@ -22,8 +22,9 @@ Package format
       ],
       "places": [                    // gazetteer points
         [lat, lon, pcode, name_en, feature_code, admin1_pcode, admin2_pcode]
-      ]
-    }
+      ],
+      "etag": "<dataset>:<version>"
+    }}
 
 Coordinates are already EPSG:4326. The polygon geometries are the *simplified*
 variant (see Boundary Dataset.simplification_tolerance_m) so a typical
@@ -164,45 +165,42 @@ def _pack_places(dataset: str | None) -> list:
 
 @frappe.whitelist(methods=["GET"])
 def current():
-    """Return the active spatial package as JSON.
+    """Return the active spatial package as a normal JSON response.
 
-    The response sets ETag = str(version) and honours If-None-Match so the
-    client can skip re-download when unchanged. Gzip is applied when the
-    client accepts it (payload compresses ~75%).
+    Frappe serialises the returned dict through its normal JSON
+    machinery; writing raw gzip bytes there serialised every byte as an
+    integer array and produced a 500 once the package became non-empty.
+    Clients send the last etag as ``?version=`` and get a 304 when nothing
+    changed, which keeps repeat loads cheap.
     """
     if not frappe.has_permission("Place", "read"):
         frappe.throw("Not permitted.", frappe.PermissionError)
     cfg = _settings()
     dataset = cfg["active_boundary"]
     if not dataset:
-        return {"dataset": None, "version": 0, "levels": [], "polygons": [], "places": []}
+        return {"dataset": None, "version": 0, "levels": [], "polygons": [],
+                "places": [], "etag": "none:0"}
     ok, missing = deps_ok()
+    if not ok:
+        return {"dataset": dataset, "version": 0, "levels": [], "polygons": [],
+                "places": [], "etag": f"{dataset}:0", "error": "missing_dependencies",
+                "missing": missing}
     polygons, version = _pack_polygons(dataset)
     places = _pack_places(cfg["active_gazetteer"])
     levels = sorted({row[0] for row in polygons})
-    payload = {
+    etag = f"{dataset}:{int(version or 0)}"
+    inm = ""
+    if frappe.request:
+        inm = frappe.request.headers.get("If-None-Match", "") or ""
+    inm = inm or str(frappe.form_dict.get("version") or "")
+    if etag and etag in inm:
+        frappe.response["http_status_code"] = 304
+        return ""
+    return {
         "dataset": dataset,
         "version": int(version or 0),
         "levels": levels,
         "polygons": polygons,
         "places": places,
+        "etag": etag,
     }
-    body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-    etag = '"' + hashlib.sha1(str(version).encode() + dataset.encode()).hexdigest()[:16] + '"'
-    inm = frappe.request.headers.get("If-None-Match", "") if frappe.request else ""
-    if inm and etag in inm:
-        frappe.response["http_status_code"] = 304
-        return ""
-    accept_enc = (frappe.request.headers.get("Accept-Encoding", "") if frappe.request else "")
-    if "gzip" in accept_enc:
-        body = gzip.compress(body, compresslevel=6)
-        frappe.response["headers"] = {"Content-Encoding": "gzip"}
-    frappe.response["data"] = body
-    frappe.response["type"] = "application/json; charset=utf-8"
-    frappe.response["headers"] = frappe.response.get("headers") or {}
-    frappe.response["headers"].update({
-        "ETag": etag,
-        "Cache-Control": "public, max-age=0, must-revalidate",
-        "Vary": "Accept-Encoding",
-    })
-    return ""

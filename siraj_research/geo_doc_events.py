@@ -21,6 +21,17 @@ def auto_fill_hierarchy(doc, method=None):
 	cfg = dict(COORDINATE_DOCS.get(getattr(doc, "doctype", "")) or {})
 	if not cfg:
 		return
+	# If every hierarchy Link is already populated there is nothing to do;
+	# resolving again on every save was a major Desk latency regression.
+	level_fields = [
+		fieldname for key, fieldname in (cfg.get("admin_fields") or {}).items()
+		if key != "place_name" and fieldname
+	]
+	if level_fields and all(
+		not hasattr(doc, fieldname) or getattr(doc, fieldname) not in (None, "")
+		for fieldname in level_fields
+	):
+		return
 	lat = getattr(doc, cfg.get("lat_field") or "latitude", None)
 	lon = getattr(doc, cfg.get("lon_field") or "longitude", None)
 	if lat in (None, "") or lon in (None, ""):

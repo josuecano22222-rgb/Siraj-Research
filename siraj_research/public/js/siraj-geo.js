@@ -106,15 +106,23 @@
 		currentPackage = pkg;
 	}
 
-	// Fetch package from server. Send If-None-Match to avoid re-download.
+	// Fetch package from server. The etag travels in ?version= as well as
+	// If-None-Match because Frappe does not relay custom response headers;
+	// the endpoint returns 304 when the cached version is unchanged.
 	function fetchPackage(etag) {
-		const headers = { 'Accept': 'application/json', 'Accept-Encoding': 'gzip' };
+		const headers = { 'Accept': 'application/json' };
 		if (etag) headers['If-None-Match'] = etag;
-		return fetch('/api/method/siraj_research.api.geo_package.current', { headers, credentials: 'same-origin' })
+		const query = etag ? ('?version=' + encodeURIComponent(etag)) : '';
+		return fetch('/api/method/siraj_research.api.geo_package.current' + query,
+			{ headers, credentials: 'same-origin' })
 			.then(res => {
 				if (res.status === 304) return { __notModified: true, etag };
 				if (!res.ok) throw new Error('HTTP ' + res.status);
-				return res.json().then(body => ({ etag: res.headers.get('ETag') || '', body: body }));
+				return res.json().then(wrapped => {
+					// /api/method wraps the return value in `message`.
+					const body = (wrapped && wrapped.message !== undefined) ? wrapped.message : wrapped;
+					return { etag: (body && body.etag) || res.headers.get('ETag') || '', body: body };
+				});
 			});
 	}
 
