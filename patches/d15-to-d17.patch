@@ -1,0 +1,1134 @@
+diff --git a/docs/hierarchy-cascade.md b/docs/hierarchy-cascade.md
+new file mode 100644
+index 0000000..6dabb2e
+--- /dev/null
++++ b/docs/hierarchy-cascade.md
+@@ -0,0 +1,50 @@
++# Country → Community cascading in Desk forms
++
++Every form that exposes the location hierarchy (Person, Institution, Place,
++Research Event, Siraj Event, Military Unit, Operational Deployment, Explorer,
++and the hierarchy DocTypes themselves) now supports two directions of
++selection:
++
++- **Downward:** select **Country**, then the **Governorate** dropdown contains
++  only governorates of that country. The same restriction continues for
++  District → Municipality → Village → Community. The next-level choices are
++  also shown as small buttons inside the **Location** section, so the user can
++  see the available values without guessing.
++- **Upward:** select a lower level first (for example a Community). The form
++  reads that record's own Link fields and fills Country, Governorate,
++  District, Municipality and Village automatically.
++
++Empty levels stay empty. The system never invents a hierarchy row or writes a
++raw code/label into a Link field.
++
++## Where the data comes from
++
++1. **Local bench (authoritative):** `siraj_research.geo_cascade.cascade`
++   reads the same hierarchy DocTypes the Link fields point at. It creates
++   nothing and makes no external request. This is normal Desk operation.
++2. **Same-origin offline package (fallback):** if the local API cannot be
++   reached, `siraj-cascade-core.js` builds an index from
++   `/assets/siraj_research/data/geo-package.json` (format 2 adds the Country
++   code to each polygon row). No OSM, Esri, Nominatim or GeoNames host is
++   contacted.
++
++## Human values are protected
++
++When an automatically implied ancestor differs from a value already on the
++form, a **Keep existing / Replace higher levels** dialog is shown. Empty
++fields are filled either way. Changing or clearing a parent clears only the
++now-invalid descendant fields, with no silent rewrite of unrelated data.
++
++All hierarchy controls, map controls and the cascade status remain together
++in one **Location** section (enforced by `siraj-location-layout.js`).
++
++## Re-export after upgrading
++
++Because the package format changed to 2, re-export the static asset once:
++
++```bash
++cd ~/frappe-bench
++bench --site frappe.com execute siraj_research.api.geo_package.export_offline_package
++```
++
++The browser will then load the new `OSM-IL-PS:2.2` etag on reload.
+diff --git a/docs/offline-first.md b/docs/offline-first.md
+index b7bbcb3..4d95581 100644
+--- a/docs/offline-first.md
++++ b/docs/offline-first.md
+@@ -26,8 +26,17 @@ bench --site frappe.com execute siraj_research.offline_bootstrap.prepare_offline
+ ```
+ 
+ Progress is printed immediately to the terminal and appended to
+-`sites/frappe.com/private/offline-cache/bootstrap-progress.json`. In another
+-terminal you can watch it live:
++`sites/frappe.com/private/offline-cache/bootstrap-progress.json`. Each zoom
++now reports separate `written`, `cached` and `failed` counts — `skipped` no
++longer hides failed downloads. If any tile fails, the offline lock is skipped
++so you can rerun while online; pass `"force_lock":True` only when you accept
++the partial cache.
++
++Zoom 15 covers roughly 310,000 tiles per layer for a small country, so use
++`max_zoom=11` or `12` unless you need street-level raster detail and have the
++disk space.
++
++In another terminal you can watch progress live:
+ 
+ ```bash
+ tail -f ~/frappe-bench/sites/frappe.com/private/offline-cache/bootstrap-progress.json
+diff --git a/siraj_research/api/geo_package.py b/siraj_research/api/geo_package.py
+index 41bb8cd..a53b1c3 100644
+--- a/siraj_research/api/geo_package.py
++++ b/siraj_research/api/geo_package.py
+@@ -58,6 +58,10 @@ import frappe
+ from siraj_research.geo_import import deps_ok, shapely
+ from siraj_research.geo_hierarchy import LEVELS, _country_names, level_spec, make_code, normalize_code
+ 
++# Bump when the polygon row shape changes so browsers re-fetch the static
++# package after an app update. Format 2 adds the Country code at row[7].
++PACKAGE_FORMAT = 2
++
+ 
+ def _settings() -> dict:
+     try:
+@@ -122,7 +126,7 @@ def _pack_polygons(dataset: str) -> tuple[list, int]:
+     # Prefer 'simplified' geometries (smaller); fall back to 'full'.
+     rows = frappe.db.sql(
+         """SELECT ab.pcode, ab.parent_pcode, ab.level, ab.name_en, ab.name_ar,
+-                  ag.`precision`, ag.geom_wkb_hex, ag.point_count
++                  ab.country, ag.`precision`, ag.geom_wkb_hex, ag.point_count
+            FROM `tabAdmin Boundary` ab
+            LEFT JOIN (
+                SELECT `parent`, `precision`, geom_wkb_hex, point_count,
+@@ -174,6 +178,7 @@ def _pack_polygons(dataset: str) -> tuple[list, int]:
+             (r.name_ar or "")[:120],
+             coords,
+             linked_name,
++            (r.country or ""),
+         ])
+     return out, version
+ 
+@@ -212,22 +217,24 @@ def _pack_places(dataset: str | None) -> list:
+ def build_package(dataset: str | None, gazetteer: str | None = None) -> dict:
+     """Build the client package entirely from local bench data."""
+     if not dataset:
+-        return {"dataset": None, "version": 0, "levels": [], "polygons": [],
+-                "places": [], "etag": "none:0"}
++        return {"dataset": None, "version": 0, "format": PACKAGE_FORMAT,
++                "levels": [], "polygons": [], "places": [], "etag": "none:0"}
+     ok, missing = deps_ok()
+     if not ok:
+-        return {"dataset": dataset, "version": 0, "levels": [], "polygons": [],
+-                "places": [], "etag": f"{dataset}:0", "error": "missing_dependencies",
++        return {"dataset": dataset, "version": 0, "format": PACKAGE_FORMAT,
++                "levels": [], "polygons": [], "places": [],
++                "etag": f"{dataset}:0.{PACKAGE_FORMAT}", "error": "missing_dependencies",
+                 "missing": missing}
+     polygons, version = _pack_polygons(dataset)
+     places = _pack_places(gazetteer)
+     return {
+         "dataset": dataset,
+         "version": int(version or 0),
++        "format": PACKAGE_FORMAT,
+         "levels": sorted({row[0] for row in polygons}),
+         "polygons": polygons,
+         "places": places,
+-        "etag": f"{dataset}:{int(version or 0)}",
++        "etag": f"{dataset}:{int(version or 0)}.{PACKAGE_FORMAT}",
+     }
+ 
+ 
+diff --git a/siraj_research/geo_cascade.py b/siraj_research/geo_cascade.py
+new file mode 100644
+index 0000000..4bfa8b4
+--- /dev/null
++++ b/siraj_research/geo_cascade.py
+@@ -0,0 +1,196 @@
++"""Parent/child cascading for the six-level administrative hierarchy.
++
++The pure helpers in this module are deliberately Frappe-free so the cascade
++contract can be tested without a bench. The Frappe wrapper is a thin adapter
++that reads the same hierarchy DocTypes the Link fields point at. It never
++creates records and never calls an external service: everything comes from
++the local bench, which is what "offline" means for Desk forms.
++
++Two flows are supported:
++
++* **Downward** — a Country is chosen, so the Governorate dropdown (and every
++  deeper dropdown) is restricted to children of that Country.
++* **Upward** — a Community/Village/Municipality is chosen, so Country,
++  Governorate, District and Municipality/Village are read from that record's
++  own Link fields and returned for auto-population.
++
++Missing levels stay missing. A record with no Governorate never gets a made-up
++one just to make the form look complete.
++"""
++from __future__ import annotations
++
++from typing import Any
++
++try:  # pragma: no cover - exercised inside a bench
++    import frappe
++except Exception:  # pragma: no cover - pure-Python tests
++    frappe = None  # type: ignore[assignment]
++
++from siraj_research.geo_hierarchy import LEVELS, field_to_level, level_spec
++
++FIELDS = tuple(str(spec["field"]) for spec in LEVELS)
++
++
++def option_from_row(field: str, row: dict[str, Any]) -> dict[str, Any]:
++    """Normalise a Frappe row (or offline polygon) into a Link option."""
++    row = dict(row or {})
++    name = str(row.get("name") or row.get("value") or row.get("pcode") or "").strip()
++    label_en = str(row.get("label_en") or row.get("name_en") or "").strip()
++    label_ar = str(row.get("label_ar") or row.get("name_ar") or "").strip()
++    if field == "country":
++        label_en = label_en or str(row.get("country_name") or "").strip()
++    label = label_en or label_ar or name
++    return {
++        "value": name,
++        "label": label,
++        "label_ar": label_ar or label_en,
++        "label_en": label_en or label,
++        "code": str(row.get("code") or "").strip(),
++        "pcode": str(row.get("pcode") or "").strip(),
++        "doctype": str(level_spec(field_to_level(field))["doctype"]),
++    }
++
++
++def ancestor_filters(field: str, values: dict[str, Any]) -> dict[str, Any]:
++    """Return the Link-query filters for ``field`` from ancestor values."""
++    index = field_to_level(field)
++    if index <= 0:
++        return {}
++    filters: dict[str, Any] = {}
++    for spec in LEVELS[1:index + 1]:
++        parent = str(spec["parent"])
++        value = values.get(parent)
++        if value not in (None, "", False):
++            filters[parent] = value
++    return filters
++
++
++def chain_from_record(field: str, name: Any, record: dict[str, Any]) -> dict[str, dict]:
++    """Build the complete ancestor chain from a selected row's own fields.
++
++    ``record`` may be a Frappe document serialised as a dict. Values already
++    present on the record win; ``parent_pcode`` is *not* invented as a Link
++    value, it is only kept as provenance/code information.
++    """
++    record = dict(record or {})
++    index = field_to_level(field)
++    chain: dict[str, dict] = {}
++    if index < 0:
++        return chain
++    chain[field] = {
++        **option_from_row(field, {**record, "name": name or record.get("name")}),
++        "value": name or record.get("name") or "",
++    }
++    for spec in reversed(LEVELS[:index]):
++        parent_field = str(spec["field"])
++        value = record.get(parent_field)
++        row = {"name": value} if value else {}
++        chain[parent_field] = option_from_row(parent_field, row)
++        chain[parent_field]["value"] = value or ""
++    return chain
++
++
++def merge_chain(*chains: dict[str, dict]) -> dict[str, dict]:
++    """Prefer the most specific chain entry for each level."""
++    merged: dict[str, dict] = {}
++    for chain in chains:
++        for field, value in (chain or {}).items():
++            if value and value.get("value"):
++                merged[field] = dict(value)
++            elif field not in merged:
++                merged[field] = dict(value or {})
++    return merged
++
++
++def chain_from_filters(values: dict[str, Any]) -> dict[str, dict]:
++    """Build display entries from ancestor values already on a form."""
++    return {
++        field: {"value": values.get(field) or "", **option_from_row(field, {"name": values.get(field)})}
++        for field in FIELDS
++    }
++
++
++def visible_chain(chain: dict[str, dict]) -> list[dict]:
++    """Return the chain in Country → Community order, omitting empty gaps."""
++    rows = []
++    for field in FIELDS:
++        row = dict(chain.get(field) or {})
++        if row.get("value"):
++            rows.append({"field": field, **row})
++    return rows
++
++
++def _label_field(doctype: str) -> tuple[str, ...]:
++    if doctype == "Country":
++        return ("country_name", "name")
++    return ("label_en", "name_en", "name")
++
++
++def _fetch_options(field: str, filters: dict[str, Any]) -> list[dict]:
++    if frappe is None:  # pragma: no cover - pure tests never call this
++        return []
++    spec = level_spec(field_to_level(field))
++    doctype = str(spec["doctype"])
++    fields = ["name", "code", "pcode", "label_en", "label_ar", "country_name"]
++    fields = [name for name in fields if frappe.get_meta(doctype).has_field(name)]
++    try:
++        rows = frappe.get_all(doctype, filters=filters or None, fields=fields,
++                              order_by="`tab%s`.`name` asc" % doctype,
++                              limit_page_length=0)
++    except Exception:
++        # An unsaved/new parent has no valid children yet; report an empty
++        # list rather than breaking the form.
++        return []
++    return [option_from_row(field, row) for row in rows]
++
++
++def cascade(field: str, value: Any = None, **values: Any) -> dict:
++    """Return ancestor chain plus child options for one selected Link field.
++
++    ``value`` is the value of ``field`` itself. ``values`` may carry any of
++    the other five levels (e.g. ``country="IL"``). The returned ``filters``
++    are suitable for ``frm.set_query`` and the ``options`` are *valid Link
++    targets* from the local bench.
++    """
++    if frappe is not None and not frappe.has_permission("Place", "read"):
++        frappe.throw("Not permitted to read hierarchy data.", frappe.PermissionError)
++    field = str(field or "")
++    if field not in FIELDS:
++        return {"error": f"Unknown hierarchy field: {field}", "chain": {}, "options": []}
++    values = {key: val for key, val in values.items() if key in FIELDS}
++    chain = chain_from_filters(values)
++    if value not in (None, "", False):
++        spec = level_spec(field_to_level(field))
++        doctype = str(spec["doctype"])
++        if frappe is not None:
++            try:
++                doc = frappe.get_doc(doctype, value)
++                record = doc.as_dict() if hasattr(doc, "as_dict") else dict(doc)
++            except Exception:
++                record = {"name": value}
++        else:  # pragma: no cover - pure tests use chain_from_record directly
++            record = {"name": value}
++        chain = merge_chain(chain, chain_from_record(field, value, record))
++    filters = ancestor_filters(field, {key: row.get("value") for key, row in chain.items()})
++    return {
++        "field": field,
++        "value": value or "",
++        "chain": chain,
++        "chain_list": visible_chain(chain),
++        "filters": filters,
++        "options": _fetch_options(field, filters),
++        "source": "local-bench",
++    }
++
++
++if frappe is not None:  # pragma: no cover - bench only
++    # The Desk client calls this exact path, so the primary function must be
++    # whitelisted (an alias would not make the undecorated name callable).
++    cascade = frappe.whitelist()(cascade)
++
++    @frappe.whitelist()
++    def cascade_endpoint(field, value=None, **values):
++        """Backwards-compatible alias for newer clients."""
++        if not frappe.has_permission("Place", "read"):
++            frappe.throw("Not permitted to read hierarchy data.", frappe.PermissionError)
++        return cascade(field, value, **values)
+diff --git a/siraj_research/offline_bootstrap.py b/siraj_research/offline_bootstrap.py
+index fedd6a4..9d37c25 100644
+--- a/siraj_research/offline_bootstrap.py
++++ b/siraj_research/offline_bootstrap.py
+@@ -121,10 +121,14 @@ def download_python_wheels(target_dir: str | Path | None = None) -> dict:
+         capture_output=True, text=True, check=False,
+     )
+     count = len(list(target.glob("*.whl")))
+-    emit("wheels", f"Wheel download {'complete' if proc.returncode == 0 else 'FAILED'}: {count} files",
+-         ok=proc.returncode == 0, count=count)
++    already_cached = proc.returncode != 0 and count > 0
++    ok = proc.returncode == 0 or already_cached
++    state = "complete" if proc.returncode == 0 else ("already available offline" if already_cached else "FAILED")
++    emit("wheels", f"Wheel download {state}: {count} files", ok=ok, count=count)
+     return {
+-        "ok": proc.returncode == 0,
++        "ok": ok,
++        "download_ok": proc.returncode == 0,
++        "already_cached": already_cached,
+         "target": str(target),
+         "wheels": count,
+         "stderr": proc.stderr[-1000:],
+@@ -142,7 +146,8 @@ def prewarm_tiles(dataset: str | None = None, max_zoom: int = 11,
+                         update_modified=False)
+     bbox = dataset_bbox(dataset)
+     written = 0
+-    skipped = 0
++    cached = 0
++    failed = 0
+     emit("tiles", f"Starting tile download for {dataset or 'active dataset'}", bbox=bbox, layers=list(layers))
+     try:
+         for layer in layers:
+@@ -160,17 +165,21 @@ def prewarm_tiles(dataset: str | None = None, max_zoom: int = 11,
+                 emit("tiles", f"Layer {layer} zoom {z}: {total} tiles")
+                 url_tpl = tile_cache._resolve_url(spec, s, variant, z)
+                 layer_written = 0
++                layer_cached = 0
++                layer_failed = 0
+                 for x in xs:
+                     for y in ys:
+                         path = tile_cache._cache_path(base, z, x, y, ext, variant_key)
+                         if path.is_file():
+-                            skipped += 1
++                            cached += 1
++                            layer_cached += 1
+                             continue
+                         url = url_tpl.replace("{x}", str(x)).replace("{y}", str(y))
+                         try:
+                             data = tile_cache._fetch(url, spec["user_agent"])
+                         except Exception:
+-                            skipped += 1
++                            failed += 1
++                            layer_failed += 1
+                             continue
+                         path.parent.mkdir(parents=True, exist_ok=True)
+                         tmp = path.with_suffix(path.suffix + ".tmp")
+@@ -178,14 +187,22 @@ def prewarm_tiles(dataset: str | None = None, max_zoom: int = 11,
+                         tmp.replace(path)
+                         written += 1
+                         layer_written += 1
+-                emit("tiles", f"Layer {layer} zoom {z}: done", written=layer_written)
++                emit("tiles",
++                     f"Layer {layer} zoom {z}: done ({layer_written} written, "
++                     f"{layer_cached} cached, {layer_failed} failed)",
++                     written=layer_written, cached=layer_cached, failed=layer_failed)
++                if layer_failed:
++                    emit("tiles", f"Layer {layer} zoom {z}: {layer_failed} tiles failed - "
++                                  "run while online to complete the cache", level="warning")
+             emit("tiles", f"Layer {layer}: complete")
+     finally:
+         frappe.db.set_value("Geo Settings", "Geo Settings", "allow_tile_fetch", int(previous),
+                             update_modified=False)
+         frappe.db.commit()
+-    return {"bbox": bbox, "written": written, "skipped": skipped,
+-            "layers": list(layers), "max_zoom": int(max_zoom)}
++    emit("tiles", f"Tile pass finished ({written} written, {cached} cached, {failed} failed)",
++         written=written, cached=cached, failed=failed, level="warning" if failed else "info")
++    return {"bbox": bbox, "written": written, "cached": cached, "failed": failed,
++            "ok": failed == 0, "layers": list(layers), "max_zoom": int(max_zoom)}
+ 
+ 
+ def lock_offline_mode() -> dict:
+@@ -206,7 +223,7 @@ def lock_offline_mode() -> dict:
+ def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
+                          wheels: bool = True, tiles: bool = True,
+                          hierarchy: bool = True, package: bool = True,
+-                         lock: bool = True) -> dict:
++                         lock: bool = True, force_lock: bool = False) -> dict:
+     """Run every download while online, then lock the site offline."""
+     if frappe is None:
+         return {"error": "bench required"}
+@@ -227,7 +244,15 @@ def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
+     if package:
+         from siraj_research.api.geo_package import export_offline_package
+         result["package"] = _step("package", export_offline_package)
+-    if lock:
++    incomplete = (
++        (wheels and not result.get("wheels", {}).get("ok", False))
++        or (tiles and not result.get("tiles", {}).get("ok", False))
++    )
++    if lock and incomplete and not force_lock:
++        emit("lock", "Skipping offline lock: downloads were incomplete; rerun while online "
++                     "or pass force_lock=True", level="warning")
++        result["locked"] = {"skipped": "incomplete_downloads"}
++    elif lock:
+         result["locked"] = _step("lock", lock_offline_mode)
+-    emit("done", "Offline bootstrap complete", dataset=dataset)
++    emit("done", "Offline bootstrap complete", dataset=dataset, complete=not incomplete)
+     return result
+diff --git a/siraj_research/public/css/siraj-hierarchy.css b/siraj_research/public/css/siraj-hierarchy.css
+index 3fe1627..368dc8e 100644
+--- a/siraj_research/public/css/siraj-hierarchy.css
++++ b/siraj_research/public/css/siraj-hierarchy.css
+@@ -62,3 +62,22 @@ button.siraj-coord-confirm-zero {
+ 	margin-inline-start: 6px;
+ 	padding: 2px 7px;
+ }
++
++/* Country → Community cascading selector (all Location sections). */
++.siraj-cascade-status {
++  clear: both; width: 100%; margin: 8px 0 4px;
++  padding: 8px 10px; border: 1px solid var(--border-color, #d8dfe1);
++  border-radius: 4px; background: var(--fg-color, #fff);
++  font-size: 12px; line-height: 1.5;
++}
++.siraj-cascade-chain { font-weight: 600; color: var(--text-color, #243b40); margin-bottom: 4px; overflow-wrap: anywhere; }
++.siraj-cascade-next { color: var(--text-muted, #6a7a7e); }
++.siraj-cascade-options { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
++.siraj-cascade-option {
++  border: 1px solid #cdd9d6; border-radius: 12px; background: #f5f9f8;
++  color: #245e58; cursor: pointer; font-size: 11px; padding: 2px 9px;
++}
++.siraj-cascade-option:hover { background: #e5f1ee; border-color: #8fbcb3; }
++.siraj-cascade-more { color: var(--text-muted, #6a7a7e); font-size: 11px; align-self: center; }
++.siraj-cascade-gap { color: #8a2525; margin-top: 4px; }
++.siraj-cascade-source { color: var(--text-muted, #6a7a7e); font-size: 10px; margin-top: 4px; }
+diff --git a/siraj_research/public/js/siraj-cascade-core.js b/siraj_research/public/js/siraj-cascade-core.js
+new file mode 100644
+index 0000000..21c529e
+--- /dev/null
++++ b/siraj_research/public/js/siraj-cascade-core.js
+@@ -0,0 +1,123 @@
++/* Pure cascade helpers shared by Desk forms and Node regression tests.
++ *
++ * No Frappe, jQuery or DOM access here. The index is built from the same
++ * same-origin geo package the offline worker uses, so the chain remains
++ * available when the browser cannot reach even the local API.
++ */
++(function (root) {
++	'use strict';
++	const LEVELS = [
++		{ level: 0, field: 'country', doctype: 'Country', parent: null },
++		{ level: 1, field: 'governorate', doctype: 'Governorate', parent: 'country' },
++		{ level: 2, field: 'district', doctype: 'District', parent: 'governorate' },
++		{ level: 3, field: 'municipality', doctype: 'Municipality', parent: 'district' },
++		{ level: 4, field: 'village', doctype: 'Village', parent: 'municipality' },
++		{ level: 5, field: 'community', doctype: 'Community', parent: 'village' },
++	];
++	const FIELDS = LEVELS.map(s => s.field);
++	const indexOfField = field => FIELDS.indexOf(String(field || ''));
++
++	function optionFromRecord(field, rec) {
++		const r = rec || {};
++		const value = r.linked_name || r.name || r.pcode || '';
++		const label_en = r.name_en || '';
++		const label_ar = r.name_ar || '';
++		return {
++			value, label: label_en || label_ar || value,
++			label_en: label_en || value, label_ar: label_ar || label_en || value,
++			code: r.pcode || '', pcode: r.pcode || '',
++			doctype: (LEVELS[indexOfField(field)] || {}).doctype || '',
++		};
++	}
++
++	function buildIndex(pkg) {
++		const byPcode = Object.create(null);
++		const children = Object.create(null);
++		const countries = Object.create(null);
++		for (const field of FIELDS) children[field] = Object.create(null);
++		for (const row of ((pkg && pkg.polygons) || [])) {
++			const level = Number(row[0]) | 0;
++			if (level < 0 || level >= LEVELS.length) continue;
++			const rec = {
++				level,
++				field: LEVELS[level].field,
++				pcode: String(row[1] || ''),
++				parent_pcode: String(row[2] || ''),
++				name_en: String(row[3] || ''),
++				name_ar: String(row[4] || ''),
++				linked_name: String(row[6] || ''),
++				country: String(row[7] || ''),
++			};
++			if (!rec.pcode) continue;
++			byPcode[rec.pcode] = rec;
++			if (rec.country) countries[rec.country] = { value: rec.country, label: rec.country, label_ar: rec.country, code: rec.country, pcode: '', doctype: 'Country' };
++			const parentField = LEVELS[level].parent;
++			if (parentField && rec.parent_pcode) {
++				const bucket = children[parentField][rec.parent_pcode] || (children[parentField][rec.parent_pcode] = []);
++				bucket.push(rec);
++			}
++		}
++		return { byPcode, children, countries, version: (pkg && pkg.version) || 0, dataset: (pkg && pkg.dataset) || '' };
++	}
++
++	function ancestorFilters(field, values) {
++		const index = indexOfField(field);
++		if (index <= 0) return {};
++		const filters = {};
++		for (let i = 1; i <= index; i++) {
++			const parent = LEVELS[i].parent;
++			const value = values[parent];
++			if (value !== undefined && value !== null && value !== '' && value !== false) filters[parent] = value;
++		}
++		return filters;
++	}
++
++	function chainFromRecord(field, value, index) {
++		const idx = index || buildIndex(null);
++		const chain = Object.create(null);
++		for (const f of FIELDS) chain[f] = { value: '', label: '', label_ar: '', label_en: '', code: '', pcode: '', doctype: (LEVELS[indexOfField(f)] || {}).doctype || '' };
++		const level = indexOfField(field);
++		if (level < 0) return chain;
++		let rec = idx.byPcode[String(value || '')];
++		if (!rec) {
++			// A linked DocType name may differ from its pcode. Try the visible
++			// value as a fallback when the package still carries a pcode.
++			rec = Object.values(idx.byPcode).find(r => r.linked_name === String(value || '')) || null;
++		}
++		let country = rec && rec.country;
++		for (let i = level; i >= 0 && rec; i--) {
++			const spec = LEVELS[i];
++			chain[spec.field] = optionFromRecord(spec.field, rec);
++			if (rec.country) country = rec.country;
++			rec = spec.parent ? idx.byPcode[rec.parent_pcode] : null;
++		}
++		if (country && !chain.country.value) {
++			chain.country = { value: country, label: country, label_ar: country, label_en: country, code: country, pcode: '', doctype: 'Country' };
++		}
++		return chain;
++	}
++
++	function optionsFor(field, values, index) {
++		const idx = index || buildIndex(null);
++		const level = indexOfField(field);
++		if (level < 0) return [];
++		if (level === 0) {
++			return Object.values(idx.countries).sort((a, b) => String(a.label).localeCompare(String(b.label)));
++		}
++		const parentField = LEVELS[level].parent;
++		const parentValue = values[parentField];
++		if (!parentValue) return [];
++		const parentRec = idx.byPcode[String(parentValue)] || Object.values(idx.byPcode).find(r => r.linked_name === String(parentValue));
++		// Country rows are not in the package; level-1 polygons point at the
++		// Country code directly in their parent_pcode.
++		const parentPcode = parentField === 'country' ? String(parentValue) : (parentRec && parentRec.pcode);
++		if (!parentPcode) return [];
++		const rows = (idx.children[parentField] && idx.children[parentField][parentPcode]) || [];
++		return rows.map(rec => optionFromRecord(field, rec))
++			.sort((a, b) => String(a.label).localeCompare(String(b.label)));
++	}
++
++	const api = { LEVELS, FIELDS, optionFromRecord, buildIndex, ancestorFilters, chainFromRecord, optionsFor };
++	root.SirajCascadeCore = api;
++	if (typeof module !== 'undefined' && module.exports) module.exports = api;
++})(typeof globalThis !== 'undefined' ? globalThis : this);
+diff --git a/siraj_research/public/js/siraj-cascade.js b/siraj_research/public/js/siraj-cascade.js
+new file mode 100644
+index 0000000..8408b53
+--- /dev/null
++++ b/siraj_research/public/js/siraj-cascade.js
+@@ -0,0 +1,267 @@
++/* Universal hierarchy cascade for every Desk form.
++ *
++ * Downward: choosing Country filters Governorate (and deeper Links) to the
++ * children of that Country, and displays the available next-level values.
++ * Upward: choosing District/Municipality/Village/Community reads the selected
++ * record's own Link fields and fills all higher levels.
++ *
++ * The local bench API is authoritative. If it cannot be reached, the same
++ * index used by the offline Web Worker provides a same-origin fallback, so
++ * the form still cascades without any external network call.
++ */
++(() => {
++	'use strict';
++	const core = window.SirajCascadeCore || {};
++	const FIELDS = core.FIELDS || ['country', 'governorate', 'district', 'municipality', 'village', 'community'];
++	const t = s => (typeof __ === 'function' ? __(s) : s);
++	const registered = new Set();
++	const lastValue = new WeakMap();
++
++	function state(frm) {
++		let s = lastValue.get(frm);
++		if (!s) { s = {}; lastValue.set(frm, s); }
++		return s;
++	}
++	function level(field) { return FIELDS.indexOf(String(field || '')); }
++	function writable(frm, field) {
++		const control = frm && frm.fields_dict && frm.fields_dict[field];
++		if (!control) return false;
++		return !control.get_status || control.get_status() === 'Write';
++	}
++	function controlFor(frm, field) {
++		return (frm && frm.fields_dict && frm.fields_dict[field]) || null;
++	}
++	function isLink(frm, field) {
++		const c = controlFor(frm, field);
++		return !!c && !!c.df && c.df.fieldtype === 'Link';
++	}
++	function ancestorsFromDoc(doc) {
++		const values = {};
++		for (const f of FIELDS) if (doc && doc[f]) values[f] = doc[f];
++		return values;
++	}
++	function filters(field, doc) {
++		return core.ancestorFilters ? core.ancestorFilters(field, ancestorsFromDoc(doc)) : {};
++	}
++
++	function applyQueries(frm) {
++		if (!frm || !frm.doc) return;
++		for (const field of FIELDS) {
++			if (!controlFor(frm, field)) continue;
++			const f = filters(field, frm.doc);
++			try {
++				frm.set_query(field, () => ({ filters: f }));
++			} catch (_) { /* read-only or quick-entry control: harmless */ }
++		}
++	}
++
++	async function offlineCascade(field, value, doc) {
++		if (!window.SirajGeo || !window.SirajGeo.ready) return null;
++		try {
++			const pkg = await window.SirajGeo.ready();
++			if (!pkg || !core.buildIndex) return null;
++			const idx = core.buildIndex(pkg);
++			const chain = value && core.chainFromRecord
++				? core.chainFromRecord(field, value, idx)
++				: Object.fromEntries(FIELDS.map(f => [f, { value: doc[f] || '', label: doc[f] || '', label_en: doc[f] || '', label_ar: '', code: '', pcode: '', doctype: '' }]));
++			const options = core.optionsFor ? core.optionsFor(field, ancestorsFromDoc(doc), idx) : [];
++			return { field, value: value || '', chain, filters: filters(field, doc),
++				options, source: 'offline-package' };
++		} catch (_) { return null; }
++	}
++
++	async function fetchCascade(frm, field, value) {
++		const doc = frm.doc || {};
++		try {
++			const args = Object.assign({ field, value: value || null }, ancestorsFromDoc(doc));
++			const result = await frappe.xcall('siraj_research.geo_cascade.cascade', args);
++			if (result && !result.error) return result;
++		} catch (_) { /* offline fallback below */ }
++		return offlineCascade(field, value, doc);
++	}
++
++	function valueForControl(frm, field, row) {
++		if (!row || !row.value) return null;
++		return isLink(frm, field) ? row.value : (row.label || row.value);
++	}
++
++	function setValues(frm, values) {
++		const keys = Object.keys(values);
++		if (!keys.length) return;
++		try {
++			frm.set_value(values);
++		} catch (_) {
++			keys.forEach(k => { try { frm.set_value(k, values[k]); } catch (__) {} });
++		}
++	}
++
++	function showDiff(frm, updates, diffs, source) {
++		const values = Object.assign({}, updates);
++		const d = new frappe.ui.Dialog({
++			title: t('Hierarchy selection'),
++			fields: [{ fieldtype: 'HTML', fieldname: 'summary' }],
++			primary_action_label: t('Replace higher levels'),
++			secondary_action_label: t('Keep existing'),
++			primary_action() {
++				diffs.forEach(x => { values[x.field] = x.proposed; });
++				setValues(frm, values);
++				d.hide();
++			},
++		});
++		let html = '<p>' + t('The selected place implies different higher-level values:') + '</p><ul>';
++		diffs.forEach(x => {
++			html += '<li><b>' + frappe.utils.escape_html(x.label) + '</b>: '
++				+ frappe.utils.escape_html(String(x.current)) + ' → '
++				+ frappe.utils.escape_html(String(x.proposed)) + '</li>';
++		});
++		html += '</ul><p class="text-muted">'
++			+ t('Empty fields are filled either way; source: {0}.', [source || 'local'])
++			+ '</p>';
++		d.fields_dict.summary.$wrapper.html(html);
++		d.show();
++	}
++
++	function applyChain(frm, chain, source) {
++		const updates = {};
++		const diffs = [];
++		for (const field of FIELDS) {
++			if (!writable(frm, field)) continue;
++			const proposed = valueForControl(frm, field, chain && chain[field]);
++			if (!proposed) continue;
++			const current = frm.doc && frm.doc[field];
++			const label = (controlFor(frm, field) || {}).df?.label || field;
++			if (!current || String(current) === String(proposed)) updates[field] = proposed;
++			else if (String(current) !== String(proposed)) {
++				diffs.push({ field, label, current, proposed });
++			}
++		}
++		if (diffs.length) showDiff(frm, updates, diffs, source);
++		else setValues(frm, updates);
++	}
++
++	function clearDescendants(frm, field) {
++		const from = level(field);
++		if (from < 0) return;
++		const cleared = {};
++		for (let i = from + 1; i < FIELDS.length; i++) {
++			const f = FIELDS[i];
++			if (writable(frm, f) && frm.doc && frm.doc[f]) cleared[f] = '';
++		}
++		if (Object.keys(cleared).length) setValues(frm, cleared);
++	}
++
++	function statusBox(frm) {
++		const control = controlFor(frm, 'longitude') || controlFor(frm, 'country');
++		if (!control || !control.$wrapper) return $();
++		const $section = control.$wrapper.closest('.form-section');
++		let $box = $section.find('.siraj-cascade-status').first();
++		if (!$box.length) {
++			$box = $('<div class="siraj-cascade-status" data-siraj-cascade="1"></div>');
++			const $body = $section.find('.section-body').first();
++			if ($body.length) $body.append($box); else control.$wrapper.after($box);
++		}
++		return $box;
++	}
++
++	function renderStatus(frm, result) {
++		const $box = statusBox(frm);
++		if (!$box.length) return;
++		$box.empty().attr('data-source', result.source || '');
++		const chain = result.chain || {};
++		const labels = FIELDS.map(f => {
++			const row = chain[f];
++			return row && row.value ? (row.label_ar || row.label_en || row.value) : null;
++		}).filter(Boolean);
++		if (labels.length) {
++			$('<div class="siraj-cascade-chain"></div>')
++				.text(labels.join(' › ')).appendTo($box);
++		}
++		const nextField = FIELDS[Math.min(level(result.field) + 1, FIELDS.length - 1)];
++		const options = result.options || [];
++		if (nextField && nextField !== result.field) {
++			const label = (controlFor(frm, nextField) || {}).df?.label || nextField;
++			$('<div class="siraj-cascade-next"></div>')
++				.text(t('{0} available', [options.length]) + ': ' + t(label))
++				.appendTo($box);
++			if (options.length) {
++				const $chips = $('<div class="siraj-cascade-options"></div>').appendTo($box);
++				options.slice(0, 16).forEach(opt => {
++					$('<button type="button" class="siraj-cascade-option"></button>')
++						.text(opt.label || opt.value)
++						.attr('title', opt.value)
++						.on('click', () => {
++							if (!writable(frm, nextField)) return;
++							setValues(frm, { [nextField]: opt.value });
++						})
++						.appendTo($chips);
++				});
++				if (options.length > 16) {
++					$('<span class="siraj-cascade-more"></span>')
++						.text(' +' + (options.length - 16) + ' …').appendTo($chips);
++				}
++			} else {
++				$('<div class="siraj-cascade-gap"></div>')
++					.text(t('No matching children in the offline dataset.'))
++					.appendTo($box);
++			}
++		}
++		if (result.source === 'offline-package') {
++			$('<div class="siraj-cascade-source"></div>').text(t('offline data')).appendTo($box);
++		}
++	}
++
++	async function onFieldChange(frm, field) {
++		if (!frm || !frm.doc) return;
++		if (!writable(frm, field)) return;
++		if ((frm._sirajCascadeDepth || 0) > 0) return;
++		const value = frm.doc[field] || '';
++		const previous = state(frm)[field] || '';
++		const changed = value !== previous;
++		state(frm)[field] = value;
++		frm._sirajCascadeDepth = (frm._sirajCascadeDepth || 0) + 1;
++		try {
++			if (changed && previous && level(field) >= 0) clearDescendants(frm, field);
++			const result = await fetchCascade(frm, field, value);
++			if (!result || result.error) return;
++			applyChain(frm, result.chain, result.source);
++			applyQueries(frm);
++			renderStatus(frm, result);
++		} finally {
++			frm._sirajCascadeDepth = Math.max(0, (frm._sirajCascadeDepth || 1) - 1);
++			if (!frm._sirajCascadeDepth) delete frm._sirajCascadeDepth;
++		}
++	}
++
++	function deepestSelected(doc) {
++		for (let i = FIELDS.length - 1; i >= 0; i--) if (doc && doc[FIELDS[i]]) return FIELDS[i];
++		return 'country';
++	}
++
++	function attach(frm) {
++		if (!frm || !frm.doctype) return;
++		const fields = FIELDS.filter(f => !!controlFor(frm, f));
++		if (!fields.length) return;
++		applyQueries(frm);
++		if (!registered.has(frm.doctype)) {
++			registered.add(frm.doctype);
++			const handlers = {
++				refresh(f) { setTimeout(() => attach(f), 0); },
++			};
++			fields.forEach(f => { handlers[f] = form => onFieldChange(form, f); });
++			frappe.ui.form.on(frm.doctype, handlers);
++		}
++		// Restore the chain for documents that already have a selection and
++		// show the next-level choices without waiting for another edit.
++		const selected = deepestSelected(frm.doc);
++		if (frm.doc[selected]) setTimeout(() => onFieldChange(frm, selected), 0);
++	}
++
++	$(document).on('form-refresh.sirajCascade', (_e, frm) => {
++		if (frm && frm.doctype) setTimeout(() => attach(frm), 0);
++	});
++
++	window.SirajCascade = {
++		FIELDS, attach, onFieldChange, applyQueries, renderStatus,
++		core,
++	};
++})();
+diff --git a/siraj_research/public/js/siraj-geo.js b/siraj_research/public/js/siraj-geo.js
+index 2625adf..9c9619d 100644
+--- a/siraj_research/public/js/siraj-geo.js
++++ b/siraj_research/public/js/siraj-geo.js
+@@ -223,9 +223,20 @@
+ 		return Object.assign({}, status_);
+ 	}
+ 
++	// Expose the loaded package for pure client-side helpers (hierarchy
++	// cascading, option lists) without a second fetch. Resolves after the
++	// IndexedDB/static-package sync has completed.
++	async function ready() {
++		await initPromise;
++		return currentPackage;
++	}
++	function getPackage() {
++		return currentPackage;
++	}
++
+ 	// Kick off initialization (lazy; resolve() waits on it).
+ 	initPromise = sync();
+-	window.SirajGeo = { resolve, status, sync };
++	window.SirajGeo = { resolve, status, sync, ready, getPackage };
+ 	// Re-sync when browser comes back online.
+ 	if (typeof window.addEventListener === 'function') {
+ 		window.addEventListener('online', () => { sync(); });
+diff --git a/siraj_research/public/js/siraj-map/siraj-map.js b/siraj_research/public/js/siraj-map/siraj-map.js
+index 8190f46..009db5f 100644
+--- a/siraj_research/public/js/siraj-map/siraj-map.js
++++ b/siraj_research/public/js/siraj-map/siraj-map.js
+@@ -30,7 +30,7 @@
+ 	'use strict';
+ 	// Map engine build tag — mirrors window.SIRAJ_BUILD from siraj-record-meta.js
+ 	// so diagnostic lines in the console agree on the deployed revision.
+-	const SIRAJ_MAP_BUILD = (window.SIRAJ_BUILD) || '2026-11-20.hierarchy-ui.d.15';
++	const SIRAJ_MAP_BUILD = (window.SIRAJ_BUILD) || '2026-11-20.hierarchy-ui.d.17';
+ 	console.info('%c[SIRAJ Map]', 'color:#0c5e5b;font-weight:bold', 'build', SIRAJ_MAP_BUILD, '| default engine: maplibre');
+ 
+ 	const engines = { maplibre: null, leaflet: null };
+diff --git a/siraj_research/public/js/siraj-record-meta.js b/siraj_research/public/js/siraj-record-meta.js
+index 4134692..b61be44 100644
+--- a/siraj_research/public/js/siraj-record-meta.js
++++ b/siraj_research/public/js/siraj-record-meta.js
+@@ -190,7 +190,7 @@
+ 
+ // Build stamp — bump on every bundle change so stale caches are obvious in the console.
+ // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
+-window.SIRAJ_BUILD = '2026-11-20.hierarchy-ui.d.15';
++window.SIRAJ_BUILD = '2026-11-20.hierarchy-ui.d.17';
+ try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| Full coordinate-to-hierarchy UI with isolated map setup."); } catch (_) {}
+ 
+ // ---------- Stale-bundle banner ----------
+diff --git a/siraj_research/public/js/siraj.bundle.js b/siraj_research/public/js/siraj.bundle.js
+index a571f4d..b913ab4 100644
+--- a/siraj_research/public/js/siraj.bundle.js
++++ b/siraj_research/public/js/siraj.bundle.js
+@@ -21,5 +21,7 @@ import './siraj-geopoint.js';
+ import './coordinate_map.js';
+ import './siraj-geo.js';
+ import './siraj-hierarchy.js';
++import './siraj-cascade-core.js';
++import './siraj-cascade.js';
+ import './siraj-icons.js';
+ import './siraj-profile-fields.js';
+diff --git a/siraj_research/record_icons.py b/siraj_research/record_icons.py
+index 36a4826..b90bb6e 100644
+--- a/siraj_research/record_icons.py
++++ b/siraj_research/record_icons.py
+@@ -199,7 +199,7 @@ INTERNAL = {
+ #: delivered in bootinfo.siraj_record_meta.build; the client compares its
+ #: window.SIRAJ_BUILD against this value on boot and shows a reload banner
+ #: when they differ (catches stale bundles after bench build).
+-SIRAJ_BUILD = "2026-11-20.hierarchy-ui.d.15"
++SIRAJ_BUILD = "2026-11-20.hierarchy-ui.d.17"
+ 
+ 
+ #: DocTypes that carry coordinate fields and a per-form map editor.
+diff --git a/tests/test_geo_cascade.py b/tests/test_geo_cascade.py
+new file mode 100644
+index 0000000..2709529
+--- /dev/null
++++ b/tests/test_geo_cascade.py
+@@ -0,0 +1,76 @@
++"""Pure regression tests for Country → Community parent/child cascading."""
++from siraj_research.geo_cascade import (
++    ancestor_filters, chain_from_filters, chain_from_record, merge_chain,
++    option_from_row, visible_chain, cascade,
++)
++
++
++def test_ancestor_filters_follow_the_six_level_chain():
++    assert ancestor_filters("country", {"country": "IL"}) == {}
++    assert ancestor_filters("governorate", {"country": "IL"}) == {"country": "IL"}
++    assert ancestor_filters("community", {
++        "country": "IL", "governorate": "G1", "district": "D1",
++        "municipality": "M1", "village": "V1", "community": "Q1",
++    }) == {
++        "country": "IL", "governorate": "G1", "district": "D1",
++        "municipality": "M1", "village": "V1",
++    }
++
++
++def test_option_from_row_uses_link_target_not_raw_label():
++    row = option_from_row("community", {
++        "name": "Com A", "label_en": "Community A", "label_ar": "مجتمع أ",
++        "code": "Q1", "pcode": "Q1",
++    })
++    assert row["value"] == "Com A"       # safe Link target
++    assert row["label"] == "Community A"
++    assert row["label_ar"] == "مجتمع أ"
++    assert row["doctype"] == "Community"
++    country = option_from_row("country", {"name": "IL", "country_name": "Israel"})
++    assert country["label"] == "Israel"
++
++
++def test_chain_from_record_backfills_every_higher_level():
++    record = {
++        "name": "Com A", "country": "IL", "governorate": "Gov A",
++        "district": "Dist A", "municipality": "Mun A", "village": "Vil A",
++        "pcode": "Q1", "parent_pcode": "V1",
++    }
++    chain = chain_from_record("community", "Com A", record)
++    assert chain["community"]["value"] == "Com A"
++    assert chain["village"]["value"] == "Vil A"
++    assert chain["municipality"]["value"] == "Mun A"
++    assert chain["district"]["value"] == "Dist A"
++    assert chain["governorate"]["value"] == "Gov A"
++    assert chain["country"]["value"] == "IL"
++    assert [row["field"] for row in visible_chain(chain)] == [
++        "country", "governorate", "district", "municipality", "village", "community",
++    ]
++
++
++def test_missing_ancestors_stay_gaps_and_do_not_get_invented():
++    chain = chain_from_record("district", "Dist A", {"name": "Dist A", "country": ""})
++    assert chain["country"]["value"] == ""
++    assert chain["governorate"]["value"] == ""
++    assert [row["field"] for row in visible_chain(chain)] == ["district"]
++
++
++def test_merge_and_filters_chains_prefer_specific_values():
++    broad = chain_from_filters({"country": "IL"})
++    specific = chain_from_record("village", "Vil A", {
++        "name": "Vil A", "country": "PS", "governorate": "Gov B",
++        "district": "Dist B", "municipality": "Mun B",
++    })
++    merged = merge_chain(broad, specific)
++    assert merged["country"]["value"] == "PS"  # selected record wins
++    assert merged["village"]["value"] == "Vil A"
++
++
++def test_cascade_rejects_unknown_field_and_returns_shape_without_frappe():
++    result = cascade("not_a_level", "x")
++    assert result["error"].startswith("Unknown hierarchy field")
++    result = cascade("governorate", None, country="IL")
++    assert result["field"] == "governorate"
++    assert result["filters"] == {"country": "IL"}
++    assert result["source"] == "local-bench"
++    assert result["options"] == []  # pure process has no local bench rows
+diff --git a/tests/test_geo_hierarchy_ui.py b/tests/test_geo_hierarchy_ui.py
+index c59b844..8f3b9c7 100644
+--- a/tests/test_geo_hierarchy_ui.py
++++ b/tests/test_geo_hierarchy_ui.py
+@@ -318,7 +318,9 @@ def test_geo_package_returns_json_dict_and_client_unwraps_message():
+     server = (root / "siraj_research/api/geo_package.py").read_text()
+     client = (root / "siraj_research/public/js/siraj-geo.js").read_text()
+     assert 'frappe.response["data"]' not in server
+-    assert '"etag": f"{dataset}:{int(version or 0)}"' in server
++    assert '"etag": f"{dataset}:{int(version or 0)}.{PACKAGE_FORMAT}"' in server
++    assert '"format": PACKAGE_FORMAT' in server
++    assert 'ab.country' in server
+     assert '?version=' in client
+     assert "wrapped.message !== undefined" in client
+ 
+@@ -419,3 +421,31 @@ def test_bootstrap_step_failure_does_not_abort_remaining_stages():
+ 
+     result = _step("demo", broken)
+     assert "demo failure" in result["error"]
++
++
++def test_bootstrap_reports_real_failures_and_guards_lock():
++    root = Path(__file__).resolve().parents[1]
++    source = (root / "siraj_research/offline_bootstrap.py").read_text()
++    docs = (root / "docs/offline-first.md").read_text()
++    assert '"failed": failed' in source
++    assert '"cached": cached' in source
++    assert '"skipped": "incomplete_downloads"' in source
++    assert "force_lock" in source
++    assert "written`, `cached` and `failed`" in docs
++
++
++
++def test_cascade_is_wired_into_every_desk_form():
++    root = Path(__file__).resolve().parents[1]
++    bundle = (root / "siraj_research/public/js/siraj.bundle.js").read_text()
++    cascade = (root / "siraj_research/public/js/siraj-cascade.js").read_text()
++    core = (root / "siraj_research/public/js/siraj-cascade-core.js").read_text()
++    server = (root / "siraj_research/geo_cascade.py").read_text()
++    assert "import './siraj-cascade-core.js';" in bundle
++    assert "import './siraj-cascade.js';" in bundle
++    assert "siraj_research.geo_cascade.cascade" in cascade
++    assert "frm.set_query(field" in cascade
++    assert "clearDescendants" in cascade
++    assert "root.SirajCascadeCore = api" in core
++    assert "def cascade(field" in server
++    assert "ancestor_filters" in server
+diff --git a/tests/test_siraj_cascade_core.js b/tests/test_siraj_cascade_core.js
+new file mode 100644
+index 0000000..0e57f24
+--- /dev/null
++++ b/tests/test_siraj_cascade_core.js
+@@ -0,0 +1,40 @@
++/* Pure JS cascade regression test — runs with plain Node, no DOM/Frappe. */
++const assert = require('assert');
++const core = require('../siraj_research/public/js/siraj-cascade-core.js');
++
++const poly = (level, pcode, parent, name, linked, country) => [
++  level, pcode, parent, name, '', [[[[0, 0]]]], linked, country,
++];
++const pkg = {
++  dataset: 'OSM-IL-PS', version: 2,
++  polygons: [
++    poly(1, 'G1', 'IL', 'Governorate A', 'Gov A', 'IL'),
++    poly(2, 'D1', 'G1', 'District A', 'Dist A', 'IL'),
++    poly(3, 'M1', 'D1', 'Municipality A', 'Mun A', 'IL'),
++    poly(4, 'V1', 'M1', 'Village A', 'Vil A', 'IL'),
++    poly(5, 'Q1', 'V1', 'Community A', 'Com A', 'IL'),
++  ],
++};
++const idx = core.buildIndex(pkg);
++
++assert.deepStrictEqual(core.ancestorFilters('community', {
++  country: 'IL', governorate: 'Gov A', district: 'Dist A',
++  municipality: 'Mun A', village: 'Vil A',
++}), {
++  country: 'IL', governorate: 'Gov A', district: 'Dist A',
++  municipality: 'Mun A', village: 'Vil A',
++});
++
++assert.strictEqual(core.optionsFor('governorate', { country: 'IL' }, idx).length, 1);
++assert.strictEqual(core.optionsFor('district', { governorate: 'Gov A' }, idx)[0].value, 'Dist A');
++assert.strictEqual(core.optionsFor('community', { country: 'XX' }, idx).length, 0);
++
++const chain = core.chainFromRecord('community', 'Com A', idx);
++assert.strictEqual(chain.country.value, 'IL');
++assert.strictEqual(chain.governorate.value, 'Gov A');
++assert.strictEqual(chain.district.value, 'Dist A');
++assert.strictEqual(chain.municipality.value, 'Mun A');
++assert.strictEqual(chain.village.value, 'Vil A');
++assert.strictEqual(chain.community.value, 'Com A');
++
++console.log('Hierarchy cascade core: filters, options, ancestor chain and gaps passed.');
