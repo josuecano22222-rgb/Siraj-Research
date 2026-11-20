@@ -1,0 +1,82 @@
+{
+ "doctype": "DocType",
+ "name": "Country Level Row",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "level",
+  "level_key",
+  "is_active",
+  "label_en",
+  "label_ar",
+  "sort_order",
+  "skip_reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "level",
+   "fieldtype": "Int",
+   "label": "Level",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "level_key",
+   "fieldtype": "Data",
+   "label": "Level key",
+   "reqd": 1,
+   "in_list_view": 1,
+   "length": 32,
+   "read_only": 1
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "default": "1",
+   "in_list_view": 1,
+   "description": "Uncheck to skip this tier for the country; child levels then link to the nearest active ancestor."
+  },
+  {
+   "fieldname": "label_en",
+   "fieldtype": "Data",
+   "label": "Label (English)",
+   "reqd": 1,
+   "in_list_view": 1,
+   "length": 60
+  },
+  {
+   "fieldname": "label_ar",
+   "fieldtype": "Data",
+   "label": "Label (local / Arabic)",
+   "in_list_view": 1,
+   "length": 60
+  },
+  {
+   "fieldname": "sort_order",
+   "fieldtype": "Int",
+   "label": "Sort order"
+  },
+  {
+   "fieldname": "skip_reason",
+   "fieldtype": "Small Text",
+   "label": "Skip reason",
+   "description": "Optional note explaining why the country does not use this level."
+  }
+ ],
+ "permissions": [],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "istable": 1,
+ "issingle": 0,
+ "creation": "2026-11-20 00:00:00.000000",
+ "modified": "2026-11-20 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0,
+ "editable_grid": 1,
+ "description": "One row per administrative level inside Country Level Config."
+}

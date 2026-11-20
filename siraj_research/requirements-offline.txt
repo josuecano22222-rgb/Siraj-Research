@@ -1,6 +1,10 @@
-# Optional geospatial dependencies needed for boundary import and resolution.
-# Download while online with offline_bootstrap.download_python_wheels(), then
-# reinstall later with pip --no-index --find-links=<wheel dir>.
-shapely>=2,<3
-pyproj>=3.6,<4
-pyogrio>=0.7,<1
+# Offline wheel set for the geospatial stack.
+#
+# While the bench still has network access run:
+#   bench --site <site> execute siraj_research.offline_bootstrap.download_python_wheels
+# which writes wheels here (or to the given target) using the pinned versions in
+# apps/siraj_research/requirements.txt. Reinstall without network:
+#   ./env/bin/pip install --no-index --find-links=<wheel dir> -r apps/siraj_research/requirements.txt
+shapely==2.0.6
+pyproj==3.6.1
+pyogrio==0.9.0

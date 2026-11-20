@@ -1,0 +1,210 @@
+{
+ "reference": "SIRAJ level configs v1",
+ "source": "SIRAJ curated administrative level terminology (OCHA COD-AB / GeoNames admin types)",
+ "license": "CC-BY-4.0 (SIRAJ curation); underlying terminology is factual",
+ "generated": "2026-11-20",
+ "countries": [
+  {
+   "country_code": "IQ",
+   "hierarchy_depth": 5,
+   "notes": "Iraq: governorate (محافظة), district (قضاء), subdistrict (ناحية) stored in Municipality, village (قرية), community/neighbourhood (محلة).",
+   "levels": [
+    {
+     "level": 1,
+     "label_en": "Governorate",
+     "label_ar": "المحافظة"
+    },
+    {
+     "level": 2,
+     "label_en": "District",
+     "label_ar": "القضاء"
+    },
+    {
+     "level": 3,
+     "label_en": "Subdistrict",
+     "label_ar": "الناحية"
+    },
+    {
+     "level": 4,
+     "label_en": "Village",
+     "label_ar": "القرية"
+    },
+    {
+     "level": 5,
+     "label_en": "Community",
+     "label_ar": "المحلة"
+    }
+   ]
+  },
+  {
+   "country_code": "SA",
+   "hierarchy_depth": 4,
+   "notes": "Saudi Arabia: region (منطقة) at level 1, governorate (محافظة) at level 2, municipality and district/neighbourhood at levels 3–4. Community tier inactive by default.",
+   "levels": [
+    {
+     "level": 1,
+     "label_en": "Region",
+     "label_ar": "المنطقة"
+    },
+    {
+     "level": 2,
+     "label_en": "Governorate",
+     "label_ar": "المحافظة"
+    },
+    {
+     "level": 3,
+     "label_en": "Municipality",
+     "label_ar": "البلدية"
+    },
+    {
+     "level": 4,
+     "label_en": "District / Neighbourhood",
+     "label_ar": "الحي"
+    },
+    {
+     "level": 5,
+     "label_en": "Community",
+     "label_ar": "المجتمع",
+     "is_active": 0,
+     "skip_reason": "Not used in the default Saudi dataset"
+    }
+   ]
+  },
+  {
+   "country_code": "LB",
+   "hierarchy_depth": 3,
+   "notes": "Lebanon: governorate (محافظة), district (قضاء), municipality (بلدية). Village and community tiers are skipped; a Village row, if ever added, links directly to its District.",
+   "levels": [
+    {
+     "level": 1,
+     "label_en": "Governorate",
+     "label_ar": "المحافظة"
+    },
+    {
+     "level": 2,
+     "label_en": "District",
+     "label_ar": "القضاء"
+    },
+    {
+     "level": 3,
+     "label_en": "Municipality",
+     "label_ar": "البلدية"
+    },
+    {
+     "level": 4,
+     "label_en": "Village",
+     "label_ar": "القرية",
+     "is_active": 0,
+     "skip_reason": "Lebanese municipalities cover settlements"
+    },
+    {
+     "level": 5,
+     "label_en": "Community",
+     "label_ar": "الحي",
+     "is_active": 0,
+     "skip_reason": "Neighbourhoods are not a national tier"
+    }
+   ]
+  },
+  {
+   "country_code": "JO",
+   "hierarchy_depth": 4,
+   "notes": "Jordan: governorate (محافظة), district/l_iwa (لواء), subdistrict/qada (قضاء) stored in Municipality, village. Community is inactive.",
+   "levels": [
+    {
+     "level": 1,
+     "label_en": "Governorate",
+     "label_ar": "المحافظة"
+    },
+    {
+     "level": 2,
+     "label_en": "District (Liwa)",
+     "label_ar": "اللواء"
+    },
+    {
+     "level": 3,
+     "label_en": "Subdistrict (Qada)",
+     "label_ar": "القضاء"
+    },
+    {
+     "level": 4,
+     "label_en": "Village",
+     "label_ar": "القرية"
+    },
+    {
+     "level": 5,
+     "label_en": "Community",
+     "label_ar": "الحي",
+     "is_active": 0,
+     "skip_reason": "Neighbourhood data is not curated at national scale"
+    }
+   ]
+  },
+  {
+   "country_code": "PS",
+   "hierarchy_depth": 5,
+   "notes": "Palestine: governorate (محافظة), district, municipality (بلدية), village (قرية). Community tier inactive.",
+   "levels": [
+    {
+     "level": 1,
+     "label_en": "Governorate",
+     "label_ar": "المحافظة"
+    },
+    {
+     "level": 2,
+     "label_en": "District",
+     "label_ar": "المنطقة"
+    },
+    {
+     "level": 3,
+     "label_en": "Municipality",
+     "label_ar": "البلدية"
+    },
+    {
+     "level": 4,
+     "label_en": "Village / Neighbourhood",
+     "label_ar": "القرية"
+    },
+    {
+     "level": 5,
+     "label_en": "Community",
+     "label_ar": "المجتمع"
+    }
+   ]
+  },
+  {
+   "country_code": "IL",
+   "hierarchy_depth": 4,
+   "notes": "Israel: district (מחוז), subdistrict (נפה), municipality, locality. The Arabic labels follow the source dataset; English labels are the canonical display.",
+   "levels": [
+    {
+     "level": 1,
+     "label_en": "District",
+     "label_ar": "اللواء"
+    },
+    {
+     "level": 2,
+     "label_en": "Subdistrict",
+     "label_ar": "القضاء"
+    },
+    {
+     "level": 3,
+     "label_en": "Municipality",
+     "label_ar": "البلدية"
+    },
+    {
+     "level": 4,
+     "label_en": "Locality",
+     "label_ar": "القرية"
+    },
+    {
+     "level": 5,
+     "label_en": "Community",
+     "label_ar": "الحي",
+     "is_active": 0,
+     "skip_reason": "Neighbourhoods are recorded as places"
+    }
+   ]
+  }
+ ]
+}

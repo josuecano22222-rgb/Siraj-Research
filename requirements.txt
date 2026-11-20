@@ -1,0 +1,19 @@
+# Siraj Research — Python runtime dependencies (Frappe v15 site environment).
+#
+# Installed by:
+#   bench setup requirements
+# or, for an existing site:
+#   ./env/bin/pip install -r apps/siraj_research/requirements.txt
+#
+# These are the *optional* geospatial libraries used by boundary import and by
+# the Shapely fallback of the reverse geocoder. The app boots without them
+# (geo_import.deps_ok() reports what is missing); PostGIS users can run the
+# resolver entirely in the database and skip this file.
+#
+# Pins were chosen for the Python versions Frappe v15 supports (3.10–3.12):
+#   shapely 2.0.6  — GEOS/STRtree, WKB, geometry ops        (manylinux wheels)
+#   pyproj  3.6.1  — CRS / reprojection for imports          (PROJ 9 wheels)
+#   pyogrio 0.9.0  — fast GDAL vector reads (falls back to fiona when absent)
+shapely==2.0.6
+pyproj==3.6.1
+pyogrio==0.9.0

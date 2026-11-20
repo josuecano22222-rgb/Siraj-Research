@@ -1,0 +1,362 @@
+{
+ "doctype": "DocType",
+ "name": "Geographic Administration",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "code",
+  "title",
+  "sb_identity",
+  "name_en",
+  "name_local",
+  "cb_identity",
+  "source",
+  "is_active",
+  "sb_ancestry",
+  "hierarchy_level",
+  "level_key",
+  "cb_ancestry",
+  "level_label",
+  "ancestry_path",
+  "ancestry_labels",
+  "sb_location",
+  "geo_point",
+  "country",
+  "governorate",
+  "district",
+  "municipality",
+  "village",
+  "community",
+  "centroid_lat",
+  "centroid_lng",
+  "cb_location",
+  "boundary",
+  "sb_provenance",
+  "resolution_source",
+  "resolved_on",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "code",
+   "fieldtype": "Data",
+   "label": "Code",
+   "unique": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "length": 140,
+   "description": "Deterministic chain code, e.g. GA:IQ/IQ-BG/IQ-BG-KAR. Generated automatically."
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_global_search": 1,
+   "search_index": 1,
+   "length": 500,
+   "description": "Full label chain, e.g. Iraq › Baghdad › Karkh. Generated automatically."
+  },
+  {
+   "fieldname": "sb_identity",
+   "fieldtype": "Section Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "name_en",
+   "fieldtype": "Data",
+   "label": "Name (English)",
+   "in_list_view": 1,
+   "in_global_search": 1,
+   "length": 140
+  },
+  {
+   "fieldname": "name_local",
+   "fieldtype": "Data",
+   "label": "Name (local / Arabic)",
+   "in_list_view": 1,
+   "length": 140
+  },
+  {
+   "fieldname": "cb_identity",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "label": "Source",
+   "options": "\nmanual\ncore\ngeonames\ngadm\nosm\nonline",
+   "default": "manual",
+   "in_standard_filter": 1,
+   "description": "Provenance of the hierarchy chain."
+  },
+  {
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "sb_ancestry",
+   "fieldtype": "Section Break",
+   "label": "Ancestry"
+  },
+  {
+   "fieldname": "hierarchy_level",
+   "fieldtype": "Int",
+   "label": "Deepest level",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Level number of the deepest populated link (0–5)."
+  },
+  {
+   "fieldname": "level_key",
+   "fieldtype": "Data",
+   "label": "Level key",
+   "read_only": 1,
+   "length": 32
+  },
+  {
+   "fieldname": "cb_ancestry",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "level_label",
+   "fieldtype": "Data",
+   "label": "Level label",
+   "read_only": 1,
+   "length": 60
+  },
+  {
+   "fieldname": "ancestry_path",
+   "fieldtype": "Data",
+   "label": "Ancestry path",
+   "read_only": 1,
+   "search_index": 1,
+   "length": 500,
+   "description": "Denormalised code path: Country/Governorate/District/… Only populated segments appear."
+  },
+  {
+   "fieldname": "ancestry_labels",
+   "fieldtype": "Small Text",
+   "label": "Ancestry labels",
+   "read_only": 1,
+   "description": "Human-readable path in English, used as the link title."
+  },
+  {
+   "fieldname": "sb_location",
+   "label": "Location",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "geo_point",
+   "fieldtype": "Geolocation",
+   "label": "Geolocation",
+   "insert_after": "sb_location"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "description": "Level 0. Native Frappe Country.",
+   "insert_after": "geo_point"
+  },
+  {
+   "fieldname": "governorate",
+   "fieldtype": "Link",
+   "label": "Governorate",
+   "options": "Governorate",
+   "search_index": 1,
+   "insert_after": "country"
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Link",
+   "label": "District",
+   "options": "District",
+   "search_index": 1,
+   "insert_after": "governorate"
+  },
+  {
+   "fieldname": "municipality",
+   "fieldtype": "Link",
+   "label": "Municipality",
+   "options": "Municipality",
+   "search_index": 1,
+   "insert_after": "district"
+  },
+  {
+   "fieldname": "village",
+   "fieldtype": "Link",
+   "label": "Village / locality",
+   "options": "Village",
+   "search_index": 1,
+   "insert_after": "municipality"
+  },
+  {
+   "fieldname": "community",
+   "fieldtype": "Link",
+   "label": "Community / cluster",
+   "options": "Community",
+   "search_index": 1,
+   "insert_after": "village"
+  },
+  {
+   "fieldname": "centroid_lat",
+   "fieldtype": "Float",
+   "label": "Centroid latitude",
+   "precision": 6,
+   "description": "SRID 4326 latitude (−90…90). Copied from the deepest hierarchy record when available."
+  },
+  {
+   "fieldname": "centroid_lng",
+   "fieldtype": "Float",
+   "label": "Centroid longitude",
+   "precision": 6,
+   "description": "SRID 4326 longitude (−180…180)."
+  },
+  {
+   "fieldname": "cb_location",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "boundary",
+   "fieldtype": "Link",
+   "label": "Boundary polygon",
+   "options": "Admin Boundary",
+   "description": "Optional polygon for the deepest level, from the active Boundary Dataset."
+  },
+  {
+   "fieldname": "sb_provenance",
+   "fieldtype": "Section Break",
+   "label": "Provenance"
+  },
+  {
+   "fieldname": "resolution_source",
+   "fieldtype": "Select",
+   "label": "Resolved by",
+   "options": "manual\nlocal\nonline",
+   "default": "manual",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "resolved_on",
+   "fieldtype": "Datetime",
+   "label": "Resolved on",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "SIRAJ Viewer",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 0,
+   "share": 0,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Researcher",
+   "read": 1,
+   "write": 0,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 0,
+   "share": 0,
+   "select": 1,
+   "import": 0
+  },
+  {
+   "role": "SIRAJ Reviewer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 0,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 0,
+   "share": 0,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "SIRAJ Administrator",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "select": 1,
+   "import": 1
+  }
+ ],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "istable": 0,
+ "issingle": 0,
+ "creation": "2026-11-20 00:00:00.000000",
+ "modified": "2026-11-20 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0,
+ "autoname": "hash",
+ "title_field": "title",
+ "show_title_field_in_link": 1,
+ "search_fields": "title,ancestry_path,code,name_en,name_local",
+ "sort_field": "ancestry_path",
+ "sort_order": "ASC",
+ "allow_import": 1,
+ "quick_entry": 1,
+ "track_changes": 1,
+ "icon": "map-pin",
+ "default_view": "List",
+ "description": "Reusable, linkable handle for one administrative place: stores the full Country → Community chain, denormalised ancestry, canonical names/centroid and optional geometry. Other DocTypes can point at a single record instead of carrying five Link fields."
+}

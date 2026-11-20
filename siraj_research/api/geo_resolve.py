@@ -102,6 +102,35 @@ def _settings() -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Spatial backend selection
+# ---------------------------------------------------------------------------
+
+def _spatial_backend() -> str:
+    """Return ``postgis`` or ``shapely`` for this request.
+
+    ``Geo Settings.spatial_backend`` can force a backend; ``Auto`` (the
+    default) prefers PostGIS when the extension is installed and falls back to
+    the in-process Shapely/STRtree resolver otherwise. The fallback is what
+    guarantees offline operation on a MariaDB site.
+    """
+    configured = "auto"
+    try:
+        configured = str(frappe.get_single("Geo Settings").spatial_backend or "Auto").strip().lower()
+    except Exception:
+        configured = "auto"
+    if configured.startswith("shapely"):
+        return "shapely"
+    try:
+        from siraj_research import geo_postgis
+
+        if geo_postgis.available():
+            return "postgis"
+    except Exception:
+        pass
+    return "shapely"
+
+
+# ---------------------------------------------------------------------------
 # STRtree cache build
 # ---------------------------------------------------------------------------
 
@@ -261,6 +290,37 @@ def _resolve_one(lat, lon):
 	if not cfg["active_dataset"]:
 		result["warnings"].append("no_active_dataset")
 		return result
+	# Primary path: PostGIS (database-side ST_Contains with a GiST index).
+	# It needs no Python geospatial libraries and no network access.
+	if _spatial_backend() == "postgis":
+		try:
+			from siraj_research import geo_postgis
+
+			pg = geo_postgis.resolve_point(
+				lat, lon, cfg["active_dataset"],
+				cfg["border_tolerance_m"], cfg["sea_gap_m"],
+			)
+		except Exception as exc:  # pragma: no cover - defensive
+			pg = None
+			result["warnings"].append("postgis_failed")
+			try:
+				frappe.log_error(title="SIRAJ PostGIS resolution failed", message=str(exc))
+			except Exception:
+				pass
+		if pg is not None:
+			result["warnings"].extend(pg.pop("warnings", []) or [])
+			result.update(pg)
+			result["provenance"] = list(dict.fromkeys(
+				[*list(result.get("provenance") or []), "postgis"]))
+			if result.get("on_land"):
+				nearest = _nearest_gazetteer(
+					lat, lon, cfg["gazetteer_dataset"], cfg["reverse_max_m"],
+					feature_codes={"PPL", "PPLA", "PPLA2", "PPLA3", "PPLA4", "PPLC", "PPLCH"},
+				)
+				if nearest:
+					result["nearest_place"] = nearest
+					result["provenance"].append("gazetteer_nearest")
+			return result
 	ok, missing = deps_ok()
 	if not ok:
 		result["error"] = "server missing geospatial libs: " + ",".join(missing)
@@ -424,6 +484,9 @@ def resolve_point(latitude, longitude, use_online=0):
 	"""
 	if not frappe.has_permission("Place", "read"):
 		frappe.throw("Not permitted to resolve coordinates.", frappe.PermissionError)
+	from siraj_research.api.throttle import guard
+
+	guard("resolve_point")
 	try:
 		lat = float(latitude)
 		lon = float(longitude)
@@ -481,6 +544,10 @@ def resolve_batch(points, use_online=0):
 	"""Resolve an array of [lat, lon] pairs (used by batch import wizard)."""
 	if not frappe.has_permission("Place", "read"):
 		frappe.throw("Not permitted.", frappe.PermissionError)
+	from siraj_research.api.throttle import guard
+
+	# Batch is intentionally tighter: it can resolve up to 500 points at once.
+	guard("resolve_batch", limit=30)
 	import json as _json
 	pts = _json.loads(points) if isinstance(points, str) else points
 	use_online = str(use_online) in ("1", "true", "True")
@@ -503,4 +570,111 @@ def invalidate_cache():
 		frappe.throw("Administrator only.", frappe.PermissionError)
 	_CACHE.clear()
 	_COORD_CACHE.clear()
+	try:
+		from siraj_research import geo_postgis
+
+		geo_postgis.invalidate_cache()
+	except Exception:
+		pass
 	return {"cleared": True}
+
+
+@frappe.whitelist()
+def resolve_location(latitude, longitude, use_online=0, create_missing=1):
+	"""Canonical ``resolve_location(lat, lng)`` contract for maps and scripts.
+
+	One call returns everything a caller needs: the display-ready level chain
+	with English/Arabic labels, the cannot-read warnings, provenance and the
+	``Geographic Administration`` row for the chain (created only when the
+	caller may create it and ``create_missing`` is true).
+
+	Caching: results share the module's LRU (1024 entries) keyed by rounded
+	coordinate, fallback mode and create flag; the entry is dropped when the
+	dataset version changes or the worker restarts. The administration lookup
+	is idempotent by code, so a repeated call never produces a second row. Rate limiting: ``endpoint_rate_limit_per_min``
+	per user (default 240/min). Errors are structured, never a bare 500:
+
+	* non-numeric input → ``{"ok": false, "error": "invalid_coordinates"}``
+	* out of range      → ``{"ok": false, "error": "out_of_range"}``
+	* no local dataset  → ``{"ok": false, "error": "unresolved",
+	                        "unresolved_reason": "no_dataset"}``
+	* offshore / no polygon inside the tolerance →
+	  ``{"ok": false, "error": "unresolved", "unresolved_reason": "offshore"}``
+	"""
+	if not frappe.has_permission("Place", "read"):
+		frappe.throw("Not permitted to resolve coordinates.", frappe.PermissionError)
+	from siraj_research.api.throttle import guard
+
+	guard("resolve_location")
+	try:
+		lat = float(latitude)
+		lon = float(longitude)
+	except Exception:
+		return {"ok": False, "error": "invalid_coordinates",
+		        "lat": latitude, "lon": longitude, "levels": []}
+	if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+		return {"ok": False, "error": "out_of_range",
+		        "lat": lat, "lon": lon, "levels": []}
+	create = str(create_missing) in ("1", "true", "True")
+	online = str(use_online) in ("1", "true", "True")
+	key = ("resolve_location", round(lat, 4), round(lon, 4), create, online)
+	cached = _COORD_CACHE.get(key)
+	if cached is not None:
+		_COORD_CACHE.move_to_end(key)
+		return cached
+	from siraj_research.geo_hierarchy_ui import display_resolution
+
+	resolution = display_resolution(lat, lon, create_missing=create, use_online=online)
+	levels = resolution.get("levels") or []
+	linked = [row for row in levels if row.get("status") == "linked"]
+	deepest = max((int(row["level"]) for row in linked), default=-1)
+	payload = {
+		"ok": bool(linked),
+		"lat": lat,
+		"lon": lon,
+		"resolved": bool(linked),
+		"deepest_level": deepest if deepest >= 0 else None,
+		"levels": levels,
+		"text_en": resolution.get("text_en") or "",
+		"text_ar": resolution.get("text_ar") or "",
+		"gaps": resolution.get("gaps") or [],
+		"warnings": resolution.get("warnings") or [],
+		"provenance": resolution.get("provenance") or [],
+		"on_land": resolution.get("on_land"),
+		"ambiguous": resolution.get("ambiguous"),
+		"nearest_place": resolution.get("nearest_place"),
+		"dataset": resolution.get("dataset"),
+		"level_config": resolution.get("level_config"),
+		"geographic_administration": None,
+	}
+	if not payload["ok"]:
+		payload["error"] = "unresolved"
+		payload["unresolved_reason"] = (
+			"no_dataset" if "no_active_dataset" in payload["warnings"]
+			else ("offshore" if resolution.get("on_land") is False else "no_polygon")
+		)
+	else:
+		try:
+			from siraj_research.geo_admin import ensure_for_values
+
+			values = {
+				row["field"]: row.get("name")
+				for row in linked
+				if row.get("level") is not None
+			}
+			ensured = ensure_for_values(
+				values,
+				source="online" if online else "osm",
+				resolution_source="online" if online else "local",
+				create=create and frappe.has_permission("Geographic Administration", "create"),
+				centroid_lat=lat,
+				centroid_lng=lon,
+			)
+			payload["geographic_administration"] = ensured.get("name")
+		except Exception as exc:  # pragma: no cover - defensive on save
+			payload["warnings"] = [*payload["warnings"], f"ga_failed:{exc}"]
+	_COORD_CACHE[key] = payload
+	_COORD_CACHE.move_to_end(key)
+	while len(_COORD_CACHE) > _COORD_CACHE_MAX:
+		_COORD_CACHE.popitem(last=False)
+	return payload

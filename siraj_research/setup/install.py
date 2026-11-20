@@ -42,3 +42,13 @@ def after_install():
 	from siraj_research.setup.master_data import seed_master_data
 
 	print("SIRAJ reference data:", seed_master_data())
+	# Administrative-level catalogue and per-country configurations are part of
+	# the "core data" contract (variable depth, local labels). Both are
+	# idempotent and safe to re-run after an upgrade.
+	try:
+		from siraj_research.geo_seeding import seed_admin_levels, seed_country_level_configs
+
+		print("SIRAJ admin levels:", seed_admin_levels())
+		print("SIRAJ level configs:", seed_country_level_configs())
+	except Exception as exc:  # pragma: no cover - install must not fail on this
+		frappe.log_error(title="SIRAJ install: level configuration", message=str(exc))

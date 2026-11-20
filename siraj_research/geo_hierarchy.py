@@ -413,6 +413,10 @@ def upsert_level(entry: dict, parent_name: str | None, *, lat=None, lon=None,
 	if entry.get("boundary"):
 		values["boundary"] = entry["boundary"]
 	doc = frappe.get_doc(values)
+	# Boundary synchronisation may attach a row to the country when a parent
+	# polygon is unavailable; record the gap instead of refusing the import.
+	if getattr(doc, "flags", None) is not None:
+		doc.flags.siraj_allow_hierarchy_gaps = True
 	try:
 		doc.insert(ignore_permissions=True)
 	except Exception as exc:
@@ -421,7 +425,7 @@ def upsert_level(entry: dict, parent_name: str | None, *, lat=None, lon=None,
 		# instead of returning HTTP 409 to the form.
 		duplicate = frappe.DuplicateEntryError if hasattr(frappe, "DuplicateEntryError") else ()
 		message = str(exc)
-		if duplicate and isinstance(exc, duplicate) or "Duplicate entry" in message:
+		if (duplicate and isinstance(exc, duplicate)) or "Duplicate entry" in message:
 			reused = frappe.db.exists(doctype, code)
 			if reused:
 				_link_boundary(entry.get("boundary"), doctype, reused)

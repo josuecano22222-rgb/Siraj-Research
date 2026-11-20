@@ -69,6 +69,11 @@ _CSS_VER = "?v=" + _SIRAJ_BUILD
 app_include_js = [
 	"siraj.bundle.js",
 ]
+# Web Forms do not load app_include_js. This adapter gives them the same
+# ancestor-scoped Link queries and descendant clearing as Desk forms.
+web_include_js = [
+	"/assets/siraj_research/js/siraj-cascade-webform.js",
+]
 app_include_css = [
 	"/assets/siraj_research/css/siraj-hierarchy.css" + _CSS_VER,
 	"/assets/siraj_research/css/siraj-map-toolbar.css" + _CSS_VER,
@@ -143,8 +148,8 @@ jinja = {
 # Uninstallation
 # ------------
 
-# before_uninstall = "siraj_research.uninstall.before_uninstall"
-# after_uninstall = "siraj_research.uninstall.after_uninstall"
+before_uninstall = "siraj_research.setup.uninstall.before_uninstall"
+after_uninstall = "siraj_research.setup.uninstall.after_uninstall"
 
 # Integration Setup
 # ------------------

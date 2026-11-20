@@ -102,6 +102,23 @@ def display_resolution(latitude, longitude, *, create_missing: bool = True,
                               use_online=bool(use_online))
     raw = dict(linked.get("raw") or {})
     levels = _build_levels(linked)
+    country_name = (linked.get("country") or {}).get("name")
+    try:
+        from siraj_research.geo_levels import country_config
+
+        config = country_config(country_name) if country_name else None
+    except Exception:  # pragma: no cover - configuration table not migrated yet
+        config = None
+    if config:
+        labels = config.get("labels_en") or {}
+        labels_ar = config.get("labels_ar") or {}
+        for row in levels:
+            field = row["field"]
+            if labels.get(field):
+                row["label"] = labels[field]
+            if labels_ar.get(field):
+                row["label_ar"] = labels_ar[field]
+            row["is_active"] = field in set(config.get("active_fields") or [])
     by_field = {row["field"]: row for row in levels}
     place = dict(raw.get("nearest_place") or {})
     nearest = place.get("name_ar") or place.get("name_en") or None
@@ -122,6 +139,7 @@ def display_resolution(latitude, longitude, *, create_missing: bool = True,
         "resolved_count": sum(1 for row in levels if row["status"] != "gap"),
         "deepest_level": max([row["level"] for row in levels if row["status"] != "gap"],
                              default=-1),
+        "level_config": config,
     }
     result["text_en"] = format_chain(result, language="en")
     result["text_ar"] = format_chain(result, language="ar")
@@ -129,11 +147,21 @@ def display_resolution(latitude, longitude, *, create_missing: bool = True,
 
 
 def format_chain(result: dict, *, language: str = "en") -> str:
+    """Readable chain of the levels that actually resolved.
+
+    Gaps are omitted: a missing district must not render as the word
+    "District" in a location string, and an inactive level (Lebanon's village
+    tier) must not appear at all. Callers that need every level, including
+    gaps, read ``levels`` directly.
+    """
     parts = []
     for row in result.get("levels") or []:
+        if row.get("status") == "gap":
+            continue
         label = (row.get("label_ar_value") if language == "ar" else row.get("label_en")) \
             or (row.get("label_ar") if language == "ar" else row.get("label"))
-        parts.append(label or "—")
+        if label:
+            parts.append(str(label))
     return " › ".join(parts)
 
 
@@ -208,6 +236,9 @@ if frappe is not None:  # pragma: no cover - bench only
 		"""Full bilingual hierarchy for map clicks, manual entry and Explorer."""
 		if not frappe.has_permission("Place", "read"):
 			frappe.throw("Not permitted to resolve coordinates.", frappe.PermissionError)
+		from siraj_research.api.throttle import guard
+
+		guard("hierarchy_for_point")
 		return display_resolution(
 			latitude, longitude,
 			create_missing=str(create_missing) in ("1", "true", "True"),

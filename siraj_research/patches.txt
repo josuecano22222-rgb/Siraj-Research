@@ -6,3 +6,4 @@ siraj_research.patches.v1_0.map_notes_to_comments
 siraj_research.patches.v1_1.add_pcode_and_admin_boundary_fields
 siraj_research.patches.v1_0.fix_doctype_cleanup
 siraj_research.patches.v1_0.remove_duplicate_custom_fields
+siraj_research.patches.v1_2.add_level_config_and_ancestry

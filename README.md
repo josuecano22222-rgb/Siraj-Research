@@ -25,6 +25,11 @@ bench --site $SITE clear-cache
 Then complete **Act IV** of the installation guide (dataset import → geo
 package → `prepare_offline_site`) while online, and the site runs offline.
 
+For the geography contract itself — level definitions, per-country labels,
+`Geographic Administration`, seeding, offline verification and the demo
+dataset — read the six-chapter handbook in
+[`docs/geographic-hierarchy/`](docs/geographic-hierarchy/README.md).
+
 ### Sync after a merge to main
 
 Updates touch **only** `siraj_research` (no `bench update --reset`):

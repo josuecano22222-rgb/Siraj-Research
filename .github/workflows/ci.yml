@@ -65,7 +65,8 @@ jobs:
             tests/test_signed_snapshot_adversarial.js \
             tests/test_signed_snapshot_crypto.js \
             tests/test_siraj_cascade_core.js \
-            tests/test_siraj_geopoint_core.js
+            tests/test_siraj_geopoint_core.js \
+            tests/test_webform_cascade.js
           do
             echo "::group::node $f"
             node "$f"

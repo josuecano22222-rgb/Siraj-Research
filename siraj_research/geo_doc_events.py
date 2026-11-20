@@ -52,6 +52,15 @@ def auto_fill_hierarchy(doc, method=None):
 		result = apply_to_doc(doc, create_missing=True, use_online=False)
 		if result.get("updated"):
 			doc.flags.siraj_hierarchy_resolved = True
+		# Reusable Link target: keep one Geographic Administration row for the
+		# chain and point the (custom) field at it. Defensive: a failure here
+		# never blocks the research record.
+		try:
+			from siraj_research.geo_admin import ensure_for_document
+
+			ensure_for_document(doc)
+		except Exception:
+			pass
 	except Exception as exc:  # pragma: no cover - defensive in production
 		try:
 			frappe.log_error(

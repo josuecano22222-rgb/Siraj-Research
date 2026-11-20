@@ -27,6 +27,15 @@ except Exception:  # pragma: no cover - pure-Python tests
     frappe = None  # type: ignore[assignment]
 
 from siraj_research.geo_hierarchy import LEVELS, field_to_level, level_spec
+from siraj_research.geo_levels import (
+    ancestor_filters as configured_ancestor_filters,
+)
+from siraj_research.geo_levels import (
+    config_payload,
+    country_config,
+    effective_levels,
+    label_for,
+)
 
 FIELDS = tuple(str(spec["field"]) for spec in LEVELS)
 
@@ -148,6 +157,12 @@ def cascade(field: str, value: Any = None, **values: Any) -> dict:
     """
     if frappe is not None and not frappe.has_permission("Place", "read"):
         frappe.throw("Not permitted to read hierarchy data.", frappe.PermissionError)
+    if frappe is not None:
+        from siraj_research.api.throttle import guard
+
+        # Forms call this on load and on every ancestor change; the budget is
+        # generous but still bounds a runaway client.
+        guard("cascade", limit=1200)
     field = str(field or "")
     if field not in FIELDS:
         return {"error": f"Unknown hierarchy field: {field}", "chain": {}, "options": []}
@@ -165,14 +180,29 @@ def cascade(field: str, value: Any = None, **values: Any) -> dict:
         else:  # pragma: no cover - pure tests use chain_from_record directly
             record = {"name": value}
         chain = merge_chain(chain, chain_from_record(field, value, record))
-    filters = ancestor_filters(field, {key: row.get("value") for key, row in chain.items()})
+    populated = {key: row.get("value") for key, row in chain.items()}
+    # Per-country configuration (active levels, skipped tiers, labels). The
+    # country may itself come from the selected record (upward flow).
+    country = populated.get("country") or values.get("country")
+    if country and frappe is not None:
+        config = country_config(str(country))
+    else:
+        config = config_payload(effective_levels(), country=None)
+    levels = list(config["levels"])
+    active_filters = configured_ancestor_filters(field, populated, levels)
+    # Legacy rows can carry a value at an inactive level; keep the stricter
+    # filter only for active ancestors so a skipped tier cannot break the
+    # dropdown.
+    filters = active_filters or ancestor_filters(field, populated)
     return {
         "field": field,
         "value": value or "",
+        "label": label_for(levels, field),
         "chain": chain,
         "chain_list": visible_chain(chain),
         "filters": filters,
         "options": _fetch_options(field, filters),
+        "level_config": config,
         "source": "local-bench",
     }
 
