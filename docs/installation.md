@@ -15,7 +15,7 @@ Three layers arrive in order, and each one depends on the last:
 | Layer | What it gives you |
 | --- | --- |
 | **Bench** | Frappe + ERPNext skeleton, MariaDB, Redis, worker |
-| **Apps** | `business_theme` (presentation) and `siraj_research` (research core, hierarchy, maps) |
+| **Apps** | `siraj_research` only (research core, hierarchy, maps, offline) |
 | **Geography** | OSM boundary imports, offline tile packs, geo package, permanent network lock |
 
 The site runs **fully offline** once Act IV finishes. Online access is only
@@ -92,12 +92,9 @@ cd ~/frappe-bench/apps
 git clone https://github.com/josuecano22222-rgb/Siraj-Research.git siraj_research
 git -C siraj_research checkout main
 git -C siraj_research pull --ff-only origin main
-
-# business_theme (if it lives in the same organisation)
-git clone <BUSINESS_THEME_URL> business_theme
-git -C business_theme checkout main
-git -C business_theme pull --ff-only origin main
 ```
+
+This guide updates **only** `siraj_research`. Other apps on the bench are left alone.
 
 > **Rule:** never `reset --hard` to `main` while a feature branch is still
 > unmerged. Check first:
@@ -114,9 +111,7 @@ git -C business_theme pull --ff-only origin main
 ```bash
 cd ~/frappe-bench
 bench get-app ./apps/siraj_research
-bench get-app ./apps/business_theme
 bench --site frappe.com install-app siraj_research
-bench --site frappe.com install-app business_theme
 ```
 
 ---
@@ -126,30 +121,25 @@ bench --site frappe.com install-app business_theme
 Every time code changes on `main`, this is the ritual. Run it in order —
 never out of sequence.
 
+Updates touch **only** `siraj_research`. Do **not** run `bench update --reset`
+here — that pulls Frappe/ERPNext/HRMS/themes and is unrelated to this app.
+
 ```bash
 cd ~/frappe-bench
 
-# 1. pull latest main into both apps
-git -C apps/business_theme fetch origin main
-git -C apps/business_theme reset --hard origin/main
+# 1. pull latest main for siraj_research only
 git -C apps/siraj_research fetch origin main
 git -C apps/siraj_research reset --hard origin/main
 
-# 2. sync frappe + requirements
-bench update --reset
-
-# 3. database migrations (DocTypes, patches)
+# 2. migrate this app's DocTypes/patches (site migrate is safe; it only
+#    applies pending changes — it does not upgrade other apps' code)
 bench --site frappe.com migrate
 
-# 4. rebuild JS/CSS bundles
+# 3. rebuild this app's JS/CSS bundle
 bench build --app siraj_research
-bench build --app business_theme
 
-# 5. clear caches
+# 4. clear caches and restart workers
 bench --site frappe.com clear-cache
-bench --site frappe.com clear-website-cache
-
-# 6. restart workers
 bench restart
 ```
 
@@ -157,7 +147,7 @@ bench restart
 
 ```bash
 grep -n SIRAJ_BUILD apps/siraj_research/siraj_research/record_icons.py
-# expect: SIRAJ_BUILD = "2026-11-20.hierarchy-ui.d.18" (or newer)
+# expect: SIRAJ_BUILD = "2026-11-20.hierarchy-ui.d.19" (or newer)
 ```
 
 Reload the browser once. DevTools console should show:
@@ -180,32 +170,50 @@ in **Geo Settings → Active boundary dataset** (e.g. `OSM-IL-PS`).
 
 From CLI, the equivalent:
 
+`Geo Settings` is a **Single**, so `frappe.client.set_value` requires `name`:
+
 ```bash
-bench --site frappe.com execute \
-  frappe.client.set_value \
-  --kwargs '{
-    "doctype": "Geo Settings",
-    "fieldname": "active_boundary_dataset",
-    "value": "OSM-IL-PS"
-  }'
+bench --site frappe.com execute frappe.client.set_value \
+  --kwargs '{"doctype":"Geo Settings","name":"Geo Settings","fieldname":"active_boundary_dataset","value":"OSM-IL-PS"}'
+```
+
+Or set it from Desk: **Geo Settings → Active boundary dataset**.
+
+Verify:
+
+```bash
+bench --site frappe.com execute frappe.client.get_value \
+  --kwargs '{"doctype":"Geo Settings","fieldname":"active_boundary_dataset"}'
 ```
 
 ### 9. Import boundaries (per region)
 
 Download a Geofabrik extract while online, then:
 
+If the dataset row already shows **Complete**, skip to step 10.
+
+To (re)build hierarchy from an already-imported boundary dataset:
+
 ```bash
-# place the PBF where the app expects it, e.g.
-# ~/frappe-bench/geodata/osm/ile-rus.pbf
-
-bench --site frappe.com execute \
-  siraj_research.geo_bulk.prepare_osm \
-  --kwargs '{"dataset": "OSM-IL-PS"}'
-
-bench --site frappe.com execute \
-  siraj_research.geo_bulk.sync_boundary_hierarchy \
-  --kwargs '{"dataset_code": "OSM-IL-PS", "create_missing": true}'
+bench --site frappe.com execute siraj_research.geo_bulk.sync_boundary_hierarchy \
+  --kwargs '{"dataset_code":"OSM-IL-PS","create_missing":True}'
 ```
+
+`bench --kwargs` is evaluated as **Python**: booleans are `True` / `False`,
+never JSON `true` / `false`.
+
+To convert a raw Geofabrik PBF first (requires `osmium-tool`):
+
+```bash
+bench --site frappe.com execute siraj_research.geo_bulk.prepare_osm \
+  --kwargs '{"input_path":"/home/frappe/frappe-bench/geodata/osm/ile-rus.osm.pbf","output_dir":"/home/frappe/frappe-bench/geodata/osm","run":True}'
+
+# then import the GeoJSON that prepare_osm printed as "output"
+bench --site frappe.com execute siraj_research.geo_bulk.import_osm \
+  --kwargs '{"dataset_code":"OSM-IL-PS","file_path":"/home/frappe/frappe-bench/geodata/osm/ile-rus-boundaries.geojson","level":0}'
+```
+
+For a whole new country in one shot, use **Act IV-b** (`setup_region`).
 
 Expected status on Boundary Dataset: **Complete** with a non-zero boundary count.
 A `Failed / 0` row means the PBF was missing — do not leave it behind:
@@ -308,10 +316,13 @@ bench --site frappe.com execute siraj_research.geo_bulk.setup_region \
     "dataset_code": "OSM-LB",
     "source_path": "/home/frappe/frappe-bench/geodata/osm/lbn-latest.osm.pbf",
     "label_en": "Lebanon (OSM)",
-    "activate": true,
-    "export_package": true
+    "activate": True,
+    "export_package": True
   }'
 ```
+
+> `--kwargs` is Python `eval`, not JSON — use `True` / `False`, not `true` / `false`.
+> Absolute paths only (`~` is not expanded inside `--kwargs`).
 
 Repeat for `OSM-IQ` (Iraq), `OSM-EG` (Egypt), or any other Geofabrik region.
 `setup_region` will:
@@ -328,19 +339,31 @@ rows behind.
 After every new region, re-run **Act V** verification with the new active
 dataset etag.
 
+### CLI rules for `siraj_research` (avoid these failures)
+
+| Wrong | Right |
+| --- | --- |
+| `--kwargs '{... "true"}'` | Python: `"True"` (`--kwargs` is `eval`, not JSON) |
+| `frappe.client.set_value` without `name` on Geo Settings | Include `"name":"Geo Settings"` (Singles need it) |
+| `prepare_osm --kwargs '{"dataset": ...}'` | `input_path`, `output_dir`, `run` — or use `setup_region` |
+| `bench update --reset` to refresh this app | Only `git -C apps/siraj_research …` + `migrate` + `build --app siraj_research` |
+| Running `setup_region` before it exists on the bench | Merge the open PR that adds it, then siraj-only update (Act III) |
+
+`setup_region` ships with the release PR; until it is merged on `main`, the
+bench only has the older import helpers (`prepare_osm` + `import_osm` +
+`sync_boundary_hierarchy`).
+
 ## Epilogue — The ongoing ritual
 
-After each PR merges to `main`:
+After each PR merges to `main`, update **only** `siraj_research`.
+Never run `bench update --reset` as part of this ritual — it upgrades
+Frappe and every other app and is out of scope.
 
 ```bash
-git -C ~/frappe-bench/apps/business_theme fetch origin main
-git -C ~/frappe-bench/apps/business_theme reset --hard origin/main
-
 git -C ~/frappe-bench/apps/siraj_research fetch origin main
 git -C ~/frappe-bench/apps/siraj_research reset --hard origin/main
 
 cd ~/frappe-bench
-bench update --reset
 bench --site frappe.com migrate
 bench build --app siraj_research
 bench --site frappe.com clear-cache

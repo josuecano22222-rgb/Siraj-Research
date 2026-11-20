@@ -227,7 +227,7 @@ OSM PBF needs a one-time preparation step:
 
 ```bash
 bench --site SITE execute siraj_research.geo_bulk.prepare_osm \
-  --kwargs '{"input_path":"/data/nl-latest.osm.pbf","output_dir":"/data/osm","run":true}'
+  --kwargs '{"input_path":"/data/nl-latest.osm.pbf","output_dir":"/data/osm","run":True}'
 bench --site SITE execute siraj_research.geo_bulk.import_osm \
   --kwargs '{"dataset_code":"OSM-NL-ADM2","file_path":"/data/osm/nl-latest-boundaries.geojson","level":2}'
 ```

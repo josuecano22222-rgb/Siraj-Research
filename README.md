@@ -27,13 +27,15 @@ package → `prepare_offline_site`) while online, and the site runs offline.
 
 ### Sync after a merge to main
 
+Updates touch **only** `siraj_research` (no `bench update --reset`):
+
 ```bash
 git -C apps/siraj_research fetch origin main
 git -C apps/siraj_research reset --hard origin/main
-bench update --reset
 bench --site $SITE migrate
 bench build --app siraj_research
 bench --site $SITE clear-cache
+bench restart
 ```
 
 ### Contributing
