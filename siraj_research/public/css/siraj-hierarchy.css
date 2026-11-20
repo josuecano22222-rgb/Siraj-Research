@@ -62,3 +62,22 @@ button.siraj-coord-confirm-zero {
 	margin-inline-start: 6px;
 	padding: 2px 7px;
 }
+
+/* Country → Community cascading selector (all Location sections). */
+.siraj-cascade-status {
+  clear: both; width: 100%; margin: 8px 0 4px;
+  padding: 8px 10px; border: 1px solid var(--border-color, #d8dfe1);
+  border-radius: 4px; background: var(--fg-color, #fff);
+  font-size: 12px; line-height: 1.5;
+}
+.siraj-cascade-chain { font-weight: 600; color: var(--text-color, #243b40); margin-bottom: 4px; overflow-wrap: anywhere; }
+.siraj-cascade-next { color: var(--text-muted, #6a7a7e); }
+.siraj-cascade-options { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.siraj-cascade-option {
+  border: 1px solid #cdd9d6; border-radius: 12px; background: #f5f9f8;
+  color: #245e58; cursor: pointer; font-size: 11px; padding: 2px 9px;
+}
+.siraj-cascade-option:hover { background: #e5f1ee; border-color: #8fbcb3; }
+.siraj-cascade-more { color: var(--text-muted, #6a7a7e); font-size: 11px; align-self: center; }
+.siraj-cascade-gap { color: #8a2525; margin-top: 4px; }
+.siraj-cascade-source { color: var(--text-muted, #6a7a7e); font-size: 10px; margin-top: 4px; }

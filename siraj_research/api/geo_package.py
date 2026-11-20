@@ -58,6 +58,10 @@ import frappe
 from siraj_research.geo_import import deps_ok, shapely
 from siraj_research.geo_hierarchy import LEVELS, _country_names, level_spec, make_code, normalize_code
 
+# Bump when the polygon row shape changes so browsers re-fetch the static
+# package after an app update. Format 2 adds the Country code at row[7].
+PACKAGE_FORMAT = 2
+
 
 def _settings() -> dict:
     try:
@@ -122,7 +126,7 @@ def _pack_polygons(dataset: str) -> tuple[list, int]:
     # Prefer 'simplified' geometries (smaller); fall back to 'full'.
     rows = frappe.db.sql(
         """SELECT ab.pcode, ab.parent_pcode, ab.level, ab.name_en, ab.name_ar,
-                  ag.`precision`, ag.geom_wkb_hex, ag.point_count
+                  ab.country, ag.`precision`, ag.geom_wkb_hex, ag.point_count
            FROM `tabAdmin Boundary` ab
            LEFT JOIN (
                SELECT `parent`, `precision`, geom_wkb_hex, point_count,
@@ -174,6 +178,7 @@ def _pack_polygons(dataset: str) -> tuple[list, int]:
             (r.name_ar or "")[:120],
             coords,
             linked_name,
+            (r.country or ""),
         ])
     return out, version
 
@@ -212,22 +217,24 @@ def _pack_places(dataset: str | None) -> list:
 def build_package(dataset: str | None, gazetteer: str | None = None) -> dict:
     """Build the client package entirely from local bench data."""
     if not dataset:
-        return {"dataset": None, "version": 0, "levels": [], "polygons": [],
-                "places": [], "etag": "none:0"}
+        return {"dataset": None, "version": 0, "format": PACKAGE_FORMAT,
+                "levels": [], "polygons": [], "places": [], "etag": "none:0"}
     ok, missing = deps_ok()
     if not ok:
-        return {"dataset": dataset, "version": 0, "levels": [], "polygons": [],
-                "places": [], "etag": f"{dataset}:0", "error": "missing_dependencies",
+        return {"dataset": dataset, "version": 0, "format": PACKAGE_FORMAT,
+                "levels": [], "polygons": [], "places": [],
+                "etag": f"{dataset}:0.{PACKAGE_FORMAT}", "error": "missing_dependencies",
                 "missing": missing}
     polygons, version = _pack_polygons(dataset)
     places = _pack_places(gazetteer)
     return {
         "dataset": dataset,
         "version": int(version or 0),
+        "format": PACKAGE_FORMAT,
         "levels": sorted({row[0] for row in polygons}),
         "polygons": polygons,
         "places": places,
-        "etag": f"{dataset}:{int(version or 0)}",
+        "etag": f"{dataset}:{int(version or 0)}.{PACKAGE_FORMAT}",
     }
 
 

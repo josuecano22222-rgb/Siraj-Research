@@ -21,5 +21,7 @@ import './siraj-geopoint.js';
 import './coordinate_map.js';
 import './siraj-geo.js';
 import './siraj-hierarchy.js';
+import './siraj-cascade-core.js';
+import './siraj-cascade.js';
 import './siraj-icons.js';
 import './siraj-profile-fields.js';

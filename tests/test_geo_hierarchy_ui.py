@@ -318,7 +318,9 @@ def test_geo_package_returns_json_dict_and_client_unwraps_message():
     server = (root / "siraj_research/api/geo_package.py").read_text()
     client = (root / "siraj_research/public/js/siraj-geo.js").read_text()
     assert 'frappe.response["data"]' not in server
-    assert '"etag": f"{dataset}:{int(version or 0)}"' in server
+    assert '"etag": f"{dataset}:{int(version or 0)}.{PACKAGE_FORMAT}"' in server
+    assert '"format": PACKAGE_FORMAT' in server
+    assert 'ab.country' in server
     assert '?version=' in client
     assert "wrapped.message !== undefined" in client
 
@@ -430,3 +432,20 @@ def test_bootstrap_reports_real_failures_and_guards_lock():
     assert '"skipped": "incomplete_downloads"' in source
     assert "force_lock" in source
     assert "written`, `cached` and `failed`" in docs
+
+
+
+def test_cascade_is_wired_into_every_desk_form():
+    root = Path(__file__).resolve().parents[1]
+    bundle = (root / "siraj_research/public/js/siraj.bundle.js").read_text()
+    cascade = (root / "siraj_research/public/js/siraj-cascade.js").read_text()
+    core = (root / "siraj_research/public/js/siraj-cascade-core.js").read_text()
+    server = (root / "siraj_research/geo_cascade.py").read_text()
+    assert "import './siraj-cascade-core.js';" in bundle
+    assert "import './siraj-cascade.js';" in bundle
+    assert "siraj_research.geo_cascade.cascade" in cascade
+    assert "frm.set_query(field" in cascade
+    assert "clearDescendants" in cascade
+    assert "root.SirajCascadeCore = api" in core
+    assert "def cascade(field" in server
+    assert "ancestor_filters" in server
