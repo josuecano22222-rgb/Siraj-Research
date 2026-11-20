@@ -60,7 +60,7 @@ index b7bbcb3..4d95581 100644
 +++ b/docs/offline-first.md
 @@ -26,8 +26,17 @@ bench --site frappe.com execute siraj_research.offline_bootstrap.prepare_offline
  ```
- 
+
  Progress is printed immediately to the terminal and appended to
 -`sites/frappe.com/private/offline-cache/bootstrap-progress.json`. In another
 -terminal you can watch it live:
@@ -75,7 +75,7 @@ index b7bbcb3..4d95581 100644
 +disk space.
 +
 +In another terminal you can watch progress live:
- 
+
  ```bash
  tail -f ~/frappe-bench/sites/frappe.com/private/offline-cache/bootstrap-progress.json
 diff --git a/siraj_research/api/geo_package.py b/siraj_research/api/geo_package.py
@@ -85,12 +85,12 @@ index 41bb8cd..a53b1c3 100644
 @@ -58,6 +58,10 @@ import frappe
  from siraj_research.geo_import import deps_ok, shapely
  from siraj_research.geo_hierarchy import LEVELS, _country_names, level_spec, make_code, normalize_code
- 
+
 +# Bump when the polygon row shape changes so browsers re-fetch the static
 +# package after an app update. Format 2 adds the Country code at row[7].
 +PACKAGE_FORMAT = 2
 +
- 
+
  def _settings() -> dict:
      try:
 @@ -122,7 +126,7 @@ def _pack_polygons(dataset: str) -> tuple[list, int]:
@@ -109,7 +109,7 @@ index 41bb8cd..a53b1c3 100644
 +            (r.country or ""),
          ])
      return out, version
- 
+
 @@ -212,22 +217,24 @@ def _pack_places(dataset: str | None) -> list:
  def build_package(dataset: str | None, gazetteer: str | None = None) -> dict:
      """Build the client package entirely from local bench data."""
@@ -138,8 +138,8 @@ index 41bb8cd..a53b1c3 100644
 -        "etag": f"{dataset}:{int(version or 0)}",
 +        "etag": f"{dataset}:{int(version or 0)}.{PACKAGE_FORMAT}",
      }
- 
- 
+
+
 diff --git a/siraj_research/geo_cascade.py b/siraj_research/geo_cascade.py
 new file mode 100644
 index 0000000..4bfa8b4
@@ -421,8 +421,8 @@ index fedd6a4..9d37c25 100644
 +         written=written, cached=cached, failed=failed, level="warning" if failed else "info")
 +    return {"bbox": bbox, "written": written, "cached": cached, "failed": failed,
 +            "ok": failed == 0, "layers": list(layers), "max_zoom": int(max_zoom)}
- 
- 
+
+
  def lock_offline_mode() -> dict:
 @@ -206,7 +223,7 @@ def lock_offline_mode() -> dict:
  def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
@@ -887,7 +887,7 @@ index 2625adf..9c9619d 100644
 @@ -223,9 +223,20 @@
  		return Object.assign({}, status_);
  	}
- 
+
 +	// Expose the loaded package for pure client-side helpers (hierarchy
 +	// cascading, option lists) without a second fetch. Resolves after the
 +	// IndexedDB/static-package sync has completed.
@@ -917,20 +917,20 @@ index 8190f46..009db5f 100644
 -	const SIRAJ_MAP_BUILD = (window.SIRAJ_BUILD) || '2026-11-20.hierarchy-ui.d.15';
 +	const SIRAJ_MAP_BUILD = (window.SIRAJ_BUILD) || '2026-11-20.hierarchy-ui.d.17';
  	console.info('%c[SIRAJ Map]', 'color:#0c5e5b;font-weight:bold', 'build', SIRAJ_MAP_BUILD, '| default engine: maplibre');
- 
+
  	const engines = { maplibre: null, leaflet: null };
 diff --git a/siraj_research/public/js/siraj-record-meta.js b/siraj_research/public/js/siraj-record-meta.js
 index 4134692..b61be44 100644
 --- a/siraj_research/public/js/siraj-record-meta.js
 +++ b/siraj_research/public/js/siraj-record-meta.js
 @@ -190,7 +190,7 @@
- 
+
  // Build stamp — bump on every bundle change so stale caches are obvious in the console.
  // Keep this string in lockstep with record_icons.py SIRAJ_BUILD.
 -window.SIRAJ_BUILD = '2026-11-20.hierarchy-ui.d.15';
 +window.SIRAJ_BUILD = '2026-11-20.hierarchy-ui.d.17';
  try { console.info('%c[SIRAJ]', 'color:#0c5e5b;font-weight:bold', 'build', window.SIRAJ_BUILD, "| Full coordinate-to-hierarchy UI with isolated map setup."); } catch (_) {}
- 
+
  // ---------- Stale-bundle banner ----------
 diff --git a/siraj_research/public/js/siraj.bundle.js b/siraj_research/public/js/siraj.bundle.js
 index a571f4d..b913ab4 100644
@@ -954,8 +954,8 @@ index 36a4826..b90bb6e 100644
  #: when they differ (catches stale bundles after bench build).
 -SIRAJ_BUILD = "2026-11-20.hierarchy-ui.d.15"
 +SIRAJ_BUILD = "2026-11-20.hierarchy-ui.d.17"
- 
- 
+
+
  #: DocTypes that carry coordinate fields and a per-form map editor.
 diff --git a/tests/test_geo_cascade.py b/tests/test_geo_cascade.py
 new file mode 100644
@@ -1053,9 +1053,9 @@ index c59b844..8f3b9c7 100644
 +    assert 'ab.country' in server
      assert '?version=' in client
      assert "wrapped.message !== undefined" in client
- 
+
 @@ -419,3 +421,31 @@ def test_bootstrap_step_failure_does_not_abort_remaining_stages():
- 
+
      result = _step("demo", broken)
      assert "demo failure" in result["error"]
 +

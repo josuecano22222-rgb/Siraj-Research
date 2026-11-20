@@ -64,6 +64,7 @@ add_to_apps_screen = [
 # string forces the browser to re-request on every build, which is
 # sufficient for CSS (small files, no code split concerns).
 from siraj_research.record_icons import SIRAJ_BUILD as _SIRAJ_BUILD
+
 _CSS_VER = "?v=" + _SIRAJ_BUILD
 app_include_js = [
 	"siraj.bundle.js",

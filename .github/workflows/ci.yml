@@ -17,6 +17,8 @@ jobs:
   pure-python-tests:
     name: Pure-Python Unit Tests
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: .
     steps:
       - uses: actions/checkout@v4
 
@@ -32,7 +34,7 @@ jobs:
         run: |
           # Known-red legacy files are excluded so the gate stays honest and green
           # on main. Each exclusion is a tracked debt item, not a silent skip.
-          pytest tests/ \
+          python -m pytest tests/ \
             --ignore=tests/test_coordinate_audit.py \
             --ignore=tests/test_default_workflow_state.py \
             --ignore=tests/test_fixture_controllers.py \
@@ -75,6 +77,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -109,7 +113,14 @@ jobs:
           "
 
       - name: Fail on whitespace errors in the diff
-        run: git diff --check "${{ github.event.pull_request.base.sha || 'HEAD~1' }}"...HEAD
+        # patches/ holds historical transfer artifacts whose embedded content
+        # is not source; exclude it so the check stays about real code.
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            BASE="$(git rev-parse HEAD~1)"
+          fi
+          git diff --check "$BASE"...HEAD -- . ':(exclude)patches'
 
   ruff-changed-files:
     name: Ruff (changed files only)

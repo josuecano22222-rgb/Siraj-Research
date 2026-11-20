@@ -50,13 +50,13 @@ import gzip
 import hashlib
 import json
 import math
-from typing import Optional
 from pathlib import Path
+from typing import Optional
 
 import frappe
 
-from siraj_research.geo_import import deps_ok, shapely
 from siraj_research.geo_hierarchy import LEVELS, _country_names, level_spec, make_code, normalize_code
+from siraj_research.geo_import import deps_ok, shapely
 
 # Bump when the polygon row shape changes so browsers re-fetch the static
 # package after an app update. Format 2 adds the Country code at row[7].

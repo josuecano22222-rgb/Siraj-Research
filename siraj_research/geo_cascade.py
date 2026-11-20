@@ -135,7 +135,7 @@ def _fetch_options(field: str, filters: dict[str, Any]) -> list[dict]:
     fields = [name for name in fields if frappe.get_meta(doctype).has_field(name)]
     try:
         rows = frappe.get_all(doctype, filters=filters or None, fields=fields,
-                              order_by="`tab%s`.`name` asc" % doctype,
+                              order_by=f"`tab{doctype}`.`name` asc",
                               limit_page_length=0)
     except Exception:
         # An unsaved/new parent has no valid children yet; report an empty
