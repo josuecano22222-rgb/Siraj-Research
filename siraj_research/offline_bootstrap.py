@@ -12,6 +12,7 @@ import json
 import math
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 try:  # pragma: no cover - exercised inside a bench
@@ -54,11 +55,64 @@ def emit(stage: str, message: str, **extra) -> None:
 
 
 
+class BootstrapStopped(RuntimeError):
+    """Raised when an administrator requests a cooperative stop."""
+
+
+def _settings_value(field: str):
+    if frappe is None:
+        return None
+    return frappe.db.get_value("Geo Settings", "Geo Settings", field)
+
+
+def stop_requested() -> bool:
+    """True when Geo Settings → Stop requested has been checked."""
+    if frappe is None:
+        return False
+    from frappe.utils import cint
+    return bool(cint(_settings_value("bootstrap_stop_requested")))
+
+
+def check_stop(stage: str) -> None:
+    """Abort at a safe point if the administrator pressed Stop."""
+    if stop_requested():
+        emit(stage, "STOP requested from Geo Settings", level="warning")
+        raise BootstrapStopped("Stopped by administrator from Geo Settings")
+
+
+def _set_status(**values) -> None:
+    if frappe is None:
+        return
+    for field, value in values.items():
+        frappe.db.set_value("Geo Settings", "Geo Settings", field, value,
+                            update_modified=False)
+    frappe.db.commit()
+
+
+if frappe is not None:  # pragma: no cover - bench only
+    @frappe.whitelist()
+    def request_stop():
+        """Set the cooperative stop flag from the Geo Settings button."""
+        _set_status(bootstrap_stop_requested=1,
+                    bootstrap_last_status="stop requested")
+        emit("stop", "Stop requested from Geo Settings")
+        return {"stop_requested": True}
+
+    @frappe.whitelist()
+    def clear_stop():
+        """Clear the stop flag before a new bootstrap run."""
+        _set_status(bootstrap_stop_requested=0)
+        return {"stop_requested": False}
+
+
 def _step(stage: str, fn, **kwargs) -> dict:
 	"""Run one bootstrap stage without aborting the remaining stages."""
 	emit(stage, "starting")
 	try:
+		check_stop(stage)
 		result = fn(**kwargs)
+	except BootstrapStopped:
+		raise
 	except Exception as exc:  # noqa: BLE001 - keep the bootstrap going
 		emit(stage, f"FAILED: {exc}")
 		return {"error": f"{type(exc).__name__}: {exc}"}
@@ -116,10 +170,19 @@ def download_python_wheels(target_dir: str | Path | None = None) -> dict:
     target = Path(target_dir) if target_dir else (Path(frappe.get_site_path("private")) if frappe else app) / "offline-cache" / "wheels"
     target.mkdir(parents=True, exist_ok=True)
     emit("wheels", f"Downloading requirements to {target}", requirements=str(requirements))
-    proc = subprocess.run(
-        [sys.executable, "-m", "pip", "download", "--dest", str(target), "-r", str(requirements)],
-        capture_output=True, text=True, check=False,
-    )
+    check_stop("wheels")
+    cmd = [sys.executable, "-m", "pip", "download", "--dest", str(target), "-r", str(requirements)]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    while proc.poll() is None:
+        if stop_requested():
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except Exception:
+                proc.kill()
+            check_stop("wheels")  # raises BootstrapStopped
+        time.sleep(0.25)
+    stdout, stderr = proc.communicate()
     count = len(list(target.glob("*.whl")))
     already_cached = proc.returncode != 0 and count > 0
     ok = proc.returncode == 0 or already_cached
@@ -131,7 +194,7 @@ def download_python_wheels(target_dir: str | Path | None = None) -> dict:
         "already_cached": already_cached,
         "target": str(target),
         "wheels": count,
-        "stderr": proc.stderr[-1000:],
+        "stderr": (stderr or "")[-1000:],
     }
 
 
@@ -160,6 +223,7 @@ def prewarm_tiles(dataset: str | None = None, max_zoom: int = 11,
                 import datetime as _dt
                 variant_key = s.get(spec.get("date_field", ""), "") or _dt.datetime.utcnow().strftime("%Y-%m-%d")
             for z in range(int(spec.get("min_zoom", 0)), min(int(max_zoom), int(spec.get("max_zoom", 22))) + 1):
+                check_stop("tiles")
                 xs, ys = tile_range(bbox, z)
                 total = len(xs) * len(ys)
                 emit("tiles", f"Layer {layer} zoom {z}: {total} tiles")
@@ -167,8 +231,12 @@ def prewarm_tiles(dataset: str | None = None, max_zoom: int = 11,
                 layer_written = 0
                 layer_cached = 0
                 layer_failed = 0
+                checked = 0
                 for x in xs:
                     for y in ys:
+                        if checked % 32 == 0:
+                            check_stop("tiles")
+                        checked += 1
                         path = tile_cache._cache_path(base, z, x, y, ext, variant_key)
                         if path.is_file():
                             cached += 1
@@ -224,35 +292,52 @@ def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
                          wheels: bool = True, tiles: bool = True,
                          hierarchy: bool = True, package: bool = True,
                          lock: bool = True, force_lock: bool = False) -> dict:
-    """Run every download while online, then lock the site offline."""
+    """Run every download while online, then lock the site offline.
+
+    The Geo Settings → Stop Offline Bootstrap button sets a cooperative stop
+    flag. The run checks it between stages and every 32 tiles, so a long tile
+    sweep can be halted without leaving the site half-locked.
+    """
     if frappe is None:
         return {"error": "bench required"}
     cfg = frappe.get_single("Geo Settings")
     dataset = dataset or getattr(cfg, "active_boundary_dataset", None)
     if not dataset:
         return {"error": "No active boundary dataset"}
+    _set_status(bootstrap_stop_requested=0, bootstrap_running=1,
+                bootstrap_last_status="running")
     emit("start", f"Offline bootstrap started for {dataset}", max_zoom=max_zoom)
-    result: dict = {"dataset": dataset}
-    if wheels:
-        result["wheels"] = _step("wheels", download_python_wheels)
-    if tiles:
-        result["tiles"] = _step("tiles", prewarm_tiles, dataset=dataset, max_zoom=max_zoom)
-    if hierarchy:
-        from siraj_research.geo_bulk import sync_boundary_hierarchy
-        result["hierarchy"] = _step(
-            "hierarchy", sync_boundary_hierarchy, dataset_code=dataset, create_missing=True)
-    if package:
-        from siraj_research.api.geo_package import export_offline_package
-        result["package"] = _step("package", export_offline_package)
-    incomplete = (
-        (wheels and not result.get("wheels", {}).get("ok", False))
-        or (tiles and not result.get("tiles", {}).get("ok", False))
-    )
-    if lock and incomplete and not force_lock:
-        emit("lock", "Skipping offline lock: downloads were incomplete; rerun while online "
-                     "or pass force_lock=True", level="warning")
-        result["locked"] = {"skipped": "incomplete_downloads"}
-    elif lock:
-        result["locked"] = _step("lock", lock_offline_mode)
-    emit("done", "Offline bootstrap complete", dataset=dataset, complete=not incomplete)
+    result: dict = {"dataset": dataset, "stopped": False}
+    try:
+        if wheels:
+            result["wheels"] = _step("wheels", download_python_wheels)
+        if tiles:
+            result["tiles"] = _step("tiles", prewarm_tiles,
+                                    dataset=dataset, max_zoom=max_zoom)
+        if hierarchy:
+            from siraj_research.geo_bulk import sync_boundary_hierarchy
+            result["hierarchy"] = _step(
+                "hierarchy", sync_boundary_hierarchy,
+                dataset_code=dataset, create_missing=True)
+        if package:
+            from siraj_research.api.geo_package import export_offline_package
+            result["package"] = _step("package", export_offline_package)
+        incomplete = (
+            (wheels and not result.get("wheels", {}).get("ok", False))
+            or (tiles and not result.get("tiles", {}).get("ok", False))
+        )
+        if lock and incomplete and not force_lock:
+            emit("lock", "Skipping offline lock: downloads were incomplete; rerun while online "
+                         "or pass force_lock=True", level="warning")
+            result["locked"] = {"skipped": "incomplete_downloads"}
+        elif lock:
+            result["locked"] = _step("lock", lock_offline_mode)
+        emit("done", "Offline bootstrap complete", dataset=dataset, complete=not incomplete)
+        _set_status(bootstrap_last_status="complete" if not incomplete else "complete_with_failures")
+    except BootstrapStopped as exc:
+        result["stopped"] = True
+        emit("stopped", str(exc), level="warning")
+        _set_status(bootstrap_last_status="stopped by user")
+    finally:
+        _set_status(bootstrap_running=0)
     return result

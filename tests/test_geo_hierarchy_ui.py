@@ -449,3 +449,24 @@ def test_cascade_is_wired_into_every_desk_form():
     assert "root.SirajCascadeCore = api" in core
     assert "def cascade(field" in server
     assert "ancestor_filters" in server
+
+
+def test_offline_bootstrap_has_settings_stop_control():
+    import json
+
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "siraj_research/offline_bootstrap.py").read_text()
+    settings = json.loads((root / "siraj_research/siraj_research/doctype/geo_settings/geo_settings.json").read_text())
+    fields = {f.get("fieldname") for f in settings["fields"]}
+    hooks = (root / "siraj_research/hooks.py").read_text()
+    js = (root / "siraj_research/public/js/geo_settings.js").read_text()
+    docs = (root / "docs/offline-first.md").read_text()
+    assert "class BootstrapStopped" in source
+    assert "def request_stop" in source
+    assert "check_stop(\"tiles\")" in source
+    assert "bootstrap_stop_requested=0" in source
+    assert {"stop_bootstrap", "bootstrap_running", "bootstrap_stop_requested",
+            "bootstrap_last_status"} <= fields
+    assert '"Geo Settings": "public/js/geo_settings.js"' in hooks
+    assert "siraj_research.offline_bootstrap.request_stop" in js
+    assert "Stop Offline Bootstrap" in docs

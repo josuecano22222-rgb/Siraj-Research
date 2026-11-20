@@ -97,6 +97,7 @@ boot_session = "siraj_research.record_icons.boot_session"
 # include js in doctype views
 doctype_js = {
 	"Boundary Dataset": "public/js/boundary_dataset.js",
+	"Geo Settings": "public/js/geo_settings.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # Standard per-DocType tree scripts live beside their DocType JSON files.
