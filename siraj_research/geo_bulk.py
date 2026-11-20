@@ -733,8 +733,20 @@ def setup_region(dataset_code: str, source_path: str, *, level: int = 0,
         frappe.db.commit()
         result["activated"] = True
     if export_package:
-        from siraj_research.api.geo_package import export_offline_package
-        result["package"] = export_offline_package()
+        if result.get("queued"):
+            # Import runs on the long worker; exporting now would write an
+            # empty package. Tell the operator to export after Complete.
+            result["package"] = {
+                "skipped": "import_queued",
+                "message": (
+                    "Import queued. Wait until Boundary Dataset shows Complete, "
+                    "then run: bench --site SITE execute "
+                    "siraj_research.api.geo_package.export_offline_package"
+                ),
+            }
+        else:
+            from siraj_research.api.geo_package import export_offline_package
+            result["package"] = export_offline_package()
     return result
 
 

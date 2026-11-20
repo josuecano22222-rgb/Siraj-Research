@@ -7,7 +7,7 @@ operation after setup.
 
 ### Installation
 
-**Read [`docs/installation.md`](docs/installation.md)** — the full
+**Read [`docs/from-scratch-runbook.md`](docs/from-scratch-runbook.md)** (fresh wipe, step-by-step) or [`docs/installation.md`](docs/installation.md)** — the full
 install-from-bare-metal guide (bench → apps → migrate → geography → offline
 lock), written as one continuous sequence of commands.
 

@@ -518,3 +518,20 @@ def test_setup_region_helper_exists_for_multi_region_import():
     demo = (root / "siraj_research/setup/demo_data.py").read_text()
     assert "def _label_field" not in cascade
     assert "def _extid" not in demo
+
+
+def test_prewarm_enables_shared_basemaps_and_skips_disabled_layers():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "siraj_research/offline_bootstrap.py").read_text()
+    assert "enable_shared_basemaps" in source
+    assert "skipped_layers" in source
+    assert "skipped (disabled in Geo Settings)" in source
+    # Disabled layers must not abort the whole pass (no bare throw path).
+    assert "_resolve_layer" in source
+
+
+def test_setup_region_does_not_export_while_import_is_queued():
+    root = Path(__file__).resolve().parents[1]
+    bulk = (root / "siraj_research/geo_bulk.py").read_text()
+    assert 'skipped": "import_queued"' in bulk or "'import_queued'" in bulk
+    assert "Wait until Boundary Dataset shows Complete" in bulk

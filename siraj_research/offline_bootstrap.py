@@ -207,13 +207,30 @@ def prewarm_tiles(dataset: str | None = None, max_zoom: int = 11,
     previous = bool(s.allow_fetch)
     frappe.db.set_value("Geo Settings", "Geo Settings", "allow_tile_fetch", 1,
                         update_modified=False)
+    # Online setup prepares the offline pack: turn on the shared basemap
+    # layers we intend to cache (same as enable_shared_basemaps) so a fresh
+    # reinstall (hybrid default off) does not abort the whole tile pass.
+    try:
+        enabled = tile_cache.enable_shared_basemaps()
+        emit("tiles", "Enabled shared basemap layers for offline pack", **enabled)
+        s = tile_cache._settings()
+        previous = True  # setup intentionally leaves fetch enabled until lock
+    except Exception as exc:  # pragma: no cover - defensive
+        emit("tiles", f"Could not enable shared basemaps: {exc}", level="warning")
     bbox = dataset_bbox(dataset)
     written = 0
     cached = 0
     failed = 0
+    skipped_layers: list[str] = []
     emit("tiles", f"Starting tile download for {dataset or 'active dataset'}", bbox=bbox, layers=list(layers))
     try:
         for layer in layers:
+            base_name = layer[: -len("_labels")] if layer.endswith("_labels") else layer
+            flag = tile_cache._ENABLE_FLAG.get(base_name)
+            if flag and not getattr(s, flag, False) and base_name != "standard":
+                skipped_layers.append(layer)
+                emit("tiles", f"Layer {layer}: skipped (disabled in Geo Settings)")
+                continue
             emit("tiles", f"Layer {layer}: starting")
             base, variant = tile_cache._resolve_layer(layer, s)
             spec = tile_cache.LAYERS[base]
@@ -269,8 +286,11 @@ def prewarm_tiles(dataset: str | None = None, max_zoom: int = 11,
         frappe.db.commit()
     emit("tiles", f"Tile pass finished ({written} written, {cached} cached, {failed} failed)",
          written=written, cached=cached, failed=failed, level="warning" if failed else "info")
+    # Disabled layers are intentional, not failed downloads: only real
+    # fetch failures block the offline lock.
     return {"bbox": bbox, "written": written, "cached": cached, "failed": failed,
-            "ok": failed == 0, "layers": list(layers), "max_zoom": int(max_zoom)}
+            "ok": failed == 0, "layers": list(layers),
+            "skipped_layers": skipped_layers, "max_zoom": int(max_zoom)}
 
 
 def lock_offline_mode() -> dict:

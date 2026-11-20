@@ -1,5 +1,10 @@
 # The Installation Odyssey
 
+> **Fresh wipe / full session log:** see
+> [`from-scratch-runbook.md`](from-scratch-runbook.md) for the complete
+> chronological procedure (reinstall → feature branch → import → bootstrap →
+> verify → merge), written against real bench output.
+
 > A complete system has just been reformatted. Nothing exists yet — no bench,
 > no apps, no geography, no memory of the hierarchy. This guide walks the whole
 > journey from bare metal to a fully offline-capable Siraj Research station,
