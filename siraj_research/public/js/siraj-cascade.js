@@ -180,8 +180,10 @@
 		const options = result.options || [];
 		if (nextField && nextField !== result.field) {
 			const label = (controlFor(frm, nextField) || {}).df?.label || nextField;
+			const scoped = result.filters && Object.keys(result.filters).length > 0;
+			const scopeNote = scoped ? '' : ' ' + t('(all countries — pick a parent to narrow)');
 			$('<div class="siraj-cascade-next"></div>')
-				.text(t('{0} available', [options.length]) + ': ' + t(label))
+				.text(t('{0} available', [options.length]) + ': ' + t(label) + scopeNote)
 				.appendTo($box);
 			if (options.length) {
 				const $chips = $('<div class="siraj-cascade-options"></div>').appendTo($box);
@@ -201,7 +203,9 @@
 				}
 			} else {
 				$('<div class="siraj-cascade-gap"></div>')
-					.text(t('No matching children in the offline dataset.'))
+					.text(scoped
+						? t('No matching children in the offline dataset.')
+						: t('No rows at this level yet. Import a boundary dataset to populate the hierarchy.'))
 					.appendTo($box);
 			}
 		}

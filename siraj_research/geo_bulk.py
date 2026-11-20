@@ -676,6 +676,68 @@ def prepare_osm(input_path: str, output_dir: str, *, run: bool = False) -> dict:
             "output": commands[-1][-1]}
 
 
+def setup_region(dataset_code: str, source_path: str, *, level: int = 0,
+                 output_dir: str | None = None, prepare: bool = True,
+                 enqueue: bool = True, sync_hierarchy: bool = True,
+                 activate: bool = False, export_package: bool = False,
+                 label_en: str = "") -> dict:
+    """One command to add another region (Lebanon, Iraq, Egypt, …).
+
+    ``source_path`` may be a Geofabrik ``.osm.pbf`` or an already-prepared
+    ``.geojson``. When it is a PBF and ``prepare`` is true, ``osmium`` runs
+    first (requires ``osmium-tool``); pass ``prepare=False`` with a GeoJSON
+    to skip that step. The Boundary Dataset row is created if missing,
+    polygons are imported, hierarchy rows materialised, and optionally the
+    dataset is activated and re-exported for the offline browser package.
+
+    Example (while the bench still has internet for the Geofabrik download)::
+
+        bench --site frappe.com execute siraj_research.geo_bulk.setup_region \\
+            --kwargs '{
+              "dataset_code": "OSM-LB",
+              "source_path": "/home/frappe/frappe-bench/geodata/osm/lbn-latest.osm.pbf",
+              "label_en": "Lebanon (OSM)",
+              "activate": true,
+              "export_package": true
+            }'
+    """
+    if frappe is None:
+        return {"error": "bench required", "dataset": dataset_code}
+    src = Path(source_path)
+    if not src.is_file():
+        return {"error": f"Source not found: {source_path}", "dataset": dataset_code}
+    label = label_en or dataset_code
+    _ensure_dataset(dataset_code, label_en=label,
+                    source="OpenStreetMap contributors", level=int(level),
+                    license_id="ODbL-1.0",
+                    url="https://www.openstreetmap.org/copyright")
+    result: dict = {"dataset": dataset_code, "source": str(src)}
+    if prepare and src.suffix.lower() in {".pbf", ".osm"}:
+        out_dir = Path(output_dir) if output_dir else src.parent
+        prepared = prepare_osm(str(src), str(out_dir), run=True)
+        result["prepared"] = prepared
+        geojson = Path(prepared.get("output") or "")
+        if not geojson.is_file():
+            return {**result, "error": "osmium did not produce a GeoJSON export"}
+        src = geojson
+    elif src.suffix.lower() == ".pbf":
+        return {**result, "error": "Raw PBF given with prepare=False; pass a GeoJSON or enable prepare."}
+    queued = _queue_polygon_import(dataset_code, str(src), int(level),
+                                   enqueue=enqueue, sync_hierarchy=sync_hierarchy,
+                                   levels=None)
+    result.update(queued)
+    if activate:
+        frappe.db.set_value("Geo Settings", "Geo Settings",
+                            "active_boundary_dataset", dataset_code,
+                            update_modified=False)
+        frappe.db.commit()
+        result["activated"] = True
+    if export_package:
+        from siraj_research.api.geo_package import export_offline_package
+        result["package"] = export_offline_package()
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Coordinate batch linking
 # ---------------------------------------------------------------------------

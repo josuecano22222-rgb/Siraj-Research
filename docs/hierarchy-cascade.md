@@ -10,9 +10,14 @@ selection:
   District → Municipality → Village → Community. The next-level choices are
   also shown as small buttons inside the **Location** section, so the user can
   see the available values without guessing.
-- **Upward:** select a lower level first (for example a Community). The form
-  reads that record's own Link fields and fills Country, Governorate,
-  District, Municipality and Village automatically.
+- **Global until narrowed:** with **no parent selected**, a level's dropdown
+  and the status chips list **every** place at that level across all countries.
+  As soon as a parent is chosen the list snaps to that parent's children only.
+- **Upward:** select a lower level first (for example a Community or a
+  province). The form reads that record's own Link fields and fills Country,
+  Governorate, District, Municipality and Village automatically — empty
+  higher fields are written immediately; human-entered conflicts open the
+  Keep/Replace dialog.
 
 Empty levels stay empty. The system never invents a hierarchy row or writes a
 raw code/label into a Link field.

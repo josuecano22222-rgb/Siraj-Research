@@ -296,6 +296,38 @@ Browser smoke test:
 
 ---
 
+## Act IV-b — Adding another region (Lebanon, Iraq, Egypt, …)
+
+While still online, download a Geofabrik extract for the country, then run one
+command:
+
+```bash
+# examples — put PBFs under ~/frappe-bench/geodata/osm/
+bench --site frappe.com execute siraj_research.geo_bulk.setup_region \
+  --kwargs '{
+    "dataset_code": "OSM-LB",
+    "source_path": "/home/frappe/frappe-bench/geodata/osm/lbn-latest.osm.pbf",
+    "label_en": "Lebanon (OSM)",
+    "activate": true,
+    "export_package": true
+  }'
+```
+
+Repeat for `OSM-IQ` (Iraq), `OSM-EG` (Egypt), or any other Geofabrik region.
+`setup_region` will:
+
+1. create the **Boundary Dataset** row if missing;
+2. run `osmium` to extract administrative polygons (needs `osmium-tool`);
+3. import polygons and materialise Country → Community rows;
+4. optionally activate the dataset and re-export the offline geo package.
+
+A failed import with `0` features almost always means the PBF was missing —
+delete the dataset row, fix the path, and rerun. Never leave `Failed / 0`
+rows behind.
+
+After every new region, re-run **Act V** verification with the new active
+dataset etag.
+
 ## Epilogue — The ongoing ritual
 
 After each PR merges to `main`:

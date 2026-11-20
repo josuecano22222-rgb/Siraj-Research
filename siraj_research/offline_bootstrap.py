@@ -288,15 +288,29 @@ def lock_offline_mode() -> dict:
     return values
 
 
+def online_setup_allowed() -> bool:
+    """True when Geo Settings → Allow online setup downloads is checked."""
+    if frappe is None:
+        return True
+    from frappe.utils import cint
+    # Missing field/row defaults to allowed so a fresh site can prepare online.
+    value = _settings_value("online_setup_enabled")
+    if value is None:
+        return True
+    return bool(cint(value))
+
+
 def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
                          wheels: bool = True, tiles: bool = True,
                          hierarchy: bool = True, package: bool = True,
                          lock: bool = True, force_lock: bool = False) -> dict:
     """Run every download while online, then lock the site offline.
 
-    The Geo Settings → Stop Offline Bootstrap button sets a cooperative stop
-    flag. The run checks it between stages and every 32 tiles, so a long tile
-    sweep can be halted without leaving the site half-locked.
+    Geo Settings → **Allow online setup downloads** gates the network stages
+    (wheels + tiles). Unchecking it forces a fully offline preparation that
+    only materialises hierarchy and exports the package from local data.
+    The Stop Offline Bootstrap button sets a cooperative stop flag checked
+    between stages and every 32 tiles.
     """
     if frappe is None:
         return {"error": "bench required"}
@@ -304,16 +318,25 @@ def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
     dataset = dataset or getattr(cfg, "active_boundary_dataset", None)
     if not dataset:
         return {"error": "No active boundary dataset"}
+    allow_online = online_setup_allowed()
     _set_status(bootstrap_stop_requested=0, bootstrap_running=1,
                 bootstrap_last_status="running")
-    emit("start", f"Offline bootstrap started for {dataset}", max_zoom=max_zoom)
-    result: dict = {"dataset": dataset, "stopped": False}
+    emit("start", f"Offline bootstrap started for {dataset}",
+         max_zoom=max_zoom, online_setup=allow_online)
+    result: dict = {"dataset": dataset, "stopped": False,
+                    "online_setup_enabled": allow_online}
     try:
-        if wheels:
+        if wheels and allow_online:
             result["wheels"] = _step("wheels", download_python_wheels)
-        if tiles:
+        elif wheels:
+            emit("wheels", "skipped: online setup disabled in Geo Settings")
+            result["wheels"] = {"ok": True, "skipped": "online_setup_disabled"}
+        if tiles and allow_online:
             result["tiles"] = _step("tiles", prewarm_tiles,
                                     dataset=dataset, max_zoom=max_zoom)
+        elif tiles:
+            emit("tiles", "skipped: online setup disabled in Geo Settings")
+            result["tiles"] = {"ok": True, "skipped": "online_setup_disabled"}
         if hierarchy:
             from siraj_research.geo_bulk import sync_boundary_hierarchy
             result["hierarchy"] = _step(
@@ -323,8 +346,8 @@ def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
             from siraj_research.api.geo_package import export_offline_package
             result["package"] = _step("package", export_offline_package)
         incomplete = (
-            (wheels and not result.get("wheels", {}).get("ok", False))
-            or (tiles and not result.get("tiles", {}).get("ok", False))
+            (wheels and allow_online and not result.get("wheels", {}).get("ok", False))
+            or (tiles and allow_online and not result.get("tiles", {}).get("ok", False))
         )
         if lock and incomplete and not force_lock:
             emit("lock", "Skipping offline lock: downloads were incomplete; rerun while online "
@@ -341,3 +364,18 @@ def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
     finally:
         _set_status(bootstrap_running=0)
     return result
+
+
+if frappe is not None:  # pragma: no cover - bench only
+    @frappe.whitelist()
+    def run_online_setup(dataset: str | None = None, max_zoom: int = 11) -> dict:
+        """Geo Settings → Run Online Setup (honours the online-setup toggle).
+
+        When **Allow online setup downloads** is unchecked, network stages
+        (wheels/tiles) are skipped and only local hierarchy + package work
+        runs — the process is disabled for external hosts, not for the site.
+        """
+        if not online_setup_allowed():
+            emit("start", "Online setup disabled in Geo Settings — "
+                          "running local-only preparation (no downloads).")
+        return prepare_offline_site(dataset=dataset, max_zoom=max_zoom)

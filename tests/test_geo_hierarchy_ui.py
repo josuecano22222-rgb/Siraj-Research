@@ -470,3 +470,51 @@ def test_offline_bootstrap_has_settings_stop_control():
     assert '"Geo Settings": "public/js/geo_settings.js"' in hooks
     assert "siraj_research.offline_bootstrap.request_stop" in js
     assert "Stop Offline Bootstrap" in docs
+
+
+def test_online_setup_toggle_and_run_button():
+    import json
+
+    root = Path(__file__).resolve().parents[1]
+    settings = json.loads((root / "siraj_research/siraj_research/doctype/geo_settings/geo_settings.json").read_text())
+    fields = {f.get("fieldname") for f in settings["fields"]}
+    source = (root / "siraj_research/offline_bootstrap.py").read_text()
+    js = (root / "siraj_research/public/js/geo_settings.js").read_text()
+    docs = (root / "docs/offline-first.md").read_text()
+    assert {"online_setup_enabled", "run_online_setup", "sb_online_setup"} <= fields
+    assert "def online_setup_allowed" in source
+    assert "def run_online_setup" in source
+    assert "online_setup_disabled" in source or "skipped: online setup disabled" in source
+    assert "siraj_research.offline_bootstrap.run_online_setup" in js
+    assert "Allow online setup downloads" in docs
+    # Default is enabled so a fresh install can prepare online.
+    default_row = next(f for f in settings["fields"] if f.get("fieldname") == "online_setup_enabled")
+    assert str(default_row.get("default", "1")) == "1"
+
+
+def test_cascade_offline_options_are_global_until_parent_is_set():
+    root = Path(__file__).resolve().parents[1]
+    core = (root / "siraj_research/public/js/siraj-cascade-core.js").read_text()
+    cascade = (root / "siraj_research/public/js/siraj-cascade.js").read_text()
+    # No parent → every row at that level (global search).
+    assert "rec.level === level" in core
+    assert "No ancestor chosen yet" in core
+    # Status box labels the unscoped list.
+    assert "all countries" in cascade
+    # Upward fill still uses the shared applyChain path.
+    assert "applyChain" in cascade
+    assert "clearDescendants" in cascade
+
+
+def test_setup_region_helper_exists_for_multi_region_import():
+    root = Path(__file__).resolve().parents[1]
+    bulk = (root / "siraj_research/geo_bulk.py").read_text()
+    docs = (root / "docs/installation.md").read_text()
+    assert "def setup_region(" in bulk
+    assert "setup_region" in docs
+    assert "OSM-LB" in docs
+    # Dead helpers removed in this release.
+    cascade = (root / "siraj_research/geo_cascade.py").read_text()
+    demo = (root / "siraj_research/setup/demo_data.py").read_text()
+    assert "def _label_field" not in cascade
+    assert "def _extid" not in demo

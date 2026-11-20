@@ -36,6 +36,19 @@ Zoom 15 covers roughly 310,000 tiles per layer for a small country, so use
 `max_zoom=11` or `12` unless you need street-level raster detail and have the
 disk space.
 
+### Online setup gate
+
+**Geo Settings → Online Setup → Allow online setup downloads** controls whether
+`prepare_offline_site` / **Run Online Setup** may touch external hosts.
+
+| Toggle | Behaviour |
+| --- | --- |
+| **Checked** (default) | Full online preparation: wheels, tiles, hierarchy, package, then offline lock. |
+| **Unchecked** | Local-only preparation: hierarchy + package from bench data; wheels/tile downloads are skipped; no external host is contacted. |
+
+**Run Online Setup** on the same section starts the process with the current
+toggle state. Progress appears immediately (terminal + `bootstrap-progress.json`).
+
 If a download takes too long, open **Geo Settings → Offline Bootstrap** and
 press **Stop Offline Bootstrap**. The run checks this flag between stages and
 every 32 tiles; cached tiles already written are kept. A stopped run does not

@@ -120,12 +120,6 @@ def visible_chain(chain: dict[str, dict]) -> list[dict]:
     return rows
 
 
-def _label_field(doctype: str) -> tuple[str, ...]:
-    if doctype == "Country":
-        return ("country_name", "name")
-    return ("label_en", "name_en", "name")
-
-
 def _fetch_options(field: str, filters: dict[str, Any]) -> list[dict]:
     if frappe is None:  # pragma: no cover - pure tests never call this
         return []
