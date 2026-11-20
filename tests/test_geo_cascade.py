@@ -1,7 +1,12 @@
 """Pure regression tests for Country → Community parent/child cascading."""
 from siraj_research.geo_cascade import (
-    ancestor_filters, chain_from_filters, chain_from_record, merge_chain,
-    option_from_row, visible_chain, cascade,
+    ancestor_filters,
+    cascade,
+    chain_from_filters,
+    chain_from_record,
+    merge_chain,
+    option_from_row,
+    visible_chain,
 )
 
 

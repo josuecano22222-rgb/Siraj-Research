@@ -113,7 +113,7 @@ def _step(stage: str, fn, **kwargs) -> dict:
 		result = fn(**kwargs)
 	except BootstrapStopped:
 		raise
-	except Exception as exc:  # noqa: BLE001 - keep the bootstrap going
+	except Exception as exc:
 		emit(stage, f"FAILED: {exc}")
 		return {"error": f"{type(exc).__name__}: {exc}"}
 	emit(stage, "finished")
