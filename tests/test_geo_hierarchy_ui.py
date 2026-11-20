@@ -419,3 +419,14 @@ def test_bootstrap_step_failure_does_not_abort_remaining_stages():
 
     result = _step("demo", broken)
     assert "demo failure" in result["error"]
+
+
+def test_bootstrap_reports_real_failures_and_guards_lock():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "siraj_research/offline_bootstrap.py").read_text()
+    docs = (root / "docs/offline-first.md").read_text()
+    assert '"failed": failed' in source
+    assert '"cached": cached' in source
+    assert '"skipped": "incomplete_downloads"' in source
+    assert "force_lock" in source
+    assert "written`, `cached` and `failed`" in docs

@@ -121,10 +121,14 @@ def download_python_wheels(target_dir: str | Path | None = None) -> dict:
         capture_output=True, text=True, check=False,
     )
     count = len(list(target.glob("*.whl")))
-    emit("wheels", f"Wheel download {'complete' if proc.returncode == 0 else 'FAILED'}: {count} files",
-         ok=proc.returncode == 0, count=count)
+    already_cached = proc.returncode != 0 and count > 0
+    ok = proc.returncode == 0 or already_cached
+    state = "complete" if proc.returncode == 0 else ("already available offline" if already_cached else "FAILED")
+    emit("wheels", f"Wheel download {state}: {count} files", ok=ok, count=count)
     return {
-        "ok": proc.returncode == 0,
+        "ok": ok,
+        "download_ok": proc.returncode == 0,
+        "already_cached": already_cached,
         "target": str(target),
         "wheels": count,
         "stderr": proc.stderr[-1000:],
@@ -142,7 +146,8 @@ def prewarm_tiles(dataset: str | None = None, max_zoom: int = 11,
                         update_modified=False)
     bbox = dataset_bbox(dataset)
     written = 0
-    skipped = 0
+    cached = 0
+    failed = 0
     emit("tiles", f"Starting tile download for {dataset or 'active dataset'}", bbox=bbox, layers=list(layers))
     try:
         for layer in layers:
@@ -160,17 +165,21 @@ def prewarm_tiles(dataset: str | None = None, max_zoom: int = 11,
                 emit("tiles", f"Layer {layer} zoom {z}: {total} tiles")
                 url_tpl = tile_cache._resolve_url(spec, s, variant, z)
                 layer_written = 0
+                layer_cached = 0
+                layer_failed = 0
                 for x in xs:
                     for y in ys:
                         path = tile_cache._cache_path(base, z, x, y, ext, variant_key)
                         if path.is_file():
-                            skipped += 1
+                            cached += 1
+                            layer_cached += 1
                             continue
                         url = url_tpl.replace("{x}", str(x)).replace("{y}", str(y))
                         try:
                             data = tile_cache._fetch(url, spec["user_agent"])
                         except Exception:
-                            skipped += 1
+                            failed += 1
+                            layer_failed += 1
                             continue
                         path.parent.mkdir(parents=True, exist_ok=True)
                         tmp = path.with_suffix(path.suffix + ".tmp")
@@ -178,14 +187,22 @@ def prewarm_tiles(dataset: str | None = None, max_zoom: int = 11,
                         tmp.replace(path)
                         written += 1
                         layer_written += 1
-                emit("tiles", f"Layer {layer} zoom {z}: done", written=layer_written)
+                emit("tiles",
+                     f"Layer {layer} zoom {z}: done ({layer_written} written, "
+                     f"{layer_cached} cached, {layer_failed} failed)",
+                     written=layer_written, cached=layer_cached, failed=layer_failed)
+                if layer_failed:
+                    emit("tiles", f"Layer {layer} zoom {z}: {layer_failed} tiles failed - "
+                                  "run while online to complete the cache", level="warning")
             emit("tiles", f"Layer {layer}: complete")
     finally:
         frappe.db.set_value("Geo Settings", "Geo Settings", "allow_tile_fetch", int(previous),
                             update_modified=False)
         frappe.db.commit()
-    return {"bbox": bbox, "written": written, "skipped": skipped,
-            "layers": list(layers), "max_zoom": int(max_zoom)}
+    emit("tiles", f"Tile pass finished ({written} written, {cached} cached, {failed} failed)",
+         written=written, cached=cached, failed=failed, level="warning" if failed else "info")
+    return {"bbox": bbox, "written": written, "cached": cached, "failed": failed,
+            "ok": failed == 0, "layers": list(layers), "max_zoom": int(max_zoom)}
 
 
 def lock_offline_mode() -> dict:
@@ -206,7 +223,7 @@ def lock_offline_mode() -> dict:
 def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
                          wheels: bool = True, tiles: bool = True,
                          hierarchy: bool = True, package: bool = True,
-                         lock: bool = True) -> dict:
+                         lock: bool = True, force_lock: bool = False) -> dict:
     """Run every download while online, then lock the site offline."""
     if frappe is None:
         return {"error": "bench required"}
@@ -227,7 +244,15 @@ def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
     if package:
         from siraj_research.api.geo_package import export_offline_package
         result["package"] = _step("package", export_offline_package)
-    if lock:
+    incomplete = (
+        (wheels and not result.get("wheels", {}).get("ok", False))
+        or (tiles and not result.get("tiles", {}).get("ok", False))
+    )
+    if lock and incomplete and not force_lock:
+        emit("lock", "Skipping offline lock: downloads were incomplete; rerun while online "
+                     "or pass force_lock=True", level="warning")
+        result["locked"] = {"skipped": "incomplete_downloads"}
+    elif lock:
         result["locked"] = _step("lock", lock_offline_mode)
-    emit("done", "Offline bootstrap complete", dataset=dataset)
+    emit("done", "Offline bootstrap complete", dataset=dataset, complete=not incomplete)
     return result
