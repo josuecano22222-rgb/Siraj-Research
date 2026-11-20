@@ -352,6 +352,40 @@
    "label": "Minimum seconds between online calls",
    "default": 1,
    "description": "Global per-worker throttle for public geocoders."
+  },
+  {
+   "fieldname": "sb_offline_bootstrap",
+   "fieldtype": "Section Break",
+   "label": "Offline Bootstrap"
+  },
+  {
+   "fieldname": "bootstrap_running",
+   "fieldtype": "Check",
+   "label": "Bootstrap running",
+   "read_only": 1,
+   "description": "Set while prepare_offline_site is active."
+  },
+  {
+   "fieldname": "bootstrap_last_status",
+   "fieldtype": "Data",
+   "label": "Last bootstrap status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_offline_bootstrap",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "stop_bootstrap",
+   "fieldtype": "Button",
+   "label": "Stop Offline Bootstrap"
+  },
+  {
+   "fieldname": "bootstrap_stop_requested",
+   "fieldtype": "Check",
+   "label": "Stop requested",
+   "read_only": 1,
+   "description": "The running bootstrap checks this between stages and every 32 tiles."
   }
  ],
  "permissions": [

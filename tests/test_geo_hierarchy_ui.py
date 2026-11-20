@@ -318,7 +318,9 @@ def test_geo_package_returns_json_dict_and_client_unwraps_message():
     server = (root / "siraj_research/api/geo_package.py").read_text()
     client = (root / "siraj_research/public/js/siraj-geo.js").read_text()
     assert 'frappe.response["data"]' not in server
-    assert '"etag": f"{dataset}:{int(version or 0)}"' in server
+    assert '"etag": f"{dataset}:{int(version or 0)}.{PACKAGE_FORMAT}"' in server
+    assert '"format": PACKAGE_FORMAT' in server
+    assert 'ab.country' in server
     assert '?version=' in client
     assert "wrapped.message !== undefined" in client
 
@@ -419,3 +421,52 @@ def test_bootstrap_step_failure_does_not_abort_remaining_stages():
 
     result = _step("demo", broken)
     assert "demo failure" in result["error"]
+
+
+def test_bootstrap_reports_real_failures_and_guards_lock():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "siraj_research/offline_bootstrap.py").read_text()
+    docs = (root / "docs/offline-first.md").read_text()
+    assert '"failed": failed' in source
+    assert '"cached": cached' in source
+    assert '"skipped": "incomplete_downloads"' in source
+    assert "force_lock" in source
+    assert "written`, `cached` and `failed`" in docs
+
+
+
+def test_cascade_is_wired_into_every_desk_form():
+    root = Path(__file__).resolve().parents[1]
+    bundle = (root / "siraj_research/public/js/siraj.bundle.js").read_text()
+    cascade = (root / "siraj_research/public/js/siraj-cascade.js").read_text()
+    core = (root / "siraj_research/public/js/siraj-cascade-core.js").read_text()
+    server = (root / "siraj_research/geo_cascade.py").read_text()
+    assert "import './siraj-cascade-core.js';" in bundle
+    assert "import './siraj-cascade.js';" in bundle
+    assert "siraj_research.geo_cascade.cascade" in cascade
+    assert "frm.set_query(field" in cascade
+    assert "clearDescendants" in cascade
+    assert "root.SirajCascadeCore = api" in core
+    assert "def cascade(field" in server
+    assert "ancestor_filters" in server
+
+
+def test_offline_bootstrap_has_settings_stop_control():
+    import json
+
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "siraj_research/offline_bootstrap.py").read_text()
+    settings = json.loads((root / "siraj_research/siraj_research/doctype/geo_settings/geo_settings.json").read_text())
+    fields = {f.get("fieldname") for f in settings["fields"]}
+    hooks = (root / "siraj_research/hooks.py").read_text()
+    js = (root / "siraj_research/public/js/geo_settings.js").read_text()
+    docs = (root / "docs/offline-first.md").read_text()
+    assert "class BootstrapStopped" in source
+    assert "def request_stop" in source
+    assert "check_stop(\"tiles\")" in source
+    assert "bootstrap_stop_requested=0" in source
+    assert {"stop_bootstrap", "bootstrap_running", "bootstrap_stop_requested",
+            "bootstrap_last_status"} <= fields
+    assert '"Geo Settings": "public/js/geo_settings.js"' in hooks
+    assert "siraj_research.offline_bootstrap.request_stop" in js
+    assert "Stop Offline Bootstrap" in docs

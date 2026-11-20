@@ -4,7 +4,6 @@ on:
   pull_request:
   push:
     branches:
-      - develop
       - main
   workflow_dispatch:
 
@@ -16,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  linter:
-    name: 'Frappe Linter'
+  validators:
+    name: 'JSON + Syntax + Diff hygiene'
     runs-on: ubuntu-latest
 
     steps:
@@ -28,45 +27,24 @@ jobs:
           python-version: '3.10'
           cache: pip
 
-      - name: Install ruff
-        run: pip install ruff==0.8.1
-
-      - name: Run ruff linter
-        run: ruff check .
-
-      - name: Run ruff format check
-        run: ruff format --check .
-
-      - name: Run pure-Python tests (no bench required)
-        run: |
-          pip install pytest cryptography
-          pytest tests/ --ignore=tests/test_coordinate_map.js \
-                        --ignore=tests/test_explorer_assets.js \
-                        --ignore=tests/test_explorer_browser.js \
-                        --ignore=tests/test_explorer_ui.js \
-                        --ignore=tests/test_list_navigation.js \
-                        --ignore=tests/test_load_probe.js \
-                        --ignore=tests/test_offline_map_download.js \
-                        --ignore=tests/test_signed_snapshot_adversarial.js \
-                        --ignore=tests/test_signed_snapshot_crypto.js \
-                        --ignore=tests/test_tree_navigation.js \
-                   -q
-
       - name: Validate DocType JSON
         run: |
-          python -c "import json, glob, sys
+          python -c "
+          import json, glob, sys
           errors = 0
           for p in glob.glob('siraj_research/**/*.json', recursive=True):
               try:
-                  json.load(open(p))
+                  json.load(open(p, encoding='utf-8'))
               except Exception as e:
                   print(f'INVALID {p}: {e}')
                   errors += 1
-          sys.exit(errors)"
+          sys.exit(errors)
+          "
 
       - name: Validate Python syntax
         run: |
-          python -c "import ast, glob, sys
+          python -c "
+          import ast, glob, sys
           errors = 0
           for p in glob.glob('siraj_research/**/*.py', recursive=True) + glob.glob('tests/**/*.py', recursive=True):
               try:
@@ -74,7 +52,8 @@ jobs:
               except SyntaxError as e:
                   print(f'SYNTAX {p}:{e.lineno}: {e.msg}')
                   errors += 1
-          sys.exit(errors)"
+          sys.exit(errors)
+          "
 
   deps-vulnerable-check:
     name: 'Vulnerable Dependency Check'

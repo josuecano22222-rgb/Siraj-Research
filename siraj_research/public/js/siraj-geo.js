@@ -223,9 +223,20 @@
 		return Object.assign({}, status_);
 	}
 
+	// Expose the loaded package for pure client-side helpers (hierarchy
+	// cascading, option lists) without a second fetch. Resolves after the
+	// IndexedDB/static-package sync has completed.
+	async function ready() {
+		await initPromise;
+		return currentPackage;
+	}
+	function getPackage() {
+		return currentPackage;
+	}
+
 	// Kick off initialization (lazy; resolve() waits on it).
 	initPromise = sync();
-	window.SirajGeo = { resolve, status, sync };
+	window.SirajGeo = { resolve, status, sync, ready, getPackage };
 	// Re-sync when browser comes back online.
 	if (typeof window.addEventListener === 'function') {
 		window.addEventListener('online', () => { sync(); });

@@ -26,8 +26,24 @@ bench --site frappe.com execute siraj_research.offline_bootstrap.prepare_offline
 ```
 
 Progress is printed immediately to the terminal and appended to
-`sites/frappe.com/private/offline-cache/bootstrap-progress.json`. In another
-terminal you can watch it live:
+`sites/frappe.com/private/offline-cache/bootstrap-progress.json`. Each zoom
+now reports separate `written`, `cached` and `failed` counts — `skipped` no
+longer hides failed downloads. If any tile fails, the offline lock is skipped
+so you can rerun while online; pass `"force_lock":True` only when you accept
+the partial cache.
+
+Zoom 15 covers roughly 310,000 tiles per layer for a small country, so use
+`max_zoom=11` or `12` unless you need street-level raster detail and have the
+disk space.
+
+If a download takes too long, open **Geo Settings → Offline Bootstrap** and
+press **Stop Offline Bootstrap**. The run checks this flag between stages and
+every 32 tiles; cached tiles already written are kept. A stopped run does not
+apply the offline lock, and the fields `Bootstrap running`,
+`Stop requested` and `Last bootstrap status` show what happened. The flag is
+cleared automatically at the start of the next run.
+
+In another terminal you can watch progress live:
 
 ```bash
 tail -f ~/frappe-bench/sites/frappe.com/private/offline-cache/bootstrap-progress.json
