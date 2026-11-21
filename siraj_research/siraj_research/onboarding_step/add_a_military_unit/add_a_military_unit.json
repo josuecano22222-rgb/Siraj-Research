@@ -1,0 +1,19 @@
+{
+ "action": "Create Entry",
+ "action_label": "Add a military unit",
+ "creation": "2026-11-18 12:00:00.000000",
+ "description": "Unit name, echelon and status with parent-unit hierarchy and a linked commander. Tutorial: docs/onboarding/06-military-units.md",
+ "docstatus": 0,
+ "doctype": "Onboarding Step",
+ "idx": 0,
+ "is_complete": 0,
+ "is_skipped": 0,
+ "module_onboarding": "SIRAJ Research Setup",
+ "modified": "2026-11-18 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Siraj Research",
+ "name": "Add a military unit",
+ "owner": "Administrator",
+ "reference_document": "Military Unit",
+ "title": "Add a military unit"
+}

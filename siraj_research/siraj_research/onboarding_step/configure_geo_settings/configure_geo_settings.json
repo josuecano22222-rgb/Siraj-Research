@@ -2,7 +2,7 @@
  "action": "Go to Page",
  "action_label": "Open Geo Settings",
  "creation": "2026-11-18 12:00:00.000000",
- "description": "Choose the active boundary dataset, gazetteer, tile behaviour and the online fallback / kill switch.",
+ "description": "Active boundary dataset, gazetteer, tile behaviour and the online fallback / kill switch — the prerequisite for locations. Tutorial: docs/onboarding/01-settings.md and 02-locations.md",
  "docstatus": 0,
  "doctype": "Onboarding Step",
  "idx": 0,

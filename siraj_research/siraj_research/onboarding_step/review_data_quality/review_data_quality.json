@@ -2,7 +2,7 @@
  "action": "View Report",
  "action_label": "Open report",
  "creation": "2026-11-18 12:00:00.000000",
- "description": "Run the verification summary to see completeness, linkage and gap statistics across the registry.",
+ "description": "Completeness, linkage and gap statistics across the registry — the closing loop of the ten tutorials. Tutorial: docs/onboarding/09-supporting-data.md section 9.4",
  "docstatus": 0,
  "doctype": "Onboarding Step",
  "idx": 0,

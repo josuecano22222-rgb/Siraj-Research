@@ -2,7 +2,7 @@
  "action": "Go to Page",
  "action_label": "Open workspace",
  "creation": "2026-11-18 12:00:00.000000",
- "description": "Start here. The workspace groups every DocType into sections, with live counts, distributions and this checklist at the top.",
+ "description": "Start here. The workspace groups every DocType into sections, with live counts, distributions and this checklist at the top. Tutorial: docs/onboarding/README.md",
  "docstatus": 0,
  "doctype": "Onboarding Step",
  "idx": 0,

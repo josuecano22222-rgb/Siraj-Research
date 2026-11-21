@@ -1785,3 +1785,24 @@ Search this area (current map view),ابحث في هذه المنطقة (عرض 
 Searching this area…,جارٍ البحث في هذه المنطقة…
 this area,هذه المنطقة
 {0} records · {1} places · {2} regions,{0} سجل · {1} موقع · {2} منطقة
+Add a Place,أضِف مكانًا
+Add a military unit,أضِف وحدة عسكرية
+Add a relationship,أضِف علاقة
+Add an event,أضِف حدثًا
+Add an organization,أضِف مؤسسة
+Set up imports and supporting data,إعداد الاستيراد والبيانات المساندة
+Try the map search,جرّب بحث الخريطة
+"Active boundary dataset, gazetteer, tile behaviour and the online fallback / kill switch — the prerequisite for locations. Tutorial: docs/onboarding/01-settings.md and 02-locations.md",مجموعة الحدود النشطة ودليل الأماكن وسلوك البلاطات والاحتياط عبر الإنترنت / مفتاح الإيقاف — شرط مسبق للمواقع. الدليل: docs/onboarding/01-settings.md و02-locations.md
+"Arabic name required, typed and dated with honest precision, geography and provenance attached. Tutorial: docs/onboarding/05-organizations.md",الاسم العربي إلزامي، مصنّف ومؤرّخ بصدق الدقة، مع الجغرافيا والإسناد. الدليل: docs/onboarding/05-organizations.md
+Arabic title and event type with date precision that matches what you actually know; place and source attached. Tutorial: docs/onboarding/07-events.md,عنوان عربي ونوع حدث بدقة تاريخ تطابق ما تعرفه فعلًا؛ مع المكان والمصدر. الدليل: docs/onboarding/07-events.md
+"Bilingual names, precision-annotated dates, and family fields gated by Marital Status (hidden is not cleared). Tutorial: docs/onboarding/04-individuals.md",أسماء ثنائية وتواريخ موسومة بالدقة وحقول أسرة يتحكم بها الحالة الاجتماعية (الإخفاء لا يعني المسح). الدليل: docs/onboarding/04-individuals.md
+"Completeness, linkage and gap statistics across the registry — the closing loop of the ten tutorials. Tutorial: docs/onboarding/09-supporting-data.md section 9.4",إحصاءات الاكتمال والربط والفجوات في السجل — الحلقة الختامية للدروس العشرة. الدليل: docs/onboarding/09-supporting-data.md القسم 9.4
+Enter exact coordinates in the Geo block and the Country→Community hierarchy auto-fills; unresolvable levels stay empty. Tutorial: docs/onboarding/02-locations.md,أدخل الإحداثيات الدقيقة في كتلة الجغرافيا فيمتلئ تسلسل الدولة→البلدة تلقائيًا؛ تبقى المستويات غير القابلة للتحديد فارغة. الدليل: docs/onboarding/02-locations.md
+"Import/export caps and modes, plus tags, evidence rows and attachments that support every claim. Tutorial: docs/onboarding/09-supporting-data.md",سقوف وأنماط الاستيراد/التصدير مع الوسوم وصفوف الأدلة والمرفقات التي تسند كل ادعاء. الدليل: docs/onboarding/09-supporting-data.md
+"One box for names, P-Codes and coordinates; region cascade; search-this-area with type filters. Tutorial: docs/onboarding/10-searching.md",مربع واحد للأسماء ورموز P والإحداثيات؛ تسلسل المناطق؛ بحث هذه المنطقة مع فلاتر النوع. الدليل: docs/onboarding/10-searching.md
+"Profile language and roles, plus naming, workflow, reviewer and import defaults. Tutorial: docs/onboarding/01-settings.md",لغة الملف الشخصي والأدوار مع افتراضيات التسمية وسير العمل والمراجع والاستيراد. الدليل: docs/onboarding/01-settings.md
+"Register a GADM/OSM/GeoNames source, run setup_region, and the six-level hierarchy fills with polygons, P-Codes and coordinates. Tutorial: docs/onboarding/02-locations.md",سجّل مصدر GADM/OSM/GeoNames وشغّل setup_region فيمتلئ التسلسل من ست طبقات بالمضلعات ورموز P والإحداثيات. الدليل: docs/onboarding/02-locations.md
+"Start here. The workspace groups every DocType into sections, with live counts, distributions and this checklist at the top. Tutorial: docs/onboarding/README.md",ابدأ من هنا. تجمع مساحة العمل كل نوع مستند في أقسام بعدّادات حيّة وتوزيعات وقائمة التحقق هذه في الأعلى. الدليل: docs/onboarding/README.md
+"Title and type, reliability rating, and Evidence rows that tie every claim in the registry back to a source. Tutorial: docs/onboarding/03-sources.md",العنوان والنوع وتصنيف الموثوقية وصفوف الأدلة التي تربط كل ادعاء في السجل بمصدر. الدليل: docs/onboarding/03-sources.md
+"Typed, directed links with date ranges, confidence and a primary source. Tutorial: docs/onboarding/08-relationships.md",روابط مُنمَّطة موجَّهة بنطاقات تواريخ وثقة ومصدر أساسي. الدليل: docs/onboarding/08-relationships.md
+"Unit name, echelon and status with parent-unit hierarchy and a linked commander. Tutorial: docs/onboarding/06-military-units.md",اسم الوحدة وطبقتها وحالتها مع تسلسل الوحدة الأب وقائد مرتبط. الدليل: docs/onboarding/06-military-units.md

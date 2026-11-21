@@ -94,9 +94,11 @@ instant on cached data and server fetches use the same semantics.
   validation checkpoint, link to next.
 - **`Onboarding Step` records mirror the tutorial** (they are the in-app
   checklist): the existing seven records are kept and re-described to
-  match steps 1–4; six new records cover organizations, military units,
-  events, relationships, supporting data and search; the Module Onboarding
-  steps list is reordered to the dependency order. `Open the SIRAJ
+  match the tutorials; seven new records cover places, organizations,
+  military units, events, relationships, supporting data and search —
+  14 steps total; the Module Onboarding steps list is reordered to the
+  dependency order (workspace → settings → geo → dataset → steps 2–10 →
+  quality close-out). `Open the SIRAJ
   workspace` stays as the "before you begin" entry and `Review data
   quality` as the closing loop — both have tutorial sections.
 - **Import path (verified in frappe `model/sync.py`):** `bench migrate`
