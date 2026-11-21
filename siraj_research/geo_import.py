@@ -711,73 +711,157 @@ def _map_country_label(name_en, name_ar, by_code: dict, by_name: dict):
 
 
 def repair_dataset_countries(dataset: str) -> dict:
-    """Re-derive ``Admin Boundary.country`` from level-0 polygon containment.
+    """Re-derive ``Admin Boundary.country`` with a four-pass repair.
 
     The polygon importer trusts a ``country``/``cc``/ISO property when the
-    source file carries one, so a single mislabelled property stamps a
-    wrong country on thousands of rows — and because ``country`` is
-    ``set_only_once``, re-importing cannot correct it. This repair
-    re-attaches every row of the dataset to the level-0 polygon that
-    contains its centroid (smallest area wins) and writes the Country that
-    polygon's bilingual label resolves to. Level-0 rows resolve their own
-    label. Rows that cannot be mapped are left untouched and counted as
-    ``unresolved``.
+    source file carries one, and because ``country`` is ``set_only_once``,
+    a wrong value stamped by an early import can never be corrected by
+    re-importing. This repair re-derives every row of the dataset:
 
-    Also bumps ``index_version`` so live resolver caches (keyed by dataset
-    + version) reload the repaired rows on the next request.
+    1. level-0 rows resolve their own bilingual label;
+    2. other rows inherit from the smallest level-0 polygon containing
+       their centroid;
+    3. rows still unresolved take the Country link of their hierarchy
+       record (dynamic link or same-pcode row);
+    4. whatever remains inherits from the smallest already-resolved
+       polygon containing the centroid (district over village, ...) —
+       passes 3 and 4 iterate to a fixpoint.
+
+    Rows that still cannot be mapped are left untouched and reported as
+    ``unresolved`` with a name sample. ``methods`` reports how many rows
+    each pass resolved, and ``index_version`` is bumped so live resolver
+    caches (keyed by dataset + version) reload the repaired rows.
     """
     if frappe is None:
         raise RuntimeError("bench required")
     if shapely is None:
         raise RuntimeError("shapely is required to repair countries")
 
-    l0_rows = frappe.db.sql(
-        """SELECT ab.name, ab.name_en, ab.name_ar, ag.`geom_wkb_hex`
-           FROM `tabAdmin Boundary` ab
-           JOIN `tabAdmin Boundary Geom` ag
-             ON ag.parent = ab.name AND ag.`precision` = 'full'
-           WHERE ab.dataset = %s AND ab.level = 0""",
-        (dataset,), as_dict=True)
-    l0 = []
-    for row in l0_rows:
+    # Geometry for every row: pass A needs the level-0 set, pass B needs
+    # containment by rows this run has already resolved (districts cover
+    # their villages even when no level-0 polygon exists).
+    geom_by_name: dict = {}
+    for row in frappe.db.sql(
+            """SELECT ag.parent, ag.`geom_wkb_hex`
+               FROM `tabAdmin Boundary Geom` ag
+               JOIN `tabAdmin Boundary` ab ON ab.name = ag.parent
+               WHERE ag.`precision` = 'full' AND ab.dataset = %s""",
+            (dataset,), as_dict=True):
         try:
             geom = shapely.wkb.loads(bytes.fromhex(row.geom_wkb_hex))
         except Exception:
             continue
-        if geom is None or geom.is_empty:
-            continue
-        l0.append((geom, row))
+        if geom is not None and not geom.is_empty:
+            geom_by_name[row.parent] = geom
     by_code, by_name = _country_lookup()
     targets = frappe.db.sql(
-        """SELECT name, level, name_en, name_ar, centroid_lat, centroid_lon, country
+        """SELECT name, level, pcode, name_en, name_ar, centroid_lat, centroid_lon,
+                  country, linked_hierarchy_doctype, linked_hierarchy
            FROM `tabAdmin Boundary` WHERE dataset = %s""",
         (dataset,), as_dict=True)
-    updated = 0
-    unresolved = 0
-    per_country: dict = {}
+    l0 = [(geom_by_name[r.name], r) for r in targets
+          if int(r.level or 0) == 0 and r.name in geom_by_name]
+
+    def _point(row):
+        if row.centroid_lat is not None and row.centroid_lon is not None:
+            return shapely.geometry.Point(float(row.centroid_lon), float(row.centroid_lat))
+        geom = geom_by_name.get(row.name)
+        return geom.centroid if geom is not None else None
+
+    resolved: dict = {}
+    methods: dict = {}
+
+    def _mark(row, value, method):
+        resolved[row.name] = value
+        methods[method] = methods.get(method, 0) + 1
+
+    # Pass A1: level-0 rows resolve their own bilingual label.
     for row in targets:
-        resolved = None
-        if int(row.level or 0) == 0:
-            resolved = _map_country_label(row.name_en, row.name_ar, by_code, by_name)
-        elif row.centroid_lat is not None and row.centroid_lon is not None:
-            pt = shapely.geometry.Point(float(row.centroid_lon), float(row.centroid_lat))
-            best = None
-            best_area = None
-            for geom, l0row in l0:
-                if geom.contains(pt):
-                    area = geom.area
-                    if best_area is None or area < best_area:
-                        best_area, best = area, l0row
-            if best is not None:
-                resolved = _map_country_label(best.name_en, best.name_ar, by_code, by_name)
-        if not resolved:
-            unresolved += 1
+        if int(row.level or 0) == 0 and row.name not in resolved:
+            value = _map_country_label(row.name_en, row.name_ar, by_code, by_name)
+            if value:
+                _mark(row, value, "level0_label")
+    # Pass A2: other rows inherit from the smallest level-0 polygon that
+    # contains their centroid.
+    for row in targets:
+        if row.name in resolved:
             continue
-        per_country[resolved] = per_country.get(resolved, 0) + 1
-        if (row.country or None) != resolved:
+        pt = _point(row)
+        if pt is None:
+            continue
+        best = None
+        best_area = None
+        for geom, l0row in l0:
+            if geom.contains(pt):
+                area = geom.area
+                if best_area is None or area < best_area:
+                    best_area, best = area, l0row
+        if best is not None:
+            value = _map_country_label(best.name_en, best.name_ar, by_code, by_name)
+            if value:
+                _mark(row, value, "level0_contains")
+
+    # Passes B/C iterate to a fixpoint: linking a district (C) lets the
+    # villages inside it inherit (B), and so on.
+    hierarchy_doctypes = {1: "Governorate", 2: "District", 3: "Municipality",
+                          4: "Village", 5: "Community"}
+    for _round in range(4):
+        changed = False
+        # Pass C: the row's own hierarchy record already carries a valid
+        # Country link (dynamic link or same-pcode hierarchy row).
+        for row in targets:
+            if row.name in resolved:
+                continue
+            candidates = []
+            if row.linked_hierarchy and row.linked_hierarchy_doctype:
+                candidates.append((row.linked_hierarchy_doctype, row.linked_hierarchy))
+            doctype = hierarchy_doctypes.get(int(row.level or 0))
+            if doctype and row.pcode:
+                candidates.append((doctype, row.pcode))
+            for doctype, docname in candidates:
+                value = frappe.db.get_value(doctype, docname, "country")
+                if value:
+                    _mark(row, value, "hierarchy")
+                    changed = True
+                    break
+        # Pass B: inherit from the smallest already-resolved polygon that
+        # contains the centroid (districts over villages, and so on).
+        resolved_geoms = [(geom_by_name[r.name], resolved[r.name])
+                          for r in targets
+                          if r.name in resolved and r.name in geom_by_name]
+        if resolved_geoms:
+            for row in targets:
+                if row.name in resolved:
+                    continue
+                pt = _point(row)
+                if pt is None:
+                    continue
+                best = None
+                best_area = None
+                for geom, value in resolved_geoms:
+                    if geom.contains(pt):
+                        area = geom.area
+                        if best_area is None or area < best_area:
+                            best_area, best = area, value
+                if best is not None:
+                    _mark(row, best, "contains_resolved")
+                    changed = True
+        if not changed:
+            break
+
+    updated = 0
+    per_country: dict = {}
+    unresolved_names = []
+    for row in targets:
+        value = resolved.get(row.name)
+        if not value:
+            unresolved_names.append(row.name)
+            continue
+        per_country[value] = per_country.get(value, 0) + 1
+        if (row.country or None) != value:
             # ``country`` is set_only_once in the UI; a data repair goes
             # through db.set_value, which bypasses that validation.
-            frappe.db.set_value("Admin Boundary", row.name, "country", resolved,
+            frappe.db.set_value("Admin Boundary", row.name, "country", value,
                                 update_modified=False)
             updated += 1
     try:
@@ -792,5 +876,7 @@ def repair_dataset_countries(dataset: str) -> dict:
     # the browser worker embeds the same country values and would keep
     # serving the poisoned data otherwise.
     return {"dataset": dataset, "checked": len(targets),
-            "updated": updated, "unresolved": unresolved,
-            "countries": per_country, "level0_polygons": len(l0)}
+            "updated": updated, "unresolved": len(unresolved_names),
+            "unresolved_sample": unresolved_names[:10],
+            "methods": methods, "countries": per_country,
+            "level0_polygons": len(l0)}
