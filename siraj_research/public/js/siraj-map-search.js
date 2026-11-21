@@ -207,7 +207,6 @@
 		});
 		row.appendChild(input);
 		row.appendChild(scopeSel);
-		row.appendChild(bboxBtn);
 
 		const row2 = document.createElement('div');
 		row2.className = 'sms-row sms-level-row';
@@ -247,6 +246,9 @@
 		bboxBtn.textContent = __('Search this area');
 		bboxBtn.hidden = !opts.getBounds;
 		bboxBtn.setAttribute('aria-label', __('Search this area (current map view)'));
+		// Append only after the const exists — an earlier append is a
+		// temporal-dead-zone ReferenceError that kills the whole mount.
+		row.appendChild(bboxBtn);
 
 		const menu = document.createElement('div');
 		menu.className = 'sms-menu';

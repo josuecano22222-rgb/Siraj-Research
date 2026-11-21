@@ -139,3 +139,22 @@ assert.deepStrictEqual(
   search.RECORD_TYPES.map((pair) => pair[0]),
   ['', 'Person', 'Institution', 'Place', 'Research Event', 'Military Unit', 'Operational Deployment'],
 );
+
+// ---------- mount() ordering: creation must precede append (TDZ guard) ----------
+// A const used before its declaration is a ReferenceError that killed the
+// whole explorer geography view on the desk; lock the source order.
+const widgetSrc = require('fs').readFileSync(
+  require('path').join(__dirname, '..', 'siraj_research', 'public', 'js', 'siraj-map-search.js'),
+  'utf8',
+);
+const order = (needle) => {
+  const at = widgetSrc.indexOf(needle);
+  assert.ok(at >= 0, 'missing in widget source: ' + needle);
+  return at;
+};
+assert.ok(order('const bboxBtn') < order('row.appendChild(bboxBtn)'),
+  'bboxBtn must be created before row.appendChild(bboxBtn)');
+assert.ok(order('const cascade') < order('wrap.appendChild(cascade)'),
+  'cascade must be created before wrap.appendChild(cascade)');
+assert.ok(order('const applyScopeChrome') < order('applyScopeChrome();'),
+  'applyScopeChrome must be defined before it is invoked');

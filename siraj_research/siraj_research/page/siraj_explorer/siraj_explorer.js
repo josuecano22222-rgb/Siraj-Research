@@ -758,7 +758,8 @@ class SirajExplorer {
 			}
 		};
 		if (window.SirajMapSearch) {
-			window.SirajMapSearch.mount(searchHost[0], {
+			try {
+				window.SirajMapSearch.mount(searchHost[0], {
 				onJump: jumpToSearchResult,
 				// Viewport for "search this area": bounds are query params,
 				// not stored data — passed through verbatim, never rounded.
@@ -769,7 +770,12 @@ class SirajExplorer {
 						max_lat: b.getNorth(), max_lon: b.getEast(),
 					};
 				},
-			});
+				});
+			} catch (searchErr) {
+				// The map and panels must survive a search-widget failure.
+				console.error('[SIRAJ] map search mount failed:', searchErr);
+				searchSection.hide();
+			}
 		} else {
 			searchSection.hide();
 		}
