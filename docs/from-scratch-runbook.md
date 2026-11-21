@@ -111,11 +111,11 @@ bench --site frappe.com execute siraj_research.geo_bulk.setup_region \
 
 What it does:
 
-1. Creates Boundary Dataset if missing  
-2. Runs `osmium` → `…-boundaries.geojson`  
-3. **Queues** polygon import on the long worker (`queued: true`)  
-4. Activates the dataset  
-5. If **not** queued, exports the package; if queued, returns  
+1. Creates Boundary Dataset if missing
+2. Runs `osmium` → `…-boundaries.geojson`
+3. **Queues** polygon import on the long worker (`queued: true`)
+4. Activates the dataset
+5. If **not** queued, exports the package; if queued, returns
    `package.skipped = import_queued` (exporting now would be empty)
 
 **Wait for the worker**, then confirm:
@@ -193,9 +193,9 @@ Stages:
 
 Stop mid-run: **Geo Settings → Stop Offline Bootstrap** (keeps cached tiles; does not lock).
 
-**Geo Settings toggle:** *Allow online setup downloads*  
-- **On** (default): wheels + tiles may hit the network  
-- **Off**: local-only prep (hierarchy + package), no external hosts  
+**Geo Settings toggle:** *Allow online setup downloads*
+- **On** (default): wheels + tiles may hit the network
+- **Off**: local-only prep (hierarchy + package), no external hosts
 
 ### 3.2 Incomplete tiles
 
@@ -244,13 +244,13 @@ grep -n siraj-cascade apps/siraj_research/public/js/siraj.bundle.js
 
 Browser:
 
-1. Hard reload once.  
-2. Console: `offline geo index ready: OSM-IL-PS:…` — no `geo_package.current` error.  
-3. Any form with **Location**:  
-   - empty Country → Governorate list shows **all** countries’ governorates  
-   - pick Country → next field **narrows** to that country  
-   - pick Village/Community → higher fields **backfill** (Keep/Replace if conflict)  
-4. Map → offline basemap; Network tab: no OSM/Esri/Nominatim hosts.  
+1. Hard reload once.
+2. Console: `offline geo index ready: OSM-IL-PS:…` — no `geo_package.current` error.
+3. Any form with **Location**:
+   - empty Country → Governorate list shows **all** countries’ governorates
+   - pick Country → next field **narrows** to that country
+   - pick Village/Community → higher fields **backfill** (Keep/Replace if conflict)
+4. Map → offline basemap; Network tab: no OSM/Esri/Nominatim hosts.
 5. Geo Settings: **Run Online Setup**, **Stop Offline Bootstrap**, toggle present.
 
 ---
