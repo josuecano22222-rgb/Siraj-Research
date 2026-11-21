@@ -377,6 +377,61 @@ levels are filled by combining three sources in this order:
    Without it, call `prepare_osm(..., run=False)` and run the printed commands
    yourself, or import an already-prepared GeoJSON/GPKG directly.
 
+### Per-country `admin_level` quirks (known gap)
+
+The global table above is correct for most countries — Israel's districts
+(`admin_level=4`) and subdistricts (`6`) land in the right tiers. Palestine's
+OSM tagging deviates, and the difference is visible in `OSM-IL-PS`:
+
+- `geomolg.ps` locality boundaries carry `admin_level=4`, so they map to
+  Governorate instead of Municipality/Village;
+- the 16 governorates carry `admin_level=5/6`, so their polygons sit at
+  District tier (codes like `BTH`, `GZA`).
+
+This is additive noise, not missing data: the GeoNames import independently
+creates the PS governorates at the correct level 1 (and back-fills
+coordinates), and boundary geometry is unaffected — pinning and reverse
+geocoding keep working; only the tier label of those OSM rows is off. Israel
+is unaffected.
+
+**Planned fix (not yet implemented):** a per-country override consulted
+inside `feature_hierarchy_level()`, e.g. `{"PS": {4: 3, 5: 1, 6: 1}}`, keyed
+by ISO country. Country comes from `ISO3166-2`/`ref` tags when present — but
+`geomolg.ps` features carry neither, so the fallback is containment in the
+dataset's `admin_level=2` polygons (Israel / Palestine), which makes the
+import two-pass. Ground truth first: probe the source before choosing values
+(the 5-vs-6 split decides whether sub-districts get their own tier, and
+localities may warrant level 3 vs 4):
+
+```bash
+cd ~/frappe-bench && ./env/bin/python - <<'EOF'
+import sys
+from collections import Counter
+from pathlib import Path
+sys.path.insert(0, "apps/siraj_research")
+from siraj_research.geo_import import _iter_features
+
+path = Path("geodata/osm/israel-and-palestine-latest.osm-boundaries.geojson")
+counts = Counter()
+for feat in _iter_features(path):
+    p = feat["properties"]
+    al = str(p.get("admin_level") or "")
+    if al not in ("3", "4", "5", "6", "7", "8"):
+        continue
+    iso = str(p.get("ISO3166-2") or "")
+    src = str(p.get("source") or "")
+    region = ("PS" if iso.startswith("PS") else
+              "IL" if iso.startswith("IL") else
+              "geomolg" if "geomolg" in src else "other")
+    counts[(al, region)] += 1
+for key in sorted(counts):
+    print(key, counts[key])
+EOF
+```
+
+Enabling it afterwards = implement the override → `reset_boundary_dataset` →
+re-import `OSM-IL-PS` (same commands as the level-mapping fix).
+
 ### OSM IDs are required for stable codes
 
 `osmium export` does **not** include OSM object IDs by default. `prepare_osm`
@@ -417,7 +472,11 @@ job. That step:
   STRtree and links to that parent;
 - creates missing `Governorate … Community` rows with deterministic codes,
   bilingual labels, bbox, center coordinates and a Link to the polygon;
-- never overwrites a researcher's edits.
+- never overwrites a researcher's edits;
+- skips nameless features (the import falls back to the pcode for `name_en`):
+  they would only surface as hash labels. Their geometry stays on the
+  boundary for map pinning and the count is reported as `unnamed` in the
+  result.
 
 For an already-imported dataset, run it manually:
 
