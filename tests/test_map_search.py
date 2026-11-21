@@ -289,3 +289,22 @@ class TestGeometryHelpers:
 		assert set(HIERARCHY_PARENT_FIELD) == {1, 2, 3, 4, 5}
 		assert HIERARCHY_CHILD_DOCTYPE[1] == "Governorate"
 		assert HIERARCHY_PARENT_FIELD[5] == "village"
+
+
+def test_api_imports_geometry_helpers_and_never_uses_numeric_between():
+    """Regression locks for two server-only bugs (F821 is ignored by the
+    project ruff config, and frappe's db_query breaks numeric `between`:
+    it renders flt([a, b]) -> 0.0 into invalid SQL)."""
+    import ast
+    from pathlib import Path
+
+    api = Path(__file__).resolve().parents[1] / "siraj_research" / "api" / "map_search.py"
+    src = api.read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    imported = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module and "map_search" in node.module:
+            imported.update(alias.name for alias in node.names)
+    assert "bboxes_intersect" in imported, "search_bbox needs bboxes_intersect"
+    assert '["between"' not in src, "numeric between emits broken SQL on frappe v15"
+    assert '["latitude", ">=", ' in src, "bbox prefilter must use >= / <="

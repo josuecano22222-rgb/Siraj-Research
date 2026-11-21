@@ -152,3 +152,8 @@ jobs:
           echo "Linting ${#files[@]} file(s):"
           printf '  %s\n' "${files[@]}"
           ruff check "${files[@]}"
+          # Undefined-name guard for the pure API/utils layer: the project
+          # config ignores F821 (bench-runtime names), which once hid a
+          # missing import that only exploded on a real site. These two
+          # dirs import frappe explicitly, so F821 there is always a bug.
+          ruff check --isolated --select F821 siraj_research/api siraj_research/utils

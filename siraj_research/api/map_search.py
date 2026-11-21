@@ -17,6 +17,7 @@ from siraj_research.utils.map_search import (
 	HIERARCHY_DOCTYPES,
 	HIERARCHY_PARENT_FIELD,
 	LEVEL_LABELS,
+	bboxes_intersect,
 	haversine_m,
 	missing_chain_levels,
 	normalise_name,
@@ -176,8 +177,11 @@ def _nearby(lat: float, lon: float, radius_m: float, types: list[str], limit: in
 			place_rows.extend(_rows(
 				"Gazetteer Place",
 				("name_en", "name_ar", "pcode", "feature_code", "latitude", "longitude"),
-				filters={"latitude": ["between", [min_lat, max_lat]],
-				         "longitude": ["between", [b0, b1]]},
+				# frappe's db_query only special-cases `between` for Date/
+				# Datetime; on Float it does flt([a, b]) -> 0.0 and emits
+				# broken SQL. Two-sided numeric ranges must be >= / <=.
+				filters=[["latitude", ">=", min_lat], ["latitude", "<=", max_lat],
+				         ["longitude", ">=", b0], ["longitude", "<=", b1]],
 			))
 	except Exception:
 		place_rows = []
@@ -578,8 +582,9 @@ def search_bbox(min_lat, min_lon, max_lat, max_lon, types="", limit=20):
 			rows = _rows(
 				"Gazetteer Place",
 				("name_en", "name_ar", "pcode", "feature_code", "latitude", "longitude"),
-				filters={"latitude": ["between", [min_lat, max_lat]],
-				         "longitude": ["between", [b0, b1]]},
+				# See _nearby: numeric between is broken in db_query — use >= / <=.
+				filters=[["latitude", ">=", min_lat], ["latitude", "<=", max_lat],
+				         ["longitude", ">=", b0], ["longitude", "<=", b1]],
 			)
 		except Exception:
 			rows = []
