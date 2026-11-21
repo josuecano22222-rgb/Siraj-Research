@@ -758,7 +758,18 @@ class SirajExplorer {
 			}
 		};
 		if (window.SirajMapSearch) {
-			window.SirajMapSearch.mount(searchHost[0], { onJump: jumpToSearchResult });
+			window.SirajMapSearch.mount(searchHost[0], {
+				onJump: jumpToSearchResult,
+				// Viewport for "search this area": bounds are query params,
+				// not stored data — passed through verbatim, never rounded.
+				getBounds: () => {
+					const b = map.getBounds();
+					return {
+						min_lat: b.getSouth(), min_lon: b.getWest(),
+						max_lat: b.getNorth(), max_lon: b.getEast(),
+					};
+				},
+			});
 		} else {
 			searchSection.hide();
 		}

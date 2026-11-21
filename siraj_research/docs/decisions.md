@@ -64,3 +64,23 @@ provenance flags, search term, presets). The same reducer powers the Explorer
 Geographic map, Relationship map, records panel, ego overlay and native Map
 view. Server endpoints accept the same parameter shape so client toggling is
 instant on cached data and server fetches use the same semantics.
+
+## 2026-11-18 — v2.0.0 Phase 1: offline-first region & coordinate search
+
+- **Coordinate answers carry the full geography.** `search()` with a parsed
+  coordinate now returns `admin_chain` (resolved levels, bilingual, exact
+  strings), `missing_levels` (explicit slugs — an ocean point reports all
+  six, never an error), `on_land`, `nearest_place`, `provenance` and
+  `nearby[]` (haversine, 1 dp, derived only — stored coordinates are never
+  rounded or rewritten).
+- **Hybrid means local-first.** `use_online=true` opts into the Nominatim
+  fallback for the chain; v2.0.0 does not auto-create registry rows from
+  external results (auto-fill stays `create_missing` against imported
+  gazetteer/boundary data, via the existing `auto_fill_hierarchy` hook).
+- **Viewport search is antimeridian-safe.** `search_bbox` accepts wrapping
+  boxes (`min_lon > max_lon`) by splitting the SQL prefilter; region hits
+  use bbox intersection or centroid containment.
+- **The cascade is data, not guesswork.** `region_children` walks the
+  registry's Link fields (Country → Community) with P-Code/centroid/bbox
+  attached, so each selection flies to the polygon when the active dataset
+  has it.

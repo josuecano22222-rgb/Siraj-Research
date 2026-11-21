@@ -13,12 +13,19 @@ import frappe
 
 from siraj_research.report_access import readable_rows
 from siraj_research.utils.map_search import (
+	HIERARCHY_CHILD_DOCTYPE,
 	HIERARCHY_DOCTYPES,
+	HIERARCHY_PARENT_FIELD,
 	LEVEL_LABELS,
+	haversine_m,
+	missing_chain_levels,
 	normalise_name,
 	parse_coordinate_query,
 	parse_levels,
 	parse_types,
+	point_in_bbox,
+	radial_bboxes,
+	radial_lat_range,
 	rank_candidates,
 )
 from siraj_research.visualization import ENTITIES, GEO_TYPES
@@ -53,7 +60,7 @@ def _coord_str(value):
 	return str(value).strip() or None
 
 
-def _rows(doctype, fields, page_size=20000):
+def _rows(doctype, fields, page_size=20000, filters=None):
 	"""One-shot role-permitted list read for the geo tables.
 
 	Gazetteer/boundary/hierarchy ship no custom has_permission hooks
@@ -67,6 +74,7 @@ def _rows(doctype, fields, page_size=20000):
 	return frappe.get_list(
 		doctype,
 		fields=fields,
+		filters=filters or {},
 		limit_page_length=page_size,
 		order_by="name asc",
 	)
@@ -90,14 +98,125 @@ def _active_first(rows: list[dict], active, key="dataset") -> list[dict]:
 # Coordinate branch
 # ---------------------------------------------------------------------------
 
-def _coordinate_branch(query: str):
+def _resolve_coordinate(result: dict, use_online: bool = False) -> dict:
+	"""Attach the local administrative resolution to a parsed coordinate.
+
+	Offline-first: `_resolve_one` reads local spatial data only; the hybrid
+	Nominatim fallback is opt-in via ``use_online`` (geo_resolve's own
+	contract). Any resolver failure degrades to ``resolve_error`` — a
+	coordinate search must never die because geospatial libs are missing.
+	"""
+	try:
+		from siraj_research.api.geo_resolve import _resolve_one, _with_fallback
+		lat, lon = float(result["lat"]), float(result["lon"])
+		resolved = _resolve_one(lat, lon)
+		if use_online:
+			resolved = _with_fallback(resolved, lat, lon, True)
+		chain = resolved.get("admin_chain") or {}
+		return {
+			"admin_chain": chain,
+			"missing_levels": missing_chain_levels(chain),
+			"on_land": bool(resolved.get("on_land")),
+			"nearest_place": resolved.get("nearest_place"),
+			"provenance": list(resolved.get("provenance") or []),
+			"warnings": list(resolved.get("warnings") or []),
+		}
+	except Exception as exc:  # degrade, never fail the search itself
+		return {"resolve_error": str(exc)[:200]}
+
+
+def _nearby(lat: float, lon: float, radius_m: float, types: list[str], limit: int) -> list[dict]:
+	"""Record pins and gazetteer places within ``radius_m`` of a point.
+
+	Distances are haversine metres (derived ranking values — the stored
+	coordinates themselves are never rewritten). Bounding boxes prefilter
+	per SQL; the exact radius test runs in Python.
+	"""
+	lat, lon = float(lat), float(lon)
+	radius_m = max(1.0, float(radius_m))
+	boxes = radial_bboxes(lat, lon, radius_m)
+	min_lat, max_lat = radial_lat_range(lat, radius_m)
+	out = []
+
+	def keep(point_lat, point_lon):
+		try:
+			plat, plon = float(point_lat), float(point_lon)
+		except (TypeError, ValueError):
+			return None
+		if not any(point_in_bbox(plat, plon, (min_lat, b0, max_lat, b1))
+		           for b0, b1 in boxes):
+			return None
+		dist = haversine_m(lat, lon, plat, plon)
+		return (dist, plat, plon) if dist <= radius_m else None
+
+	# Records (small tables — load + filter in Python, same as the map does).
+	for doctype in (types or list(GEO_TYPES)):
+		if doctype not in GEO_TYPES:
+			continue
+		title = ENTITIES.get(doctype, "display_name")
+		try:
+			rows = _record_rows(doctype, (title, "latitude", "longitude"))
+		except Exception:
+			continue
+		for row in rows:
+			hit = keep(row.get("latitude"), row.get("longitude"))
+			if hit is None:
+				continue
+			dist, plat, plon = hit
+			out.append({
+				"kind": "record", "doctype": doctype, "name": row.get("name"),
+				"label": row.get(title) or row.get("name"),
+				"point": [_coord_str(row.get("latitude")), _coord_str(row.get("longitude"))],
+				"distance_m": round(dist, 1),
+			})
+	# Gazetteer places (larger — SQL range prefilter per box first).
+	try:
+		place_rows = []
+		for b0, b1 in boxes:
+			place_rows.extend(_rows(
+				"Gazetteer Place",
+				("name_en", "name_ar", "pcode", "feature_code", "latitude", "longitude"),
+				filters={"latitude": ["between", [min_lat, max_lat]],
+				         "longitude": ["between", [b0, b1]]},
+			))
+	except Exception:
+		place_rows = []
+	seen = set()
+	for row in place_rows:
+		key = row.get("name")
+		if key in seen:
+			continue
+		seen.add(key)
+		hit = keep(row.get("latitude"), row.get("longitude"))
+		if hit is None:
+			continue
+		dist, _plat, _plon = hit
+		out.append({
+			"kind": "place",
+			"name_en": row.get("name_en"), "name_ar": row.get("name_ar"),
+			"pcode": row.get("pcode"), "feature_code": row.get("feature_code"),
+			"point": [_coord_str(row.get("latitude")), _coord_str(row.get("longitude"))],
+			"distance_m": round(dist, 1),
+		})
+	out.sort(key=lambda r: r["distance_m"])
+	return out[: max(1, int(limit))]
+
+
+def _coordinate_branch(query: str, use_online: bool = False, radius=5000,
+                       nearby_types=None, limit: int = DEFAULT_LIMIT):
 	parsed = parse_coordinate_query(query)
 	if parsed is None:
 		return None, False
 	if "error" in parsed:
 		return parsed, True  # error dicts carry {"error", "input", "suggestion"}
-	# Attach the human context: what contains this point, exactly.
 	result = dict(parsed)
+	result.update(_resolve_coordinate(result, use_online=use_online))
+	try:
+		lat, lon = float(result["lat"]), float(result["lon"])
+		result["radius_m"] = float(radius)
+		result["nearby"] = _nearby(lat, lon, radius, nearby_types, limit)
+	except (TypeError, ValueError):
+		result["nearby"] = []
 	return result, True
 
 
@@ -322,17 +441,22 @@ def _search_records(query: str, types: list[str], limit: int) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def search(query="", scope="all", levels="", types="", limit=DEFAULT_LIMIT):
+def search(query="", scope="all", levels="", types="", limit=DEFAULT_LIMIT,
+           use_online=0, radius=5000):
 	"""Advanced map search: coordinates, regions, places, records.
 
 	``scope``      all | regions | places | records
 	``levels``     comma-separated region levels 0..5 (regions scope)
 	``types``      comma-separated DocTypes (records scope, GEO_TYPES only)
 	``limit``      per-group cap, 1..25
+	``use_online`` coordinate resolution: 1 = allow the external
+	               reverse-geocoder fallback (hybrid); default 0 = local only
+	``radius``     nearby-search radius in metres around a coordinate
 
 	Every coordinate in the payload is an exact string; a coordinate-like
-	query always yields a ``coordinate`` entry (result or error), never a
-	coerced guess.
+	query always yields a ``coordinate`` entry (result or error) carrying
+	the local admin chain, its explicitly-missing levels and nearby pins —
+	never a coerced guess.
 	"""
 	try:
 		limit = max(1, min(int(limit), MAX_LIMIT))
@@ -344,8 +468,18 @@ def search(query="", scope="all", levels="", types="", limit=DEFAULT_LIMIT):
 	levels_wanted = parse_levels(levels)
 	types_wanted = parse_types(types, GEO_TYPES)
 
+	online = str(use_online).lower() in ("1", "true", "yes")
+	try:
+		radius_val = max(1.0, min(float(radius), 50000.0))
+	except (TypeError, ValueError):
+		radius_val = 5000.0
+
 	query = (query or "").strip()
-	coordinate, saw_coordinate = _coordinate_branch(query) if query else (None, False)
+	coordinate, saw_coordinate = (
+		_coordinate_branch(query, use_online=online, radius=radius_val,
+		                   nearby_types=types_wanted, limit=limit)
+		if query else (None, False)
+	)
 
 	result = {
 		"query": query,
@@ -377,3 +511,235 @@ def search(query="", scope="all", levels="", types="", limit=DEFAULT_LIMIT):
 		"records": len(result["records"]),
 	}
 	return result
+
+
+# ---------------------------------------------------------------------------
+# Viewport search ("search this area")
+# ---------------------------------------------------------------------------
+
+@frappe.whitelist()
+def search_bbox(min_lat, min_lon, max_lat, max_lon, types="", limit=20):
+	"""Records, gazetteer places and regions inside a map viewport.
+
+	``min_lon > max_lon`` is accepted and treated as an antimeridian
+	wrapping box (the west edge is east of the east edge). Every returned
+	coordinate is the exact stored string; nothing is rounded.
+	"""
+	try:
+		min_lat, min_lon = float(min_lat), float(min_lon)
+		max_lat, max_lon = float(max_lat), float(max_lon)
+	except (TypeError, ValueError):
+		return {"error": "invalid_bbox", "bbox": None,
+		        "records": [], "places": [], "regions": [],
+		        "counts": {"records": 0, "places": 0, "regions": 0}}
+	if not (-90 <= min_lat <= max_lat <= 90
+	        and -180 <= min_lon <= 180 and -180 <= max_lon <= 180):
+		return {"error": "invalid_bbox", "bbox": None,
+		        "records": [], "places": [], "regions": [],
+		        "counts": {"records": 0, "places": 0, "regions": 0}}
+	try:
+		limit = max(1, min(int(limit), MAX_LIMIT))
+	except (TypeError, ValueError):
+		limit = 20
+	bbox = (min_lat, min_lon, max_lat, max_lon)
+	boxes = [(min_lon, max_lon)] if min_lon <= max_lon else [(min_lon, 180.0), (-180.0, max_lon)]
+	types_wanted = parse_types(types, GEO_TYPES)
+
+	records = []
+	for doctype in types_wanted or list(GEO_TYPES):
+		if doctype not in GEO_TYPES:
+			continue
+		title = ENTITIES.get(doctype, "display_name")
+		try:
+			rows = _record_rows(doctype, (title, "latitude", "longitude", "geo_precision"))
+		except Exception:
+			continue
+		for row in rows:
+			try:
+				plat = float(row.get("latitude"))
+				plon = float(row.get("longitude"))
+			except (TypeError, ValueError):
+				continue
+			if not point_in_bbox(plat, plon, bbox):
+				continue
+			if plat == 0 and plon == 0:
+				continue
+			records.append({
+				"kind": "record", "doctype": doctype, "name": row.get("name"),
+				"label": row.get(title) or row.get("name"),
+				"point": [_coord_str(row.get("latitude")), _coord_str(row.get("longitude"))],
+				"geo_precision": row.get("geo_precision"),
+			})
+	records.sort(key=lambda r: (r["doctype"], normalise_name(r.get("label") or "")))
+
+	places, seen = [], set()
+	for b0, b1 in boxes:
+		try:
+			rows = _rows(
+				"Gazetteer Place",
+				("name_en", "name_ar", "pcode", "feature_code", "latitude", "longitude"),
+				filters={"latitude": ["between", [min_lat, max_lat]],
+				         "longitude": ["between", [b0, b1]]},
+			)
+		except Exception:
+			rows = []
+		for row in rows:
+			if row.get("name") in seen:
+				continue
+			seen.add(row.get("name"))
+			try:
+				plat, plon = float(row.get("latitude")), float(row.get("longitude"))
+			except (TypeError, ValueError):
+				continue
+			if not point_in_bbox(plat, plon, bbox):
+				continue
+			places.append({
+				"kind": "place",
+				"name_en": row.get("name_en"), "name_ar": row.get("name_ar"),
+				"pcode": row.get("pcode"), "feature_code": row.get("feature_code"),
+				"point": [_coord_str(row.get("latitude")), _coord_str(row.get("longitude"))],
+			})
+
+	regions = []
+	try:
+		boundary_rows = _rows(
+			"Admin Boundary",
+			("name_en", "name_ar", "level", "pcode", "centroid_lat", "centroid_lon",
+			 "bbox_min_lat", "bbox_min_lon", "bbox_max_lat", "bbox_max_lon", "dataset"),
+		)
+	except Exception:
+		boundary_rows = []
+	active = _settings()["boundary"]
+	for row in _active_first(boundary_rows, active):
+		row_bbox = [_coord_str(row.get(k)) for k in
+		            ("bbox_min_lat", "bbox_min_lon", "bbox_max_lat", "bbox_max_lon")]
+		region_bbox = None
+		if all(row_bbox):
+			try:
+				region_bbox = tuple(float(v) for v in row_bbox)
+			except (TypeError, ValueError):
+				region_bbox = None
+		centroid = (_coord_str(row.get("centroid_lat")), _coord_str(row.get("centroid_lon")))
+		hit = False
+		if region_bbox and bboxes_intersect(region_bbox, bbox):
+			hit = True
+		elif all(centroid):
+			try:
+				hit = point_in_bbox(float(centroid[0]), float(centroid[1]), bbox)
+			except (TypeError, ValueError):
+				hit = False
+		if not hit:
+			continue
+		level = row.get("level")
+		try:
+			level = int(level)
+		except (TypeError, ValueError):
+			level = None
+		regions.append({
+			"kind": "region",
+			"level": level,
+			"level_name": LEVEL_LABELS.get(level if level is not None else -1),
+			"name_en": row.get("name_en"), "name_ar": row.get("name_ar"),
+			"pcode": row.get("pcode"),
+			"source": "boundary", "dataset": row.get("dataset"),
+			"centroid": list(centroid),
+			"bbox": row_bbox if region_bbox else None,
+			"chain": [],
+		})
+
+	return {
+		"bbox": [str(min_lat), str(min_lon), str(max_lat), str(max_lon)],
+		"records": records[:limit],
+		"places": places[:limit],
+		"regions": regions[:limit],
+		"counts": {"records": len(records), "places": len(places),
+		           "regions": len(regions)},
+	}
+
+
+# ---------------------------------------------------------------------------
+# Cascading region browser (Country → Community)
+# ---------------------------------------------------------------------------
+
+@frappe.whitelist()
+def region_children(level, parent="", query="", limit=50):
+	"""Children of one hierarchy selection — the cascade behind the picker.
+
+	``level`` 0 = countries (ERPNext Country registry, ISO code as pcode);
+	1..5 = Governorate…Community filtered by the previous selection's
+	DocType name through the registry's Link fields. Each child carries
+	its exact centroid strings and, when the active boundary dataset has
+	its pcode, the polygon bbox for a precise fly-to.
+	"""
+	try:
+		level = int(level)
+	except (TypeError, ValueError):
+		return {"error": "invalid_level", "level": None, "children": []}
+	if level not in range(0, 6):
+		return {"error": "invalid_level", "level": None, "children": []}
+	try:
+		limit = max(1, min(int(limit), 200))
+	except (TypeError, ValueError):
+		limit = 50
+	parent = (parent or "").strip()
+	query_norm = normalise_name(query)
+
+	children = []
+	if level == 0:
+		try:
+			rows = _rows("Country", ("name", "code"), page_size=5000)
+		except Exception:
+			rows = []
+		for row in rows:
+			children.append({
+				"name": row.get("name"),
+				"pcode": row.get("code"),
+				"name_en": row.get("name"), "name_ar": None,
+				"level": 0, "level_name": LEVEL_LABELS[0],
+				"centroid": [None, None], "bbox": None,
+			})
+	else:
+		doctype = HIERARCHY_CHILD_DOCTYPE[level]
+		parent_field = HIERARCHY_PARENT_FIELD[level]
+		filters = {"disabled": 0}
+		if parent:
+			filters[parent_field] = parent
+		try:
+			rows = _rows(doctype, ("name", "label_en", "label_ar", "pcode",
+			                       "latitude", "longitude"), filters=filters)
+		except Exception:
+			rows = []
+		pcodes = [r.get("pcode") for r in rows if r.get("pcode")]
+		bbox_by_pcode = {}
+		if pcodes:
+			try:
+				for b in _rows("Admin Boundary",
+				               ("pcode", "bbox_min_lat", "bbox_min_lon",
+				                "bbox_max_lat", "bbox_max_lon"),
+				               filters={"pcode": ["in", pcodes]}):
+					vals = [_coord_str(b.get(k)) for k in
+					        ("bbox_min_lat", "bbox_min_lon", "bbox_max_lat", "bbox_max_lon")]
+					if all(vals) and b.get("pcode"):
+						bbox_by_pcode[b["pcode"]] = vals
+			except Exception:
+				bbox_by_pcode = {}
+		for row in rows:
+			children.append({
+				"name": row.get("name"),
+				"pcode": row.get("pcode"),
+				"name_en": row.get("label_en"), "name_ar": row.get("label_ar"),
+				"level": level, "level_name": LEVEL_LABELS[level],
+				"centroid": [_coord_str(row.get("latitude")),
+				             _coord_str(row.get("longitude"))],
+				"bbox": bbox_by_pcode.get(row.get("pcode")),
+			})
+
+	if query_norm:
+		children = [c for c in children
+		            if query_norm in normalise_name(c.get("name_en"))
+		            or query_norm in normalise_name(c.get("name_ar"))
+		            or query_norm in normalise_name(c.get("pcode"))]
+	children.sort(key=lambda c: (normalise_name(c.get("name_en") or ""),
+	                             normalise_name(c.get("name_ar") or "")))
+	return {"level": level, "parent": parent,
+	        "children": children[:limit], "counts": {"children": len(children)}}

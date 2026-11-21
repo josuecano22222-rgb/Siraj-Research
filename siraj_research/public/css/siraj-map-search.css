@@ -104,3 +104,52 @@
 	font-size: 11px;
 	color: var(--text-muted, #6c767a);
 }
+
+/* --- v2: viewport search, cascade, coordinate chain --- */
+.sms-bbox {
+	white-space: nowrap;
+	margin-left: 4px;
+}
+.sms-cascade {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 4px;
+}
+.sms-cascade-select {
+	flex: 1 1 140px;
+	min-width: 120px;
+	font-size: 12px;
+}
+.sms-chain {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 3px;
+	margin-top: 3px;
+}
+.sms-chain-chip {
+	background: var(--bg-light-gray, #f5f5f5);
+	border: 1px solid var(--border-color, #d1d8dd);
+	border-radius: 3px;
+	padding: 0 4px;
+	font-size: 11px;
+	color: var(--text-muted, #6c7680);
+}
+.sms-chain-missing {
+	margin-top: 3px;
+	font-size: 11px;
+	color: var(--warning-yellow, #b8860b);
+	font-style: italic;
+}
+.sms-nearby {
+	margin: 4px 0 0;
+	padding-left: 16px;
+	font-size: 11px;
+	color: var(--text-muted, #6c7680);
+}
+.sms-nearby li {
+	margin: 1px 0;
+}
+.sms-types {
+	max-width: 150px;
+}

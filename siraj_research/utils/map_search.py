@@ -408,3 +408,121 @@ def parse_types(types, allowed: tuple) -> list[str]:
     else:
         parts = [str(p).strip() for p in types]
     return [p for p in dict.fromkeys(parts) if p in allowed]
+
+
+# ---------------------------------------------------------------------------
+# Geometry helpers (pure): distances, bounding boxes, chain completeness.
+# Distances are derived numbers for ranking only — stored coordinates are
+# never touched, rounded or rewritten by anything in this module.
+# ---------------------------------------------------------------------------
+
+EARTH_R_M = 6371008.8  # IUGG mean radius, metres
+_DEG_LAT_M = 110540.0  # metres per degree of latitude (equatorial mean)
+_CHAIN_LEVEL_KEYS = ("country", "governorate", "district",
+                     "municipality", "village", "community")
+
+
+def haversine_m(lat1, lon1, lat2, lon2) -> float:
+	"""Great-circle distance in metres (ranking only; never stored)."""
+	import math
+	phi1, phi2 = math.radians(float(lat1)), math.radians(float(lat2))
+	d_phi = math.radians(float(lat2) - float(lat1))
+	d_lambda = math.radians(float(lon2) - float(lon1))
+	a = (math.sin(d_phi / 2) ** 2
+	     + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2)
+	return 2 * EARTH_R_M * math.asin(min(1.0, math.sqrt(a)))
+
+
+def radial_bboxes(lat: float, lon: float, radius_m: float) -> list[tuple[float, float]]:
+	"""Longitude prefilter boxes ``[(min_lon, max_lon), ...]`` for a radius.
+
+	* mid-latitudes: one box, widened by the latitude compression of
+	  degrees of longitude (``cos(lat)``);
+	* poles (``cos(lat)`` ≈ 0): one box spanning the whole world;
+	* boxes crossing the antimeridian are **split** into two so callers
+	  never need wrap-aware SQL.
+	"""
+	lat = float(lat)
+	lon = float(lon)
+	radius_m = max(0.0, float(radius_m))
+	import math
+	cos_lat = math.cos(math.radians(lat))
+	if cos_lat < 1e-6:  # within ~0.006° of a pole: every longitude counts
+		return [(-180.0, 180.0)]
+	d_lon = radius_m / (111320.0 * cos_lat)
+	min_lon, max_lon = lon - d_lon, lon + d_lon
+	if min_lon < -180.0 or max_lon > 180.0:
+		# Split at the antimeridian (works for either direction of crossing).
+		if min_lon < -180.0:
+			return [(min_lon + 360.0, 180.0), (-180.0, max_lon)]
+		return [(min_lon, 180.0), (-180.0, max_lon - 360.0)]
+	return [(min_lon, max_lon)]
+
+
+def radial_lat_range(lat: float, radius_m: float) -> tuple[float, float]:
+	"""Latitude band ``(min, max)`` for a radius, clamped to ±90."""
+	d_lat = max(0.0, float(radius_m)) / _DEG_LAT_M
+	return (max(-90.0, float(lat) - d_lat), min(90.0, float(lat) + d_lat))
+
+
+def lon_in_bbox(lon: float, min_lon: float, max_lon: float) -> bool:
+	"""Longitude containment with antimeridian wrap (``min_lon > max_lon``)."""
+	lon = float(lon)
+	if min_lon <= max_lon:
+		return min_lon <= lon <= max_lon
+	return lon >= min_lon or lon <= max_lon
+
+
+def point_in_bbox(lat: float, lon: float, bbox) -> bool:
+	"""``bbox`` is ``(min_lat, min_lon, max_lat, max_lon)``; lon may wrap."""
+	min_lat, min_lon, max_lat, max_lon = (float(v) for v in bbox)
+	return min_lat <= float(lat) <= max_lat and lon_in_bbox(lon, min_lon, max_lon)
+
+
+def missing_chain_levels(chain) -> list[str]:
+	"""Levels absent from an admin chain, in coarse→fine order.
+
+	``chain`` maps level keys (country…community) to entries; anything
+	missing — an ocean point, a country that lacks municipalities, a
+	failed resolve — is reported explicitly instead of silently dropped.
+	"""
+	present = {k for k, v in (chain or {}).items() if v}
+	return [k for k in _CHAIN_LEVEL_KEYS if k not in present]
+
+
+# Hierarchy-registry cascade: child DocType of each level via its Link field.
+# Level 0 (Country) has no parent field — children are governorates whose
+# ``country`` Link points at the Country record's name.
+HIERARCHY_CHILD_DOCTYPE = {
+	1: "Governorate", 2: "District", 3: "Municipality",
+	4: "Village", 5: "Community",
+}
+HIERARCHY_PARENT_FIELD = {
+	1: "country", 2: "governorate", 3: "district",
+	4: "municipality", 5: "village",
+}
+
+
+def bboxes_intersect(a, b) -> bool:
+	"""Do two ``(min_lat, min_lon, max_lat, max_lon)`` boxes overlap?
+
+	Longitude edges may wrap the antimeridian (``min_lon > max_lon``).
+	The corner test is exact for the cases the map produces (viewport
+	boxes and dataset bboxes never span a full hemisphere on both axes).
+	"""
+	a_lat0, a_lon0, a_lat1, a_lon1 = (float(v) for v in a)
+	b_lat0, b_lon0, b_lat1, b_lon1 = (float(v) for v in b)
+	if a_lat1 < b_lat0 or b_lat1 < a_lat0:
+		return False
+	for lat in (a_lat0, a_lat1):
+		for lon in (a_lon0, a_lon1):
+			if b_lat0 <= lat <= b_lat1 and lon_in_bbox(lon, b_lon0, b_lon1):
+				return True
+	for lat in (b_lat0, b_lat1):
+		for lon in (b_lon0, b_lon1):
+			if a_lat0 <= lat <= a_lat1 and lon_in_bbox(lon, a_lon0, a_lon1):
+				return True
+	# Containment without shared corners (one box strictly inside the other).
+	return (b_lat0 <= a_lat0 <= b_lat1 and lon_in_bbox(a_lon0, b_lon0, b_lon1)) or (
+		a_lat0 <= b_lat0 <= a_lat1 and lon_in_bbox(b_lon0, a_lon0, a_lon1)
+	)

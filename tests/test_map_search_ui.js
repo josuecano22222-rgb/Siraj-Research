@@ -81,4 +81,55 @@ assert.strictEqual(search.recordTitle({ name: 'PER-0001' }), 'PER-0001');
 assert.strictEqual(search.groupLabel('regions', (s) => s), 'Regions');
 assert.strictEqual(search.groupLabel('nope', (s) => s), 'nope');
 
-console.log('Map search widget helpers: params, exact coordinate display, grouping and labels passed (Node only).');
+
+// ---------- v2.0.0: bbox params, cascade payload, coordinate chains ----------
+// String bounds pass through verbatim (leaflet float bounds are String()'d
+// by the caller — viewport params, never stored coordinates).
+const bboxParams = search.buildBboxParams(
+  { min_lat: '31.590000000000001', min_lon: '34.47', max_lat: '31.6', max_lon: '34.5' },
+  { types: 'Person', limit: 25 },
+);
+assert.strictEqual(bboxParams.min_lat, '31.590000000000001'); // verbatim
+assert.strictEqual(bboxParams.min_lon, '34.47');
+assert.strictEqual(bboxParams.max_lat, '31.6');
+assert.strictEqual(bboxParams.max_lon, '34.5');
+assert.strictEqual(bboxParams.types, 'Person');
+assert.strictEqual(bboxParams.limit, 25);
+
+const cascadeSelected = [
+  { level: 0, name_en: 'Palestine, State of', name_ar: 'فلسطين', pcode: 'PS' },
+  { level: 1, name_en: 'Gaza Strip', name_ar: 'قطاع غزة', pcode: 'PS-GZ' },
+];
+const cascadeRow = {
+  level: 2, level_name: 'District', name_en: 'Gaza', name_ar: 'غزة',
+  pcode: 'PS-GZ-GZ', centroid: ['31.522678211310364', '34.467321788689634'],
+  bbox: ['31.4', '34.3', '31.6', '34.6'],
+};
+const payload = search.cascadePayload(cascadeSelected, cascadeRow);
+assert.strictEqual(payload.kind, 'region');
+assert.strictEqual(payload.level, 2);
+assert.strictEqual(payload.source, 'registry');
+assert.deepStrictEqual(payload.bbox, ['31.4', '34.3', '31.6', '34.6']);
+assert.deepStrictEqual(payload.centroid, ['31.522678211310364', '34.467321788689634']);
+assert.strictEqual(payload.chain.length, 2);
+assert.strictEqual(payload.chain[1].pcode, 'PS-GZ');
+
+const chains = search.coordinateChains({
+  format: 'decimal', lat: '31.5', lon: '34.47',
+  admin_chain: [
+    { level: 0, level_name: 'Country', name_en: 'Palestine, State of' },
+    { level: 1, level_name: 'Governorate', name_en: 'Gaza Strip' },
+  ],
+  missing_levels: ['district', 'municipality', 'village', 'community'],
+  nearby: [{ name: 'Gaza', distance: '146.1', distance_m: 146.1 }],
+  on_land: true,
+});
+assert.strictEqual(chains.chain.length, 2);
+assert.strictEqual(chains.chain[0].label, 'Country: Palestine, State of');
+assert.deepStrictEqual(chains.missing, ['district', 'municipality', 'village', 'community']);
+assert.strictEqual(chains.nearby[0].distance, '146.1');
+assert.strictEqual(chains.on_land, true);
+assert.strictEqual(search.coordinateChains(null), null);
+assert.strictEqual(search.coordinateChains({ error: 'out_of_range' }), null);
+
+console.log('Map search widget helpers: params, exact coordinate display, grouping, bbox, cascade and chains passed (Node only).');

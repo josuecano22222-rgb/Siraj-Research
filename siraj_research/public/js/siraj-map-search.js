@@ -20,7 +20,16 @@
 
 	const MIN_CHARS = 2;
 	const METHOD = 'siraj_research.api.map_search.search';
+	const BBOX_METHOD = 'siraj_research.api.map_search.search_bbox';
+	const CASCADE_METHOD = 'siraj_research.api.map_search.region_children';
 	const GROUP_KEYS = ['coordinate', 'regions', 'places', 'records'];
+	// Keep in sync with GEO_TYPES on the server (api/map_search.py).
+	const RECORD_TYPES = [
+		['', 'All types'], ['Person', 'Person'], ['Place', 'Place'],
+		['Research Event', 'Research Event'], ['Siraj Research Event', 'Siraj Research Event'],
+		['Organization', 'Organization'], ['Military Unit', 'Military Unit'],
+		['Operational Deployment', 'Operational Deployment'],
+	];
 
 	/* ---------- pure helpers (node-testable) ---------- */
 
@@ -91,6 +100,54 @@
 		return groups;
 	}
 
+	/* Viewport (bbox) search params: exact bounds verbatim, no rounding. */
+	function buildBboxParams(bounds, state) {
+		const params = {
+			min_lat: String(bounds.min_lat),
+			min_lon: String(bounds.min_lon),
+			max_lat: String(bounds.max_lat),
+			max_lon: String(bounds.max_lon),
+			limit: (state && state.limit) || 25,
+		};
+		if (state && state.types) params.types = String(state.types);
+		return params;
+	}
+
+	/* Region payload for a cascade selection — bbox when the dataset has
+	 * one, centroid as fallback, chain of every selected ancestor. */
+	function cascadePayload(selected, row) {
+		const chain = selected
+			.filter(Boolean)
+			.map((s) => ({ level: s.level, name_en: s.name_en, name_ar: s.name_ar, pcode: s.pcode }));
+		return {
+			kind: 'region',
+			level: row.level,
+			level_name: row.level_name,
+			name_en: row.name_en,
+			name_ar: row.name_ar,
+			pcode: row.pcode,
+			source: 'registry',
+			centroid: row.centroid || [null, null],
+			bbox: row.bbox || null,
+			chain,
+		};
+	}
+
+	/* Coordinate detail lines: admin chain, explicitly missing levels,
+	 * nearest places with distances (derived metres, 1 dp). */
+	function coordinateChains(coord) {
+		if (!coord || coord.error) return null;
+		const chain = (coord.admin_chain || []).map((lvl) => ({
+			level: lvl.level,
+			label: (lvl.level_name || '') + ': ' + (lvl.name_en || lvl.name_ar || ''),
+		}));
+		const missing = (coord.missing_levels || []).slice();
+		const nearby = (coord.nearby || []).map((n) => ({
+			name: n.name, distance: n.distance, distance_m: n.distance_m,
+		}));
+		return { chain, missing, nearby, on_land: coord.on_land !== false };
+	}
+
 	function regionTitle(r) {
 		return (r && (r.name_en || r.name_ar || r.pcode)) || '';
 	}
@@ -149,10 +206,20 @@
 		});
 		row.appendChild(input);
 		row.appendChild(scopeSel);
+		row.appendChild(bboxBtn);
 
 		const row2 = document.createElement('div');
 		row2.className = 'sms-row sms-level-row';
 		row2.hidden = true;
+		const typeSel = document.createElement('select');
+		typeSel.className = 'form-control input-sm sms-types';
+		typeSel.setAttribute('aria-label', __('Record type'));
+		RECORD_TYPES.forEach(([value, label]) => {
+			const opt = document.createElement('option');
+			opt.value = value;
+			opt.textContent = __(label);
+			typeSel.appendChild(opt);
+		});
 		const levelSel = document.createElement('select');
 		levelSel.className = 'form-control input-sm sms-levels';
 		levelSel.setAttribute('aria-label', __('Region level'));
@@ -167,6 +234,18 @@
 			levelSel.appendChild(opt);
 		});
 		row2.appendChild(levelSel);
+		row2.appendChild(typeSel);
+
+		const cascade = document.createElement('div');
+		cascade.className = 'sms-cascade';
+		cascade.hidden = true;
+
+		const bboxBtn = document.createElement('button');
+		bboxBtn.type = 'button';
+		bboxBtn.className = 'btn btn-xs btn-default sms-bbox';
+		bboxBtn.textContent = __('Search this area');
+		bboxBtn.hidden = !opts.getBounds;
+		bboxBtn.setAttribute('aria-label', __('Search this area (current map view)'));
 
 		const menu = document.createElement('div');
 		menu.className = 'sms-menu';
@@ -179,6 +258,7 @@
 
 		wrap.appendChild(row);
 		wrap.appendChild(row2);
+		wrap.appendChild(cascade);
 		wrap.appendChild(menu);
 		wrap.appendChild(status);
 		host.appendChild(wrap);
@@ -187,6 +267,11 @@
 		let seq = 0;
 		let items = [];
 		let active = -1;
+		// Cascade: selected[level] = chosen child row; children[level] =
+		// loaded options for that level. Level -1 = countries (level 0).
+		const selected = {};
+		const children = {};
+		let cascadeSeq = 0;
 
 		const closeMenu = () => {
 			menu.hidden = true;
@@ -247,9 +332,20 @@
 					}
 				} else if (disp) {
 					title.textContent = disp.primary;
-					sub.textContent = disp.format === 'dms'
+					const bits = [];
+					bits.push(disp.format === 'dms'
 						? __('DMS · {0}', [disp.input])
-						: __('Exact coordinates');
+						: __('Exact coordinates'));
+					const detail = coordinateChains(item);
+					if (detail) {
+						if (detail.chain.length) {
+							bits.push(detail.chain[detail.chain.length - 1].label);
+						}
+						if (detail.missing.length) {
+							bits.push(__('Missing levels') + ': ' + detail.missing.join(', '));
+						}
+					}
+					sub.textContent = bits.join(' · ');
 				}
 			} else if (group === 'regions') {
 				title.textContent = regionTitle(item);
@@ -271,6 +367,36 @@
 			}
 			el.appendChild(title);
 			el.appendChild(sub);
+			if (group === 'coordinate') {
+				const detail = coordinateChains(item);
+				if (detail && detail.chain.length) {
+					const chainEl = document.createElement('div');
+					chainEl.className = 'sms-chain';
+					detail.chain.forEach((lvl) => {
+						const chip = document.createElement('span');
+						chip.className = 'sms-chain-chip';
+						chip.textContent = lvl.label;
+						chainEl.appendChild(chip);
+					});
+					el.appendChild(chainEl);
+				}
+				if (detail && detail.missing.length) {
+					const missEl = document.createElement('div');
+					missEl.className = 'sms-chain-missing';
+					missEl.textContent = __('Missing levels') + ': ' + detail.missing.join(', ');
+					el.appendChild(missEl);
+				}
+				if (detail && detail.nearby.length) {
+					const nearEl = document.createElement('ul');
+					nearEl.className = 'sms-nearby';
+					detail.nearby.slice(0, 5).forEach((n) => {
+						const li = document.createElement('li');
+						li.textContent = n.name + ' — ' + n.distance + ' m';
+						nearEl.appendChild(li);
+					});
+					el.appendChild(nearEl);
+				}
+			}
 			el.addEventListener('click', () => fire(group, item));
 			return el;
 		};
@@ -313,6 +439,7 @@
 				query,
 				scope: scopeSel.value,
 				levels: scopeSel.value === 'regions' || scopeSel.value === 'all' ? levelSel.value : '',
+				types: typeSel.value,
 				limit: 8,
 			});
 			status.textContent = __('Searching…');
@@ -332,6 +459,116 @@
 			});
 		}
 
+		/* ----- region cascade (Country → Community) ----- */
+		const LEVEL_NAMES = ['Country', 'Governorate', 'District', 'Municipality', 'Village', 'Community'];
+		const orderSelected = () => Object.keys(selected)
+			.map(Number).sort((a, b) => a - b).map((k) => selected[k]);
+
+		const renderCascade = () => {
+			cascade.innerHTML = '';
+			for (let level = 0; level <= 5; level++) {
+				if (level > 0 && !selected[level - 1]) break;
+				const sel = document.createElement('select');
+				sel.className = 'form-control input-sm sms-cascade-select';
+				sel.setAttribute('aria-label', __(LEVEL_NAMES[level]));
+				const placeholder = document.createElement('option');
+				placeholder.value = '';
+				placeholder.textContent = level === 0
+					? __('Country…')
+					: __('Choose {0}…', [__(LEVEL_NAMES[level])]);
+				sel.appendChild(placeholder);
+				(children[level] || []).forEach((child) => {
+					const opt = document.createElement('option');
+					opt.value = child.name;
+					const label = child.name_en || child.name_ar || child.name || '';
+					opt.textContent = child.pcode ? label + ' (' + child.pcode + ')' : label;
+					sel.appendChild(opt);
+				});
+				if (selected[level]) sel.value = selected[level].name;
+				sel.addEventListener('change', () => {
+					const row = (children[level] || []).find((c) => c.name === sel.value);
+					if (!row) {
+						delete selected[level];
+						for (let d = level + 1; d <= 5; d++) delete selected[d];
+						renderCascade();
+						return;
+					}
+					selected[level] = row;
+					for (let d = level + 1; d <= 5; d++) delete selected[d];
+					// Fly to this selection immediately — each refinement
+					// tightens the view with the polygon bbox when available.
+					fire('regions', cascadePayload(orderSelected(), row));
+					loadChildren(level + 1);
+					renderCascade();
+				});
+				cascade.appendChild(sel);
+				if (!selected[level]) break;
+			}
+		};
+
+		const loadChildren = (level) => {
+			if (level > 5) return;
+			const mySeq = ++cascadeSeq;
+			const args = { level, limit: 200 };
+			if (level > 0 && selected[level - 1]) args.parent = selected[level - 1].name;
+			frappeRef.call({
+				method: CASCADE_METHOD,
+				args,
+				callback(r) {
+					if (mySeq !== cascadeSeq) return;
+					children[level] = ((r && r.message) || {}).children || [];
+					renderCascade();
+				},
+			});
+		};
+
+		/* ----- viewport ("search this area") ----- */
+		bboxBtn.addEventListener('click', () => {
+			if (!opts.getBounds) return;
+			let bounds = null;
+			try { bounds = opts.getBounds(); } catch (e) { bounds = null; }
+			if (!bounds) {
+				status.textContent = __('Map view unavailable.');
+				return;
+			}
+			const mySeq = ++seq;
+			status.textContent = __('Searching this area…');
+			frappeRef.call({
+				method: BBOX_METHOD,
+				args: buildBboxParams(bounds, { types: typeSel.value, limit: 25 }),
+				callback(r) {
+					if (mySeq !== seq) return;
+					const resp = (r && r.message) || {};
+					if (resp.error) {
+						status.textContent = __('Invalid map view.');
+						closeMenu();
+						return;
+					}
+					resp.query = __('this area');
+					render(resp);
+					if (resp.counts) {
+						status.textContent = __('{0} records · {1} places · {2} regions',
+							[resp.counts.records, resp.counts.places, resp.counts.regions]);
+					}
+				},
+				error() {
+					if (mySeq !== seq) return;
+					status.textContent = __('Search failed — try again.');
+				},
+			});
+		});
+
+		/* ----- scope chrome (level / type / cascade visibility) ----- */
+		const applyScopeChrome = () => {
+			const s = scopeSel.value;
+			row2.hidden = !(s === 'all' || s === 'regions' || s === 'records');
+			levelSel.hidden = !(s === 'all' || s === 'regions');
+			typeSel.hidden = !(s === 'all' || s === 'records');
+			const showCascade = (s === 'all' || s === 'regions');
+			cascade.hidden = !showCascade;
+			if (showCascade && !children[0] && !selected[0]) loadChildren(0);
+		};
+
 		input.addEventListener('input', () => {
 			clearTimeout(timer);
 			timer = setTimeout(runSearch, 300);
@@ -348,12 +585,16 @@
 			} else if (e.key === 'Escape') { closeMenu(); status.textContent = ''; }
 		});
 		scopeSel.addEventListener('change', () => {
-			row2.hidden = !(scopeSel.value === 'regions' || scopeSel.value === 'all');
+			applyScopeChrome();
 			if (input.value.trim().length >= MIN_CHARS) runSearch();
 		});
 		levelSel.addEventListener('change', () => {
 			if (scopeSel.value === 'regions' || scopeSel.value === 'all') runSearch();
 		});
+		typeSel.addEventListener('change', () => {
+			if (input.value.trim().length >= MIN_CHARS) runSearch();
+		});
+		applyScopeChrome();
 		// Keep focus (and the menu) alive while clicking an item: plain
 		// mousedown would blur the input and close the menu first.
 		menu.addEventListener('mousedown', (e) => e.preventDefault());
@@ -365,6 +606,9 @@
 	const api = {
 		MIN_CHARS,
 		buildParams,
+		buildBboxParams,
+		cascadePayload,
+		coordinateChains,
 		shouldSearch,
 		coordinateDisplay,
 		coordinateErrorText,

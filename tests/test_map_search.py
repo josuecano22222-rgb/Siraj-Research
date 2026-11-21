@@ -10,12 +10,21 @@ Arabic normalisation rule-for-rule.
 from decimal import Decimal
 
 from siraj_research.utils.map_search import (
+	HIERARCHY_CHILD_DOCTYPE,
+	HIERARCHY_PARENT_FIELD,
 	LEVEL_LABELS,
+	bboxes_intersect,
 	coordinate_looks_like,
+	haversine_m,
+	lon_in_bbox,
+	missing_chain_levels,
 	normalise_name,
 	parse_coordinate_query,
 	parse_levels,
 	parse_types,
+	point_in_bbox,
+	radial_bboxes,
+	radial_lat_range,
 	rank_candidates,
 	score_name,
 	score_pcode,
@@ -207,3 +216,76 @@ class TestScopeHelpers:
 		assert parse_types("Person,Source", allowed) == ["Person"]
 		assert parse_types(["Place", "Place"], allowed) == ["Place"]
 		assert parse_types("", allowed) == []
+
+
+class TestGeometryHelpers:
+	def test_haversine_known_distance(self):
+		# ~111.32 km per degree of latitude at the equator.
+		metres = haversine_m(0, 0, 1, 0)
+		assert 110000 < metres < 112000
+
+	def test_haversine_zero_for_identical_points(self):
+		assert haversine_m(31.5, 34.47, 31.5, 34.47) == 0.0
+
+	def test_radial_bbox_normal_mid_latitude(self):
+		boxes = radial_bboxes(31.5, 34.47, 5000)
+		assert len(boxes) == 1
+		min_lon, max_lon = boxes[0]
+		assert min_lon < 34.47 < max_lon
+		# ±5 km at lat 31.5 ≈ ±0.0525° of longitude → full width ≈ 0.105°.
+		assert 0.10 < (max_lon - min_lon) < 0.11
+
+	def test_radial_bbox_splits_at_antimeridian(self):
+		boxes = radial_bboxes(0, 179, 200000)
+		assert len(boxes) == 2
+		assert boxes[0][1] == 180.0 and boxes[1][0] == -180.0
+		assert boxes[0][0] > 170
+		assert boxes[1][1] < -170
+
+	def test_radial_bbox_pole_spans_all_longitudes(self):
+		boxes = radial_bboxes(89.99999, 10, 5000)
+		# Either the explicit pole branch or a wrap — must cover ±180.
+		covered = any(b0 <= -180.0 and b1 >= 180.0 for b0, b1 in boxes)
+		or_wrapped = len(boxes) == 2 and boxes[0][1] == 180.0 and boxes[1][0] == -180.0
+		assert covered or or_wrapped
+
+	def test_lat_range_clamped_to_poles(self):
+		lo, hi = radial_lat_range(89.99, 100000)
+		assert lo >= -90 and hi <= 90
+
+	def test_lon_in_bbox_wrap(self):
+		assert lon_in_bbox(-179, 170, -170) is True
+		assert lon_in_bbox(0, 170, -170) is False
+		assert lon_in_bbox(175, 170, -170) is True
+		assert lon_in_bbox(50, -10, 10) is False
+
+	def test_point_in_bbox(self):
+		assert point_in_bbox(31.5, 34.47, (30, 34, 32, 35)) is True
+		assert point_in_bbox(31.5, 40, (30, 34, 32, 35)) is False
+
+	def test_missing_chain_levels_explicit(self):
+		assert missing_chain_levels({}) == [
+			"country", "governorate", "district", "municipality", "village", "community",
+		]
+		assert missing_chain_levels(
+			{"country": {"pcode": "PS"}, "governorate": {"pcode": "PS-GZ"}}
+		) == ["district", "municipality", "village", "community"]
+		# An ocean point (empty chain) reports everything, no error.
+		assert len(missing_chain_levels(None)) == 6
+
+	def test_bboxes_intersect_orthogonal(self):
+		a = (30, 34, 32, 35)
+		assert bboxes_intersect(a, (31, 34.5, 33, 36)) is True
+		assert bboxes_intersect(a, (33, 34, 34, 35)) is False
+
+	def test_bboxes_intersect_antimeridian_wrapped(self):
+		region = (0, 170, 10, -170)  # wraps the dateline
+		assert bboxes_intersect(region, (2, 175, 4, 179)) is True
+		assert bboxes_intersect(region, (2, -179, 4, -175)) is True
+		assert bboxes_intersect(region, (2, 0, 4, 5)) is False
+
+	def test_cascade_parent_maps_are_consistent(self):
+		assert set(HIERARCHY_CHILD_DOCTYPE) == {1, 2, 3, 4, 5}
+		assert set(HIERARCHY_PARENT_FIELD) == {1, 2, 3, 4, 5}
+		assert HIERARCHY_CHILD_DOCTYPE[1] == "Governorate"
+		assert HIERARCHY_PARENT_FIELD[5] == "village"
