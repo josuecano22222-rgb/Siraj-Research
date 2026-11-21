@@ -12,6 +12,9 @@ tests/test_demo_data_structure.py and run in CI without frappe.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
@@ -25,11 +28,22 @@ from siraj_research.setup.demo_data import (
 )
 from siraj_research.setup.master_data import seed_master_data
 
+LOOKUPS = (Path(__file__).resolve().parents[1] / "setup"
+           / "reference_data" / "lookups.json")
+
 
 def _tagged_names(doctype: str, field: str) -> list[str]:
     return list(frappe.get_all(
         doctype, filters={field: ("like", f"%{TAG}%")},
         pluck="name", limit_page_length=0))
+
+
+def _auth_labels() -> set[str]:
+    """English labels stored by the Authentication Level Link field."""
+    data = json.loads(LOOKUPS.read_text(encoding="utf-8"))
+    return {label for code, label, *_ in
+            data["domains"]["authentication_level"]
+            if code in C.CONFIDENCE_CODES}
 
 
 class TestDemoData(FrappeTestCase):
@@ -93,15 +107,18 @@ class TestDemoData(FrappeTestCase):
 
         # varied relationship confidence (all six codes). primary_source
         # holds SRC-#### names — match through the tagged source titles.
+        # authentication_level is a Link to label_en (e.g. "Single
+        # source"), not the code, so map codes → labels via lookups.json.
         demo_sources = _tagged_names("Source", "title")
         self.assertTrue(demo_sources)
-        auths = {row[0] for row in frappe.get_all(
+        auths = set(frappe.get_all(
             "Relationship",
             filters={"primary_source": ["in", demo_sources]},
-            fields=["authentication_level"], limit_page_length=0)}
+            pluck="authentication_level", limit_page_length=0))
+        expected_auths = _auth_labels()
         self.assertTrue(
-            set(C.CONFIDENCE_CODES) <= auths,
-            f"missing confidence codes: {set(C.CONFIDENCE_CODES) - auths}")
+            expected_auths <= auths,
+            f"missing confidence labels: {expected_auths - auths}")
 
         # edge: the open-water place must not resolve any admin level
         ocean = frappe.db.get_value(
