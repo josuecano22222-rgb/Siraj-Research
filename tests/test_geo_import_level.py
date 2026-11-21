@@ -8,8 +8,12 @@ import pytest
 
 @pytest.fixture()
 def geo_import(monkeypatch):
-    # geo_import imports frappe unconditionally at module level.
-    monkeypatch.setitem(sys.modules, "frappe", types.ModuleType("frappe"))
+    # geo_import imports frappe unconditionally at module level, and its
+    # helpers lazily import geo_hierarchy, which decorates whitelisted
+    # endpoints at import time.
+    stub = types.ModuleType("frappe")
+    stub.whitelist = lambda *a, **k: (lambda fn: fn)
+    monkeypatch.setitem(sys.modules, "frappe", stub)
     from siraj_research import geo_import as mod
 
     return mod
@@ -62,3 +66,60 @@ def test_map_country_label_accepts_bilingual_level0_labels(geo_import):
 def test_map_country_label_never_guesses_unknown_labels(geo_import):
     assert geo_import._map_country_label("Narnia", None, {}, {}) is None
     assert geo_import._map_country_label(None, None, {}, {}) is None
+
+
+def test_country_evidence_flows_from_trusted_neighbours(geo_import):
+    rows = [
+        # Trusted GeoNames district (real name, has country).
+        {"key": ("District", "NGZ"), "scoped": False,
+         "country": "Palestinian Territory, Occupied", "neighbor_keys": []},
+        # Scoped hash rows: municipality is adjacent to the district,
+        # governorate is adjacent only via the municipality.
+        {"key": ("Municipality", "OSM-AAA"), "scoped": True, "country": "United States",
+         "neighbor_keys": [("District", "NGZ"), ("Governorate", "OSM-BBB")]},
+        {"key": ("Governorate", "OSM-BBB"), "scoped": True, "country": "United States",
+         "neighbor_keys": [("Municipality", "OSM-AAA")]},
+        # Scoped row with no evidence anywhere: must not be touched.
+        {"key": ("Village", "OSM-CCC"), "scoped": True, "country": "United States",
+         "neighbor_keys": []},
+    ]
+    derived = geo_import._propagate_country_evidence(rows)
+    assert derived[("Municipality", "OSM-AAA")] == "Palestinian Territory, Occupied"
+    # Second hop: governorate learns after the municipality becomes trusted.
+    assert derived[("Governorate", "OSM-BBB")] == "Palestinian Territory, Occupied"
+    assert ("Village", "OSM-CCC") not in derived
+
+
+def test_country_evidence_never_trusts_scoped_or_empty_rows(geo_import):
+    rows = [
+        {"key": ("District", "OSM-1"), "scoped": True,
+         "country": "United States", "neighbor_keys": [("Governorate", "OSM-2")]},
+        {"key": ("Governorate", "OSM-2"), "scoped": True,
+         "country": "United States", "neighbor_keys": [("District", "OSM-1")]},
+        # Trusted but empty: no evidence to give.
+        {"key": ("District", "Real"), "scoped": False,
+         "country": None, "neighbor_keys": [("Municipality", "OSM-3")]},
+        {"key": ("Municipality", "OSM-3"), "scoped": True,
+         "country": None, "neighbor_keys": [("District", "Real")]},
+    ]
+    assert geo_import._propagate_country_evidence(rows) == {}
+
+
+def test_country_evidence_respects_round_limit(geo_import):
+    # Chain: NGZ -> OSM-0 -> OSM-1 -> OSM-2 -> OSM-3, listed from the far
+    # end so that a single round can only reach OSM-0 (its row, at the
+    # end of the list, sees the trusted NGZ after the others have already
+    # been visited with untrusted neighbours).
+    chain = [("District", "NGZ")]
+    for i in range(4):
+        chain.append(("Municipality", f"OSM-{i}"))
+    rows = [{"key": key, "scoped": key != ("District", "NGZ"),
+             "country": "Israel" if key == ("District", "NGZ") else None,
+             "neighbor_keys": [chain[index - 1]] if index else []}
+            for index, key in reversed(list(enumerate(chain)))]
+    derived = geo_import._propagate_country_evidence(rows, rounds=1)
+    assert set(derived) == {("Municipality", "OSM-0")}
+    assert derived[("Municipality", "OSM-0")] == "Israel"
+    # With enough rounds the whole chain learns.
+    derived = geo_import._propagate_country_evidence(rows, rounds=4)
+    assert set(derived) == {k for k in chain if k != ("District", "NGZ")}

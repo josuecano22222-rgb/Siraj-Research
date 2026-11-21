@@ -880,3 +880,118 @@ def repair_dataset_countries(dataset: str) -> dict:
             "unresolved_sample": unresolved_names[:10],
             "methods": methods, "countries": per_country,
             "level0_polygons": len(l0)}
+
+
+def _propagate_country_evidence(rows: list, rounds: int = 4) -> dict:
+    """Derive countries for repair-scope rows from trusted neighbours.
+
+    ``rows`` items are dicts with ``key`` (opaque, e.g. ``(doctype, name)``),
+    ``scoped`` (True for rows whose country is suspect — auto-fill created
+    or re-stamped them while the resolver was wrong), ``country`` (current
+    value or None) and ``neighbor_keys`` (row keys reachable through the
+    hierarchy's ancestor link fields).
+
+    Rows outside the scope with a non-empty country start out trusted.
+    Scoped rows inherit a country from any trusted neighbour; once they
+    have evidence-backed values they become trusted themselves, so the
+    evidence walks arbitrary hops (district → municipality → village …)
+    up to ``rounds`` iterations. Scoped rows without evidence are left
+    out of the result — they must not be overwritten blindly.
+    """
+    adjacency: dict = {}
+    def _link(a, b):
+        adjacency.setdefault(a, set()).add(b)
+        adjacency.setdefault(b, set()).add(a)
+    for row in rows:
+        for neighbor in row.get("neighbor_keys") or []:
+            _link(row["key"], neighbor)
+    trusted: dict = {}
+    for row in rows:
+        if not row["scoped"] and row.get("country"):
+            trusted[row["key"]] = row["country"]
+    derived: dict = {}
+    for _ in range(max(1, rounds)):
+        changed = False
+        for row in rows:
+            if not row["scoped"] or row["key"] in trusted:
+                continue
+            for neighbor in adjacency.get(row["key"], ()):
+                if neighbor in trusted:
+                    value = trusted[neighbor]
+                    derived[row["key"]] = value
+                    trusted[row["key"]] = value
+                    changed = True
+                    break
+        if not changed:
+            break
+    return derived
+
+
+def repair_hierarchy_countries(dataset: str) -> dict:
+    """Fix hierarchy rows stamped by coordinate auto-fill from neighbours.
+
+    While the resolver returned the wrong country, ``hierarchy_for_point``
+    with ``create_missing`` created (or updated) hierarchy rows whose
+    ``country`` link points at the wrong Country — typically ``United
+    States``. The boundary-country repair trusts those rows as evidence,
+    so they poison boundary rows in turn (and containment then propagates
+    the wrong value to every enclosed row).
+
+    This repair scopes rows by ``source_dataset`` = the dataset or a
+    derived ``OSM-`` name, treats every real-named row with a country as
+    trusted, and propagates evidence over the ancestor link fields
+    (governorate / district / municipality / village) to a fixpoint.
+    Only evidence-backed values are written (via ``db.set_value`` because
+    ``country`` is ``set_only_once``); rows without evidence are reported
+    in ``still_suspect`` and left untouched. ``index_version`` is bumped
+    so resolver caches reload.
+    """
+    if frappe is None:
+        raise RuntimeError("bench required")
+    specs = (
+        ("Governorate", ()),
+        ("District", ("governorate",)),
+        ("Municipality", ("governorate", "district")),
+        ("Village", ("governorate", "district", "municipality")),
+        ("Community", ("governorate", "district", "municipality", "village")),
+    )
+    nodes = []
+    for doctype, links in specs:
+        fields = ["name", "country", "source_dataset", *links]
+        for row in frappe.get_all(doctype, fields=fields, limit_page_length=0):
+            name = row.get("name")
+            if not name:
+                continue
+            scoped = bool(row.get("source_dataset") == dataset) or str(name).startswith("OSM-")
+            neighbor_keys = []
+            for link in links:
+                parent = row.get(link)
+                if parent:
+                    neighbor_keys.append((link.title(), parent))
+            nodes.append({"key": (doctype, name), "scoped": scoped,
+                          "country": row.get("country") or None,
+                          "neighbor_keys": neighbor_keys})
+    derived = _propagate_country_evidence(nodes)
+    updated = 0
+    per_country: dict = {}
+    for (doctype, name), value in sorted(derived.items()):
+        per_country[value] = per_country.get(value, 0) + 1
+        frappe.db.set_value(doctype, name, "country", value, update_modified=False)
+        updated += 1
+    still_suspect = sorted(
+        f"{node['key'][0]}:{node['key'][1]}" for node in nodes
+        if node["scoped"] and (node["country"] or "") == "United States"
+        and node["key"] not in derived)
+    try:
+        current = int(frappe.db.get_value("Boundary Dataset", dataset,
+                                          "index_version") or 0)
+        frappe.db.set_value("Boundary Dataset", dataset, "index_version",
+                            current + 1, update_modified=False)
+    except Exception:  # pragma: no cover - dataset row must exist, but never fail a repair
+        pass
+    frappe.db.commit()
+    scoped_count = sum(1 for n in nodes if n["scoped"])
+    return {"dataset": dataset, "scoped_rows": scoped_count,
+            "updated": updated, "countries": per_country,
+            "still_suspect_sample": still_suspect[:10],
+            "still_suspect": len(still_suspect)}
