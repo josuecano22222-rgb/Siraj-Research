@@ -421,7 +421,7 @@ def upsert_level(entry: dict, parent_name: str | None, *, lat=None, lon=None,
 		# instead of returning HTTP 409 to the form.
 		duplicate = frappe.DuplicateEntryError if hasattr(frappe, "DuplicateEntryError") else ()
 		message = str(exc)
-		if duplicate and isinstance(exc, duplicate) or "Duplicate entry" in message:
+		if (duplicate and isinstance(exc, duplicate)) or "Duplicate entry" in message:
 			reused = frappe.db.exists(doctype, code)
 			if reused:
 				_link_boundary(entry.get("boundary"), doctype, reused)
@@ -639,6 +639,29 @@ def _country_names() -> dict[str, str]:
     return result
 
 
+def _sorted_strtree(records: list[dict], strtree_cls: Any = None) -> Any:
+    """Sort ``records`` parent-first and build an STRtree aligned with them.
+
+    ``STRtree.query`` returns indices into the geometry list the tree was
+    built from, so the tree must be constructed **after** the sort, from that
+    same order. Sorting records afterwards (or building the tree first) leaves
+    every index pointing at the wrong row, which made hierarchy sync skip
+    almost every boundary that relies on spatial country/parent inference.
+
+    Sorts ``records`` in place by ``(level, pcode)`` so callers still process
+    parents before children. Pass ``strtree_cls`` to inject a stand-in in
+    pure-Python tests; the default imports shapely lazily.
+    """
+    records.sort(key=lambda rec: (rec["level"], str(rec["pcode"] or "")))
+    geoms = [rec["geom"] for rec in records]
+    if not geoms:
+        return None
+    if strtree_cls is None:
+        from shapely.strtree import STRtree
+        strtree_cls = STRtree
+    return strtree_cls(geoms)
+
+
 def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None = None,
                                    create_missing: bool = True,
                                    batch_size: int = 200) -> dict:
@@ -659,7 +682,6 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
         return {"error": "geospatial dependencies missing: " + ",".join(missing),
                 "dataset": dataset}
     from shapely import wkb as shapely_wkb
-    from shapely.strtree import STRtree
 
     rows = frappe.db.sql(
         """SELECT ab.name, ab.pcode, ab.level, ab.name_en, ab.name_ar, ab.country,
@@ -676,7 +698,6 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
         as_dict=True,
     )
     records: list[dict] = []
-    geoms: list = []
     by_pcode: dict[str, dict] = {}
     for row in rows:
         hex_wkb = row.simplified_wkb or row.full_wkb
@@ -707,11 +728,13 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
             "geom": geom,
         }
         records.append(record)
-        geoms.append(geom)
         if record["pcode"]:
             by_pcode[normalize_code(record["pcode"])] = record
-    tree = STRtree(geoms) if geoms else None
-    records.sort(key=lambda rec: (rec["level"], str(rec["pcode"] or "")))
+    # Sort parent-first and build the STRtree from that same order — tree
+    # indices address the geometry list they were built from (regression:
+    # sorting after STRtree() mis-mapped ~97% of spatial candidate lookups
+    # and hierarchy sync skipped nearly every OSM boundary).
+    tree = _sorted_strtree(records)
 
     wanted_levels = {int(level) for level in levels} if levels else {1, 2, 3, 4, 5}
     countries = _country_names()
