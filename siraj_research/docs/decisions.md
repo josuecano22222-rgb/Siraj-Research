@@ -1,5 +1,13 @@
 # SIRAJ Research — decision log
 
+## 2026-11-18 — Advanced map search (coordinates, regions, places, records)
+
+**Decision.** A single whitelisted endpoint (`api.map_search.search`) classifies each query four ways — exact coordinates (decimal verbatim, DMS via exact fractions with a one-click swap suggestion instead of silent guessing), admin regions (active boundary dataset first, hierarchy registry as fallback, deduped by pcode), gazetteer places, and the record pins the map already draws — ranked deterministically (pcode > exact > prefix > word > contains, coarser level first) with Arabic folding that mirrors the client filter rule-for-rule. The Explorer app panel hosts the widget; every jump popup shows stored coordinate strings, never a rounded rendering.
+
+**Why.** Map search for this project is a precision instrument: a researcher pasting a coordinate needs the exact digits back, and a bilingual region query must not depend on which orthography the source used. One endpoint keeps scope/level/type filtering, ranking and permission checks in one testable place instead of four client-side lookups.
+
+**Trade-offs.** Full folded scans of the gazetteer (~16k rows) run per debounced query — accepted at this data scale for correctness (SQL LIKE cannot fold both sides without schema changes); a `name_norm` column is the upgrade path if the atlas grows. The widget ships in its own JS file loaded by the Explorer rather than the bundle, so the app-scoped build stays BigInt-safe. Records are searched server-side even though the client already holds them, so the same endpoint serves list views later.
+
 ## 2026-11-18 — Person family fields (exclusive embedded rows)
 
 **Decision.** Spouse, children, and grandchildren live as embedded fields and child tables on the Person record (`tab_family`); they never create or link to other Person DocTypes. Siblings alone may optionally link to an existing Person, because siblings are often subjects in their own right. A `Marital status` Select gates visibility: `Single` hides spouse/children/grandchildren sections (values are kept, not cleared), `Married` reveals them, and the Grandchildren section additionally requires the derived `is_grandparent` flag. A computed, stored `family_summary` line is added to `search_fields` so desk search reaches family names.

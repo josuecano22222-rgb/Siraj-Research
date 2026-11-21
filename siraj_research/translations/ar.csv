@@ -1746,3 +1746,32 @@ Spouse: {0},الزوج/الزوجة: {0}
 This child's own children — marks the parent as a grandparent.,أبناء هذا الطفل — وما يجعل الشخص جدًّا.
 Through (child of this person),من خلال (طفل من أبناء هذا الشخص)
 Which of this person's children this grandchild descends from — options fill from the Children table.,أيُّ أبناء هذا الشخص ينتمي إليه هذا الحفيد — تُملأ الخيارات من جدول الأبناء.
+A minus sign conflicts with the hemisphere letter.,علامة السالب تتعارض مع حرف الاتجاه.
+A negative sign conflicts with the hemisphere letter.,الإشارة السالبة تتعارض مع حرف الاتجاه.
+Advanced map search,بحث الخريطة المتقدم
+Advanced search,بحث متقدم
+Boundary dataset,مجموعة بيانات الحدود
+Coordinates: {0},الإحداثيان: {0}
+Could not resolve this point,تعذّر تحديد المنطقة الإدارية لهذه النقطة
+DMS · {0},درجات/دقائق/ثواني · {0}
+Degrees/minutes/seconds are out of range (minutes and seconds must be below 60).,الدرجات أو الدقائق أو الثواني خارج النطاق (يجب أن تكون الدقائق والثواني أقل من 60).
+Exact coordinates,إحداثيان بدقيقتها
+Exact fractions: {0} · {1},كسور دقيقة: {0} · {1}
+Hierarchy registry,سجل التسلسل الإداري
+Input: {0},المُدخل: {0}
+Invalid coordinates.,إحداثيات غير صالحة.
+Jumped to {0},الانتقال إلى {0}
+"Latitude must be between -90 and 90, longitude between -180 and 180.",يجب أن يكون خط العرض بين -90 و90، وخط الطول بين -180 و180.
+No coordinates recorded for {0},لا إحداثيات مسجّلة لـ{0}
+No hierarchy for this point,لا يوجد تسلسل إداري لهذه النقطة
+No results for “{0}”,لا نتائج لعبارة “{0}”
+Region level,مستوى المنطقة
+"Region, place, record or 31.5, 34.47…",منطقة أو مكان أو سجل أو 31.5، 34.47…
+Regions,المناطق
+Resolving…,جارٍ التحديد…
+Search failed — try again.,فشل البحث — أعد المحاولة.
+Search scope,نطاق البحث
+Searching…,جارٍ البحث…
+That does not look like a number.,لا يبدو هذا رقماً.
+That hemisphere letter belongs to the other coordinate.,حرف الاتجاه هذا يخص الإحداثي الآخر.
+Use {0},استخدم {0}

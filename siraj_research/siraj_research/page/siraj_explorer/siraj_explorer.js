@@ -438,6 +438,8 @@ class SirajExplorer {
 			'/assets/siraj_research/js/siraj-map-kit.js',
 			'/assets/siraj_research/js/siraj-map-toolbar.js',
 			'/assets/siraj_research/js/siraj-basemap.js',
+			'/assets/siraj_research/js/siraj-map-search.js',
+			'/assets/siraj_research/css/siraj-map-search.css',
 			'/assets/siraj_research/css/siraj-map-toolbar.css',
 			'/assets/siraj_research/css/siraj-map-advanced.css',
 			'/assets/siraj_research/css/siraj-icons.css',
@@ -593,6 +595,174 @@ class SirajExplorer {
 		const FILTER_PAGE = 'siraj-explorer.geography';
 		let filterState = Filters.initialState(types, FILTER_PAGE);
 		const filterStore = Filters.createStore(filterState);
+		// ------ Advanced search (coordinates · regions · places · records) ------
+		const searchSection = $('<div class="sx-app-section"></div>').appendTo(appPanel);
+		$('<h5></h5>').text(__('Advanced search')).appendTo(searchSection);
+		const searchHost = $('<div></div>').appendTo(searchSection);
+		const searchLayer = L.layerGroup().addTo(map);
+		const searchStatus = (text, warn) => mapStatus(text, warn);
+		const searchPopup = (titleText) => {
+			const box = $('<div class="siraj-search-popup"></div>');
+			if (titleText) $('<b></b>').text(titleText).appendTo(box);
+			return box;
+		};
+		const searchCoordsLine = (latStr, lonStr) =>
+			$('<div class="sms-pop-coords"></div>').text(latStr + ', ' + lonStr);
+		const jumpToSearchResult = (group, item) => {
+			searchLayer.clearLayers();
+			const Search = window.SirajMapSearch;
+			if (group === 'coordinate') {
+				const disp = Search.coordinateDisplay(item);
+				if (disp.error) {
+					searchStatus(Search.coordinateErrorText(disp.error, (s) => __(s)), true);
+					return;
+				}
+				// Leaflet needs floats to move the viewport; the popup shows
+				// the exact strings. Rendering only — never stored.
+				const la = Number(item.lat), lo = Number(item.lon);
+				map.flyTo([la, lo], 16);
+				const dot = L.circleMarker([la, lo], {
+					radius: 7, color: '#126a68', weight: 2, fillColor: '#1b7f88', fillOpacity: 0.9,
+				}).addTo(searchLayer);
+				const box = searchPopup(__('Coordinates'));
+				searchCoordsLine(item.lat, item.lon).appendTo(box);
+				$('<div class="sms-pop-coords"></div>')
+					.text(dms(item.lat, true) + '  ·  ' + dms(item.lon, false)).appendTo(box);
+				if (item.input && item.input !== (item.lat + ', ' + item.lon)) {
+					$('<div class="sms-pop-chain"></div>').text(__('Input: {0}', [item.input])).appendTo(box);
+				}
+				if (item.lat_fraction) {
+					$('<div class="sms-pop-chain"></div>')
+						.text(__('Exact fractions: {0} · {1}', [item.lat_fraction, item.lon_fraction]))
+						.appendTo(box);
+				}
+				const resolveBtn = $('<button type="button" class="btn btn-xs btn-default" style="margin-top:6px"></button>')
+					.text(__('Resolve hierarchy'))
+					.appendTo(box)
+					.on('click', async () => {
+						resolveBtn.prop('disabled', true).text(__('Resolving…'));
+						try {
+							const r = await frappe.call({
+								method: 'siraj_research.api.geo_resolve.resolve_point',
+								args: { latitude: item.lat, longitude: item.lon },
+							});
+							const res = (r && r.message) || {};
+							const chain = res.admin_chain || {};
+							const order = ['country', 'governorate', 'district', 'municipality', 'village', 'community'];
+							const names = order.map((k) => chain[k]).filter(Boolean)
+								.map((e) => e.name_en || e.name_ar || e.pcode || '');
+							const line = names.length ? names.join(' → ') : __('No hierarchy for this point');
+							$('<div class="sms-pop-chain"></div>').text(line).appendTo(box);
+							resolveBtn.remove();
+							dot.setPopupContent(box[0]);
+						} catch (e) {
+							resolveBtn.prop('disabled', false).text(__('Resolve hierarchy'));
+							searchStatus(__('Could not resolve this point'), true);
+						}
+					});
+				dot.bindPopup(box[0]).openPopup();
+				searchStatus(__('Coordinates: {0}', [item.lat + ', ' + item.lon]));
+				return;
+			}
+			if (group === 'regions') {
+				const title = Search.regionTitle(item);
+				const hasBbox = Array.isArray(item.bbox) && item.bbox.every((v) => v != null);
+				const hasCentroid = Array.isArray(item.centroid) && item.centroid[0] != null && item.centroid[1] != null;
+				if (!hasBbox && !hasCentroid) {
+					searchStatus(__('No coordinates recorded for {0}', [title]), true);
+					return;
+				}
+				let anchor;
+				if (hasBbox) {
+					const bounds = L.latLngBounds(
+						[Number(item.bbox[0]), Number(item.bbox[1])],
+						[Number(item.bbox[2]), Number(item.bbox[3])],
+					);
+					L.rectangle(bounds, { color: '#126a68', weight: 1.5, dashArray: '5 4', fill: false })
+						.addTo(searchLayer);
+					map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+					anchor = bounds.getCenter();
+				} else {
+					anchor = [Number(item.centroid[0]), Number(item.centroid[1])];
+					map.flyTo(anchor, 12);
+				}
+				const dot = L.circleMarker(anchor, {
+					radius: 6, color: '#126a68', weight: 2, fillColor: '#1b7f88', fillOpacity: 0.9,
+				}).addTo(searchLayer);
+				const box = searchPopup((item.name_en || item.name_ar || ''));
+				if (item.name_en && item.name_ar) {
+					$('<div></div>').text(item.name_ar).appendTo(box);
+				}
+				const bits = [];
+				if (item.level_name) bits.push(__(item.level_name));
+				if (item.pcode) bits.push(item.pcode);
+				if (item.source) bits.push(item.source === 'boundary' ? __('Boundary dataset') : __('Hierarchy registry'));
+				$('<div class="sms-pop-chain"></div>').text(bits.join(' · ')).appendTo(box);
+				if (Array.isArray(item.chain) && item.chain.length > 1) {
+					const parents = item.chain.slice(1).reverse()
+						.map((c) => c.name_en || c.name_ar || c.pcode || '');
+					if (parents.length) {
+						$('<div class="sms-pop-chain"></div>').text(parents.join(' → ')).appendTo(box);
+					}
+				}
+				if (hasCentroid) searchCoordsLine(item.centroid[0], item.centroid[1]).appendTo(box);
+				dot.bindPopup(box[0]).openPopup();
+				searchStatus(__('Jumped to {0}', [title]));
+				return;
+			}
+			if (group === 'places') {
+				const title = Search.placeTitle(item);
+				const latStr = item.point && item.point[0], lonStr = item.point && item.point[1];
+				if (!latStr || !lonStr) {
+					searchStatus(__('No coordinates recorded for {0}', [title]), true);
+					return;
+				}
+				const la = Number(latStr), lo = Number(lonStr);
+				map.flyTo([la, lo], 14);
+				const dot = L.circleMarker([la, lo], {
+					radius: 6, color: '#8a6d3b', weight: 2, fillColor: '#b8952f', fillOpacity: 0.9,
+				}).addTo(searchLayer);
+				const box = searchPopup(title);
+				if (item.name_en && item.name_ar) $('<div></div>').text(item.name_ar).appendTo(box);
+				const bits = [];
+				if (item.feature_code) bits.push(item.feature_code);
+				if (item.pcode) bits.push(item.pcode);
+				if (bits.length) $('<div class="sms-pop-chain"></div>').text(bits.join(' · ')).appendTo(box);
+				searchCoordsLine(latStr, lonStr).appendTo(box);
+				dot.bindPopup(box[0]).openPopup();
+				searchStatus(__('Jumped to {0}', [title]));
+				return;
+			}
+			if (group === 'records') {
+				const title = Search.recordTitle(item);
+				const latStr = item.point && item.point[0], lonStr = item.point && item.point[1];
+				if (!latStr || !lonStr) {
+					searchStatus(__('No coordinates recorded for {0}', [title]), true);
+					return;
+				}
+				const la = Number(latStr), lo = Number(lonStr);
+				map.flyTo([la, lo], 14);
+				const dot = L.circleMarker([la, lo], {
+					radius: 7, color: '#7a4fa3', weight: 2, fillColor: '#9468c4', fillOpacity: 0.9,
+				}).addTo(searchLayer);
+				const box = searchPopup(title);
+				$('<div class="sms-pop-chain"></div>').text(__(item.doctype)).appendTo(box);
+				searchCoordsLine(latStr, lonStr).appendTo(box);
+				$('<button type="button" class="btn btn-xs btn-default" style="margin-top:6px"></button>')
+					.text(__('Open record'))
+					.appendTo(box)
+					.on('click', () => frappe.set_route('Form', item.doctype, item.name));
+				dot.bindPopup(box[0]).openPopup();
+				searchStatus(__('Jumped to {0}', [title]));
+				return;
+			}
+		};
+		if (window.SirajMapSearch) {
+			window.SirajMapSearch.mount(searchHost[0], { onJump: jumpToSearchResult });
+		} else {
+			searchSection.hide();
+		}
+
 		const recSection = $('<div class="sx-app-section"></div>').appendTo(appPanel);
 		const recordHeading = $('<h5></h5>').text(__('Mapped records')).appendTo(recSection);
 		const activeFilterBar = $('<div class="siraj-filter-bar" style="font-size:11px;color:var(--text-muted);margin-bottom:4px"></div>').appendTo(recSection);

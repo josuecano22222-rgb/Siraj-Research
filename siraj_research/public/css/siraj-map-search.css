@@ -1,0 +1,106 @@
+/* siraj-map-search.css — advanced map search widget (Explorer app panel). */
+
+.siraj-map-search {
+	position: relative;
+	width: 100%;
+	box-sizing: border-box;
+	font-size: 12px;
+}
+
+.siraj-map-search .sms-row {
+	display: flex;
+	gap: 4px;
+	margin-bottom: 4px;
+}
+
+.siraj-map-search .sms-input {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.siraj-map-search .sms-scope,
+.siraj-map-search .sms-levels {
+	flex: 0 0 auto;
+	max-width: 46%;
+}
+
+.siraj-map-search .sms-menu {
+	position: absolute;
+	inset-inline-start: 0;
+	inset-inline-end: 0;
+	top: 100%;
+	z-index: 1200;
+	max-height: 320px;
+	overflow-y: auto;
+	background: var(--card-bg, #fff);
+	border: 1px solid var(--border-color, #d1d8dd);
+	border-radius: 4px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+	padding: 2px 0;
+}
+
+.siraj-map-search .sms-group-head {
+	padding: 6px 10px 2px;
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--text-muted, #6c767a);
+}
+
+.siraj-map-search .sms-item {
+	padding: 6px 10px;
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.siraj-map-search .sms-item.is-active,
+.siraj-map-search .sms-item:hover {
+	background: var(--control-bg, #f0f4f5);
+}
+
+.siraj-map-search .sms-item-title {
+	font-weight: 600;
+	color: var(--text-color, #1c272c);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.siraj-map-search .sms-item-sub {
+	font-size: 11px;
+	color: var(--text-muted, #6c767a);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.siraj-map-search .sms-item-error .sms-item-title {
+	color: var(--red-600, #d9534f);
+}
+
+.siraj-map-search .sms-suggest {
+	margin-top: 4px;
+	align-self: flex-start;
+}
+
+.siraj-map-search .sms-status {
+	min-height: 14px;
+	font-size: 11px;
+	color: var(--text-muted, #6c767a);
+}
+
+/* Search-jump popups: exact coordinates read best in tabular figures. */
+.siraj-search-popup .sms-pop-coords {
+	font-family: var(--mono, ui-monospace, monospace);
+	font-size: 11px;
+	white-space: nowrap;
+}
+
+.siraj-search-popup .sms-pop-chain {
+	margin-top: 4px;
+	font-size: 11px;
+	color: var(--text-muted, #6c767a);
+}
