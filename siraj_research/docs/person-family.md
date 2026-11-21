@@ -34,4 +34,4 @@ On every save the server computes a single-line summary, e.g. `Married · Spouse
 
 ## Testing
 
-`bench --site frappe.com run-tests --module siraj_research.test_person_family` runs the form-level rules (hidden values preserved, throws, autofill, summary content). Root pytest `tests/test_person_family.py` checks the DocType JSON contracts and the pure helpers in `siraj_research/utils/family.py`.
+`bench --site frappe.com run-tests --module siraj_research.tests.test_person_family` runs the form-level rules (hidden values preserved, throws, autofill, summary content). Root pytest `tests/test_person_family.py` checks the DocType JSON contracts and the pure helpers in `siraj_research/utils/family.py`.
