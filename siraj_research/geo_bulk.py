@@ -51,6 +51,18 @@ def _ensure_dataset(code: str, *, label_en: str, source: str, level: int = 0,
                     is_gazetteer: bool = False) -> str:
     if frappe is None:
         return code
+    if is_gazetteer:
+        # Mirror _finish's boundary auto-activate: the first gazetteer
+        # becomes the resolver's nearest-place source. Without this,
+        # active_gazetteer_dataset stays empty and place fills never fire.
+        try:
+            s = frappe.get_single("Geo Settings")
+            if not getattr(s, "active_gazetteer_dataset", None):
+                frappe.db.set_value("Geo Settings", "Geo Settings",
+                                    "active_gazetteer_dataset", code,
+                                    update_modified=False)
+        except Exception:
+            pass
     if frappe.db.exists("Boundary Dataset", code):
         return code
     doc = frappe.get_doc({
@@ -230,9 +242,19 @@ def _iter_geonames_lines(source: Path, member_hint: str = "cities") -> Iterable[
                     yield name, line
 
 
-def _bulk_insert_gazetteer(dataset: str, rows: list[dict]) -> int:
+def _bulk_insert_gazetteer(dataset: str, rows: list[dict]) -> tuple[int, int, list[str]]:
+	"""Insert a gazetteer batch in small committed chunks.
+
+	A single 1000-row multi-row INSERT died with MySQL error 2013 ("Lost
+	connection to MySQL server during query") — an oversized packet or one
+	poisoned row must not kill the whole import. Chunks of 100 keep every
+	statement small, a failed fragment falls back to row-by-row inserts,
+	and failures are counted and sampled for the report. Each chunk
+	commits so progress survives an interrupted run; the deterministic
+	GEO-* primary keys make a re-run skip what already landed.
+	"""
 	if not rows or frappe is None:
-		return 0
+		return (0, 0, [])
 	import hashlib
 
 	now = frappe.utils.now()
@@ -246,14 +268,34 @@ def _bulk_insert_gazetteer(dataset: str, rows: list[dict]) -> int:
 	values = []
 	for row in rows:
 		key = ":".join(str(row.get(k) or "") for k in
-		               ("source_id", "name_en", "latitude", "longitude"))
+	               ("source_id", "name_en", "latitude", "longitude"))
 		values.append([
 			f"GEO-{hashlib.sha1(key.encode('utf-8')).hexdigest()[:20]}",
 			user, now, now, user, 0, 0,
 			*[row.get(col) for col in columns[7:]],
 		])
-	frappe.db.bulk_insert("Gazetteer Place", columns, values, ignore_duplicates=True)
-	return len(rows)
+	inserted = 0
+	failed = 0
+	failed_sample: list[str] = []
+	chunk_size = 100
+	for start in range(0, len(values), chunk_size):
+		chunk = values[start:start + chunk_size]
+		try:
+			frappe.db.bulk_insert("Gazetteer Place", columns, chunk,
+			                      ignore_duplicates=True)
+			inserted += len(chunk)
+		except Exception:
+			for value in chunk:
+				try:
+					frappe.db.bulk_insert("Gazetteer Place", columns, [value],
+					                      ignore_duplicates=True)
+					inserted += 1
+				except Exception as exc:
+					failed += 1
+					if len(failed_sample) < 10:
+						failed_sample.append(str(exc))
+		frappe.db.commit()
+	return (inserted, failed, failed_sample)
 
 
 def import_geonames(zip_path: str, dataset_code: str = "GEONAMES-CITIES", *,
@@ -277,6 +319,8 @@ def import_geonames(zip_path: str, dataset_code: str = "GEONAMES-CITIES", *,
     batch: list[dict] = []
     seen: set[str] = set()
     count = skipped = 0
+    failed = 0
+    failed_sample: list[str] = []
     for _member, line in _iter_geonames_lines(path, member_hint):
         if line.startswith("#") or not line.strip():
             continue
@@ -296,13 +340,21 @@ def import_geonames(zip_path: str, dataset_code: str = "GEONAMES-CITIES", *,
         row["country"] = countries.get(row.pop("country_code"))
         batch.append(row)
         if len(batch) >= batch_size:
-            count += _bulk_insert_gazetteer(dataset_code, batch)
+            added, bad, sample = _bulk_insert_gazetteer(dataset_code, batch)
+            count += added
+            failed += bad
+            failed_sample.extend(s for s in sample if len(failed_sample) < 10)
             batch = []
             seen = set()
             _progress(dataset_code, count=count, offset=count + skipped)
     if batch:
-        count += _bulk_insert_gazetteer(dataset_code, batch)
-    return _finish(dataset_code, count, f"GeoNames {path.name} (members: {member_hint})")
+        added, bad, sample = _bulk_insert_gazetteer(dataset_code, batch)
+        count += added
+        failed += bad
+        failed_sample.extend(s for s in sample if len(failed_sample) < 10)
+    return {**_finish(dataset_code, count,
+                      f"GeoNames {path.name} (members: {member_hint})"),
+            "failed": failed, "failed_sample": failed_sample}
 
 
 # ---------------------------------------------------------------------------
@@ -316,7 +368,31 @@ GEONAMES_ADMIN_LEVELS = {
 	"admin4": (4, "Village", "municipality"),
 	"admin5": (5, "Community", "village"),
 }
-GEONAMES_ADMIN_FEATURE_LEVELS = {"ADM3": 3, "ADM4": 4, "ADM5": 5}
+GEONAMES_ADMIN_FEATURE_LEVELS = {"ADM1": 1, "ADM2": 2, "ADM3": 3, "ADM4": 4, "ADM5": 5}
+
+
+def _admin_feature_pcode(level: int, row: dict) -> tuple[str | None, str | None]:
+    """P-code + parent P-code for one allCountries ADM feature (levels 1-5).
+
+    Level 1 passes its own code as parent so ``choose_admin_parent`` can
+    read the ISO country prefix. Level 5 (ADM5) has no stable code in
+    GeoNames, so the geonameid is used — matching the historical behaviour.
+    """
+    if level == 1:
+        code = row.get("admin1_pcode")
+        return code, code
+    if level == 2:
+        return row.get("admin2_pcode"), row.get("admin1_pcode")
+    if level == 3:
+        return (row.get("admin3_pcode"),
+                row.get("admin2_pcode") or row.get("admin1_pcode"))
+    if level == 4:
+        return (row.get("admin4_pcode"),
+                row.get("admin3_pcode") or row.get("admin2_pcode")
+                or row.get("admin1_pcode"))
+    return (row.get("source_id"),
+            row.get("admin4_pcode") or row.get("admin3_pcode")
+            or row.get("admin2_pcode") or row.get("admin1_pcode"))
 
 
 def parse_geonames_admin_line(line: str, *, level: int) -> dict | None:
@@ -366,13 +442,15 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
                           country_codes: Iterable[str] | None = None,
                           batch_size: int = 500,
                           include_all_countries: bool = True) -> dict:
-	"""Create hierarchy rows from GeoNames admin1/2 codes and ADM3/4/5 features.
+	"""Create hierarchy rows from GeoNames admin1/2 codes and ADM1-5 features.
 
 	This is the step that fills the levels the curated reference layer only
-	samples. ``admin1CodesASCII.txt`` and ``admin2Codes.txt`` provide level 1/2;
-	``allCountries.txt`` feature codes ``ADM3``, ``ADM4`` and ``ADM5`` provide
-	the lower levels. Parent rows that are missing are skipped rather than
-	invented, and the skipped count is reported.
+	samples. ``admin1CodesASCII.txt`` and ``admin2Codes.txt`` provide level 1/2
+	labels; ``allCountries.txt`` feature codes ``ADM1``-``ADM5`` then add the
+	lower levels AND back-fill latitude/longitude on every row (the codes files
+	carry no coordinates, and existing rows only ever get blank spatial fields
+	filled). Parent rows that are missing are skipped rather than invented, and
+	the skipped count is reported.
 
 	Use ``country_codes`` to process one or a few countries when a full global
 	allCountries archive is too large for the worker.
@@ -383,18 +461,28 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 	_ensure_dataset(dataset_code, label_en="GeoNames administrative divisions",
 	                source="GeoNames (geonames.org) admin codes", license_id="CC-BY-4.0",
 	                url="https://www.geonames.org/export/", level=0)
+	if frappe is not None:
+		# Mirror the polygon import lifecycle: Queued -> Running -> Complete.
+		frappe.db.set_value("Boundary Dataset", dataset_code, {
+			"import_status": "Running", "import_progress": 0,
+			"import_log": "",
+		}, update_modified=False)
+		frappe.db.commit()
 	wanted = {str(c).upper() for c in country_codes} if country_codes else None
 	countries = _country_cache()
 	name_by_pcode: dict[str, str] = {}
 	count = 0
 	processed = 0
 	missing_parents = 0
+	failed = 0
+	failed_sample: list[str] = []
 	levels_seen: set[int] = set()
 	feature_seen: dict[str, int] = {}
 
 	def _put(level: int, pcode: str, parent_pcode: str | None,
-	         name_en: str, source_id: str | None = None) -> bool:
-		nonlocal count, processed, missing_parents
+	         name_en: str, source_id: str | None = None,
+	         lat: float | None = None, lon: float | None = None) -> bool:
+		nonlocal count, processed, missing_parents, failed, failed_sample
 		spec = LEVELS[level]
 		parent_name, parent_field, parent_level = choose_admin_parent(
 			level, parent_pcode, name_by_pcode, countries)
@@ -424,7 +512,21 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 			"source": "geonames_admin",
 			"admin_level_type": f"GeoNames level {level}",
 		}
-		result = upsert_level(entry, parent_name, dataset=dataset_code)
+		try:
+			result = upsert_level(entry, parent_name, lat=lat, lon=lon,
+			                      dataset=dataset_code)
+		except Exception as exc:
+			# A single malformed source row (over-long code, bad label, ...)
+			# must not abort a 56k-feature import: skip it honestly and
+			# keep a sample for the report.
+			failed += 1
+			if len(failed_sample) < 10:
+				failed_sample.append(f"{pcode}: {exc}")
+			if failed > 500:
+				raise RuntimeError(
+					f"too many failed rows ({failed}), aborting; "
+					f"last: {failed_sample[-1]}") from exc
+			return False
 		if result.get("name"):
 			name_by_pcode[normalised] = result["name"]
 			levels_seen.add(level)
@@ -471,26 +573,18 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 			if wanted and cc not in wanted:
 				continue
 			feature_seen[row["feature_code"]] = feature_seen.get(row["feature_code"], 0) + 1
-			if level == 3:
-				pcode = row["admin3_pcode"]
-				parent_pcode = row["admin2_pcode"] or row["admin1_pcode"]
-			elif level == 4:
-				pcode = row["admin4_pcode"]
-				parent_pcode = (row["admin3_pcode"] or row["admin2_pcode"]
-				                or row["admin1_pcode"])
-			else:
-				pcode = row["source_id"]
-				parent_pcode = (row["admin4_pcode"] or row["admin3_pcode"]
-				                or row["admin2_pcode"] or row["admin1_pcode"])
+			pcode, parent_pcode = _admin_feature_pcode(level, row)
 			if not pcode or not parent_pcode:
 				missing_parents += 1
 				continue
-			_put(level, pcode, parent_pcode, row["name_en"], row["source_id"])
+			_put(level, pcode, parent_pcode, row["name_en"], row["source_id"],
+			     lat=row.get("latitude"), lon=row.get("longitude"))
 			if processed % batch_size == 0 and processed:
 				_progress(dataset_code, count=processed, offset=processed)
 
 	return {**_finish(dataset_code, processed, f"GeoNames admin divisions from {path.name}"),
 	        "levels": sorted(levels_seen), "missing_parents": missing_parents,
+	        "failed": failed, "failed_sample": failed_sample,
 	        "admin_features_seen": feature_seen}
 
 
@@ -500,6 +594,15 @@ def enqueue_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN",
     """Run :func:`import_geonames_admin` in the long worker for global files."""
     if frappe is None:
         return {"queued": False, "reason": "frappe unavailable"}
+    # Surface the run in import_status_report: without this the dataset
+    # keeps its previous status (often a stale "Complete") while the long
+    # worker re-imports, and operators can only watch feature_count.
+    frappe.db.set_value("Boundary Dataset", dataset_code, {
+        "import_status": "Queued", "import_progress": 0,
+        "last_processed_offset": 0,
+        "import_log": "Queued - waiting for worker.",
+    }, update_modified=False)
+    frappe.db.commit()
     frappe.enqueue(
         import_geonames_admin, queue="long", timeout=6 * 60 * 60,
         zip_path=zip_path, dataset_code=dataset_code,
@@ -674,6 +777,80 @@ def prepare_osm(input_path: str, output_dir: str, *, run: bool = False) -> dict:
         subprocess.run(command, check=True)
     return {"commands": commands, "ran": True,
             "output": commands[-1][-1]}
+
+
+def setup_region(dataset_code: str, source_path: str, *, level: int = 0,
+                 output_dir: str | None = None, prepare: bool = True,
+                 enqueue: bool = True, sync_hierarchy: bool = True,
+                 activate: bool = False, export_package: bool = False,
+                 label_en: str = "") -> dict:
+    """One command to add another region (Lebanon, Iraq, Egypt, …).
+
+    ``source_path`` may be a Geofabrik ``.osm.pbf`` or an already-prepared
+    ``.geojson``. When it is a PBF and ``prepare`` is true, ``osmium`` runs
+    first (requires ``osmium-tool``); pass ``prepare=False`` with a GeoJSON
+    to skip that step. The Boundary Dataset row is created if missing,
+    polygons are imported, hierarchy rows materialised, and optionally the
+    dataset is activated and re-exported for the offline browser package.
+
+    Example (while the bench still has internet for the Geofabrik download)::
+
+        bench --site frappe.com execute siraj_research.geo_bulk.setup_region \\
+            --kwargs '{
+              "dataset_code": "OSM-LB",
+              "source_path": "/home/frappe/frappe-bench/geodata/osm/lbn-latest.osm.pbf",
+              "label_en": "Lebanon (OSM)",
+              "activate": true,
+              "export_package": true
+            }'
+    """
+    if frappe is None:
+        return {"error": "bench required", "dataset": dataset_code}
+    src = Path(source_path)
+    if not src.is_file():
+        return {"error": f"Source not found: {source_path}", "dataset": dataset_code}
+    label = label_en or dataset_code
+    _ensure_dataset(dataset_code, label_en=label,
+                    source="OpenStreetMap contributors", level=int(level),
+                    license_id="ODbL-1.0",
+                    url="https://www.openstreetmap.org/copyright")
+    result: dict = {"dataset": dataset_code, "source": str(src)}
+    if prepare and src.suffix.lower() in {".pbf", ".osm"}:
+        out_dir = Path(output_dir) if output_dir else src.parent
+        prepared = prepare_osm(str(src), str(out_dir), run=True)
+        result["prepared"] = prepared
+        geojson = Path(prepared.get("output") or "")
+        if not geojson.is_file():
+            return {**result, "error": "osmium did not produce a GeoJSON export"}
+        src = geojson
+    elif src.suffix.lower() == ".pbf":
+        return {**result, "error": "Raw PBF given with prepare=False; pass a GeoJSON or enable prepare."}
+    queued = _queue_polygon_import(dataset_code, str(src), int(level),
+                                   enqueue=enqueue, sync_hierarchy=sync_hierarchy,
+                                   levels=None)
+    result.update(queued)
+    if activate:
+        frappe.db.set_value("Geo Settings", "Geo Settings",
+                            "active_boundary_dataset", dataset_code,
+                            update_modified=False)
+        frappe.db.commit()
+        result["activated"] = True
+    if export_package:
+        if result.get("queued"):
+            # Import runs on the long worker; exporting now would write an
+            # empty package. Tell the operator to export after Complete.
+            result["package"] = {
+                "skipped": "import_queued",
+                "message": (
+                    "Import queued. Wait until Boundary Dataset shows Complete, "
+                    "then run: bench --site SITE execute "
+                    "siraj_research.api.geo_package.export_offline_package"
+                ),
+            }
+        else:
+            from siraj_research.api.geo_package import export_offline_package
+            result["package"] = export_offline_package()
+    return result
 
 
 # ---------------------------------------------------------------------------

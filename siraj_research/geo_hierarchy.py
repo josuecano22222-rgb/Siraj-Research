@@ -28,9 +28,12 @@ See ``docs/global-admin-hierarchy.md`` for the architecture and seeding plan.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import unicodedata
 from collections.abc import Iterable
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 try:  # pragma: no cover - exercised inside a bench
@@ -51,7 +54,7 @@ LEVELS: tuple[dict[str, Any], ...] = (
 )
 
 HIERARCHY_DOCTYPES = tuple(spec["doctype"] for spec in LEVELS[1:])
-MAX_CODE_LENGTH = 120  # Frappe Data default is 140; leave room for suffixes.
+MAX_CODE_LENGTH = 64  # The hierarchy DocTypes' code field is Data(64); doc name follows.
 
 _SLUG_RE = re.compile(r"[^A-Z0-9]+")
 _CODE_ALLOWED_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,139}$")
@@ -100,7 +103,12 @@ def make_code(pcode: Any, name: Any, parent_code: str | None, level: int | str) 
 	spec = level_spec(level)
 	candidate = normalize_code(pcode).replace(" ", "_")
 	if candidate and _CODE_ALLOWED_RE.match(candidate):
-		return candidate[:MAX_CODE_LENGTH]
+		if len(candidate) <= MAX_CODE_LENGTH:
+			return candidate
+		# The code field is Data(64): a plain slice would silently collide
+		# on any two long P-Codes sharing their first 64 characters.
+		digest = hashlib.sha1(candidate.encode("utf-8")).hexdigest()[:10]
+		return candidate[: MAX_CODE_LENGTH - 11] + "-" + digest
 	fragment = slug(name, fallback=spec["prefix"])
 	parent = str(parent_code or "").strip().upper()
 	base = "-".join(part for part in (spec["prefix"], parent, fragment) if part)
@@ -157,6 +165,13 @@ def normalise_chain(raw_chain: Any, nearest_place: Any = None) -> tuple[dict[str
 		entry = chain.get(field)
 		if entry:
 			label, pcode, name_ar, source = _entry_value(entry)
+			# Fallback fills (gazetteer / nearest-record) carry their own
+			# confidence and distance; polygon evidence stays high.
+			confidence = "high"
+			distance_m = None
+			if isinstance(entry, dict):
+				confidence = str(entry.get("confidence") or "high")
+				distance_m = entry.get("distance_m")
 			entries[field] = {
 				"level": spec["level"],
 				"field": field,
@@ -165,7 +180,8 @@ def normalise_chain(raw_chain: Any, nearest_place: Any = None) -> tuple[dict[str
 				"label_ar": name_ar,
 				"pcode": pcode,
 				"source": source or "polygon_containment",
-				"confidence": "high",
+				"confidence": confidence,
+				**({"distance_m": distance_m} if distance_m is not None else {}),
 			}
 			continue
 		gaps.append({
@@ -228,9 +244,21 @@ def _resolve_country(name_or_code: Any) -> str | None:
 		found = frappe.db.exists("Country", filters)
 		if found:
 			return found
+	# Reference labels map through an ISO code before we consider creating
+	# anything: the Country list may use a longer official name for the
+	# same code ("Palestine" → code PS → "Palestinian Territory, Occupied").
+	ref_code = _reference_country_code(value)
+	if ref_code:
+		found = frappe.db.exists("Country", {"code": ref_code})
+		if found:
+			return found
 	# Frappe ships the Country DocType; a fresh site may still be missing a
 	# newer ISO code. Create only when the operator is allowed to.
 	if value and frappe.has_permission("Country", "create"):
+		# Never mint a Country from a derived P-Code or hash: values with
+		# digits or an OSM/BND prefix are codes, not country names.
+		if re.search(r"\d", value) or re.match(r"(?i)^(osm|bnd)-", value):
+			return None
 		code = value if re.fullmatch(r"[A-Za-z]{2,3}", value) else None
 		try:
 			doc = frappe.get_doc({
@@ -242,6 +270,30 @@ def _resolve_country(name_or_code: Any) -> str | None:
 		except Exception:
 			return None
 	return None
+
+
+@lru_cache(maxsize=4)
+def _reference_country_labels() -> dict:
+	"""label (casefold) → ISO code from the shipped reference countries."""
+	try:
+		path = Path(__file__).resolve().parent / "setup" / "reference_data" / "countries.json"
+		rows = json.loads(path.read_text(encoding="utf-8"))
+	except Exception:  # pragma: no cover - a missing file must not break resolution
+		return {}
+	alias: dict = {}
+	for row in rows:
+		code = str(row.get("code") or "").upper()
+		if not code:
+			continue
+		for key in ("label_en", "label_ar", "iso3"):
+			label = str(row.get(key) or "").strip()
+			if label:
+				alias.setdefault(label.casefold(), code)
+	return alias
+
+
+def _reference_country_code(value: Any) -> str | None:
+	return _reference_country_labels().get(str(value).strip().casefold())
 
 
 def _write_spatial_fields(doc, entry: dict, lat: float | None, lon: float | None, dataset: str | None) -> bool:
@@ -421,8 +473,17 @@ def upsert_level(entry: dict, parent_name: str | None, *, lat=None, lon=None,
 		# instead of returning HTTP 409 to the form.
 		duplicate = frappe.DuplicateEntryError if hasattr(frappe, "DuplicateEntryError") else ()
 		message = str(exc)
-		if duplicate and isinstance(exc, duplicate) or "Duplicate entry" in message:
+		if (duplicate and isinstance(exc, duplicate)) or "Duplicate entry" in message:
 			reused = frappe.db.exists(doctype, code)
+			if not reused:
+				# Consistent reads use this session's snapshot: a concurrent
+				# writer (the import job's auto-sync, another tab) can commit
+				# this row after our first SELECT — the INSERT (a current
+				# read) then raises the duplicate while exists() still misses
+				# it. End the stale transaction (upserts are idempotent and
+				# the sync loop commits in batches anyway) and look again.
+				frappe.db.commit()
+				reused = frappe.db.exists(doctype, code)
 			if reused:
 				_link_boundary(entry.get("boundary"), doctype, reused)
 				return {"code": code, "name": reused, "status": "existing"}
@@ -478,10 +539,16 @@ def link_resolved_chain(resolution: dict, *, create_missing: bool = True) -> dic
 	lon = resolution.get("lon")
 
 	country_entry = entries.get("country") or {}
-	country_code = country_entry.get("pcode")
-	country_name = _resolve_country(country_code or country_entry.get("label_en")) if frappe else None
-	if country_code and not country_name:
-		country_name = _resolve_country(country_entry.get("label_en")) if frappe else None
+	country_code = str(country_entry.get("pcode") or "").strip() or None
+	# Only a plausible ISO code may be looked up as a code: derived codes
+	# (e.g. ``OSM-<hash>``) would otherwise mint junk Country rows. The
+	# label is tried next — it is what the polygon's name_en carries.
+	country_name = None
+	if frappe is not None:
+		if country_code and re.fullmatch(r"[A-Za-z]{2,3}", country_code):
+			country_name = _resolve_country(country_code)
+		if not country_name:
+			country_name = _resolve_country(country_entry.get("label_en"))
 
 	hierarchy: list[dict] = []
 	parent_name = country_name
@@ -639,6 +706,29 @@ def _country_names() -> dict[str, str]:
     return result
 
 
+def _sorted_strtree(records: list[dict], strtree_cls: Any = None) -> Any:
+    """Sort ``records`` parent-first and build an STRtree aligned with them.
+
+    ``STRtree.query`` returns indices into the geometry list the tree was
+    built from, so the tree must be constructed **after** the sort, from that
+    same order. Sorting records afterwards (or building the tree first) leaves
+    every index pointing at the wrong row, which made hierarchy sync skip
+    almost every boundary that relies on spatial country/parent inference.
+
+    Sorts ``records`` in place by ``(level, pcode)`` so callers still process
+    parents before children. Pass ``strtree_cls`` to inject a stand-in in
+    pure-Python tests; the default imports shapely lazily.
+    """
+    records.sort(key=lambda rec: (rec["level"], str(rec["pcode"] or "")))
+    geoms = [rec["geom"] for rec in records]
+    if not geoms:
+        return None
+    if strtree_cls is None:
+        from shapely.strtree import STRtree
+        strtree_cls = STRtree
+    return strtree_cls(geoms)
+
+
 def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None = None,
                                    create_missing: bool = True,
                                    batch_size: int = 200) -> dict:
@@ -649,7 +739,10 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
     level. Parents come from ``parent_pcode`` when present; otherwise they are
     inferred spatially from the smallest containing polygon at each lower
     level. Existing rows are never overwritten — only empty spatial fields are
-    back-filled by :func:`upsert_level`.
+    back-filled by :func:`upsert_level`. Nameless source features (the import
+    fell back to the pcode for ``name_en``) are not promoted into the
+    hierarchy — they would only surface as hash labels; their geometry stays
+    on the boundary for map pinning and is reported as ``unnamed``.
     """
     if frappe is None:
         return {"error": "frappe unavailable", "dataset": dataset}
@@ -659,7 +752,6 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
         return {"error": "geospatial dependencies missing: " + ",".join(missing),
                 "dataset": dataset}
     from shapely import wkb as shapely_wkb
-    from shapely.strtree import STRtree
 
     rows = frappe.db.sql(
         """SELECT ab.name, ab.pcode, ab.level, ab.name_en, ab.name_ar, ab.country,
@@ -676,7 +768,6 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
         as_dict=True,
     )
     records: list[dict] = []
-    geoms: list = []
     by_pcode: dict[str, dict] = {}
     for row in rows:
         hex_wkb = row.simplified_wkb or row.full_wkb
@@ -707,11 +798,13 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
             "geom": geom,
         }
         records.append(record)
-        geoms.append(geom)
         if record["pcode"]:
             by_pcode[normalize_code(record["pcode"])] = record
-    tree = STRtree(geoms) if geoms else None
-    records.sort(key=lambda rec: (rec["level"], str(rec["pcode"] or "")))
+    # Sort parent-first and build the STRtree from that same order — tree
+    # indices address the geometry list they were built from (regression:
+    # sorting after STRtree() mis-mapped ~97% of spatial candidate lookups
+    # and hierarchy sync skipped nearly every OSM boundary).
+    tree = _sorted_strtree(records)
 
     wanted_levels = {int(level) for level in levels} if levels else {1, 2, 3, 4, 5}
     countries = _country_names()
@@ -719,11 +812,20 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
     counts: dict[int, dict[str, int]] = {}
     inferred_parents = 0
     skipped = 0
+    unnamed = 0
     processed = 0
 
     for record in records:
         level = record["level"]
         if level not in wanted_levels or level < 1 or level > 5:
+            continue
+        # Nameless source features fell back to the pcode at import time
+        # (name_en == pcode): they have no honest label, so they must not
+        # appear as hash rows in the editable hierarchy. Their geometry
+        # stays on the boundary for map pinning, and spatial parent
+        # inference simply walks past them (they never enter name_by_pcode).
+        if not record["name_en"] or record["name_en"] == record["pcode"]:
+            unnamed += 1
             continue
         pcode = record["pcode"] or record["name"]
         if not pcode:
@@ -766,12 +868,23 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
                 ancestor_name = name_by_pcode.get(normalize_code(ancestor_record["pcode"]))
                 if ancestor_name:
                     ancestors[str(LEVELS[ancestor_level]["field"])] = ancestor_name
-            ancestor_levels = {level_key for level_key in best if level_key > 0}
-            if ancestor_levels:
-                parent_level = max(ancestor_levels)
-                parent_record = best[parent_level][1]
-                parent_name = name_by_pcode.get(normalize_code(parent_record["pcode"]))
-                inferred_parents += 1
+            # Walk deepest-first and take the first ancestor that actually
+            # exists as a row: nameless boundaries are in `best` (their
+            # geometry contains the point) but never became hierarchy rows,
+            # so a bare max() would pick them and the last-resort country
+            # branch would discard a valid shallower named parent.
+            ancestor_levels = sorted(
+                (level_key for level_key in best if level_key > 0), reverse=True)
+            for ancestor_level in ancestor_levels:
+                ancestor_record = best[ancestor_level][1]
+                ancestor_name = name_by_pcode.get(
+                    normalize_code(ancestor_record["pcode"]))
+                if ancestor_name:
+                    parent_level = ancestor_level
+                    parent_record = ancestor_record
+                    parent_name = ancestor_name
+                    inferred_parents += 1
+                    break
         if not parent_name:
             # Last resort: attach to the country. Intermediate Links stay
             # empty, which the DocTypes now explicitly allow.
@@ -816,6 +929,7 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
         "boundaries": len(records),
         "synced": processed,
         "skipped": skipped,
+        "unnamed": unnamed,
         "inferred_parents": inferred_parents,
         "by_level": {str(level): counts.get(level, {}) for level in sorted(wanted_levels)},
     }

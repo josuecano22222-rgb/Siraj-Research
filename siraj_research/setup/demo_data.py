@@ -95,16 +95,6 @@ def _ev(doc, source: str, *, support: str = "supports",
     })
 
 
-def _extid(doc, scheme_code: str, value: str):
-    scheme = _gf("External ID Scheme", code=scheme_code)
-    if not scheme:
-        return
-    for row in doc.external_identifiers or []:
-        if row.scheme == scheme and row.value == value:
-            return
-    doc.append("external_identifiers", {"scheme": scheme, "value": value})
-
-
 def _ws(state: str) -> str:
     return _gf("Workflow State", workflow_state_name=state) or state
 
@@ -221,14 +211,14 @@ def seed_demo_data():
     country_iq = _gf("Country", code="IQ")
     country_us = _gf("Country", code="US")
     country_gb = _gf("Country", code="GB")
-    country_ir = _gf("Country", code="IR")
-    country_jo = _gf("Country", code="JO")
-    lang_ar = _gf("Language", code="ar")
-    lang_en = _gf("Language", code="en")
-    lang_ku = _gf("Language", code="ku")
-    lang_fa = _gf("Language", code="fa")
-    lang_ota = _gf("Language", code="ota")
-    lang_tr = _gf("Language", code="tr")
+    _gf("Country", code="IR")
+    _gf("Country", code="JO")
+    _gf("Language", code="ar")
+    _gf("Language", code="en")
+    _gf("Language", code="ku")
+    _gf("Language", code="fa")
+    _gf("Language", code="ota")
+    _gf("Language", code="tr")
 
     # Admin units
     gov_baghdad = _gf("Governorate", code="IQ-BG")
@@ -241,14 +231,14 @@ def seed_demo_data():
     gov_babil = _gf("Governorate", code="IQ-BB")
     gov_najaf = _gf("Governorate", code="IQ-NA")
     gov_karbala = _gf("Governorate", code="IQ-KA")
-    gov_diyala = _gf("Governorate", code="IQ-DI")
-    gov_wasit = _gf("Governorate", code="IQ-WA")
-    gov_dhiqar = _gf("Governorate", code="IQ-DQ")
-    gov_maysan = _gf("Governorate", code="IQ-MA")
-    gov_duhok = _gf("Governorate", code="IQ-DA")
-    gov_sulaymaniya = _gf("Governorate", code="IQ-SU")
-    gov_muthanna = _gf("Governorate", code="IQ-MU")
-    gov_qadisiya = _gf("Governorate", code="IQ-QA")
+    _gf("Governorate", code="IQ-DI")
+    _gf("Governorate", code="IQ-WA")
+    _gf("Governorate", code="IQ-DQ")
+    _gf("Governorate", code="IQ-MA")
+    _gf("Governorate", code="IQ-DA")
+    _gf("Governorate", code="IQ-SU")
+    _gf("Governorate", code="IQ-MU")
+    _gf("Governorate", code="IQ-QA")
     gov_basra = _gf("Governorate", code="IQ-BA")
 
     dist_rusafa = _gf("District", code="IQ-BG-RU")
@@ -259,21 +249,21 @@ def seed_demo_data():
     dist_fallujah = _gf("District", code="IQ-AN-FA")
     dist_ramadi = _gf("District", code="IQ-AN-RA")
     dist_qaem = _gf("District", code="IQ-AN-QA")
-    dist_rutbah = _gf("District", code="IQ-AN-RU")
+    _gf("District", code="IQ-AN-RU")
     dist_basra = _gf("District", code="IQ-BA-BA")
     dist_faw = _gf("District", code="IQ-BA-FA")
     dist_mosul = _gf("Nineveh District" if False else "District", code="IQ-NI")  # fallback
     dist_mosul = _gf("District", governorate="IQ-NI")  # first nineveh district
-    dist_hawija = _gf("District", code="IQ-KI-HW")
+    _gf("District", code="IQ-KI-HW")
     dist_tikrit = _gf("District", governorate="IQ-SD")
-    dist_baqubah = _gf("District", code="IQ-DI-BQ")
+    _gf("District", code="IQ-DI-BQ")
     dist_hillah = _gf("District", code="IQ-BB-HL")
     dist_karbala = _gf("District", governorate="IQ-KA")
     dist_najaf = _gf("District", governorate="IQ-NA")
-    dist_nasiriyah = _gf("District", code="IQ-DQ-NA")
-    dist_amarah = _gf("District", code="IQ-MA-AM")
-    dist_erbil = _gf("District", governorate="IQ-AR")
-    dist_duhok = _gf("District", code="IQ-DA-DU")
+    _gf("District", code="IQ-DQ-NA")
+    _gf("District", code="IQ-MA-AM")
+    _gf("District", governorate="IQ-AR")
+    _gf("District", code="IQ-DA-DU")
 
     # Social platforms & external id schemes (may need creating)
     plats = {}
@@ -316,7 +306,7 @@ def seed_demo_data():
 
     # Unit Classifications
     uclass = {}
-    for name, cat, tier, desc_en, desc_ar in [
+    for name, cat, tier, desc_en, _desc_ar in [
         ("Mechanized Infantry", "Combat", "High",
          "APC-mounted infantry with tank support.",
          "مشاة محمول على ناقلات جند مدرعة بدعم دبابات."),
@@ -561,9 +551,12 @@ def seed_demo_data():
             "longitude": lng,
             "workflow_state": _ws(ws_state),
         }
-        if parent: vals["parent_place"] = places[parent]
-        if ctry: vals["country"] = ctry
-        if gov: vals["governorate"] = gov
+        if parent:
+            vals["parent_place"] = places[parent]
+        if ctry:
+            vals["country"] = ctry
+        if gov:
+            vals["governorate"] = gov
         # Only set district if its governorate matches the place's governorate
         if district and (not gov or _D2G.get(district) == gov):
             vals["district"] = district
@@ -693,7 +686,7 @@ def seed_demo_data():
          ITYPE["university"], ISUB["religious"], GSYS["religious_authority"], None,
          country_iq, gov_najaf, "1000-01-01", None, None, "Published", None),
     ]
-    for (key, ar, en, it, isub, gs, pl, ctry, gov, found, closed, web, ws_state, notes) in idata:
+    for (key, ar, en, it, isub, gs, pl, ctry, gov, found, _closed, web, ws_state, notes) in idata:
         vals = {
             "naming_series": "INS-.####",
             "name_ar": f"{ar} {TAG}",
@@ -709,10 +702,14 @@ def seed_demo_data():
             "documentation_level": DOC["partial"],
             "authentication_level": AUTH["single_source"],
         }
-        if pl: vals["place"] = pl
-        if gov: vals["governorate"] = gov
-        if web: vals["website"] = web
-        if notes: vals["research_significance"] = f"{notes} {TAG}"
+        if pl:
+            vals["place"] = pl
+        if gov:
+            vals["governorate"] = gov
+        if web:
+            vals["website"] = web
+        if notes:
+            vals["research_significance"] = f"{notes} {TAG}"
         insts[key] = _add("Institution", vals, name_en=f"{en} {TAG}")
 
     # ------------------------------------------------------------------
@@ -985,7 +982,7 @@ def seed_demo_data():
             pdoc.append("leadership_assessments", {
                 "quality": LQUAL[q],
                 "level": LLEVEL[lvl],
-                "assessed_by": f"Dr Mahmud (DEMO)",
+                "assessed_by": "Dr Mahmud (DEMO)",
                 "assessed_at": today - _dt.timedelta(days=30),
                 "evidence_note": f"Demo assessment based on {q}; data from open sources.",
                 "source": sources.get("iiss_mb") or sources.get("mod_press"),
@@ -1136,8 +1133,10 @@ def seed_demo_data():
             "authentication_level": AUTH["single_source"],
             "is_current": 1 if status == "Active" else 0,
         }
-        if ed: vals["end_date"] = ed
-        if src in sources: vals["primary_source"] = sources[src]
+        if ed:
+            vals["end_date"] = ed
+        if src in sources:
+            vals["primary_source"] = sources[src]
         deploys[key] = _add("Operational Deployment", vals, deployment_name=f"{name} {TAG}")
         if src in sources:
             ddoc = frappe.get_doc("Operational Deployment", deploys[key])
@@ -1220,8 +1219,10 @@ def seed_demo_data():
         }
         if dep_key and dep_key in deploys:
             vals["deployment"] = deploys[dep_key]
-        if ed: vals["end_date"] = ed
-        if src in sources: vals["primary_source"] = sources[src]
+        if ed:
+            vals["end_date"] = ed
+        if src in sources:
+            vals["primary_source"] = sources[src]
         missions[key] = _add("Mission", vals, mission_name=f"{name} {TAG}")
 
     # ------------------------------------------------------------------
@@ -1371,8 +1372,6 @@ def seed_demo_data():
         _rel(I, insts[ik], "employs", P, persons[pk], cur=1)
 
     # graduated_from / teacher_of / student_of / supervised_by
-    for pk in ["div_c6","bde_22","train","bde24"]:
-        pass
     _rel(P, persons["div_c6"], "graduated_from", I, insts["rust_college"])
     _rel(P, persons["bde_22"], "graduated_from", I, insts["rust_college"])
     _rel(P, persons["train"], "graduated_from", I, insts["rust_college"])
@@ -1548,7 +1547,7 @@ def teardown_demo_data():
     for dt, field in order:
         try:
             names = frappe.get_all(dt, filters={field: ("like", f"%{TAG}%")}, pluck="name")
-        except Exception as e:
+        except Exception:
             # Some child tables (Evidence, Person Position) can't be filtered by display_name;
             # rely on parent cascade.
             continue

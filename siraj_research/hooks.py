@@ -11,7 +11,10 @@ app_license = "mit"
 # required_apps = []
 
 after_install = "siraj_research.setup.install.after_install"
-after_migrate = "siraj_research.setup.install.ensure_default_workflow_state"
+after_migrate = [
+	"siraj_research.setup.install.ensure_default_workflow_state",
+	"siraj_research.setup.install.sync_insight_widgets",
+]
 
 fixtures = [
 	{'dt': 'Print Format', 'filters': [['name', '=', 'SIRAJ Research Dossier']]},
@@ -34,6 +37,15 @@ fixtures = [
 	{"dt": "Workflow", "filters": [["name", "=", "SIRAJ Review"]]},
 	{"dt": "Workflow State"},
 	{"dt": "Workflow Action Master"},
+]
+
+# Ship Number Cards / Dashboard Charts as module JSON (the workspace's live
+# insights widgets). Without this hook the module walk never visits
+# number_card/ or dashboard_chart/ for a non-frappe app, so the JSON files
+# sit unimported and the workspace widgets reference missing documents.
+importable_doctypes = [
+	"Number Card",
+	"Dashboard Chart",
 ]
 
 # Each item in the list will be shown as an app in the apps page
