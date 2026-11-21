@@ -235,3 +235,17 @@ def test_gazetteer_dataset_autoactivates_the_settings_field():
     src = Path("siraj_research/geo_bulk.py").read_text()
     assert '"active_gazetteer_dataset", code' in src
     assert "if is_gazetteer:" in src
+
+
+def test_gazetteer_bulk_insert_chunks_and_reports_failures():
+    """MySQL error 2013 (lost connection) on one giant multi-row INSERT
+    must not kill the import: small committed chunks + row fallback +
+    failed/sample reporting."""
+    from pathlib import Path
+
+    src = Path("siraj_research/geo_bulk.py").read_text()
+    assert "chunk_size = 100" in src
+    assert "failed_sample.append" in src
+    assert '"failed": failed, "failed_sample": failed_sample' in src
+    # Both batch paths unpack the resilient tuple.
+    assert src.count("added, bad, sample = _bulk_insert_gazetteer") == 2

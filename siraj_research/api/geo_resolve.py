@@ -531,6 +531,38 @@ def _resolve_one(lat, lon):
 	return result
 
 
+@frappe.whitelist()
+def sweep_points(points):
+    """Resolve many ``[name, lat, lon]`` points into compact completeness rows.
+
+    The Gaza acceptance sweep::
+
+        bench --site frappe.com execute siraj_research.api.geo_resolve.sweep_points \\
+          --kwargs "{'points': [['Jabalia', 31.55, 34.47], ...]}"
+
+    Each row carries the six chain fields, their evidence source, the
+    provenance tags and the nearest place — so coverage holes are visible
+    at a glance instead of one verbose payload at a time.
+    """
+    rows = []
+    for item in points or []:
+        name, lat, lon = str(item[0]), float(item[1]), float(item[2])
+        result = _resolve_one(lat, lon)
+        chain = result.get("admin_chain") or {}
+        row = {"point": name, "lat": lat, "lon": lon,
+               "on_land": result.get("on_land"),
+               "provenance": result.get("provenance") or [],
+               "nearest_place": (result.get("nearest_place") or {}).get("name_en")}
+        for field in ("country", "governorate", "district", "municipality",
+                      "village", "community"):
+            entry = chain.get(field) or {}
+            row[field] = entry.get("name_en")
+            row[field + "_src"] = (entry.get("source")
+                                   or ("polygon_containment" if entry else None))
+        rows.append(row)
+    return rows
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------

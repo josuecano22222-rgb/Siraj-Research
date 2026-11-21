@@ -242,9 +242,19 @@ def _iter_geonames_lines(source: Path, member_hint: str = "cities") -> Iterable[
                     yield name, line
 
 
-def _bulk_insert_gazetteer(dataset: str, rows: list[dict]) -> int:
+def _bulk_insert_gazetteer(dataset: str, rows: list[dict]) -> tuple[int, int, list[str]]:
+	"""Insert a gazetteer batch in small committed chunks.
+
+	A single 1000-row multi-row INSERT died with MySQL error 2013 ("Lost
+	connection to MySQL server during query") — an oversized packet or one
+	poisoned row must not kill the whole import. Chunks of 100 keep every
+	statement small, a failed fragment falls back to row-by-row inserts,
+	and failures are counted and sampled for the report. Each chunk
+	commits so progress survives an interrupted run; the deterministic
+	GEO-* primary keys make a re-run skip what already landed.
+	"""
 	if not rows or frappe is None:
-		return 0
+		return (0, 0, [])
 	import hashlib
 
 	now = frappe.utils.now()
@@ -258,14 +268,34 @@ def _bulk_insert_gazetteer(dataset: str, rows: list[dict]) -> int:
 	values = []
 	for row in rows:
 		key = ":".join(str(row.get(k) or "") for k in
-		               ("source_id", "name_en", "latitude", "longitude"))
+	               ("source_id", "name_en", "latitude", "longitude"))
 		values.append([
 			f"GEO-{hashlib.sha1(key.encode('utf-8')).hexdigest()[:20]}",
 			user, now, now, user, 0, 0,
 			*[row.get(col) for col in columns[7:]],
 		])
-	frappe.db.bulk_insert("Gazetteer Place", columns, values, ignore_duplicates=True)
-	return len(rows)
+	inserted = 0
+	failed = 0
+	failed_sample: list[str] = []
+	chunk_size = 100
+	for start in range(0, len(values), chunk_size):
+		chunk = values[start:start + chunk_size]
+		try:
+			frappe.db.bulk_insert("Gazetteer Place", columns, chunk,
+			                      ignore_duplicates=True)
+			inserted += len(chunk)
+		except Exception:
+			for value in chunk:
+				try:
+					frappe.db.bulk_insert("Gazetteer Place", columns, [value],
+					                      ignore_duplicates=True)
+					inserted += 1
+				except Exception as exc:
+					failed += 1
+					if len(failed_sample) < 10:
+						failed_sample.append(str(exc))
+		frappe.db.commit()
+	return (inserted, failed, failed_sample)
 
 
 def import_geonames(zip_path: str, dataset_code: str = "GEONAMES-CITIES", *,
@@ -289,6 +319,8 @@ def import_geonames(zip_path: str, dataset_code: str = "GEONAMES-CITIES", *,
     batch: list[dict] = []
     seen: set[str] = set()
     count = skipped = 0
+    failed = 0
+    failed_sample: list[str] = []
     for _member, line in _iter_geonames_lines(path, member_hint):
         if line.startswith("#") or not line.strip():
             continue
@@ -308,13 +340,21 @@ def import_geonames(zip_path: str, dataset_code: str = "GEONAMES-CITIES", *,
         row["country"] = countries.get(row.pop("country_code"))
         batch.append(row)
         if len(batch) >= batch_size:
-            count += _bulk_insert_gazetteer(dataset_code, batch)
+            added, bad, sample = _bulk_insert_gazetteer(dataset_code, batch)
+            count += added
+            failed += bad
+            failed_sample.extend(s for s in sample if len(failed_sample) < 10)
             batch = []
             seen = set()
             _progress(dataset_code, count=count, offset=count + skipped)
     if batch:
-        count += _bulk_insert_gazetteer(dataset_code, batch)
-    return _finish(dataset_code, count, f"GeoNames {path.name} (members: {member_hint})")
+        added, bad, sample = _bulk_insert_gazetteer(dataset_code, batch)
+        count += added
+        failed += bad
+        failed_sample.extend(s for s in sample if len(failed_sample) < 10)
+    return {**_finish(dataset_code, count,
+                      f"GeoNames {path.name} (members: {member_hint})"),
+            "failed": failed, "failed_sample": failed_sample}
 
 
 # ---------------------------------------------------------------------------

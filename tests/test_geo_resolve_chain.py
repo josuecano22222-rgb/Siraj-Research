@@ -115,3 +115,26 @@ def test_chain_gap_fills_are_wired_into_resolve(geo_resolve):
     assert '"record_fallback"' in src
     assert '"hierarchy_child"' in src
     assert '"gazetteer_nearest"' in src
+
+
+def test_sweep_points_compacts_six_fields_and_sources(geo_resolve, monkeypatch):
+    monkeypatch.setattr(geo_resolve, "_resolve_one", lambda lat, lon: {
+        "on_land": True,
+        "admin_chain": {
+            "country": {"name_en": "Palestinian Territory, Occupied"},
+            "village": {"name_en": "الرمال", "source": "gazetteer_nearest"},
+        },
+        "provenance": ["polygon_containment", "gazetteer_nearest"],
+        "nearest_place": {"name_en": "الرمال"},
+    })
+    rows = geo_resolve.sweep_points([["Jabalia", 31.55, 34.47]])
+    row = rows[0]
+    assert row["point"] == "Jabalia"
+    assert row["country"] == "Palestinian Territory, Occupied"
+    assert row["country_src"] == "polygon_containment"
+    assert row["municipality"] is None          # coverage hole stays visible
+    assert row["municipality_src"] is None
+    assert row["village"] == "الرمال"
+    assert row["village_src"] == "gazetteer_nearest"
+    assert row["nearest_place"] == "الرمال"
+    assert "gazetteer_nearest" in row["provenance"]
