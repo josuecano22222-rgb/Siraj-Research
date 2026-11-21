@@ -133,3 +133,9 @@ assert.strictEqual(search.coordinateChains(null), null);
 assert.strictEqual(search.coordinateChains({ error: 'out_of_range' }), null);
 
 console.log('Map search widget helpers: params, exact coordinate display, grouping, bbox, cascade and chains passed (Node only).');
+
+// ---------- GEO_TYPES contract (server: visualization.py) ----------
+assert.deepStrictEqual(
+  search.RECORD_TYPES.map((pair) => pair[0]),
+  ['', 'Person', 'Institution', 'Place', 'Research Event', 'Military Unit', 'Operational Deployment'],
+);

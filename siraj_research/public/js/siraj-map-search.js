@@ -23,12 +23,13 @@
 	const BBOX_METHOD = 'siraj_research.api.map_search.search_bbox';
 	const CASCADE_METHOD = 'siraj_research.api.map_search.region_children';
 	const GROUP_KEYS = ['coordinate', 'regions', 'places', 'records'];
-	// Keep in sync with GEO_TYPES on the server (api/map_search.py).
+	// Must match GEO_TYPES on the server exactly (visualization.py) —
+	// unknown values are silently dropped by parse_types, which would
+	// broaden a filter instead of applying it.
 	const RECORD_TYPES = [
-		['', 'All types'], ['Person', 'Person'], ['Place', 'Place'],
-		['Research Event', 'Research Event'], ['Siraj Research Event', 'Siraj Research Event'],
-		['Organization', 'Organization'], ['Military Unit', 'Military Unit'],
-		['Operational Deployment', 'Operational Deployment'],
+		['', 'All types'], ['Person', 'Person'], ['Institution', 'Institution'],
+		['Place', 'Place'], ['Research Event', 'Research Event'],
+		['Military Unit', 'Military Unit'], ['Operational Deployment', 'Operational Deployment'],
 	];
 
 	/* ---------- pure helpers (node-testable) ---------- */
@@ -605,6 +606,7 @@
 
 	const api = {
 		MIN_CHARS,
+		RECORD_TYPES,
 		buildParams,
 		buildBboxParams,
 		cascadePayload,
