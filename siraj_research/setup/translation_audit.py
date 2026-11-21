@@ -35,6 +35,24 @@ CODELIKE_RE = re.compile(
 )
 
 
+def needs_translation(source: str) -> bool:
+    """Whether a source string must have an ar.csv row.
+
+    Exempt: punctuation-only, single letters, snake_case ids (layer/field
+    identifiers shown to power users), and code masks (CODELIKE_RE).
+    """
+    s = (source or "").strip()
+    if not s or re.fullmatch(r"[\W_]+", s):
+        return False
+    if len(re.findall(r"[A-Za-z\u0600-\u06FF]", s)) < 2:
+        return False
+    if " " not in s and "_" in s:
+        return False
+    if CODELIKE_RE.match(s):
+        return False
+    return True
+
+
 def audit_reference_data(base_dir: Path | None = None) -> list[tuple]:
     """Scan seed reference data for label_ar quality problems.
 
@@ -121,8 +139,55 @@ def extract_app_sources(app_dir: Path | None = None) -> set[str]:
             doc = json.loads(path.read_text(encoding="utf-8"))
             if doc.get(key):
                 sources.add(doc[key])
+
+    # DocType field labels / descriptions / select options / doctype descriptions
+    for path in root.rglob("doctype/*/*.json"):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(doc.get("description"), str) and doc["description"].strip():
+            sources.add(doc["description"].strip())
+        for field in doc.get("fields") or []:
+            for key in ("label", "description"):
+                value = field.get(key)
+                if isinstance(value, str) and value.strip():
+                    sources.add(value.strip())
+            if field.get("fieldtype") == "Select" and field.get("options"):
+                for option in str(field["options"]).split("\n"):
+                    if option.strip():
+                        sources.add(option.strip())
+
+    # Insight widgets, onboarding, pages, workspace labels
+    for path in root.rglob("number_card/*/*.json"):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        if doc.get("label"):
+            sources.add(doc["label"])
+    for path in root.rglob("dashboard_chart/*/*.json"):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(doc.get("chart_name"), str) and doc["chart_name"].strip():
+            sources.add(doc["chart_name"].strip())
+    for path in root.rglob("onboarding_step/*/*.json"):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        for key in ("name", "title", "description"):
+            if isinstance(doc.get(key), str) and doc[key].strip():
+                sources.add(doc[key].strip())
+    for path in root.rglob("module_onboarding/*/*.json"):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        if doc.get("name"):
+            sources.add(doc["name"])
+    for path in root.rglob("page/*/*.json"):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        if doc.get("title"):
+            sources.add(doc["title"])
+    for path in root.rglob("workspace/*/*.json"):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        for link in doc.get("links") or []:
+            if link.get("label"):
+                sources.add(link["label"])
+        for shortcut in doc.get("shortcuts") or []:
+            if isinstance(shortcut, dict) and shortcut.get("label"):
+                sources.add(shortcut["label"])
+
     sources.add("SIRAJ Research")  # module
-    return sources
+    return {s for s in sources if needs_translation(s)}
 
 
 def read_locale_csv(path: Path) -> list[tuple[str, str]]:
@@ -171,10 +236,38 @@ def coverage_gaps(app_dir: Path | None = None) -> set[str]:
     return extract_app_sources(root) - translated
 
 
+def audit_workspace_content(app_dir: Path | None = None) -> list[tuple]:
+    """EditorJS header/paragraph blocks render raw (no __()), so every one
+    must be bilingual (contain Arabic) for the workspace to read in Arabic."""
+    root = app_dir or APP_DIR
+    findings: list[tuple] = []
+    for path in root.rglob("workspace/*/*.json"):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        raw = doc.get("content") or ""
+        if not isinstance(raw, str) or not raw.strip():
+            continue
+        try:
+            blocks = json.loads(raw)
+        except ValueError:
+            findings.append(("content_not_json", path.name))
+            continue
+        for block in blocks if isinstance(blocks, list) else []:
+            if not isinstance(block, dict):
+                continue
+            if block.get("type") not in ("header", "paragraph"):
+                continue
+            text = (block.get("data") or {}).get("text") or ""
+            plain = re.sub(r"<[^>]+>", " ", text)
+            if plain.strip() and not ARABIC_RE.search(plain):
+                findings.append(("content_not_bilingual", path.name, plain[:70]))
+    return findings
+
+
 def main() -> int:
     ref = audit_reference_data()
     csv_issues = audit_locale_csv()
     gaps = coverage_gaps()
+    content = audit_workspace_content()
     print(f"reference-data findings : {len(ref)}")
     for f in ref:
         print("   ", f)
@@ -184,7 +277,10 @@ def main() -> int:
     print(f"untranslated sources    : {len(gaps)}")
     for s in sorted(gaps):
         print("   ", repr(s))
-    return 0 if not (ref or csv_issues or gaps) else 1
+    print(f"workspace content       : {len(content)}")
+    for f in content:
+        print("   ", f)
+    return 0 if not (ref or csv_issues or gaps or content) else 1
 
 
 if __name__ == "__main__":

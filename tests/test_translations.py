@@ -11,6 +11,7 @@ from pathlib import Path
 from siraj_research.setup.translation_audit import (
     audit_locale_csv,
     audit_reference_data,
+    audit_workspace_content,
     coverage_gaps,
 )
 
@@ -31,3 +32,9 @@ def test_locale_csv_contract():
 def test_reference_data_arabic_labels():
     findings = audit_reference_data(Path("siraj_research/setup/reference_data"))
     assert not findings, f"reference data label_ar findings: {findings}"
+
+
+def test_workspace_content_is_bilingual():
+    """EditorJS headers/paragraphs render raw — they must carry Arabic too."""
+    findings = audit_workspace_content(Path("siraj_research"))
+    assert not findings, f"workspace content not bilingual: {findings}"
