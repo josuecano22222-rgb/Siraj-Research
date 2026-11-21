@@ -19,5 +19,6 @@
  "number_of_groups": 10,
  "owner": "Administrator",
  "timeseries": 0,
- "type": "Donut"
+ "type": "Donut",
+ "color": "#b85c38"
 }
