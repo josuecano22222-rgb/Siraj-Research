@@ -110,3 +110,38 @@ instant on cached data and server fetches use the same semantics.
   step 1 teaches them via user profile (Language) and User → Role Profile
   (the four shipped SIRAJ roles), while `SIRAJ Settings`/`Geo Settings`
   cover defaults, offline data, map data and online-fallback policy.
+
+## 2026-11-18 — v2.0.0 Phase 3: fictional demo dataset
+
+- **Replaced the inherited demo content (PR #5).** The previous
+  `setup/demo_data.py` was extensive but non-compliant: real persons
+  (historical figures), real events, real institutions, no commands,
+  no edge cases, no family showcase, uniform relationship confidence,
+  and a teardown bug (Relationship `display_name` embeds series ids,
+  never the `[DEMO]` tag — relationships were never removed). The
+  spec requires *fictional only*; content was rewritten to match the
+  spec volumes exactly (25/8/12/15/10/6 at 3 levels).
+- **Split content from execution:** `setup/demo_content.py` is pure
+  data (no frappe import) so CI can enforce volumes, the fictional
+  guard (banned real names), edge cases, exact unrounded coordinates,
+  confidence variety and teardown coverage via AST; `setup/demo_data.py`
+  is the executor (idempotent `_add`, registry defence, provenance
+  post-pass, manifest bookkeeping).
+- **Precise removal:** load writes `siraj_demo_manifest.json` into the
+  site folder (every created name); remove deletes the manifest first
+  and falls back to a `[DEMO]` tag sweep (which also cleans legacy
+  builds). Units are deleted deepest-first because `MilitaryUnit.on_trash`
+  refuses parents with subordinates; non-demo dependents block deletion
+  and are reported, never force-removed.
+- **Bench surface:** `commands.py` exposes the frappe-required
+  `commands` iterable → `bench --site <site> siraj-research
+  load-demo-data | remove-demo-data | isolate-demo-data`.
+- **Showcases:** master source cited by every record + one Evidence row
+  per claim-bearing record; 24 relationships exercising all six
+  confidence codes; 36 link-table rows (person↔org, person↔event via
+  Siraj Events, event↔location incl. the open-water station); 3-level
+  unit tree with derived subtree personnel; family tab (married +
+  grandchildren + `is_grandparent`, and an explicit Single); edges:
+  coords-only auto-fill place, country-only missing-levels place,
+  ocean point at exactly `31.6, 33.8`, `circa 1947`/`1960s`/`uncertain`
+  dates.
