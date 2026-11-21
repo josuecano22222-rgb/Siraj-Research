@@ -383,6 +383,13 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 	_ensure_dataset(dataset_code, label_en="GeoNames administrative divisions",
 	                source="GeoNames (geonames.org) admin codes", license_id="CC-BY-4.0",
 	                url="https://www.geonames.org/export/", level=0)
+	if frappe is not None:
+		# Mirror the polygon import lifecycle: Queued -> Running -> Complete.
+		frappe.db.set_value("Boundary Dataset", dataset_code, {
+			"import_status": "Running", "import_progress": 0,
+			"import_log": "",
+		}, update_modified=False)
+		frappe.db.commit()
 	wanted = {str(c).upper() for c in country_codes} if country_codes else None
 	countries = _country_cache()
 	name_by_pcode: dict[str, str] = {}
@@ -500,6 +507,15 @@ def enqueue_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN",
     """Run :func:`import_geonames_admin` in the long worker for global files."""
     if frappe is None:
         return {"queued": False, "reason": "frappe unavailable"}
+    # Surface the run in import_status_report: without this the dataset
+    # keeps its previous status (often a stale "Complete") while the long
+    # worker re-imports, and operators can only watch feature_count.
+    frappe.db.set_value("Boundary Dataset", dataset_code, {
+        "import_status": "Queued", "import_progress": 0,
+        "last_processed_offset": 0,
+        "import_log": "Queued - waiting for worker.",
+    }, update_modified=False)
+    frappe.db.commit()
     frappe.enqueue(
         import_geonames_admin, queue="long", timeout=6 * 60 * 60,
         zip_path=zip_path, dataset_code=dataset_code,

@@ -154,3 +154,22 @@ def test_reset_boundary_dataset_removes_old_polygons_and_hierarchy(monkeypatch):
     assert ("Admin Boundary Geom", {"parent": ["in", ["AB1"]]}) in calls
     assert ("Admin Boundary", {"name": ["in", ["AB1"]]}) in calls
     assert ("District", {"name": ["in", ["D1"]]}) in calls
+
+
+def test_enqueue_geonames_admin_marks_dataset_queued(monkeypatch):
+    """The enqueuer must surface Queued so import_status_report is honest."""
+    calls = {}
+
+    def _set_value(doctype, name, values, update_modified=False):
+        calls["set_value"] = (doctype, name, values)
+
+    fake = SimpleNamespace(
+        db=SimpleNamespace(set_value=_set_value, commit=lambda: None),
+        enqueue=lambda *a, **k: calls.setdefault("enqueue", k),
+    )
+    monkeypatch.setattr(gb, "frappe", fake)
+    result = gb.enqueue_geonames_admin(zip_path="/nonexistent/geonames")
+    assert result == {"queued": True, "dataset": "GEONAMES-ADMIN"}
+    assert calls["set_value"][0] == "Boundary Dataset"
+    assert calls["set_value"][2]["import_status"] == "Queued"
+    assert calls["enqueue"]["job_id"] == "siraj-geonames-admin:GEONAMES-ADMIN"
