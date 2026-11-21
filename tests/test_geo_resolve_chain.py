@@ -138,3 +138,22 @@ def test_sweep_points_compacts_six_fields_and_sources(geo_resolve, monkeypatch):
     assert row["village_src"] == "gazetteer_nearest"
     assert row["nearest_place"] == "الرمال"
     assert "gazetteer_nearest" in row["provenance"]
+
+
+def test_hierarchy_record_queries_use_real_doctype_columns():
+    """Regression (MySQL 1054): hierarchy DocTypes expose label_en/label_ar
+    — name_en/name_ar live on Admin Boundary/Gazetteer Place only. Every
+    hierarchy SELECT/field list in the gap-fill must use the real names."""
+    import glob
+    import json
+    from pathlib import Path
+
+    src = Path("siraj_research/api/geo_resolve.py").read_text()
+    assert "label_en AS name_en" in src
+    assert 'fields=["name", "label_en", "label_ar", "pcode"]' in src
+    for dt in ("municipality", "village", "community"):
+        path = glob.glob(f"siraj_research/**/doctype/{dt}/{dt}.json",
+                         recursive=True)[0]
+        names = {f["fieldname"] for f in json.load(open(path))["fields"]}
+        assert "label_en" in names and "label_ar" in names
+        assert "name_en" not in names and "name_ar" not in names

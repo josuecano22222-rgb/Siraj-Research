@@ -274,7 +274,8 @@ def _nearest_hierarchy_record(lat, lon, doctype, max_m, parent_hint=None):
     dlat = max_m / 111320.0
     dlon = max_m / (111320.0 * max(0.1, math.cos(math.radians(lat))))
     rows = frappe.db.sql(
-        f"SELECT name, name_en, name_ar, pcode, latitude, longitude, "
+        f"SELECT name, label_en AS name_en, label_ar AS name_ar, "
+        f"pcode, latitude, longitude, "
         f"{parent_field} AS parent_ref FROM `tab{doctype}` "
         "WHERE latitude BETWEEN %s AND %s AND longitude BETWEEN %s AND %s",
         (lat - dlat, lat + dlat, lon - dlon, lon + dlon), as_dict=True)
@@ -344,13 +345,13 @@ def _fill_chain_gaps(lat, lon, chain, result, cfg):
             if vname:
                 children = frappe.get_all(
                     "Community", filters={"village": vname},
-                    fields=["name", "name_en", "name_ar", "pcode"], limit=2)
+                    fields=["name", "label_en", "label_ar", "pcode"], limit=2)
                 if len(children) == 1:
                     child = children[0]
                     chain["community"] = {
                         "pcode": child.get("pcode") or child.get("name"),
-                        "name_en": child.get("name_en"),
-                        "name_ar": child.get("name_ar"),
+                        "name_en": child.get("label_en"),
+                        "name_ar": child.get("label_ar"),
                         "source": "hierarchy_child", "confidence": "medium",
                     }
                     provenance.append("hierarchy_child")
