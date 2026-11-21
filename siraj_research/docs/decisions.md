@@ -84,3 +84,27 @@ instant on cached data and server fetches use the same semantics.
   registry's Link fields (Country → Community) with P-Code/centroid/bbox
   attached, so each selection flies to the polygon when the active dataset
   has it.
+
+## 2026-11-18 — v2.0.0 Phase 2: onboarding tutorial design
+
+- **Long-form lives in `docs/onboarding/`** — one Markdown file per step
+  (README index + 01…10 + common-errors + quick-reference), each step
+  bilingual (English then العربية): goal, prerequisites, field-by-field
+  (meaning / required / format / common mistakes), worked example,
+  validation checkpoint, link to next.
+- **`Onboarding Step` records mirror the tutorial** (they are the in-app
+  checklist): the existing seven records are kept and re-described to
+  match steps 1–4; six new records cover organizations, military units,
+  events, relationships, supporting data and search; the Module Onboarding
+  steps list is reordered to the dependency order. `Open the SIRAJ
+  workspace` stays as the "before you begin" entry and `Review data
+  quality` as the closing loop — both have tutorial sections.
+- **Import path (verified in frappe `model/sync.py`):** `bench migrate`
+  walks `<app module>/onboarding_step/<slug>/<slug>.json` and
+  `module_onboarding/…` through `IMPORTABLE_DOCTYPES` and upserts by name
+  — so new/updated step records reach fresh installs and upgrades with
+  no fixtures hook and no patch.
+- **Language & roles are per-user, not Single fields:** the tutorial's
+  step 1 teaches them via user profile (Language) and User → Role Profile
+  (the four shipped SIRAJ roles), while `SIRAJ Settings`/`Geo Settings`
+  cover defaults, offline data, map data and online-fallback policy.
