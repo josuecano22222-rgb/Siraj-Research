@@ -194,6 +194,24 @@ def osm_level_to_siraj(value) -> int | None:
         return 4
     return 5
 
+
+def feature_hierarchy_level(record: dict, dataset_level: int) -> int:
+    """Resolve the SIRAJ hierarchy level for one polygon feature.
+
+    Sources that ship an OSM ``admin_level`` column own the mapping: an
+    empty or unmappable value means the tier is unknown, so the polygon is
+    imported at level 0 — geometry stays available for map pinning while
+    hierarchy sync skips it — instead of being promoted into level 1.
+    ``admin_level <= 2`` maps to level 0 (country) and must survive the
+    mapping untouched (the old ``or level`` clobber turned it into a
+    governorate). Sources without the column (GADM shapefiles) keep the
+    dataset default.
+    """
+    if "osm_admin_level" not in record:
+        return int(dataset_level)
+    mapped = osm_level_to_siraj(record.get("osm_admin_level"))
+    return mapped if mapped is not None else 0
+
 GAZETTEER_FIELDS = {
     "name_en":     ["name", "name_en", "asciiname", "placename", "full_name", "poi_name"],
     "name_ar":     ["name_ar", "ar_name", "arabic_name"],
@@ -599,8 +617,7 @@ def import_boundary_job(dataset_name: str, file_path_str: str, is_gazetteer: boo
                 record["centroid_lon"] = c.x
                 b = geom.bounds
                 if not record.get("pcode"):
-                    derived_level = (osm_level_to_siraj(record.get("osm_admin_level"))
-                                     or level)
+                    derived_level = feature_hierarchy_level(record, level)
                     record["pcode"] = _derived_pcode(
                         derived_level, record.get("name_en") or record.get("name_ar"), b)
                 record["bbox"] = ",".join(f"{v:.6f}" for v in b) if b else None
@@ -633,9 +650,7 @@ def import_boundary_job(dataset_name: str, file_path_str: str, is_gazetteer: boo
                 record["geom_full"] = geom
                 if tolerance_m > 0:
                     record["geom_simplified"] = geom.simplify(tolerance_m / 111320.0, preserve_topology=True)
-                feature_level = level
-                if record.get("osm_admin_level") is not None:
-                    feature_level = osm_level_to_siraj(record["osm_admin_level"]) or level
+                feature_level = feature_hierarchy_level(record, level)
                 if _upsert_admin_boundary(dataset_name, feature_level, record, store_geojson):
                     count += 1
             if count % batch_size == 0:

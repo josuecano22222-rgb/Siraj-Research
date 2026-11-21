@@ -101,20 +101,34 @@
 		const idx = index || buildIndex(null);
 		const level = indexOfField(field);
 		if (level < 0) return [];
+		const byLabel = (a, b) => String(a.label).localeCompare(String(b.label));
 		if (level === 0) {
-			return Object.values(idx.countries).sort((a, b) => String(a.label).localeCompare(String(b.label)));
+			return Object.values(idx.countries).sort(byLabel);
 		}
 		const parentField = LEVELS[level].parent;
 		const parentValue = values[parentField];
-		if (!parentValue) return [];
+		if (!parentValue) {
+			// No ancestor chosen yet: expose every place at this level so the
+			// user can search globally, then back-fill higher fields on pick.
+			return Object.values(idx.byPcode)
+				.filter(rec => rec.level === level)
+				.map(rec => optionFromRecord(field, rec))
+				.sort(byLabel);
+		}
 		const parentRec = idx.byPcode[String(parentValue)] || Object.values(idx.byPcode).find(r => r.linked_name === String(parentValue));
 		// Country rows are not in the package; level-1 polygons point at the
 		// Country code directly in their parent_pcode.
 		const parentPcode = parentField === 'country' ? String(parentValue) : (parentRec && parentRec.pcode);
-		if (!parentPcode) return [];
+		if (!parentPcode) {
+			// Parent chosen but not present in the offline package: fall back
+			// to a global list rather than a dead empty dropdown.
+			return Object.values(idx.byPcode)
+				.filter(rec => rec.level === level)
+				.map(rec => optionFromRecord(field, rec))
+				.sort(byLabel);
+		}
 		const rows = (idx.children[parentField] && idx.children[parentField][parentPcode]) || [];
-		return rows.map(rec => optionFromRecord(field, rec))
-			.sort((a, b) => String(a.label).localeCompare(String(b.label)));
+		return rows.map(rec => optionFromRecord(field, rec)).sort(byLabel);
 	}
 
 	const api = { LEVELS, FIELDS, optionFromRecord, buildIndex, ancestorFilters, chainFromRecord, optionsFor };

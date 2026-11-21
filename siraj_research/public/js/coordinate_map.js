@@ -111,10 +111,31 @@
 			.replace(EASTERN_DIGITS, c => String(c.charCodeAt(0) - 0x660))
 			.replace(PERSIAN_DIGITS, c => String(c.charCodeAt(0) - 0x6f0))
 			.replace(/٫/g, '.');
-		if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(e[+-]?\d+)?$/i.test(normalized)) return null;
+		// No scientific notation in text input — keep the string semantics
+		// identical to SirajGeoPointCore's DECIMAL (test_siraj_geopoint_core).
+		// Number values still pass through above; picker writes go through
+		// decimalText(), so exponent text only appears for <1e-6 deg edges.
+		if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized)) return null;
 		const n = Number(normalized);
-		if (!Number.isFinite(n) || Math.abs(n) > max) return null;
+		if (!Number.isFinite(n) || decimalExceeds(normalized, max)) return null;
 		return n;
+	}
+	// Exact decimal bound test on the raw text: Number() rounds
+	// "90.000…001" (51 fraction digits) to exactly 90 and would wrongly
+	// accept an input that is definitively past the bound. Compare digit
+	// strings instead of values — no BigInt (esbuild target: es2017).
+	// Fraction tails only add < 1, so once the integer part is below the
+	// bound the value is too; equal integer parts exceed only when a
+	// non-zero tail remains after trailing zeros are trimmed.
+	function decimalExceeds(text, max) {
+		const body = text.replace(/^[+-]/, '');
+		const dot = body.indexOf('.');
+		let whole = (dot === -1 ? body : body.slice(0, dot)).replace(/^0+(?=\d)/, '') || '0';
+		const frac = (dot === -1 ? '' : body.slice(dot + 1)).replace(/0+$/, '');
+		const bound = String(max);
+		if (whole.length !== bound.length) return whole.length > bound.length;
+		if (whole !== bound) return whole > bound;
+		return frac.length > 0;
 	}
 	function decimalText(number) {
 		const text = String(number);

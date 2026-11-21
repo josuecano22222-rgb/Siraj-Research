@@ -1,0 +1,19 @@
+{
+ "action": "Create Entry",
+ "action_label": "Add a person",
+ "creation": "2026-11-18 12:00:00.000000",
+ "description": "Bilingual names, precision-annotated dates and links to institutions, positions and events.",
+ "docstatus": 0,
+ "doctype": "Onboarding Step",
+ "idx": 0,
+ "is_complete": 0,
+ "is_skipped": 0,
+ "module_onboarding": "SIRAJ Research Setup",
+ "modified": "2026-11-18 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Siraj Research",
+ "name": "Register a Person",
+ "owner": "Administrator",
+ "reference_document": "Person",
+ "title": "Register a Person"
+}

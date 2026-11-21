@@ -386,6 +386,27 @@
    "label": "Stop requested",
    "read_only": 1,
    "description": "The running bootstrap checks this between stages and every 32 tiles."
+  },
+  {
+   "fieldname": "sb_online_setup",
+   "fieldtype": "Section Break",
+   "label": "Online Setup"
+  },
+  {
+   "fieldname": "online_setup_enabled",
+   "fieldtype": "Check",
+   "label": "Allow online setup downloads",
+   "default": "1",
+   "description": "When checked, Run Online Setup may download wheels, tiles and packages while the bench has internet. Uncheck to force a fully offline preparation (local data only, no external hosts)."
+  },
+  {
+   "fieldname": "cb_online_setup",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "run_online_setup",
+   "fieldtype": "Button",
+   "label": "Run Online Setup"
   }
  ],
  "permissions": [

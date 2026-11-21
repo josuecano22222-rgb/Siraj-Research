@@ -1,7 +1,9 @@
 // Dependency-free test of the actual Desk picker parsing function. Not a browser test.
 const assert=require('assert'), fs=require('fs'), vm=require('vm');
 const source=fs.readFileSync('siraj_research/public/js/coordinate_map.js','utf8');
-const start=source.indexOf('\tfunction parseCoordinate('), end=source.indexOf('\n\tfunction decimalText(',start);
+// Slice must start at the const declarations above parseCoordinate — the
+// function body references EASTERN_DIGITS/PERSIAN_DIGITS from that scope.
+const start=source.indexOf('\tconst EASTERN_DIGITS'), end=source.indexOf('\n\tfunction decimalText(',start);
 assert(start>=0 && end>start);
 const context={}; vm.runInNewContext(source.slice(start,end)+'\nthis.parseCoordinate = parseCoordinate;',context);
 const parse=context.parseCoordinate;

@@ -1,0 +1,19 @@
+{
+ "action": "Create Entry",
+ "action_label": "Import geography",
+ "creation": "2026-11-18 12:00:00.000000",
+ "description": "Register a GADM/OSM/GeoNames source, run setup_region, and the six-level hierarchy fills with polygons, P-Codes and coordinates.",
+ "docstatus": 0,
+ "doctype": "Onboarding Step",
+ "idx": 0,
+ "is_complete": 0,
+ "is_skipped": 0,
+ "module_onboarding": "SIRAJ Research Setup",
+ "modified": "2026-11-18 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Siraj Research",
+ "name": "Import a geographic dataset",
+ "owner": "Administrator",
+ "reference_document": "Boundary Dataset",
+ "title": "Import a geographic dataset"
+}

@@ -79,3 +79,14 @@ def test_cascade_rejects_unknown_field_and_returns_shape_without_frappe():
     assert result["filters"] == {"country": "IL"}
     assert result["source"] == "local-bench"
     assert result["options"] == []  # pure process has no local bench rows
+
+
+def test_global_options_when_no_parent_selected():
+    """With no country chosen, every governorate is a valid search target."""
+    # Server-side: empty ancestor values → empty filters → all rows.
+    assert ancestor_filters("governorate", {}) == {}
+    assert ancestor_filters("district", {"country": "LB"}) == {"country": "LB"}
+    # chain_from_filters still yields usable empty display rows for globals.
+    chain = chain_from_filters({})
+    assert chain["governorate"]["value"] == ""
+    assert chain["country"]["value"] == ""

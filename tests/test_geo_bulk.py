@@ -154,3 +154,60 @@ def test_reset_boundary_dataset_removes_old_polygons_and_hierarchy(monkeypatch):
     assert ("Admin Boundary Geom", {"parent": ["in", ["AB1"]]}) in calls
     assert ("Admin Boundary", {"name": ["in", ["AB1"]]}) in calls
     assert ("District", {"name": ["in", ["D1"]]}) in calls
+
+
+def test_enqueue_geonames_admin_marks_dataset_queued(monkeypatch):
+    """The enqueuer must surface Queued so import_status_report is honest."""
+    calls = {}
+
+    def _set_value(doctype, name, values, update_modified=False):
+        calls["set_value"] = (doctype, name, values)
+
+    fake = SimpleNamespace(
+        db=SimpleNamespace(set_value=_set_value, commit=lambda: None),
+        enqueue=lambda *a, **k: calls.setdefault("enqueue", k),
+    )
+    monkeypatch.setattr(gb, "frappe", fake)
+    result = gb.enqueue_geonames_admin(zip_path="/nonexistent/geonames")
+    assert result == {"queued": True, "dataset": "GEONAMES-ADMIN"}
+    assert calls["set_value"][0] == "Boundary Dataset"
+    assert calls["set_value"][2]["import_status"] == "Queued"
+    assert calls["enqueue"]["job_id"] == "siraj-geonames-admin:GEONAMES-ADMIN"
+
+
+def test_geonames_admin_feature_levels_cover_all_adm_codes():
+    assert gb.GEONAMES_ADMIN_FEATURE_LEVELS == {
+        "ADM1": 1, "ADM2": 2, "ADM3": 3, "ADM4": 4, "ADM5": 5}
+
+
+def test_admin_feature_pcode_levels():
+    row = {"admin1_pcode": "IL", "admin2_pcode": "IL.06",
+           "admin3_pcode": "IL.06.01", "admin4_pcode": "IL.06.01.02",
+           "source_id": "999"}
+    # Level 1 passes its own code so choose_admin_parent reads the ISO prefix.
+    assert gb._admin_feature_pcode(1, row) == ("IL", "IL")
+    assert gb._admin_feature_pcode(2, row) == ("IL.06", "IL")
+    assert gb._admin_feature_pcode(3, row) == ("IL.06.01", "IL.06")
+    assert gb._admin_feature_pcode(4, row) == ("IL.06.01.02", "IL.06.01")
+    # ADM5 has no stable GeoNames code: geonameid is the pcode (historical).
+    assert gb._admin_feature_pcode(5, row) == ("999", "IL.06.01.02")
+
+
+def test_admin_feature_pcode_falls_back_to_deepest_parent():
+    row = {"admin1_pcode": "IQ", "admin3_pcode": "IQ.BG.01", "source_id": "42"}
+    assert gb._admin_feature_pcode(3, row) == ("IQ.BG.01", "IQ")
+    assert gb._admin_feature_pcode(5, row) == ("42", "IQ.BG.01")
+
+
+def test_geonames_allcountries_pass_forwards_coordinates():
+    """The allCountries pass must hand lat/lon to upsert_level (coords gap).
+
+    admin1CodesASCII/admin2Codes carry no coordinates; only allCountries
+    rows do. Without this wiring every GeoNames hierarchy row is created
+    without latitude/longitude and the basic data stays coordless.
+    """
+    from pathlib import Path
+
+    src = Path("siraj_research/geo_bulk.py").read_text()
+    assert "upsert_level(entry, parent_name, lat=lat, lon=lon," in src
+    assert 'lat=row.get("latitude"), lon=row.get("longitude"))' in src
