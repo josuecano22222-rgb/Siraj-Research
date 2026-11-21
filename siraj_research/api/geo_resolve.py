@@ -340,22 +340,28 @@ def _fill_chain_gaps(lat, lon, chain, result, cfg):
         filled = False
         village_pcode = (chain.get("village") or {}).get("pcode")
         if village_pcode and frappe is not None:
-            vname = (frappe.db.exists("Village", village_pcode)
-                     or frappe.db.get_value("Village", {"pcode": village_pcode}, "name"))
-            if vname:
-                children = frappe.get_all(
+            try:
+                vname = (frappe.db.exists("Village", village_pcode)
+                         or frappe.db.get_value("Village", {"pcode": village_pcode},
+                                                "name"))
+                children = (frappe.get_all(
                     "Community", filters={"village": vname},
                     fields=["name", "label_en", "label_ar", "pcode"], limit=2)
-                if len(children) == 1:
-                    child = children[0]
-                    chain["community"] = {
-                        "pcode": child.get("pcode") or child.get("name"),
-                        "name_en": child.get("label_en"),
-                        "name_ar": child.get("label_ar"),
-                        "source": "hierarchy_child", "confidence": "medium",
-                    }
-                    provenance.append("hierarchy_child")
-                    filled = True
+                    if vname else [])
+            except Exception:
+                # A lookup failure must degrade to the next fallback, not
+                # kill resolution for the whole point.
+                children = []
+            if len(children) == 1:
+                child = children[0]
+                chain["community"] = {
+                    "pcode": child.get("pcode") or child.get("name"),
+                    "name_en": child.get("label_en"),
+                    "name_ar": child.get("label_ar"),
+                    "source": "hierarchy_child", "confidence": "medium",
+                }
+                provenance.append("hierarchy_child")
+                filled = True
         if not filled:
             rec = _nearest_hierarchy_record(
                 lat, lon, "Community", max_m,
@@ -368,6 +374,22 @@ def _fill_chain_gaps(lat, lon, chain, result, cfg):
                     "distance_m": rec.get("distance_m"),
                 }
                 provenance.append("record_fallback")
+                filled = True
+        if not filled and chain.get("village"):
+            # Settlement fallback: no neighborhood-level row exists anywhere
+            # nearby, but the field asks for Community/Settlement — the
+            # resolved settlement itself is the honest answer, labelled
+            # low-confidence with its own source so nobody mistakes it for
+            # surveyed neighborhood data. pcode stays None so the derived
+            # code never collides with the Village row.
+            village = chain["village"]
+            chain["community"] = {
+                "pcode": None,
+                "name_en": village.get("name_en"),
+                "name_ar": village.get("name_ar"),
+                "source": "settlement_fallback", "confidence": "low",
+            }
+            provenance.append("settlement_fallback")
     return provenance
 
 

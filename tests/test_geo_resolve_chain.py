@@ -157,3 +157,35 @@ def test_hierarchy_record_queries_use_real_doctype_columns():
         names = {f["fieldname"] for f in json.load(open(path))["fields"]}
         assert "label_en" in names and "label_ar" in names
         assert "name_en" not in names and "name_ar" not in names
+
+
+def test_settlement_fallback_labels_community_from_resolved_village(geo_resolve, monkeypatch):
+    """Community must never be null once a village is known: the
+    settlement itself fills the field, clearly labelled low-confidence
+    with its own source (never disguised as neighborhood evidence)."""
+    monkeypatch.setattr(geo_resolve, "_nearest_hierarchy_record",
+                        lambda *a, **k: None)
+    chain = {"village": {"pcode": "GEO-123", "name_en": "Rafaḥ",
+                         "name_ar": "رفح"}}
+    tags = geo_resolve._fill_chain_gaps(31.29, 34.25, chain, {"nearest_place": None},
+                                        {"reverse_max_m": 5000})
+    community = chain["community"]
+    assert community["name_en"] == "Rafaḥ"
+    assert community["source"] == "settlement_fallback"
+    assert community["confidence"] == "low"
+    assert community["pcode"] is None        # derived code, no Village collision
+    assert "settlement_fallback" in tags
+
+
+def test_nearest_record_community_wins_over_settlement_fallback(geo_resolve, monkeypatch):
+    monkeypatch.setattr(
+        geo_resolve, "_nearest_hierarchy_record",
+        lambda lat, lon, doctype, max_m, parent_hint=None: (
+            {"name": "C1", "name_en": "Al Nasser", "name_ar": None,
+             "pcode": "PS-C1", "latitude": 31.0, "longitude": 34.0,
+             "distance_m": 100.0} if doctype == "Community" else None))
+    chain = {"village": {"pcode": "GEO-123", "name_en": "Rafaḥ", "name_ar": "رفح"}}
+    geo_resolve._fill_chain_gaps(31.29, 34.25, chain, {"nearest_place": None},
+                                 {"reverse_max_m": 5000})
+    assert chain["community"]["name_en"] == "Al Nasser"
+    assert chain["community"]["source"] == "nearest_record"
