@@ -710,6 +710,31 @@ def _map_country_label(name_en, name_ar, by_code: dict, by_name: dict):
     return None
 
 
+def _partition_country_for_remainder(dataset: str, by_code: dict, established: set) -> str | None:
+    """Country for rows a two-country extract must contain by construction.
+
+    A dataset code like ``OSM-IL-PS`` lists the only two ISO countries its
+    extract can contain. When exactly one of the two is already
+    established for some rows and the other appears nowhere, every still
+    unresolved row belongs to the missing country — the dataset's own
+    name is the authority, and no level-0 polygon is required on that
+    side (Gaza/West Bank ship no country polygon in this extract).
+
+    Single-country or world datasets, both countries already present, and
+    neither present all return ``None`` so the evidence passes stay in
+    charge.
+    """
+    tokens = _country_candidates_from_dataset(dataset, by_code)
+    if len(tokens) != 2:
+        return None
+    names = {by_code[token] for token in tokens}
+    seen = names & established
+    missing = names - established
+    if len(seen) == 1 and len(missing) == 1:
+        return missing.pop()
+    return None
+
+
 def repair_dataset_countries(dataset: str) -> dict:
     """Re-derive ``Admin Boundary.country`` with a four-pass repair.
 
@@ -721,11 +746,13 @@ def repair_dataset_countries(dataset: str) -> dict:
     1. level-0 rows resolve their own bilingual label;
     2. other rows inherit from the smallest level-0 polygon containing
        their centroid;
-    3. rows still unresolved take the Country link of their hierarchy
-       record (dynamic link or same-pcode row);
-    4. whatever remains inherits from the smallest already-resolved
-       polygon containing the centroid (district over village, ...) —
-       passes 3 and 4 iterate to a fixpoint.
+    3. spatial containment inheritance (district over village, ...);
+    4. the dataset partition: for a two-country code (``OSM-IL-PS``),
+       whatever the spatial passes could not place belongs to the
+       dataset's second declared country by construction — this is what
+       clears a stale default on the side with no level-0 polygon;
+    5. hierarchy-link evidence and further containment iterate to a
+       fixpoint for datasets the partition rule does not cover.
 
     Rows that still cannot be mapped are left untouched and reported as
     ``unresolved`` with a name sample. ``methods`` reports how many rows
@@ -801,10 +828,53 @@ def repair_dataset_countries(dataset: str) -> dict:
             if value:
                 _mark(row, value, "level0_contains")
 
-    # Passes B/C iterate to a fixpoint: linking a district (C) lets the
-    # villages inside it inherit (B), and so on.
+    # Pass B (spatial): inherit from the smallest already-resolved polygon
+    # that contains the centroid. Run once before any hierarchy evidence so
+    # containment — not stored links — decides the border-strip rows.
     hierarchy_doctypes = {1: "Governorate", 2: "District", 3: "Municipality",
                           4: "Village", 5: "Community"}
+
+    def _inherit_containment(method: str) -> bool:
+        changed = False
+        resolved_geoms = [(geom_by_name[r.name], resolved[r.name])
+                          for r in targets
+                          if r.name in resolved and r.name in geom_by_name]
+        if not resolved_geoms:
+            return False
+        for row in targets:
+            if row.name in resolved:
+                continue
+            pt = _point(row)
+            if pt is None:
+                continue
+            best = None
+            best_area = None
+            for geom, value in resolved_geoms:
+                if geom.contains(pt):
+                    area = geom.area
+                    if best_area is None or area < best_area:
+                        best_area, best = area, value
+            if best is not None:
+                _mark(row, best, method)
+                changed = True
+        return changed
+
+    _inherit_containment("contains_resolved")
+
+    # Dataset partition: every row the spatial passes could not place
+    # belongs, by construction, to the dataset's second declared country
+    # (the first being the only one established so far). This is what
+    # finally replaces the stale 'United States' default on the side of
+    # the extract that ships no level-0 polygon.
+    partition = _partition_country_for_remainder(dataset, by_code, set(resolved.values()))
+    if partition:
+        for row in targets:
+            if row.name not in resolved:
+                _mark(row, partition, "dataset_partition")
+
+    # Passes C/B iterate to a fixpoint: a hierarchy link (C) or an
+    # enclosing repaired polygon (B) can still fill anything left — e.g.
+    # datasets whose code names no countries.
     for _round in range(4):
         changed = False
         # Pass C: the row's own hierarchy record already carries a valid
@@ -824,28 +894,8 @@ def repair_dataset_countries(dataset: str) -> dict:
                     _mark(row, value, "hierarchy")
                     changed = True
                     break
-        # Pass B: inherit from the smallest already-resolved polygon that
-        # contains the centroid (districts over villages, and so on).
-        resolved_geoms = [(geom_by_name[r.name], resolved[r.name])
-                          for r in targets
-                          if r.name in resolved and r.name in geom_by_name]
-        if resolved_geoms:
-            for row in targets:
-                if row.name in resolved:
-                    continue
-                pt = _point(row)
-                if pt is None:
-                    continue
-                best = None
-                best_area = None
-                for geom, value in resolved_geoms:
-                    if geom.contains(pt):
-                        area = geom.area
-                        if best_area is None or area < best_area:
-                            best_area, best = area, value
-                if best is not None:
-                    _mark(row, best, "contains_resolved")
-                    changed = True
+        if _inherit_containment("contains_resolved"):
+            changed = True
         if not changed:
             break
 
@@ -882,7 +932,8 @@ def repair_dataset_countries(dataset: str) -> dict:
             "level0_polygons": len(l0)}
 
 
-def _propagate_country_evidence(rows: list, rounds: int = 4) -> dict:
+def _propagate_country_evidence(rows: list, rounds: int = 4,
+                                authoritative: dict | None = None) -> dict:
     """Derive countries for repair-scope rows from trusted neighbours.
 
     ``rows`` items are dicts with ``key`` (opaque, e.g. ``(doctype, name)``),
@@ -890,6 +941,12 @@ def _propagate_country_evidence(rows: list, rounds: int = 4) -> dict:
     or re-stamped them while the resolver was wrong), ``country`` (current
     value or None) and ``neighbor_keys`` (row keys reachable through the
     hierarchy's ancestor link fields).
+
+    ``authoritative`` maps row keys to evidence that outranks everything
+    else — typically the already-repaired boundary twin of the row
+    (same P-Code, spatially re-derived). Authoritative keys become
+    trusted immediately, are written when their stored value differs, and
+    feed the neighbour propagation.
 
     Rows outside the scope with a non-empty country start out trusted.
     Scoped rows inherit a country from any trusted neighbour; once they
@@ -909,7 +966,14 @@ def _propagate_country_evidence(rows: list, rounds: int = 4) -> dict:
     for row in rows:
         if not row["scoped"] and row.get("country"):
             trusted[row["key"]] = row["country"]
+    by_key = {row["key"]: row for row in rows}
     derived: dict = {}
+    for key, value in (authoritative or {}).items():
+        if key not in by_key or not value:
+            continue
+        trusted[key] = value
+        if (by_key[key].get("country") or None) != value:
+            derived[key] = value
     for _ in range(max(1, rounds)):
         changed = False
         for row in rows:
@@ -937,10 +1001,12 @@ def repair_hierarchy_countries(dataset: str) -> dict:
     so they poison boundary rows in turn (and containment then propagates
     the wrong value to every enclosed row).
 
-    This repair scopes rows by ``source_dataset`` = the dataset or a
-    derived ``OSM-`` name, treats every real-named row with a country as
-    trusted, and propagates evidence over the ancestor link fields
-    (governorate / district / municipality / village) to a fixpoint.
+    Run **after** :func:`repair_dataset_countries`: each scoped row's
+    boundary twin (same P-Code) is then authoritative evidence and wins
+    outright. Remaining rows trust every real-named row with a country
+    and propagate evidence over the ancestor link fields (governorate /
+    district / municipality / village) to a fixpoint. Scope is
+    ``source_dataset`` = the dataset or a derived ``OSM-`` name.
     Only evidence-backed values are written (via ``db.set_value`` because
     ``country`` is ``set_only_once``); rows without evidence are reported
     in ``still_suspect`` and left untouched. ``index_version`` is bumped
@@ -971,7 +1037,21 @@ def repair_hierarchy_countries(dataset: str) -> dict:
             nodes.append({"key": (doctype, name), "scoped": scoped,
                           "country": row.get("country") or None,
                           "neighbor_keys": neighbor_keys})
-    derived = _propagate_country_evidence(nodes)
+    # Authoritative evidence: the boundary twin (same P-Code) of each row,
+    # AFTER repair_dataset_countries has re-derived it spatially. Run the
+    # boundary repair first — twins read here must already be repaired.
+    hierarchy_by_level = {1: "Governorate", 2: "District", 3: "Municipality",
+                          4: "Village", 5: "Community"}
+    authoritative: dict = {}
+    scoped_keys = {node["key"] for node in nodes if node["scoped"]}
+    for row in frappe.db.sql(
+            """SELECT pcode, level, country FROM `tabAdmin Boundary`
+               WHERE dataset = %s AND country <> '' AND pcode IS NOT NULL""",
+            (dataset,), as_dict=True):
+        doctype = hierarchy_by_level.get(int(row.level or 0))
+        if doctype and (doctype, row.pcode) in scoped_keys:
+            authoritative[(doctype, row.pcode)] = row.country
+    derived = _propagate_country_evidence(nodes, authoritative=authoritative)
     updated = 0
     per_country: dict = {}
     for (doctype, name), value in sorted(derived.items()):

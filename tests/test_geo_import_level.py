@@ -123,3 +123,53 @@ def test_country_evidence_respects_round_limit(geo_import):
     # With enough rounds the whole chain learns.
     derived = geo_import._propagate_country_evidence(rows, rounds=4)
     assert set(derived) == {k for k in chain if k != ("District", "NGZ")}
+
+
+def test_partition_country_fills_two_country_remainder(geo_import):
+    by_code = {"IL": "Israel", "PS": "Palestinian Territory, Occupied"}
+    # Only Israel established spatially → the rest of OSM-IL-PS is PS.
+    assert (geo_import._partition_country_for_remainder("OSM-IL-PS", by_code, {"Israel"})
+            == "Palestinian Territory, Occupied")
+    # Only PS established → remainder is Israel.
+    assert (geo_import._partition_country_for_remainder(
+        "OSM-IL-PS", by_code, {"Palestinian Territory, Occupied"}) == "Israel")
+
+
+def test_partition_country_never_guesses_ambiguous_datasets(geo_import):
+    by_code = {"IL": "Israel", "PS": "Palestinian Territory, Occupied", "IQ": "Iraq"}
+    # Both declared countries present: remainder has no answer.
+    assert geo_import._partition_country_for_remainder(
+        "OSM-IL-PS", by_code, {"Israel", "Palestinian Territory, Occupied"}) is None
+    # No country established yet: containment must go first.
+    assert geo_import._partition_country_for_remainder("OSM-IL-PS", by_code, set()) is None
+    # Single-country datasets are handled by containment, not partition.
+    assert geo_import._partition_country_for_remainder(
+        "OSM-IQ", by_code, {"Iraq"}) is None
+    # Unknown tokens (not in by_code) leave fewer than two candidates.
+    assert geo_import._partition_country_for_remainder(
+        "OSM-XX-YY", by_code, set()) is None
+
+
+def test_authoritative_evidence_outranks_and_spreads(geo_import):
+    rows = [
+        {"key": ("District", "NGZ"), "scoped": True,
+         "country": "United States", "neighbor_keys": [("Governorate", "OSM-H1")]},
+        {"key": ("Governorate", "OSM-H1"), "scoped": True,
+         "country": "United States", "neighbor_keys": [("District", "NGZ")]},
+        {"key": ("Municipality", "OSM-M1"), "scoped": True,
+         "country": None, "neighbor_keys": [("District", "NGZ")]},
+    ]
+    authoritative = {("District", "NGZ"): "Palestinian Territory, Occupied"}
+    derived = geo_import._propagate_country_evidence(rows, authoritative=authoritative)
+    # The twin value is written even though the row is scoped...
+    assert derived[("District", "NGZ")] == "Palestinian Territory, Occupied"
+    # ...and from there the evidence reaches its neighbours.
+    assert derived[("Governorate", "OSM-H1")] == "Palestinian Territory, Occupied"
+    assert derived[("Municipality", "OSM-M1")] == "Palestinian Territory, Occupied"
+
+
+def test_authoritative_values_must_differ_to_be_written(geo_import):
+    rows = [{"key": ("District", "X"), "scoped": True,
+             "country": "Israel", "neighbor_keys": []}]
+    assert geo_import._propagate_country_evidence(
+        rows, authoritative={("District", "X"): "Israel"}) == {}
