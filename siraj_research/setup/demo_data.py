@@ -533,6 +533,8 @@ def seed_demo_data() -> dict:
             "name")
         if existing:
             _remember("Relationship", existing)
+            _tally("Relationship")
+            seeded.append(("Relationship", existing))
             continue
         doc = frappe.get_doc({
             "doctype": "Relationship",

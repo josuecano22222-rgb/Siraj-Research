@@ -194,7 +194,7 @@ PLACES = [
 ]
 
 # --------------------------------------------------------------------------
-# Persons (25) — all fictional. p01–p06 command the six units (military
+# Persons (25) - all fictional. p01-p06 command the six units (military
 # category is mandatory for commanders). p10 = family showcase (married,
 # grandchildren), p11 = Single (no family rows), p12 = married + sibling.
 # p13 = uncertain birth date (EDGE).

@@ -67,9 +67,14 @@ class TestDemoData(FrappeTestCase):
 
         # -- showcases -------------------------------------------------
         # unit hierarchy: division subtree = sum of all six units
-        division = _tagged_names("Military Unit", "unit_name")
-        div_name = next(n for n in division
-                        if n.startswith("1st Amal"))
+        # pluck returns the record name (MIL-UNIT-####) — match on the
+        # tagged display field instead.
+        unit_rows = frappe.get_all(
+            "Military Unit",
+            filters={"unit_name": ["like", f"%{TAG}%"]},
+            fields=["name", "unit_name"], limit_page_length=0)
+        div_name = next(r.name for r in unit_rows
+                        if r.unit_name.startswith("1st Amal"))
         self.assertEqual(
             frappe.db.get_value("Military Unit", div_name,
                                 "subtree_personnel"),
@@ -86,10 +91,13 @@ class TestDemoData(FrappeTestCase):
             "marital_status")
         self.assertEqual(single, "Single")
 
-        # varied relationship confidence (all six codes)
+        # varied relationship confidence (all six codes). primary_source
+        # holds SRC-#### names — match through the tagged source titles.
+        demo_sources = _tagged_names("Source", "title")
+        self.assertTrue(demo_sources)
         auths = {row[0] for row in frappe.get_all(
             "Relationship",
-            filters={"primary_source": ["like", f"%{TAG}%"]},
+            filters={"primary_source": ["in", demo_sources]},
             fields=["authentication_level"], limit_page_length=0)}
         self.assertTrue(
             set(C.CONFIDENCE_CODES) <= auths,
@@ -115,12 +123,10 @@ class TestDemoData(FrappeTestCase):
                                ("Siraj Event", "title")):
             names = _tagged_names(doctype, field)
             self.assertTrue(names)
+            # Evidence rows are child rows — read them off the parent doc
             missing = [n for n in names
-                       if not frappe.get_all(
-                           "Evidence", filters={"parenttype": doctype,
-                                                "parent": n},
-                           limit_page_length=1)]
-            # Evidence rows are child rows: count via parent
+                       if not (frappe.get_doc(doctype, n).get("evidence")
+                               or [])]
             self.assertEqual(missing, [], f"{doctype} rows without evidence")
 
         # isolation report sees the dataset
@@ -141,6 +147,6 @@ class TestDemoData(FrappeTestCase):
                              f"{doctype} demo records survived teardown")
         self.assertEqual(
             frappe.get_all("Relationship",
-                           filters={"primary_source": ["like", f"%{TAG}%"]},
+                           filters={"primary_source": ["in", demo_sources]},
                            limit_page_length=1), [])
         self.assertFalse(frappe.get_site_path(MANIFEST_NAME))

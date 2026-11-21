@@ -230,8 +230,8 @@ def test_teardown_covers_every_seeded_doctype():
 
 def test_manifest_helpers_and_status_exist():
     tree = _demo_ast()
-    names = {n.name for n in tree.body if isinstance(n, (ast.FunctionDef,
-                                                         ast.AsyncFunctionDef))}
+    names = {n.name for n in tree.body
+             if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)}
     for required in ("seed_demo_data", "teardown_demo_data", "demo_status",
                      "_manifest_path", "_manifest_save", "_manifest_load",
                      "_manifest_clear"):
