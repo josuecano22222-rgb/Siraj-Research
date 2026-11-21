@@ -272,9 +272,24 @@ def export_offline_package(path: str | None = None) -> dict:
     cfg = _settings()
     if not cfg["active_boundary"]:
         return {"error": "No active boundary dataset", "written": False}
+    # Never clobber the served offline package: exporting while an import
+    # is queued/running (or when the dataset has no polygons) would
+    # overwrite the last good export with an empty file — observed live
+    # when step-4 export raced a queued OSM re-import.
+    status = frappe.db.get_value(
+        "Boundary Dataset", cfg["active_boundary"], "import_status")
+    if status in ("Queued", "Running"):
+        return {"written": False, "skipped": "import_in_progress",
+                "dataset": cfg["active_boundary"], "import_status": status,
+                "message": "Import in progress; wait for Complete, then export."}
     payload = build_package(cfg["active_boundary"], cfg["active_gazetteer"])
     if payload.get("error"):
         return {**payload, "written": False}
+    if not payload.get("polygons"):
+        return {"written": False, "skipped": "empty_package",
+                "dataset": payload["dataset"], "version": payload["version"],
+                "message": "Active dataset has no polygons; refusing to "
+                           "overwrite the offline package."}
     target = Path(path) if path else Path(frappe.get_app_path(
         "siraj_research", "public", "data", "geo-package.json"))
     target.parent.mkdir(parents=True, exist_ok=True)
