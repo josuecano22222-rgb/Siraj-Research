@@ -423,6 +423,15 @@ def upsert_level(entry: dict, parent_name: str | None, *, lat=None, lon=None,
 		message = str(exc)
 		if (duplicate and isinstance(exc, duplicate)) or "Duplicate entry" in message:
 			reused = frappe.db.exists(doctype, code)
+			if not reused:
+				# Consistent reads use this session's snapshot: a concurrent
+				# writer (the import job's auto-sync, another tab) can commit
+				# this row after our first SELECT — the INSERT (a current
+				# read) then raises the duplicate while exists() still misses
+				# it. End the stale transaction (upserts are idempotent and
+				# the sync loop commits in batches anyway) and look again.
+				frappe.db.commit()
+				reused = frappe.db.exists(doctype, code)
 			if reused:
 				_link_boundary(entry.get("boundary"), doctype, reused)
 				return {"code": code, "name": reused, "status": "existing"}

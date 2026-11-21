@@ -257,3 +257,93 @@ def test_sync_hierarchy_spatial_country_inherits_despite_scrambled_rows(monkeypa
     # District and village both attach to the country found via the tree.
     assert ("OSM-DIST", "district", "Israel") in created
     assert ("OSM-VILL", "village", "Israel") in created
+
+
+class _DupError(Exception):
+    """Stands in for frappe.DuplicateEntryError in pure-Python tests."""
+
+
+def test_upsert_level_duplicate_rechecks_after_commit(monkeypatch):
+    """A duplicate the stale snapshot cannot see must be re-checked.
+
+    A concurrent writer (the import job's auto-sync, another tab) commits
+    the same deterministic code after this session's first SELECT: the
+    INSERT raises the duplicate error while a consistent exists() still
+    misses the row. The handler ends the stale transaction and looks
+    again instead of crashing the sync.
+    """
+    from types import SimpleNamespace
+
+    class _DB:
+        def __init__(self):
+            self.commits = 0
+
+        def exists(self, doctype, name):
+            # Before commit: the consistent read misses the concurrent row.
+            if self.commits and isinstance(name, str):
+                return name
+            return None
+
+        def commit(self):
+            self.commits += 1
+
+    class _Doc:
+        def insert(self, ignore_permissions=False):
+            raise _DupError("Duplicate entry 'GOV-1' for key 'PRIMARY'")
+
+    fake = SimpleNamespace(
+        db=_DB(),
+        DuplicateEntryError=_DupError,
+        get_doc=lambda *a, **k: _Doc(),
+        has_permission=lambda *a, **k: True,
+    )
+    monkeypatch.setattr(gh, "frappe", fake)
+    entry = {
+        "doctype": "Governorate",
+        "code": "GOV-1",
+        "pcode": "XX.01",
+        "label_en": "Province",
+        "level": 1,
+        "parent_field": None,
+    }
+    result = gh.upsert_level(entry, None)
+    assert result == {"code": "GOV-1", "name": "GOV-1", "status": "existing"}
+    assert fake.db.commits == 1
+
+
+def test_upsert_level_duplicate_raises_when_recheck_still_empty(monkeypatch):
+    """Genuine unknown duplicates keep raising after the fresh lookup."""
+    from types import SimpleNamespace
+
+    class _DB:
+        def __init__(self):
+            self.commits = 0
+
+        def exists(self, doctype, name):
+            return None
+
+        def commit(self):
+            self.commits += 1
+
+    class _Doc:
+        def insert(self, ignore_permissions=False):
+            raise _DupError("Duplicate entry 'GOV-1' for key 'PRIMARY'")
+
+    fake = SimpleNamespace(
+        db=_DB(),
+        DuplicateEntryError=_DupError,
+        get_doc=lambda *a, **k: _Doc(),
+        has_permission=lambda *a, **k: True,
+    )
+    monkeypatch.setattr(gh, "frappe", fake)
+    entry = {
+        "doctype": "Governorate",
+        "code": "GOV-1",
+        "pcode": "XX.01",
+        "label_en": "Province",
+        "level": 1,
+        "parent_field": None,
+    }
+    with pytest.raises(_DupError):
+        gh.upsert_level(entry, None)
+    assert fake.db.commits == 1
