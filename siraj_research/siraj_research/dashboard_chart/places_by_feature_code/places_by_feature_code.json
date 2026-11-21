@@ -1,0 +1,23 @@
+{
+ "chart_name": "Places by Feature Code",
+ "chart_type": "Group By",
+ "creation": "2026-11-18 12:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Dashboard Chart",
+ "document_type": "Gazetteer Place",
+ "dynamic_filters_json": "[]",
+ "filters_json": "[]",
+ "group_by_based_on": "feature_code",
+ "group_by_type": "Count",
+ "idx": 0,
+ "is_public": 1,
+ "is_standard": 1,
+ "modified": "2026-11-18 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Siraj Research",
+ "name": "Places by Feature Code",
+ "number_of_groups": 10,
+ "owner": "Administrator",
+ "timeseries": 0,
+ "type": "Bar"
+}

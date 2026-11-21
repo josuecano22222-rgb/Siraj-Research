@@ -36,6 +36,15 @@ fixtures = [
 	{"dt": "Workflow Action Master"},
 ]
 
+# Ship Number Cards / Dashboard Charts as module JSON (the workspace's live
+# insights widgets). Without this hook the module walk never visits
+# number_card/ or dashboard_chart/ for a non-frappe app, so the JSON files
+# sit unimported and the workspace widgets reference missing documents.
+importable_doctypes = [
+	"Number Card",
+	"Dashboard Chart",
+]
+
 # Each item in the list will be shown as an app in the apps page
 add_to_apps_screen = [
 	{
