@@ -259,6 +259,73 @@ def test_sync_hierarchy_spatial_country_inherits_despite_scrambled_rows(monkeypa
     assert ("OSM-VILL", "village", "Israel") in created
 
 
+def test_sync_hierarchy_skips_nameless_rows_but_keeps_them_as_parents(monkeypatch):
+    """Nameless features (name_en fell back to the pcode) never enter the hierarchy.
+
+    They must not appear as hash-labelled rows, but their geometry still
+    participates in spatial parent inference — children walk past them to
+    the next named ancestor instead of being dropped or parented to a
+    row that does not exist.
+    """
+    pytest.importorskip("shapely")
+    import sys
+    import types
+    from types import SimpleNamespace
+
+    from shapely import wkb as shapely_wkb
+    from shapely.geometry import box
+
+    monkeypatch.setitem(sys.modules, "frappe", types.ModuleType("frappe"))
+    import siraj_research.geo_import as geo_import
+
+    monkeypatch.setattr(geo_import, "deps_ok", lambda: (True, []))
+    monkeypatch.setattr(geo_import, "shapely", sys.modules.get("shapely") or __import__("shapely"))
+
+    def _row(name, pcode, level, name_en, geom, country=None):
+        hex_wkb = shapely_wkb.dumps(geom).hex()
+        return SimpleNamespace(
+            name=name, pcode=pcode, level=level, name_en=name_en, name_ar=None,
+            country=country, parent_pcode=None,
+            centroid_lat=geom.centroid.y, centroid_lon=geom.centroid.x,
+            bbox=None, source_id=None,
+            simplified_wkb=hex_wkb, full_wkb=hex_wkb,
+        )
+
+    village_geom = box(6, 6, 8, 8)
+    # Nameless district CONTAINS the village: inference must walk past it.
+    district_geom = box(1, 1, 9, 9)
+    country_geom = box(0, 0, 10, 10)
+    rows = [
+        _row("BV", "OSM-VILL", 4, "Village Q", village_geom),
+        _row("BD", "OSM-DIST", 2, "OSM-DIST", district_geom),  # name_en == pcode
+        _row("BC", "OSM-CTRY", 0, "Israel", country_geom, country="Israel"),
+    ]
+
+    fake_frappe = SimpleNamespace(
+        db=SimpleNamespace(sql=lambda *a, **k: rows, commit=lambda: None),
+        get_all=lambda *a, **k: [{"name": "Israel", "code": "IL"}],
+    )
+    monkeypatch.setattr(gh, "frappe", fake_frappe)
+    monkeypatch.setattr(gh, "_country_names", lambda: {"IL": "Israel", "Israel": "Israel"})
+
+    created = []
+
+    def _fake_upsert(entry, parent_name, **kwargs):
+        created.append((entry["code"], entry["field"], parent_name))
+        return {"name": entry["code"], "status": "created"}
+
+    monkeypatch.setattr(gh, "upsert_level", _fake_upsert)
+
+    result = gh.sync_hierarchy_from_boundaries("OSM-TEST")
+
+    assert result["unnamed"] == 1, result
+    assert result["synced"] == 1, result
+    assert result["skipped"] == 0, result
+    # The nameless district never becomes a row; the village still attaches
+    # to the country (its geometry routed inference, the row did not exist).
+    assert created == [("OSM-VILL", "village", "Israel")], created
+
+
 class _DupError(Exception):
     """Stands in for frappe.DuplicateEntryError in pure-Python tests."""
 

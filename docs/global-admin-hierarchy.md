@@ -283,8 +283,11 @@ levels are filled by combining three sources in this order:
    done
    ```
 
-2. **GeoNames admin codes + ADM3/4/5 features** — fills names where GADM does
-   not publish a polygon for a level:
+2. **GeoNames admin codes + ADM1-5 features** — fills names where GADM does
+   not publish a polygon for a level, and back-fills `latitude`/`longitude`
+   on every hierarchy row (the codes files carry no coordinates; the
+   `allCountries` pass supplies them, and existing rows only get blank
+   spatial fields filled):
 
    The importer accepts either a zip **or a plain directory** of GeoNames
    `*.txt` files, so `zip`/`unzip` are not required. Put the three files in a
@@ -330,7 +333,7 @@ levels are filled by combining three sources in this order:
    Arabic placeholder until a researcher translates it on the form.
 
    The import result includes `admin_features_seen`, which tells you how many
-   `ADM3`/`ADM4`/`ADM5` features the source actually contains for the selected
+   `ADM1`–`ADM5` features the source actually contains for the selected
    countries. A level stays empty when the source has no feature for it.
 
    Check queued/failed datasets with:

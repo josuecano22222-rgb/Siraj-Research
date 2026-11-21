@@ -316,7 +316,31 @@ GEONAMES_ADMIN_LEVELS = {
 	"admin4": (4, "Village", "municipality"),
 	"admin5": (5, "Community", "village"),
 }
-GEONAMES_ADMIN_FEATURE_LEVELS = {"ADM3": 3, "ADM4": 4, "ADM5": 5}
+GEONAMES_ADMIN_FEATURE_LEVELS = {"ADM1": 1, "ADM2": 2, "ADM3": 3, "ADM4": 4, "ADM5": 5}
+
+
+def _admin_feature_pcode(level: int, row: dict) -> tuple[str | None, str | None]:
+    """P-code + parent P-code for one allCountries ADM feature (levels 1-5).
+
+    Level 1 passes its own code as parent so ``choose_admin_parent`` can
+    read the ISO country prefix. Level 5 (ADM5) has no stable code in
+    GeoNames, so the geonameid is used — matching the historical behaviour.
+    """
+    if level == 1:
+        code = row.get("admin1_pcode")
+        return code, code
+    if level == 2:
+        return row.get("admin2_pcode"), row.get("admin1_pcode")
+    if level == 3:
+        return (row.get("admin3_pcode"),
+                row.get("admin2_pcode") or row.get("admin1_pcode"))
+    if level == 4:
+        return (row.get("admin4_pcode"),
+                row.get("admin3_pcode") or row.get("admin2_pcode")
+                or row.get("admin1_pcode"))
+    return (row.get("source_id"),
+            row.get("admin4_pcode") or row.get("admin3_pcode")
+            or row.get("admin2_pcode") or row.get("admin1_pcode"))
 
 
 def parse_geonames_admin_line(line: str, *, level: int) -> dict | None:
@@ -366,13 +390,15 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
                           country_codes: Iterable[str] | None = None,
                           batch_size: int = 500,
                           include_all_countries: bool = True) -> dict:
-	"""Create hierarchy rows from GeoNames admin1/2 codes and ADM3/4/5 features.
+	"""Create hierarchy rows from GeoNames admin1/2 codes and ADM1-5 features.
 
 	This is the step that fills the levels the curated reference layer only
-	samples. ``admin1CodesASCII.txt`` and ``admin2Codes.txt`` provide level 1/2;
-	``allCountries.txt`` feature codes ``ADM3``, ``ADM4`` and ``ADM5`` provide
-	the lower levels. Parent rows that are missing are skipped rather than
-	invented, and the skipped count is reported.
+	samples. ``admin1CodesASCII.txt`` and ``admin2Codes.txt`` provide level 1/2
+	labels; ``allCountries.txt`` feature codes ``ADM1``-``ADM5`` then add the
+	lower levels AND back-fill latitude/longitude on every row (the codes files
+	carry no coordinates, and existing rows only ever get blank spatial fields
+	filled). Parent rows that are missing are skipped rather than invented, and
+	the skipped count is reported.
 
 	Use ``country_codes`` to process one or a few countries when a full global
 	allCountries archive is too large for the worker.
@@ -400,7 +426,8 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 	feature_seen: dict[str, int] = {}
 
 	def _put(level: int, pcode: str, parent_pcode: str | None,
-	         name_en: str, source_id: str | None = None) -> bool:
+	         name_en: str, source_id: str | None = None,
+	         lat: float | None = None, lon: float | None = None) -> bool:
 		nonlocal count, processed, missing_parents
 		spec = LEVELS[level]
 		parent_name, parent_field, parent_level = choose_admin_parent(
@@ -431,7 +458,8 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 			"source": "geonames_admin",
 			"admin_level_type": f"GeoNames level {level}",
 		}
-		result = upsert_level(entry, parent_name, dataset=dataset_code)
+		result = upsert_level(entry, parent_name, lat=lat, lon=lon,
+		                      dataset=dataset_code)
 		if result.get("name"):
 			name_by_pcode[normalised] = result["name"]
 			levels_seen.add(level)
@@ -478,21 +506,12 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 			if wanted and cc not in wanted:
 				continue
 			feature_seen[row["feature_code"]] = feature_seen.get(row["feature_code"], 0) + 1
-			if level == 3:
-				pcode = row["admin3_pcode"]
-				parent_pcode = row["admin2_pcode"] or row["admin1_pcode"]
-			elif level == 4:
-				pcode = row["admin4_pcode"]
-				parent_pcode = (row["admin3_pcode"] or row["admin2_pcode"]
-				                or row["admin1_pcode"])
-			else:
-				pcode = row["source_id"]
-				parent_pcode = (row["admin4_pcode"] or row["admin3_pcode"]
-				                or row["admin2_pcode"] or row["admin1_pcode"])
+			pcode, parent_pcode = _admin_feature_pcode(level, row)
 			if not pcode or not parent_pcode:
 				missing_parents += 1
 				continue
-			_put(level, pcode, parent_pcode, row["name_en"], row["source_id"])
+			_put(level, pcode, parent_pcode, row["name_en"], row["source_id"],
+			     lat=row.get("latitude"), lon=row.get("longitude"))
 			if processed % batch_size == 0 and processed:
 				_progress(dataset_code, count=processed, offset=processed)
 

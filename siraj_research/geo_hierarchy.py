@@ -681,7 +681,10 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
     level. Parents come from ``parent_pcode`` when present; otherwise they are
     inferred spatially from the smallest containing polygon at each lower
     level. Existing rows are never overwritten — only empty spatial fields are
-    back-filled by :func:`upsert_level`.
+    back-filled by :func:`upsert_level`. Nameless source features (the import
+    fell back to the pcode for ``name_en``) are not promoted into the
+    hierarchy — they would only surface as hash labels; their geometry stays
+    on the boundary for map pinning and is reported as ``unnamed``.
     """
     if frappe is None:
         return {"error": "frappe unavailable", "dataset": dataset}
@@ -751,11 +754,20 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
     counts: dict[int, dict[str, int]] = {}
     inferred_parents = 0
     skipped = 0
+    unnamed = 0
     processed = 0
 
     for record in records:
         level = record["level"]
         if level not in wanted_levels or level < 1 or level > 5:
+            continue
+        # Nameless source features fell back to the pcode at import time
+        # (name_en == pcode): they have no honest label, so they must not
+        # appear as hash rows in the editable hierarchy. Their geometry
+        # stays on the boundary for map pinning, and spatial parent
+        # inference simply walks past them (they never enter name_by_pcode).
+        if not record["name_en"] or record["name_en"] == record["pcode"]:
+            unnamed += 1
             continue
         pcode = record["pcode"] or record["name"]
         if not pcode:
@@ -798,12 +810,23 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
                 ancestor_name = name_by_pcode.get(normalize_code(ancestor_record["pcode"]))
                 if ancestor_name:
                     ancestors[str(LEVELS[ancestor_level]["field"])] = ancestor_name
-            ancestor_levels = {level_key for level_key in best if level_key > 0}
-            if ancestor_levels:
-                parent_level = max(ancestor_levels)
-                parent_record = best[parent_level][1]
-                parent_name = name_by_pcode.get(normalize_code(parent_record["pcode"]))
-                inferred_parents += 1
+            # Walk deepest-first and take the first ancestor that actually
+            # exists as a row: nameless boundaries are in `best` (their
+            # geometry contains the point) but never became hierarchy rows,
+            # so a bare max() would pick them and the last-resort country
+            # branch would discard a valid shallower named parent.
+            ancestor_levels = sorted(
+                (level_key for level_key in best if level_key > 0), reverse=True)
+            for ancestor_level in ancestor_levels:
+                ancestor_record = best[ancestor_level][1]
+                ancestor_name = name_by_pcode.get(
+                    normalize_code(ancestor_record["pcode"]))
+                if ancestor_name:
+                    parent_level = ancestor_level
+                    parent_record = ancestor_record
+                    parent_name = ancestor_name
+                    inferred_parents += 1
+                    break
         if not parent_name:
             # Last resort: attach to the country. Intermediate Links stay
             # empty, which the DocTypes now explicitly allow.
@@ -848,6 +871,7 @@ def sync_hierarchy_from_boundaries(dataset: str, *, levels: Iterable[int] | None
         "boundaries": len(records),
         "synced": processed,
         "skipped": skipped,
+        "unnamed": unnamed,
         "inferred_parents": inferred_parents,
         "by_level": {str(level): counts.get(level, {}) for level in sorted(wanted_levels)},
     }
