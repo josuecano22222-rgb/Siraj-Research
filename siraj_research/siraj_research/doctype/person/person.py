@@ -6,6 +6,7 @@ from frappe.model.document import Document
 from frappe.utils import getdate
 
 from siraj_research.utils.display_name import set_display_name
+from siraj_research.utils.family import build_family_summary, derive_is_grandparent
 from siraj_research.utils.military import SERVICE_STATUS_TRANSITIONS, check_transition
 
 
@@ -17,6 +18,7 @@ class Person(Document):
 		self.validate_military()
 		self.validate_service_status()
 		self.validate_leadership_assessments()
+		self.validate_family()
 
 	def validate_military(self):
 		"""The six military attributes only apply to a military person (migration 020)."""
@@ -70,3 +72,92 @@ class Person(Document):
 				)
 			if row.assessed_at and getdate(row.assessed_at) > today:
 				frappe.throw(_("Row {0}: an assessment cannot be dated in the future.").format(row.idx))
+
+	def validate_family(self):
+		"""Family tab: date sanity, person-exclusive rules, derived fields.
+
+		Spouse/children/grandchildren are embedded rows — they never Link to
+		another Person, so a person's family stays exclusive to their record.
+		Siblings may optionally link (a sibling can be a subject in their own
+		right). Marital status only gates the UI: hidden values are kept.
+		"""
+		today = getdate()
+		if self.marriage_date and getdate(self.marriage_date) > today:
+			frappe.throw(_("Marriage date cannot be in the future."))
+		if (self.marriage_date and self.birth_date
+				and getdate(self.marriage_date) < getdate(self.birth_date)):
+			frappe.throw(_("Marriage date cannot precede the person's birth date."))
+		if self.spouse_birth_date and getdate(self.spouse_birth_date) > today:
+			frappe.throw(_("Spouse date of birth cannot be in the future."))
+
+		children = self.get("children") or []
+		child_births = {}
+		for row in children:
+			if row.child_name:
+				child_births[row.child_name] = row.birth_date
+			if not row.birth_date:
+				continue
+			bd = getdate(row.birth_date)
+			if bd > today:
+				frappe.throw(
+					_("Row {0}: a child's date of birth cannot be in the future.").format(row.idx),
+					title=_("Family data"),
+				)
+			if self.birth_date and bd < getdate(self.birth_date):
+				frappe.throw(
+					_("Row {0}: a child cannot be born before the person.").format(row.idx),
+					title=_("Family data"),
+				)
+
+		child_names = set(child_births)
+		for row in self.get("grandchildren") or []:
+			if row.through_child and row.through_child not in child_names:
+				frappe.throw(
+					_("Row {0}: 'Through' must name one of this person's children.").format(row.idx),
+					title=_("Family data"),
+				)
+			if row.birth_date:
+				bd = getdate(row.birth_date)
+				if bd > today:
+					frappe.throw(
+						_("Row {0}: a grandchild's date of birth cannot be in the future.").format(row.idx),
+						title=_("Family data"),
+					)
+				if self.birth_date and bd < getdate(self.birth_date):
+					frappe.throw(
+						_("Row {0}: a grandchild cannot be born before the person.").format(row.idx),
+						title=_("Family data"),
+					)
+				parent_birth = child_births.get(row.through_child)
+				if parent_birth and bd < getdate(parent_birth):
+					frappe.throw(
+						_("Row {0}: a grandchild cannot be born before their parent.").format(row.idx),
+						title=_("Family data"),
+					)
+
+		for row in self.get("siblings") or []:
+			if row.person and self.name and row.person == self.name:
+				frappe.throw(
+					_("Row {0}: a person cannot be listed as their own sibling.").format(row.idx),
+					title=_("Family data"),
+				)
+			if not row.sibling_name and row.person:
+				# Convenience only: fill the visible name from the linked Person.
+				row.sibling_name = frappe.db.get_value(
+					"Person", row.person, "display_name"
+				) or frappe.db.get_value("Person", row.person, "name_en") or row.person
+
+		# Derived, recomputed on every save so every surface agrees.
+		self.is_grandparent = derive_is_grandparent(
+			row.number_of_children for row in children
+		)
+		self.family_summary = build_family_summary(
+			{
+				"marital_status": self.marital_status,
+				"spouse_name": self.spouse_name,
+				"children_count": len(children),
+				"grandchildren_count": len(self.get("grandchildren") or []),
+				"siblings_count": len(self.get("siblings") or []),
+			},
+			translate=_,
+		)

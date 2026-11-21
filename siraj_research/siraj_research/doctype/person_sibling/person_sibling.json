@@ -1,0 +1,79 @@
+{
+ "doctype": "DocType",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "permissions": [],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "sort_field": "modified",
+ "sort_order": "ASC",
+ "row_format": "Dynamic",
+ "autoname": "hash",
+ "istable": 1,
+ "editable_grid": 1,
+ "in_create": 0,
+ "issingle": 0,
+ "creation": "2026-11-18 00:00:00.000000",
+ "modified": "2026-11-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0,
+ "name": "Person Sibling",
+ "description": "One sibling of the parent Person — optionally linked to their own Person record.",
+ "fields": [
+  {
+   "fieldname": "sibling_name",
+   "fieldtype": "Data",
+   "label": "Sibling name",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "sibling_name_ar",
+   "fieldtype": "Data",
+   "label": "Sibling name (Arabic)",
+   "columns": 2
+  },
+  {
+   "fieldname": "cb_sibling",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "relation",
+   "fieldtype": "Select",
+   "label": "Relation",
+   "options": "\nBrother\nSister\nStepbrother\nStepsister\nHalf-brother\nHalf-sister\nUnknown"
+  },
+  {
+   "fieldname": "person",
+   "fieldtype": "Link",
+   "label": "Linked Person record",
+   "options": "Person",
+   "description": "Optional — link only when the sibling exists as their own Person record."
+  },
+  {
+   "fieldname": "birth_date",
+   "fieldtype": "Date",
+   "label": "Date of birth"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "field_order": [
+  "sibling_name",
+  "sibling_name_ar",
+  "cb_sibling",
+  "relation",
+  "person",
+  "birth_date",
+  "notes"
+ ]
+}

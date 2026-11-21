@@ -1,5 +1,21 @@
 # SIRAJ Research — decision log
 
+## 2026-11-18 — Person family fields (exclusive embedded rows)
+
+**Decision.** Spouse, children, and grandchildren live as embedded fields and child tables on the Person record (`tab_family`); they never create or link to other Person DocTypes. Siblings alone may optionally link to an existing Person, because siblings are often subjects in their own right. A `Marital status` Select gates visibility: `Single` hides spouse/children/grandchildren sections (values are kept, not cleared), `Married` reveals them, and the Grandchildren section additionally requires the derived `is_grandparent` flag. A computed, stored `family_summary` line is added to `search_fields` so desk search reaches family names.
+
+**Why.** Research notes are per-subject files; a family member with no dossier of their own must not force a hollow Person record, and hollow records would pollute search, tree, and coverage surfaces. Conditional display keeps the form quiet for single subjects without destroying evidence when status changes. The sibling link is opt-in so it can never break the rule for the other relations.
+
+**Trade-offs.** Family members are invisible as Person records — cross-referencing a spouse who is themselves a subject requires typing their name into the parent's row (the optional sibling link covers only siblings). Conditional hiding can surprise users, mitigated by the dashboard comment and by server-side data preservation. The derived `family_summary` is a stored translation snapshot — it re-computes on every save, so its language follows the site at write time, not read time.
+
+## 2026-11-17 — Settlement fallback: nearest Community, then village label
+
+**Decision.** When the gazetteer chain has no settlement-level hit, the resolver falls back to the nearest **Community**-category locality within 5 km, returning its village-level label (`level = "village"`), `settlement_fallback = True`, `source = "gazetteer_community"`, `confidence = "low"`, `pcode = None`.
+
+**Why.** The gazetteer's Community entries are often the only named settlement within reach; refusing them left points with only district hierarchy. The label and level are demoted honestly (a village-grade answer on low confidence, no pcode) so downstream consumers never mistake it for a confirmed settlement match.
+
+**Trade-offs.** A Community nearest-neighbor can name a different village than a resident would — accepted at `low` confidence; the alternative (no settlement label at all) is worse for research notes. Fallback never fires when any chain rung already matched, and the gate asserts `settlement_fallback` is False whenever `settlement` is set the normal way.
+
 ## 2026-11-16 — Representing connections for DocTypes not in Relationship endpoints
 
 **Decision:** Use **option (b) — derive structural connections from ordinary Link fields**

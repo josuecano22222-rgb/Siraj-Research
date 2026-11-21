@@ -2,7 +2,7 @@
 // Presentation only; permissions and workflow rules remain server-side.
 frappe.provide("frappe.listview_settings");
 frappe.listview_settings["Person"] = {
-	add_fields: ["workflow_state"],
+	add_fields: ["workflow_state", "marital_status", "family_summary"],
 	get_indicator(doc) {
 		const colors = {
 			"Draft": "gray", "In Review": "orange", "Verified": "green",

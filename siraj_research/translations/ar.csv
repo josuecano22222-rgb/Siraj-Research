@@ -1679,3 +1679,70 @@ Zoom out,تصغير
 Σ direct_personnel over the whole subtree.,مجموع الأفراد المباشرين عبر الشجرة الفرعية.
 "Σ direct_personnel over the whole subtree. Read-only and recomputed on save: it is the one number a commander asks for, and it must never be typed.",مجموع الأفراد المباشرين عبر الشجرة الفرعية؛ قراءة فقط.
 العنوان (Arabic),العنوان بالعربية
+Brother,أخ
+Sister,أخت
+Stepbrother,أخ غير شقيق
+Stepsister,أخت غير شقيقة
+Half-brother,أخ نصف شقيق
+Half-sister,أخت نصف شقيقة
+Child name,اسم الطفل
+Child name (Arabic),اسم الطفل (بالعربية)
+Children,الأبناء
+Children: {0},الأبناء: {0}
+Computed on save from marital status and family rows.,تُحسب عند الحفظ من الحالة الاجتماعية وصفوف العائلة.
+Derived: set when any child row reports children of its own.,مشتقّة: تُفعَّل عندما يذكر أي صف من الأبناء أبناءً لديهم.
+Family data,بيانات العائلة
+Family details are hidden while Single — they are kept; switch back to Married to review them.,تفاصيل العائلة مخفية أثناء وضع «غير متزوج» — البيانات محفوظة؛ اعد الاختيار إلى «متزوج» لعرضها.
+Family name / clan,اسم العائلة / العشيرة
+Family notes,ملاحظات العائلة
+Family of origin & next of kin,العائلة الأصلية وذوو القرابة
+Family summary,ملخص العائلة
+Father (linked Person record),الأب (سجل شخص مرتبط)
+Father name,اسم الأب
+Grandchild name,اسم الحفيد
+Grandchild name (Arabic),اسم الحفيد (بالعربية)
+Grandchildren,الأحفاد
+Grandchildren: {0},الأحفاد: {0}
+Is grandparent,لديه أحفاد
+Linked Person record,سجل شخص مرتبط
+Marital status,الحالة الاجتماعية
+Marriage date,تاريخ الزواج
+Marriage date (as stated),تاريخ الزواج (كما ورد)
+Marriage date cannot be in the future.,لا يمكن أن يكون تاريخ الزواج في المستقبل.
+Marriage date cannot precede the person's birth date.,لا يمكن أن يسبق تاريخ الزواج ميلاد الشخص.
+Marriage place,مكان الزواج
+Married,متزوج
+Mother name (as stated),اسم الأم (كما ورد)
+Next of kin (name & contact),ذوو القرابة الأقرب (الاسم والتواصل)
+Number of children,عدد الأبناء
+Occupation / school,المهنة / المدرسة
+"One child of the parent Person — exclusive to this record, never a separate Person.",طفل واحد من الشخص الأب — حصري بهذا السجل ولا يُسجَّل كشخص مستقل.
+"One grandchild of the parent Person — exclusive to this record, never a separate Person.",حفيد واحد من الشخص الأب — حصري بهذا السجل ولا يُسجَّل كشخص مستقل.
+One sibling of the parent Person — optionally linked to their own Person record.,شقيقة أو أخ واحد من الشخص الأب — مع إمكانية ربطه بسجل شخص مستقل.
+Optional — link only when the sibling exists as their own Person record.,اختياري — اربط فقط عندما يكون الشخص الآخر مسجَّلاً بسجل مستقل.
+Person Child,طفل الشخص
+Person Grandchild,حفيد الشخص
+Person Sibling,شقيق الشخص
+Row {0}: 'Through' must name one of this person's children.,الصف {0}: يجب أن يشير «من خلال» إلى أحد أبناء هذا الشخص.
+Row {0}: a child cannot be born before the person.,الصف {0}: لا يمكن أن يسبق ميلاد الطفل ميلاد الشخص.
+Row {0}: a child's date of birth cannot be in the future.,الصف {0}: لا يمكن أن يكون تاريخ ميلاد الطفل في المستقبل.
+Row {0}: a grandchild cannot be born before the person.,الصف {0}: لا يمكن أن يسبق ميلاد الحفيد ميلاد الشخص.
+Row {0}: a grandchild cannot be born before their parent.,الصف {0}: لا يمكن أن يسبق ميلاد الحفيد ميلاد والده.
+Row {0}: a grandchild's date of birth cannot be in the future.,الصف {0}: لا يمكن أن يكون تاريخ ميلاد الحفيد في المستقبل.
+Row {0}: a person cannot be listed as their own sibling.,الصف {0}: لا يمكن إدراج الشخص أخاً لنفسه.
+Sibling name,اسم الشقيق
+Sibling name (Arabic),اسم الشقيق (بالعربية)
+Siblings,الأشقاء
+Siblings: {0},الأشقاء: {0}
+Single,غير متزوج
+Spouse,الزوج/الزوجة
+Spouse date of birth,تاريخ ميلاد الزوج/الزوجة
+Spouse date of birth cannot be in the future.,لا يمكن أن يكون تاريخ ميلاد الزوج/الزوجة في المستقبل.
+Spouse name (as stated),اسم الزوج/الزوجة (كما ورد)
+Spouse nationality,جنسية الزوج/الزوجة
+Spouse notes,ملاحظات عن الزوج/الزوجة
+Spouse occupation,مهنة الزوج/الزوجة
+Spouse: {0},الزوج/الزوجة: {0}
+This child's own children — marks the parent as a grandparent.,أبناء هذا الطفل — وما يجعل الشخص جدًّا.
+Through (child of this person),من خلال (طفل من أبناء هذا الشخص)
+Which of this person's children this grandchild descends from — options fill from the Children table.,أيُّ أبناء هذا الشخص ينتمي إليه هذا الحفيد — تُملأ الخيارات من جدول الأبناء.

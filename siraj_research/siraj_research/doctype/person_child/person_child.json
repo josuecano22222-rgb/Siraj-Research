@@ -1,0 +1,90 @@
+{
+ "doctype": "DocType",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "permissions": [],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "sort_field": "modified",
+ "sort_order": "ASC",
+ "row_format": "Dynamic",
+ "autoname": "hash",
+ "istable": 1,
+ "editable_grid": 1,
+ "in_create": 0,
+ "issingle": 0,
+ "creation": "2026-11-18 00:00:00.000000",
+ "modified": "2026-11-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0,
+ "name": "Person Child",
+ "description": "One child of the parent Person — exclusive to this record, never a separate Person.",
+ "fields": [
+  {
+   "fieldname": "child_name",
+   "fieldtype": "Data",
+   "label": "Child name",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "child_name_ar",
+   "fieldtype": "Data",
+   "label": "Child name (Arabic)",
+   "columns": 2
+  },
+  {
+   "fieldname": "cb_child",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "gender",
+   "fieldtype": "Select",
+   "label": "Gender",
+   "options": "\nMale\nFemale\nUnknown"
+  },
+  {
+   "fieldname": "birth_date",
+   "fieldtype": "Date",
+   "label": "Date of birth"
+  },
+  {
+   "fieldname": "birth_date_as_stated",
+   "fieldtype": "Data",
+   "label": "Date of birth (as stated)"
+  },
+  {
+   "fieldname": "occupation_or_school",
+   "fieldtype": "Data",
+   "label": "Occupation / school"
+  },
+  {
+   "fieldname": "number_of_children",
+   "fieldtype": "Int",
+   "label": "Number of children",
+   "description": "This child's own children — marks the parent as a grandparent."
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "field_order": [
+  "child_name",
+  "child_name_ar",
+  "cb_child",
+  "gender",
+  "birth_date",
+  "birth_date_as_stated",
+  "occupation_or_school",
+  "number_of_children",
+  "notes"
+ ]
+}
