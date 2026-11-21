@@ -93,6 +93,16 @@ class TestMapSearchApi(FrappeTestCase):
 		self.assertNotIn("error", result)
 		self.assertEqual(result["bbox"], ["0", "170", "10", "-170"])
 
+	def test_bbox_echo_keeps_caller_strings_verbatim(self):
+		# Never round-trip the reply through float: '31.590000000000001'
+		# must come back byte-identical, not as '31.59'.
+		result = map_search.search_bbox(
+			"31.590000000000001", "34.47", "31.6", "34.6")
+		self.assertNotIn("error", result)
+		self.assertEqual(
+			result["bbox"],
+			["31.590000000000001", "34.47", "31.6", "34.6"])
+
 	def test_region_children_cascade_levels(self):
 		countries = map_search.region_children(0)
 		self.assertNotIn("error", countries)

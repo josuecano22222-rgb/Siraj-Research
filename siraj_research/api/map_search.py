@@ -526,9 +526,11 @@ def search_bbox(min_lat, min_lon, max_lat, max_lon, types="", limit=20):
 	"""Records, gazetteer places and regions inside a map viewport.
 
 	``min_lon > max_lon`` is accepted and treated as an antimeridian
-	wrapping box (the west edge is east of the east edge). Every returned
-	coordinate is the exact stored string; nothing is rounded.
+	wrapping box (the west edge is east of the east edge). The echoed
+	``bbox`` keeps the caller's strings verbatim — the float copies are
+	used only for validation and the SQL prefilter, never for the reply.
 	"""
+	raw_bbox = [str(min_lat), str(min_lon), str(max_lat), str(max_lon)]
 	try:
 		min_lat, min_lon = float(min_lat), float(min_lon)
 		max_lat, max_lon = float(max_lat), float(max_lon)
@@ -653,7 +655,7 @@ def search_bbox(min_lat, min_lon, max_lat, max_lon, types="", limit=20):
 		})
 
 	return {
-		"bbox": [str(min_lat), str(min_lon), str(max_lat), str(max_lon)],
+		"bbox": raw_bbox,
 		"records": records[:limit],
 		"places": places[:limit],
 		"regions": regions[:limit],
