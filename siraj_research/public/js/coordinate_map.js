@@ -122,17 +122,20 @@
 	}
 	// Exact decimal bound test on the raw text: Number() rounds
 	// "90.000…001" (51 fraction digits) to exactly 90 and would wrongly
-	// accept an input that is definitively past the bound.
+	// accept an input that is definitively past the bound. Compare digit
+	// strings instead of values — no BigInt (esbuild target: es2017).
+	// Fraction tails only add < 1, so once the integer part is below the
+	// bound the value is too; equal integer parts exceed only when a
+	// non-zero tail remains after trailing zeros are trimmed.
 	function decimalExceeds(text, max) {
-		const negative = text.startsWith('-');
-		const body = negative ? text.slice(1) : text;
+		const body = text.replace(/^[+-]/, '');
 		const dot = body.indexOf('.');
-		const whole = (dot === -1 ? body : body.slice(0, dot)) || '0';
-		const frac = dot === -1 ? '' : body.slice(dot + 1);
-		const scale = 10n ** BigInt(frac.length);
-		const value = BigInt(whole + frac) * (negative ? -1n : 1n);
-		const bound = BigInt(max) * scale;
-		return value > bound || value < -bound;
+		let whole = (dot === -1 ? body : body.slice(0, dot)).replace(/^0+(?=\d)/, '') || '0';
+		const frac = (dot === -1 ? '' : body.slice(dot + 1)).replace(/0+$/, '');
+		const bound = String(max);
+		if (whole.length !== bound.length) return whole.length > bound.length;
+		if (whole !== bound) return whole > bound;
+		return frac.length > 0;
 	}
 	function decimalText(number) {
 		const text = String(number);
