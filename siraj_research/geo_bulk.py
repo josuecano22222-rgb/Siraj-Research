@@ -51,6 +51,18 @@ def _ensure_dataset(code: str, *, label_en: str, source: str, level: int = 0,
                     is_gazetteer: bool = False) -> str:
     if frappe is None:
         return code
+    if is_gazetteer:
+        # Mirror _finish's boundary auto-activate: the first gazetteer
+        # becomes the resolver's nearest-place source. Without this,
+        # active_gazetteer_dataset stays empty and place fills never fire.
+        try:
+            s = frappe.get_single("Geo Settings")
+            if not getattr(s, "active_gazetteer_dataset", None):
+                frappe.db.set_value("Geo Settings", "Geo Settings",
+                                    "active_gazetteer_dataset", code,
+                                    update_modified=False)
+        except Exception:
+            pass
     if frappe.db.exists("Boundary Dataset", code):
         return code
     doc = frappe.get_doc({

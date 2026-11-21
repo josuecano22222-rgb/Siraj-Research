@@ -224,3 +224,14 @@ def test_geonames_import_reports_failed_rows():
     assert "failed_sample.append" in src
     assert '"failed": failed' in src
     assert '"failed_sample": failed_sample' in src
+
+
+def test_gazetteer_dataset_autoactivates_the_settings_field():
+    """Without active_gazetteer_dataset the resolver's place lookup runs
+    with dataset=None and never fires — the first gazetteer import must
+    wire itself, mirroring _finish's boundary auto-activate."""
+    from pathlib import Path
+
+    src = Path("siraj_research/geo_bulk.py").read_text()
+    assert '"active_gazetteer_dataset", code' in src
+    assert "if is_gazetteer:" in src

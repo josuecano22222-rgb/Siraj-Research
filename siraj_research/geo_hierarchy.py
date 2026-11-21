@@ -165,6 +165,13 @@ def normalise_chain(raw_chain: Any, nearest_place: Any = None) -> tuple[dict[str
 		entry = chain.get(field)
 		if entry:
 			label, pcode, name_ar, source = _entry_value(entry)
+			# Fallback fills (gazetteer / nearest-record) carry their own
+			# confidence and distance; polygon evidence stays high.
+			confidence = "high"
+			distance_m = None
+			if isinstance(entry, dict):
+				confidence = str(entry.get("confidence") or "high")
+				distance_m = entry.get("distance_m")
 			entries[field] = {
 				"level": spec["level"],
 				"field": field,
@@ -173,7 +180,8 @@ def normalise_chain(raw_chain: Any, nearest_place: Any = None) -> tuple[dict[str
 				"label_ar": name_ar,
 				"pcode": pcode,
 				"source": source or "polygon_containment",
-				"confidence": "high",
+				"confidence": confidence,
+				**({"distance_m": distance_m} if distance_m is not None else {}),
 			}
 			continue
 		gaps.append({

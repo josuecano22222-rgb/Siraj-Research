@@ -477,3 +477,19 @@ def test_make_code_fits_long_pcodes_into_the_64_char_field():
     assert code_a != code_b
     # Short codes are untouched.
     assert gh.make_code("PS-NGZ-JA", "Jabalia", "PS-NGZ", 2) == "PS-NGZ-JA"
+
+
+def test_normalise_chain_keeps_fallback_confidence_and_distance():
+    entries, gaps = gh.normalise_chain({
+        "country": {"name_en": "Palestinian Territory, Occupied"},
+        "municipality": {"name_en": "جباليا", "pcode": "OSM-612A",
+                         "source": "nearest_record", "confidence": "low",
+                         "distance_m": 240.5},
+    })
+    # Polygon evidence stays high; fallback fills keep their honest labels.
+    assert entries["country"]["confidence"] == "high"
+    assert entries["municipality"]["confidence"] == "low"
+    assert entries["municipality"]["source"] == "nearest_record"
+    assert entries["municipality"]["distance_m"] == 240.5
+    assert [g["field"] for g in gaps] == [
+        "governorate", "district", "village", "community"]

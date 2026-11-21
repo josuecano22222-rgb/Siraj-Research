@@ -75,3 +75,43 @@ def test_parent_cycle_terminates(geo_resolve):
     assert "district" in chain
     assert "governorate" in chain
     assert "country" not in chain  # nothing contains the point and no fallback source
+
+
+def test_pick_nearest_record_prefers_parent_match_then_distance(geo_resolve):
+    # ~11 m north (wrong parent) vs ~167 m north (right parent); a third
+    # row sits 11 km away, outside any sane radius.
+    rows = [
+        {"name": "A", "latitude": 31.5501, "longitude": 34.4700,
+         "parent_ref": "OTHER"},
+        {"name": "B", "latitude": 31.5515, "longitude": 34.4700,
+         "parent_ref": "NGZ"},
+        {"name": "C", "latitude": 31.6500, "longitude": 34.4700,
+         "parent_ref": "NGZ"},
+    ]
+    hinted = geo_resolve._pick_nearest_record(rows, 31.55, 34.47, 5000,
+                                              parent_hint="NGZ")
+    assert hinted["name"] == "B"          # parent match beats raw proximity
+    plain = geo_resolve._pick_nearest_record(rows, 31.55, 34.47, 5000)
+    assert plain["name"] == "A"           # no hint → nearest wins
+    assert plain["distance_m"] < 20
+    # Out-of-radius rows are excluded entirely.
+    far = geo_resolve._pick_nearest_record([rows[2]], 31.55, 34.47, 5000)
+    assert far is None
+
+
+def test_pick_nearest_record_skips_bad_coordinates(geo_resolve):
+    rows = [
+        {"name": "X", "latitude": None, "longitude": None},
+        {"name": "Y", "latitude": "not-a-number", "longitude": 34.47},
+    ]
+    assert geo_resolve._pick_nearest_record(rows, 31.55, 34.47, 5000) is None
+
+
+def test_chain_gap_fills_are_wired_into_resolve(geo_resolve):
+    from pathlib import Path
+
+    src = Path("siraj_research/api/geo_resolve.py").read_text()
+    assert '_fill_chain_gaps(lat, lon, result["admin_chain"], result, cfg)' in src
+    assert '"record_fallback"' in src
+    assert '"hierarchy_child"' in src
+    assert '"gazetteer_nearest"' in src

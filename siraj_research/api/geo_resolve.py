@@ -229,6 +229,147 @@ def _nearest_gazetteer(lat, lon, dataset, max_m, feature_codes=None):
 	return best
 
 
+_HIER_PARENT_FIELD = {"Municipality": "district",
+                      "Village": "municipality",
+                      "Community": "village"}
+
+
+def _pick_nearest_record(rows, lat, lon, max_m, parent_hint=None):
+    """Pick the nearest coordinate-bearing row within max_m.
+
+    Rows whose ``parent_ref`` equals ``parent_hint`` (the chain's entry at
+    the level above) win over nearer rows from elsewhere — a village that
+    belongs to the point's own municipality beats one across the border.
+    Returns the row with ``distance_m``/``bearing_deg`` attached, or None.
+    """
+    best = None
+    best_key = None
+    for r in rows or ():
+        try:
+            rlat, rlon = float(r.get("latitude")), float(r.get("longitude"))
+        except (TypeError, ValueError):
+            continue
+        d = _haversine_m(lat, lon, rlat, rlon)
+        if d > max_m:
+            continue
+        match = (1 if parent_hint
+                 and str(r.get("parent_ref") or "") == str(parent_hint) else 0)
+        key = (match, -d)
+        if best_key is None or key > best_key:
+            best_key = key
+            best = (r, d)
+    if best is None:
+        return None
+    r, d = best
+    return {**dict(r), "distance_m": round(d, 1),
+            "bearing_deg": round(_initial_bearing_deg(
+                lat, lon, float(r["latitude"]), float(r["longitude"])), 1)}
+
+
+def _nearest_hierarchy_record(lat, lon, doctype, max_m, parent_hint=None):
+    """Nearest row of ``doctype`` (Municipality/Village/Community) with coordinates."""
+    parent_field = _HIER_PARENT_FIELD.get(doctype)
+    if frappe is None or parent_field is None or not max_m:
+        return None
+    dlat = max_m / 111320.0
+    dlon = max_m / (111320.0 * max(0.1, math.cos(math.radians(lat))))
+    rows = frappe.db.sql(
+        f"SELECT name, name_en, name_ar, pcode, latitude, longitude, "
+        f"{parent_field} AS parent_ref FROM `tab{doctype}` "
+        "WHERE latitude BETWEEN %s AND %s AND longitude BETWEEN %s AND %s",
+        (lat - dlat, lat + dlat, lon - dlon, lon + dlon), as_dict=True)
+    return _pick_nearest_record(rows, lat, lon, max_m, parent_hint)
+
+
+def _fill_chain_gaps(lat, lon, chain, result, cfg):
+    """Complete municipality/village/community for coverage holes.
+
+    Extracts like OSM-IL-PS ship no polygon at levels 3-5 everywhere
+    (Gaza neighborhoods are points, not boundaries). For any chain level
+    still missing after containment, fill from the strongest available
+    evidence, always labelled with source + confidence + distance:
+
+    * municipality → nearest Municipality record (parent-preferring);
+    * village → the gazetteer's nearest place, else nearest Village record;
+    * community → the resolved village's single child (real parent-child
+      data), else nearest Community record.
+
+    Returns the provenance tags to append to the result.
+    """
+    provenance = []
+    max_m = cfg["reverse_max_m"]
+
+    if "municipality" not in chain:
+        rec = _nearest_hierarchy_record(
+            lat, lon, "Municipality", max_m,
+            (chain.get("district") or {}).get("pcode"))
+        if rec:
+            chain["municipality"] = {
+                "pcode": rec.get("pcode") or rec.get("name"),
+                "name_en": rec.get("name_en"), "name_ar": rec.get("name_ar"),
+                "source": "nearest_record", "confidence": "low",
+                "distance_m": rec.get("distance_m"),
+            }
+            provenance.append("record_fallback")
+
+    if "village" not in chain:
+        place = result.get("nearest_place")
+        if place and place.get("name_en"):
+            chain["village"] = {
+                "pcode": place.get("pcode") or place.get("source_id"),
+                "name_en": place.get("name_en"), "name_ar": place.get("name_ar"),
+                "source": "gazetteer_nearest", "confidence": "low",
+                "distance_m": place.get("distance_m"),
+            }
+            provenance.append("gazetteer_nearest")
+        else:
+            rec = _nearest_hierarchy_record(
+                lat, lon, "Village", max_m,
+                (chain.get("municipality") or {}).get("pcode"))
+            if rec:
+                chain["village"] = {
+                    "pcode": rec.get("pcode") or rec.get("name"),
+                    "name_en": rec.get("name_en"), "name_ar": rec.get("name_ar"),
+                    "source": "nearest_record", "confidence": "low",
+                    "distance_m": rec.get("distance_m"),
+                }
+                provenance.append("record_fallback")
+
+    if "community" not in chain:
+        filled = False
+        village_pcode = (chain.get("village") or {}).get("pcode")
+        if village_pcode and frappe is not None:
+            vname = (frappe.db.exists("Village", village_pcode)
+                     or frappe.db.get_value("Village", {"pcode": village_pcode}, "name"))
+            if vname:
+                children = frappe.get_all(
+                    "Community", filters={"village": vname},
+                    fields=["name", "name_en", "name_ar", "pcode"], limit=2)
+                if len(children) == 1:
+                    child = children[0]
+                    chain["community"] = {
+                        "pcode": child.get("pcode") or child.get("name"),
+                        "name_en": child.get("name_en"),
+                        "name_ar": child.get("name_ar"),
+                        "source": "hierarchy_child", "confidence": "medium",
+                    }
+                    provenance.append("hierarchy_child")
+                    filled = True
+        if not filled:
+            rec = _nearest_hierarchy_record(
+                lat, lon, "Community", max_m,
+                (chain.get("village") or {}).get("pcode"))
+            if rec:
+                chain["community"] = {
+                    "pcode": rec.get("pcode") or rec.get("name"),
+                    "name_en": rec.get("name_en"), "name_ar": rec.get("name_ar"),
+                    "source": "nearest_record", "confidence": "low",
+                    "distance_m": rec.get("distance_m"),
+                }
+                provenance.append("record_fallback")
+    return provenance
+
+
 def _validate(lat, lon):
 	if not isinstance(lat, int | float) or not isinstance(lon, int | float):
 		return None, "latitude and longitude must be numbers"
@@ -382,6 +523,11 @@ def _resolve_one(lat, lon):
 	if g:
 		result["nearest_place"] = g
 		result["provenance"].append("gazetteer_nearest")
+	# Coverage-hole completion: levels the extract has no polygon for
+	# (municipality/village/community anywhere OSM ships only points).
+	for tag in _fill_chain_gaps(lat, lon, result["admin_chain"], result, cfg):
+		if tag not in result["provenance"]:
+			result["provenance"].append(tag)
 	return result
 
 
