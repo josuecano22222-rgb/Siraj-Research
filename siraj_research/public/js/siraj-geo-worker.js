@@ -210,23 +210,32 @@
 			const lvlCounts = {};
 			for (let i = 0; i < containing.length; i++) lvlCounts[containing[i].level] = (lvlCounts[containing[i].level]||0)+1;
 			for (const k in lvlCounts) if (lvlCounts[k] > 1) res.ambiguous = true;
-			// Build chain from finest level up via parent pcode.
+			// Build chain per level from containment first — OSM exports
+			// ship no parent codes, so walking parents alone would drop
+			// levels that actually contain the point — then walk parents
+			// to fill anything missing.
 			const LEVELS = [
 				[0,'country'],[1,'governorate'],[2,'district'],
 				[3,'municipality'],[4,'village'],[5,'community'],
 			];
-			const finest = Math.max.apply(null, Object.keys(best).map(Number));
-			let cur = best[finest] || null;
 			for (let li = 0; li < LEVELS.length; li++) {
 				const [lvl, key] = LEVELS[li];
-				if (!cur) break;
-				if (cur.level === lvl) {
-					res.admin_chain[key] = { pcode: cur.pcode, name_en: cur.name_en,
-					                         name_ar: cur.name_ar, linked_name: cur.linked_name || '' };
-					cur = cur.parent ? pcodeIndex[cur.parent] : null;
-				} else if (cur.level > lvl) {
-					cur = cur.parent ? pcodeIndex[cur.parent] : null;
+				const rec = best[lvl];
+				if (rec) {
+					res.admin_chain[key] = { pcode: rec.pcode, name_en: rec.name_en,
+					                         name_ar: rec.name_ar, linked_name: rec.linked_name || '' };
 				}
+			}
+			const finest = Math.max.apply(null, Object.keys(best).map(Number));
+			let cur = best[finest] || null;
+			let depth = 0;
+			while (cur && depth++ < LEVELS.length + 1) {
+				const slot = LEVELS.find(s => s[0] === cur.level);
+				if (slot && !res.admin_chain[slot[1]]) {
+					res.admin_chain[slot[1]] = { pcode: cur.pcode, name_en: cur.name_en,
+					                             name_ar: cur.name_ar, linked_name: cur.linked_name || '' };
+				}
+				cur = cur.parent ? pcodeIndex[cur.parent] : null;
 			}
 			// Nearest gazetteer place within 5 km.
 			let nearest = null, nearestD = 5000;

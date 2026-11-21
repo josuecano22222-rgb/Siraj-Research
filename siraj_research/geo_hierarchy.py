@@ -28,9 +28,12 @@ See ``docs/global-admin-hierarchy.md`` for the architecture and seeding plan.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import unicodedata
 from collections.abc import Iterable
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 try:  # pragma: no cover - exercised inside a bench
@@ -228,9 +231,21 @@ def _resolve_country(name_or_code: Any) -> str | None:
 		found = frappe.db.exists("Country", filters)
 		if found:
 			return found
+	# Reference labels map through an ISO code before we consider creating
+	# anything: the Country list may use a longer official name for the
+	# same code ("Palestine" → code PS → "Palestinian Territory, Occupied").
+	ref_code = _reference_country_code(value)
+	if ref_code:
+		found = frappe.db.exists("Country", {"code": ref_code})
+		if found:
+			return found
 	# Frappe ships the Country DocType; a fresh site may still be missing a
 	# newer ISO code. Create only when the operator is allowed to.
 	if value and frappe.has_permission("Country", "create"):
+		# Never mint a Country from a derived P-Code or hash: values with
+		# digits or an OSM/BND prefix are codes, not country names.
+		if re.search(r"\d", value) or re.match(r"(?i)^(osm|bnd)-", value):
+			return None
 		code = value if re.fullmatch(r"[A-Za-z]{2,3}", value) else None
 		try:
 			doc = frappe.get_doc({
@@ -242,6 +257,30 @@ def _resolve_country(name_or_code: Any) -> str | None:
 		except Exception:
 			return None
 	return None
+
+
+@lru_cache(maxsize=4)
+def _reference_country_labels() -> dict:
+	"""label (casefold) → ISO code from the shipped reference countries."""
+	try:
+		path = Path(__file__).resolve().parent / "setup" / "reference_data" / "countries.json"
+		rows = json.loads(path.read_text(encoding="utf-8"))
+	except Exception:  # pragma: no cover - a missing file must not break resolution
+		return {}
+	alias: dict = {}
+	for row in rows:
+		code = str(row.get("code") or "").upper()
+		if not code:
+			continue
+		for key in ("label_en", "label_ar", "iso3"):
+			label = str(row.get(key) or "").strip()
+			if label:
+				alias.setdefault(label.casefold(), code)
+	return alias
+
+
+def _reference_country_code(value: Any) -> str | None:
+	return _reference_country_labels().get(str(value).strip().casefold())
 
 
 def _write_spatial_fields(doc, entry: dict, lat: float | None, lon: float | None, dataset: str | None) -> bool:
@@ -487,10 +526,16 @@ def link_resolved_chain(resolution: dict, *, create_missing: bool = True) -> dic
 	lon = resolution.get("lon")
 
 	country_entry = entries.get("country") or {}
-	country_code = country_entry.get("pcode")
-	country_name = _resolve_country(country_code or country_entry.get("label_en")) if frappe else None
-	if country_code and not country_name:
-		country_name = _resolve_country(country_entry.get("label_en")) if frappe else None
+	country_code = str(country_entry.get("pcode") or "").strip() or None
+	# Only a plausible ISO code may be looked up as a code: derived codes
+	# (e.g. ``OSM-<hash>``) would otherwise mint junk Country rows. The
+	# label is tried next — it is what the polygon's name_en carries.
+	country_name = None
+	if frappe is not None:
+		if country_code and re.fullmatch(r"[A-Za-z]{2,3}", country_code):
+			country_name = _resolve_country(country_code)
+		if not country_name:
+			country_name = _resolve_country(country_entry.get("label_en"))
 
 	hierarchy: list[dict] = []
 	parent_name = country_name

@@ -114,7 +114,7 @@ def _extract_if_zip(path: Path, workdir: Path) -> list[Path]:
 # datasets (geoBoundaries, OCHA COD-AB Iraq/Afghanistan, GeoNames, OSM).
 POLYGON_FIELDS = {
     "pcode":      ["pcode", "adm{pcode}_pcode".format(pcode="{level}"), "shape_pcode", "ocd_id", "ref_pcode", "@id", "osm_id", "osm_relation_id", "ref"],
-    "name_en":    ["name_en", "engtype", "name", "nam", "admin{pcode}_name".format(pcode="{level}"), "shape_en"],
+	"name_en":    ["name_en", "name", "nam", "name:en", "engtype", "admin{pcode}_name".format(pcode="{level}"), "shape_en"],
     "name_ar":    ["name_ar", "ar_name", "arname", "name:ar", "admin{pcode}_ar".format(pcode="{level}"), "shape_ar"],
     "parent_pcode":["parent_pcode", "par_pcode", "adm{pcode}_pcode".format(pcode="{parent}"), "parent_adm", "par_id"],
     "source_id":  ["@id", "id", "fid", "objectid", "shape_id", "ogc_fid"],
@@ -687,3 +687,110 @@ def import_boundary_job(dataset_name: str, file_path_str: str, is_gazetteer: boo
                 shutil.rmtree(workdir, ignore_errors=True)
         except Exception:
             pass
+
+
+def _map_country_label(name_en, name_ar, by_code: dict, by_name: dict):
+    """Map a level-0 label (English or Arabic) to an existing Country name.
+
+    Nothing is created here: an unmappable label is reported as unresolved
+    so the operator can add the Country row first. ``by_code``/``by_name``
+    come from :func:`_country_lookup`.
+    """
+    from siraj_research.geo_hierarchy import _reference_country_code
+    for value in (name_en, name_ar):
+        text = str(value or "").strip()
+        if not text:
+            continue
+        hit = _resolve_country_name(text, by_code, by_name)
+        if hit:
+            return hit
+        code = _reference_country_code(text)
+        if code:
+            return by_code.get(str(code).upper())
+    return None
+
+
+def repair_dataset_countries(dataset: str) -> dict:
+    """Re-derive ``Admin Boundary.country`` from level-0 polygon containment.
+
+    The polygon importer trusts a ``country``/``cc``/ISO property when the
+    source file carries one, so a single mislabelled property stamps a
+    wrong country on thousands of rows — and because ``country`` is
+    ``set_only_once``, re-importing cannot correct it. This repair
+    re-attaches every row of the dataset to the level-0 polygon that
+    contains its centroid (smallest area wins) and writes the Country that
+    polygon's bilingual label resolves to. Level-0 rows resolve their own
+    label. Rows that cannot be mapped are left untouched and counted as
+    ``unresolved``.
+
+    Also bumps ``index_version`` so live resolver caches (keyed by dataset
+    + version) reload the repaired rows on the next request.
+    """
+    if frappe is None:
+        raise RuntimeError("bench required")
+    if shapely is None:
+        raise RuntimeError("shapely is required to repair countries")
+
+    l0_rows = frappe.db.sql(
+        """SELECT ab.name, ab.name_en, ab.name_ar, ag.`geom_wkb_hex`
+           FROM `tabAdmin Boundary` ab
+           JOIN `tabAdmin Boundary Geom` ag
+             ON ag.parent = ab.name AND ag.`precision` = 'full'
+           WHERE ab.dataset = %s AND ab.level = 0""",
+        (dataset,), as_dict=True)
+    l0 = []
+    for row in l0_rows:
+        try:
+            geom = shapely.wkb.loads(bytes.fromhex(row.geom_wkb_hex))
+        except Exception:
+            continue
+        if geom is None or geom.is_empty:
+            continue
+        l0.append((geom, row))
+    by_code, by_name = _country_lookup()
+    targets = frappe.db.sql(
+        """SELECT name, level, name_en, name_ar, centroid_lat, centroid_lon, country
+           FROM `tabAdmin Boundary` WHERE dataset = %s""",
+        (dataset,), as_dict=True)
+    updated = 0
+    unresolved = 0
+    per_country: dict = {}
+    for row in targets:
+        resolved = None
+        if int(row.level or 0) == 0:
+            resolved = _map_country_label(row.name_en, row.name_ar, by_code, by_name)
+        elif row.centroid_lat is not None and row.centroid_lon is not None:
+            pt = shapely.geometry.Point(float(row.centroid_lon), float(row.centroid_lat))
+            best = None
+            best_area = None
+            for geom, l0row in l0:
+                if geom.contains(pt):
+                    area = geom.area
+                    if best_area is None or area < best_area:
+                        best_area, best = area, l0row
+            if best is not None:
+                resolved = _map_country_label(best.name_en, best.name_ar, by_code, by_name)
+        if not resolved:
+            unresolved += 1
+            continue
+        per_country[resolved] = per_country.get(resolved, 0) + 1
+        if (row.country or None) != resolved:
+            # ``country`` is set_only_once in the UI; a data repair goes
+            # through db.set_value, which bypasses that validation.
+            frappe.db.set_value("Admin Boundary", row.name, "country", resolved,
+                                update_modified=False)
+            updated += 1
+    try:
+        current = int(frappe.db.get_value("Boundary Dataset", dataset,
+                                          "index_version") or 0)
+        frappe.db.set_value("Boundary Dataset", dataset, "index_version",
+                            current + 1, update_modified=False)
+    except Exception:  # pragma: no cover - dataset row must exist, but never fail a repair
+        pass
+    frappe.db.commit()
+    # After this, re-export the offline package (export_offline_package):
+    # the browser worker embeds the same country values and would keep
+    # serving the poisoned data otherwise.
+    return {"dataset": dataset, "checked": len(targets),
+            "updated": updated, "unresolved": unresolved,
+            "countries": per_country, "level0_polygons": len(l0)}

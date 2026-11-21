@@ -414,3 +414,47 @@ def test_upsert_level_duplicate_raises_when_recheck_still_empty(monkeypatch):
     with pytest.raises(_DupError):
         gh.upsert_level(entry, None)
     assert fake.db.commits == 1
+
+
+def test_reference_country_labels_cover_bilingual_aliases():
+    labels = gh._reference_country_labels()
+    assert labels.get("palestine") == "PS"
+    assert labels.get("فلسطين") == "PS"
+    assert labels.get("united states") == "US"
+    assert labels.get("israel") == "IL"
+
+
+def test_resolve_country_never_mints_a_country_from_derived_codes(monkeypatch):
+    import types as t
+
+    def _boom(*args, **kwargs):  # pragma: no cover - a create attempt is the bug
+        raise AssertionError("must not create a Country from a derived code")
+
+    fake = t.SimpleNamespace(
+        db=t.SimpleNamespace(exists=lambda *a, **k: None),
+        has_permission=lambda *a, **k: True,
+        get_doc=_boom,
+    )
+    monkeypatch.setattr(gh, "frappe", fake)
+    assert gh._resolve_country("OSM-ABCDEF0123456789") is None
+    assert gh._resolve_country("OSM-ABCDEF") is None
+    assert gh._resolve_country("9Province") is None
+
+
+def test_resolve_country_maps_reference_label_before_creating(monkeypatch):
+    import types as t
+
+    def exists(doctype, filters):
+        if filters == {"code": "PS"}:
+            return "Palestinian Territory, Occupied"
+        return None
+
+    fake = t.SimpleNamespace(
+        db=t.SimpleNamespace(exists=exists),
+        has_permission=lambda *a, **k: True,
+        get_doc=lambda *a, **k: (_ for _ in ()).throw(AssertionError("must not create")),
+    )
+    monkeypatch.setattr(gh, "frappe", fake)
+    assert gh._resolve_country("Palestine") == "Palestinian Territory, Occupied"
+    # Arabic reference label resolves through the same map.
+    assert gh._resolve_country("فلسطين") == "Palestinian Territory, Occupied"

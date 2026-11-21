@@ -43,3 +43,22 @@ def test_untagged_junk_never_becomes_governorate(geo_import):
     # must not land in the editable hierarchy at level 1.
     church = {"osm_admin_level": None, "name_en": "Église Sainte-Anne de Jérusalem"}
     assert geo_import.feature_hierarchy_level(church, dataset_level=1) == 0
+
+
+def test_map_country_label_accepts_bilingual_level0_labels(geo_import):
+    by_code = {"IL": "Israel", "PS": "Palestinian Territory, Occupied"}
+    by_name = {"ISRAEL": "Israel"}
+    # English label resolved directly.
+    assert geo_import._map_country_label("Israel", None, by_code, by_name) == "Israel"
+    # Arabic label resolves through the shipped reference codes.
+    assert (geo_import._map_country_label("فلسطين", None, by_code, by_name)
+            == "Palestinian Territory, Occupied")
+    # Derived (hash) name_en is never mapped; a real Arabic name_ar still is.
+    assert (geo_import._map_country_label("OSM-ABCDEF0123456789", "إسرائيل", by_code, by_name)
+            == "Israel")
+    assert geo_import._map_country_label("OSM-ABCDEF0123456789", None, by_code, by_name) is None
+
+
+def test_map_country_label_never_guesses_unknown_labels(geo_import):
+    assert geo_import._map_country_label("Narnia", None, {}, {}) is None
+    assert geo_import._map_country_label(None, None, {}, {}) is None

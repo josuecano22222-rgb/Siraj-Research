@@ -54,7 +54,10 @@ import math
 from collections import OrderedDict
 from typing import Optional
 
-import frappe
+try:  # pragma: no cover - exercised inside a bench
+	import frappe
+except Exception:  # pragma: no cover - pure-Python tests
+	frappe = None  # type: ignore[assignment]
 
 from siraj_research.geo_import import deps_ok, shapely  # shapely is required for resolve
 
@@ -240,6 +243,48 @@ def _validate(lat, lon):
 	return (lat, lon), warnings
 
 
+def build_admin_chain(best_by_level: dict, by_pcode: dict) -> dict:
+	"""Assemble the six-level ``admin_chain`` from containment results.
+
+	``best_by_level`` maps each level to the smallest containing polygon
+	(level 0 = country). The chain is built from those polygons directly —
+	one entry per level — because many sources (OSM exports in particular)
+	ship no ``parent_pcode`` links at all, and a broken parent chain must
+	not silently drop levels that we *know* contain the point.
+
+	Levels whose polygon did not contain the point are then filled by
+	walking ``parent_pcode`` upwards from the finest containing polygon,
+	and finally the finest record's ``country`` link is used as a country
+	fallback for datasets without level-0 polygons (populated-place
+	layers). Keys are the lowercase chain fields expected by
+	:func:`siraj_research.geo_hierarchy.normalise_chain`.
+	"""
+	chain: dict = {}
+	for lvl, key, _label in DEFAULT_LEVELS:
+		rec = best_by_level.get(lvl)
+		if rec is not None:
+			chain[key] = {"pcode": rec["pcode"], "name_en": rec["name_en"],
+			              "name_ar": rec["name_ar"]}
+	finest_level = max(best_by_level.keys()) if best_by_level else None
+	if finest_level is not None:
+		cur = best_by_level[finest_level]
+		seen: set = set()
+		while cur is not None and id(cur) not in seen:
+			seen.add(id(cur))
+			key = next((k for lvl, k, _l in DEFAULT_LEVELS if lvl == cur["level"]), None)
+			if key and key not in chain:
+				chain[key] = {"pcode": cur["pcode"], "name_en": cur["name_en"],
+				              "name_ar": cur["name_ar"]}
+			cur = by_pcode.get(cur["parent_pcode"]) if cur.get("parent_pcode") else None
+	# Country fallback from the finest record's `country` link (Populated
+	# Place datasets often don't ship level-0 polygons).
+	if "country" not in chain and finest_level is not None:
+		country = best_by_level[finest_level].get("country")
+		if country:
+			chain["country"] = {"pcode": None, "name_en": country, "name_ar": None}
+	return chain
+
+
 def _resolve_one(lat, lon):
 	(point, warnings) = _validate(lat, lon)
 	cfg = _settings()
@@ -328,29 +373,7 @@ def _resolve_one(lat, lon):
 		result["ambiguous"] = True
 		result["warnings"].append("boundary_ambiguity")
 
-	# Build admin chain by walking parent_pcode up from the finest polygon.
-	finest_level = max(best_by_level.keys()) if best_by_level else None
-	chain = {}
-	if finest_level is not None:
-		cur = best_by_level[finest_level]
-		for lvl, _, key in DEFAULT_LEVELS:
-			if cur is None:
-				break
-			if cur["level"] == lvl:
-				chain[key] = {"pcode": cur["pcode"], "name_en": cur["name_en"], "name_ar": cur["name_ar"]}
-				cur = cache["by_pcode"].get(cur["parent_pcode"]) if cur.get("parent_pcode") else None
-			elif cur["level"] > lvl:
-				# We're at a finer level than this chain slot; expect a
-				# parent at this level but one wasn't linked — leave blank
-				# rather than guess.
-				cur = cache["by_pcode"].get(cur["parent_pcode"]) if cur.get("parent_pcode") else None
-	# Country fallback from finest record's `country` link (Populated Place
-	# datasets often don't ship level-0 polygons).
-	if "country" not in chain and finest_level is not None:
-		country = best_by_level[finest_level].get("country")
-		if country:
-			chain["country"] = {"pcode": None, "name_en": country, "name_ar": None}
-	result["admin_chain"] = chain
+	result["admin_chain"] = build_admin_chain(best_by_level, cache["by_pcode"])
 	result["provenance"].append("polygon_containment")
 
 	# Gazetteer: nearest place within radius, treated as village/settlement.
