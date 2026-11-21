@@ -458,3 +458,22 @@ def test_resolve_country_maps_reference_label_before_creating(monkeypatch):
     assert gh._resolve_country("Palestine") == "Palestinian Territory, Occupied"
     # Arabic reference label resolves through the same map.
     assert gh._resolve_country("فلسطين") == "Palestinian Territory, Occupied"
+
+
+def test_make_code_fits_long_pcodes_into_the_64_char_field():
+    """The hierarchy DocTypes' code field is Data(64); GeoNames ADM3+ codes
+    can exceed it (e.g. Bosnia's M-BA-01-...-CENTRALNI-DISTRIKT = 65 chars).
+    Long P-Codes must be shortened deterministically with a digest suffix —
+    a plain slice would collide on any two codes sharing 64 characters."""
+    long_a = "M-BA-01-HERCEGOVA-KO-NERETVANSKI-KANTON-MOSTAR-CENTRALNI-DISTRIKT"
+    long_b = long_a + "-SIBENIK"  # shares the first 64 characters
+    assert len(long_a) == 65
+    code_a = gh.make_code(long_a, "Mostar Centralni", "BA.01", 3)
+    code_b = gh.make_code(long_b, "Mostar Sibenik", "BA.01", 3)
+    assert len(code_a) <= gh.MAX_CODE_LENGTH <= 64
+    assert len(code_b) <= gh.MAX_CODE_LENGTH
+    # Deterministic and collision-free where a plain [:64] would collide.
+    assert code_a == gh.make_code(long_a, "Mostar Centralni", "BA.01", 3)
+    assert code_a != code_b
+    # Short codes are untouched.
+    assert gh.make_code("PS-NGZ-JA", "Jabalia", "PS-NGZ", 2) == "PS-NGZ-JA"

@@ -422,13 +422,15 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 	count = 0
 	processed = 0
 	missing_parents = 0
+	failed = 0
+	failed_sample: list[str] = []
 	levels_seen: set[int] = set()
 	feature_seen: dict[str, int] = {}
 
 	def _put(level: int, pcode: str, parent_pcode: str | None,
 	         name_en: str, source_id: str | None = None,
 	         lat: float | None = None, lon: float | None = None) -> bool:
-		nonlocal count, processed, missing_parents
+		nonlocal count, processed, missing_parents, failed, failed_sample
 		spec = LEVELS[level]
 		parent_name, parent_field, parent_level = choose_admin_parent(
 			level, parent_pcode, name_by_pcode, countries)
@@ -458,8 +460,21 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 			"source": "geonames_admin",
 			"admin_level_type": f"GeoNames level {level}",
 		}
-		result = upsert_level(entry, parent_name, lat=lat, lon=lon,
-		                      dataset=dataset_code)
+		try:
+			result = upsert_level(entry, parent_name, lat=lat, lon=lon,
+			                      dataset=dataset_code)
+		except Exception as exc:
+			# A single malformed source row (over-long code, bad label, ...)
+			# must not abort a 56k-feature import: skip it honestly and
+			# keep a sample for the report.
+			failed += 1
+			if len(failed_sample) < 10:
+				failed_sample.append(f"{pcode}: {exc}")
+			if failed > 500:
+				raise RuntimeError(
+					f"too many failed rows ({failed}), aborting; "
+					f"last: {failed_sample[-1]}") from exc
+			return False
 		if result.get("name"):
 			name_by_pcode[normalised] = result["name"]
 			levels_seen.add(level)
@@ -517,6 +532,7 @@ def import_geonames_admin(zip_path: str, dataset_code: str = "GEONAMES-ADMIN", *
 
 	return {**_finish(dataset_code, processed, f"GeoNames admin divisions from {path.name}"),
 	        "levels": sorted(levels_seen), "missing_parents": missing_parents,
+	        "failed": failed, "failed_sample": failed_sample,
 	        "admin_features_seen": feature_seen}
 
 

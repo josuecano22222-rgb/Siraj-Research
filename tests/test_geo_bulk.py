@@ -211,3 +211,16 @@ def test_geonames_allcountries_pass_forwards_coordinates():
     src = Path("siraj_research/geo_bulk.py").read_text()
     assert "upsert_level(entry, parent_name, lat=lat, lon=lon," in src
     assert 'lat=row.get("latitude"), lon=row.get("longitude"))' in src
+
+
+def test_geonames_import_reports_failed_rows():
+    """One malformed source row must not abort the 56k-feature import:
+    failures are counted, sampled and surfaced in the report (verified
+    against the real crash: CharacterLengthExceededError on a 65-char
+    GeoNames ADM3 code)."""
+    from pathlib import Path
+
+    src = Path("siraj_research/geo_bulk.py").read_text()
+    assert "failed_sample.append" in src
+    assert '"failed": failed' in src
+    assert '"failed_sample": failed_sample' in src

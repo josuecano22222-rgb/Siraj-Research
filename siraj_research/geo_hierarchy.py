@@ -54,7 +54,7 @@ LEVELS: tuple[dict[str, Any], ...] = (
 )
 
 HIERARCHY_DOCTYPES = tuple(spec["doctype"] for spec in LEVELS[1:])
-MAX_CODE_LENGTH = 120  # Frappe Data default is 140; leave room for suffixes.
+MAX_CODE_LENGTH = 64  # The hierarchy DocTypes' code field is Data(64); doc name follows.
 
 _SLUG_RE = re.compile(r"[^A-Z0-9]+")
 _CODE_ALLOWED_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,139}$")
@@ -103,7 +103,12 @@ def make_code(pcode: Any, name: Any, parent_code: str | None, level: int | str) 
 	spec = level_spec(level)
 	candidate = normalize_code(pcode).replace(" ", "_")
 	if candidate and _CODE_ALLOWED_RE.match(candidate):
-		return candidate[:MAX_CODE_LENGTH]
+		if len(candidate) <= MAX_CODE_LENGTH:
+			return candidate
+		# The code field is Data(64): a plain slice would silently collide
+		# on any two long P-Codes sharing their first 64 characters.
+		digest = hashlib.sha1(candidate.encode("utf-8")).hexdigest()[:10]
+		return candidate[: MAX_CODE_LENGTH - 11] + "-" + digest
 	fragment = slug(name, fallback=spec["prefix"])
 	parent = str(parent_code or "").strip().upper()
 	base = "-".join(part for part in (spec["prefix"], parent, fragment) if part)
