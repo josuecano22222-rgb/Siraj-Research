@@ -25,6 +25,33 @@ def ensure_default_workflow_state():
 		).insert(ignore_permissions=True)
 
 
+def sync_insight_widgets():
+	"""Import the Number Card / Dashboard Chart JSON shipped with the app.
+
+	Frappe v15's module walk has no ``importable_doctypes`` hook (added in
+	later releases), so without this the workspace's live-insight widgets
+	never reach the database on migrate. Safe to re-run: each JSON imports
+	over its existing document by name.
+	"""
+	import glob
+	import os
+
+	from frappe.modules.import_file import import_file_by_path
+
+	base = frappe.get_app_path("siraj_research", "siraj_research")
+	imported = 0
+	for kind in ("number_card", "dashboard_chart"):
+		for path in sorted(glob.glob(os.path.join(base, kind, "*", "*.json"))):
+			try:
+				if import_file_by_path(path, force=1, ignore_version=True):
+					imported += 1
+			except Exception:
+				frappe.logger().warning("widget import failed: %s", path, exc_info=True)
+	frappe.db.commit()
+	print(f"SIRAJ insight widgets: {imported} imported")
+	return imported
+
+
 def after_install():
 	"""Create roles, default workflow state and additive reference data."""
 	for role in ROLES:

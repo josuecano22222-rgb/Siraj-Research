@@ -11,7 +11,10 @@ app_license = "mit"
 # required_apps = []
 
 after_install = "siraj_research.setup.install.after_install"
-after_migrate = "siraj_research.setup.install.ensure_default_workflow_state"
+after_migrate = [
+	"siraj_research.setup.install.ensure_default_workflow_state",
+	"siraj_research.setup.install.sync_insight_widgets",
+]
 
 fixtures = [
 	{'dt': 'Print Format', 'filters': [['name', '=', 'SIRAJ Research Dossier']]},
