@@ -30,8 +30,20 @@ import re
 from collections.abc import Callable
 from typing import Any
 
+from siraj_research.setup.demo_content import CONFIDENCE_CODES
+
 #: Bump when the shape of a profile payload changes incompatibly.
 PRESENTATION_VERSION = 2
+
+#: Deterministic quality-score weights (stable presentation contract).
+QUALITY_WEIGHTS: dict[str, float] = {
+    "completeness": 0.6,
+    "evidence": 0.25,
+    "source": 0.15,
+}
+
+#: Evidence rows required for the evidence component to saturate.
+EVIDENCE_SATURATION_ROWS = 5
 
 # The semantic order of the Fields tab. ``fields`` and ``headings`` are exact
 # matches; ``keywords`` is a last-resort match on fieldnames/labels. Keeping
@@ -664,6 +676,106 @@ def collect_strings(profile: dict[str, Any]) -> list[str]:
 				if isinstance(cell, dict) and cell.get("translatable_value") and cell.get("value_source"):
 					found.add(str(cell["value_source"]))
 	return sorted(found)
+
+
+def _entry_present(value: Any) -> bool:
+	"""True when a field value counts as filled (0 and False are filled)."""
+	if value is None:
+		return False
+	if isinstance(value, str):
+		return value.strip() != ""
+	if isinstance(value, list | tuple | dict):
+		return len(value) > 0
+	return True
+
+
+def compute_quality_scores(profile: dict[str, Any]) -> dict[str, Any]:
+	"""Deterministic quality scoring for a SIRAJ profile payload.
+
+	Extends the existing ``completeness_score`` / ``quality_score`` /
+	``confidence`` presentation contract — no parallel system:
+
+	* ``completeness_score`` (0-100): share of non-empty data fields. The
+	  three quality fields themselves are excluded from the denominator so
+	  the scores never grade each other.
+	* ``quality_score`` (0-100): ``60% completeness + 25% evidence`` (rows
+	  saturating at :data:`EVIDENCE_SATURATION_ROWS`) ``+ 15% primary
+	  source presence`` — weights in :data:`QUALITY_WEIGHTS`.
+	* ``confidence``: the record's ``authentication_level`` when it is one
+	  of the six ordered :data:`CONFIDENCE_CODES` (low → high), otherwise
+	  derived from evidence rows (≥2 → ``corroborated``, 1 →
+	  ``single_source``, 0 → ``unverified``).
+
+	Pure and deterministic: identical input yields identical output.
+	Accepts both the raw entity-profile payload and an already-normalised
+	one (sections of field entries + children with ``rows``/``total``).
+	"""
+	sections = profile.get("sections") or []
+	entries = [
+		field
+		for section in sections
+		if isinstance(section, dict)
+		for field in (section.get("fields") or [])
+		if isinstance(field, dict)
+	]
+	quality_names = {"completeness_score", "quality_score", "confidence"}
+	scored = [f for f in entries if f.get("fieldname") not in quality_names]
+	present = sum(1 for f in scored if _entry_present(f.get("value")))
+	completeness = int(present * 100 / len(scored) + 0.5) if scored else 0
+
+	children = profile.get("children") or {}
+	evidence = children.get("evidence") or {}
+	if not isinstance(evidence, dict):
+		evidence = {}
+	evidence_rows = int(
+		evidence.get("total") or len(evidence.get("rows") or []) or 0
+	)
+
+	source_value = next(
+		(
+			f.get("value")
+			for f in entries
+			if f.get("fieldname") == "primary_source"
+		),
+		None,
+	)
+	source_present = _entry_present(source_value)
+
+	evidence_points = (
+		100.0 * min(evidence_rows, EVIDENCE_SATURATION_ROWS)
+		/ EVIDENCE_SATURATION_ROWS
+	)
+	quality = int(
+		QUALITY_WEIGHTS["completeness"] * completeness
+		+ QUALITY_WEIGHTS["evidence"] * evidence_points
+		+ QUALITY_WEIGHTS["source"] * (100.0 if source_present else 0.0)
+		+ 0.5
+	)
+
+	auth = next(
+		(
+			f.get("value")
+			for f in entries
+			if f.get("fieldname") == "authentication_level"
+		),
+		None,
+	)
+	if isinstance(auth, str) and auth in CONFIDENCE_CODES:
+		confidence = auth
+	elif evidence_rows >= 2:
+		confidence = "corroborated"
+	elif evidence_rows == 1:
+		confidence = "single_source"
+	else:
+		confidence = "unverified"
+
+	return {
+		"completeness_score": max(0, min(100, completeness)),
+		"quality_score": max(0, min(100, quality)),
+		"confidence": confidence,
+		"evidence_rows": evidence_rows,
+		"confidence_scale": list(CONFIDENCE_CODES),
+	}
 
 
 def organise_profile(

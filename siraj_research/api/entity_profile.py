@@ -12,7 +12,7 @@ import frappe
 from frappe import _
 from frappe.model.meta import get_meta
 
-from siraj_research.profile_presentation import organise_profile
+from siraj_research.profile_presentation import compute_quality_scores, organise_profile
 
 # Layout-only fieldtypes we never render as values. "Table" is deliberately
 # absent here: it is skipped by the scalar loop below but collected as a child
@@ -287,6 +287,37 @@ def get_entity_profile(doctype, name, **kwargs):
         "can_write": frappe.has_permission(doctype, "write", name),
         "can_create": frappe.has_permission("Relationship", "create"),
     }
+
+    # ---- Quality scores (presentation-time, deterministic) ----
+    # compute_quality_scores lives in the pure presentation layer; the
+    # section/field entries below reuse the existing Quality group so the
+    # drawer renders the scores with no parallel structure.
+    scores = compute_quality_scores({"sections": sections, "children": children})
+    quality_section = next(
+        (s for s in sections if s.get("heading") == "Quality"), None
+    )
+    if quality_section is None:
+        quality_section = {"heading": "Quality", "fields": []}
+        sections.append(quality_section)
+    existing_quality = {
+        f.get("fieldname"): f for f in quality_section["fields"]
+    }
+    for fieldname, label, fieldtype in (
+        ("completeness_score", "Completeness (%)", "Int"),
+        ("quality_score", "Quality score", "Int"),
+        ("confidence", "Confidence", "Select"),
+    ):
+        entry = existing_quality.get(fieldname)
+        if entry is None:
+            entry = {
+                "fieldname": fieldname,
+                "label": label,
+                "fieldtype": fieldtype,
+                "options": "",
+                "value": None,
+            }
+            quality_section["fields"].append(entry)
+        entry["value"] = scores[fieldname]
 
     profile = {
         "header": header,

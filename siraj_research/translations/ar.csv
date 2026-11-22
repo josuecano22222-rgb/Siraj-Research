@@ -1820,3 +1820,5 @@ Expand this record's connections,توسيع اتصالات هذا السجل
 Added {0} new record(s) from this connection.,تمت إضافة {0} سجل جديد من هذا الاتصال.
 All direct connections are already visible.,جميع الاتصالات المباشرة ظاهرة بالفعل.
 Unable to expand this record.,تعذّر توسيع هذا السجل.
+Quality score,درجة الجودة
+Confidence,درجة الثقة
