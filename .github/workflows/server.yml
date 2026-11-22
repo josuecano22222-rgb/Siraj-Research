@@ -113,8 +113,11 @@ jobs:
           done
           grep -E "^(=== |Ran [0-9]+ test|OK$|FAILED \()" /tmp/server-tests.log | tail -40 | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > /tmp/results-encoded.txt
           if [ "$status" -ne 0 ]; then
-            tail -c 3000 /tmp/server-tests.log | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}' > /tmp/tail-encoded.txt
-            echo "::error title=run-tests failures::$(cat /tmp/results-encoded.txt)$(cat /tmp/tail-encoded.txt)"
+            # Extract each failing test's id + traceback, not the log tail
+            # (which only ever shows the last module to run).
+            grep -E "^(FAIL|ERROR): " /tmp/server-tests.log | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > /tmp/failids-encoded.txt
+            grep -E -A 22 "^(FAILED \(|ERROR: )" /tmp/server-tests.log | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}' | head -c 4500 > /tmp/failures-encoded.txt
+            echo "::error title=run-tests failures::$(cat /tmp/results-encoded.txt)$(cat /tmp/failids-encoded.txt)$(cat /tmp/failures-encoded.txt)"
           else
             echo "::notice title=run-tests passed::$(cat /tmp/results-encoded.txt)"
           fi
