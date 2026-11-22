@@ -8,6 +8,12 @@ empty hierarchy level fill itself from local data.
 gazetteer dataset** set in Geo Settings, **Create missing hierarchy
 records** understood.
 
+**Coverage note (v2.0.0).** The bundled hierarchy, boundary and gazetteer
+data covers **Israel and Palestine (IL/PS) only**. Coordinates elsewhere
+are stored exactly as entered, but auto-fill and place matches find no
+levels until you import your region's data (see
+[map-search.md](../map-search.md)).
+
 ---
 
 ## 2.1 The hierarchy registry
@@ -104,6 +110,12 @@ ticking `coordinate_origin_confirmed`.
 **المقدّمات.** اكتملت الخطوة 1 — **Active boundary dataset** و**Active
 gazetteer dataset** مضبوطان في إعدادات الجغرافيا، و**Create missing
 hierarchy records** معروف.
+
+**ملاحظة التغطية (الإصدار 2.0.0).** بيانات التسلسل الهرمي والحدود
+والدلائل المُضمَّنة تغطي **إسرائيل وفلسطين (IL/PS) فقط**. تُخزَّن
+الإحداثيات في أي مكان كما أُدخلت تمامًا، لكن التعبئة التلقائية
+ومطابقة المواقع لن تجد مستويات حتى تستورد بيانات منطقتك (انظر
+[map-search.md](../map-search.md)).
 
 ---
 

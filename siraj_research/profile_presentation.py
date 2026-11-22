@@ -45,6 +45,18 @@ QUALITY_WEIGHTS: dict[str, float] = {
 #: Evidence rows required for the evidence component to saturate.
 EVIDENCE_SATURATION_ROWS = 5
 
+#: UI help text for the Quality section — documents the scoring weights and
+#: the derived-vs-recorded confidence rule. Kept as one source string; the
+#: renderer translates it client-side like every other label (ar.csv row).
+QUALITY_HELP = (
+	"Quality score = 60% completeness + 25% evidence rows (saturates at 5) "
+	"+ 15% primary source, rounded and clamped to 0-100; the quality fields "
+	"themselves are excluded from completeness. Confidence is marked "
+	"(derived) when the record stores no authentication level — it is then "
+	"computed from evidence rows (2+ → corroborated, 1 → single source, "
+	"0 → unverified); otherwise it is the recorded value."
+)
+
 # The semantic order of the Fields tab. ``fields`` and ``headings`` are exact
 # matches; ``keywords`` is a last-resort match on fieldnames/labels. Keeping
 # the blueprint here (instead of in the DOM) means the same order is used by
@@ -305,6 +317,7 @@ SECTION_BLUEPRINTS: tuple[dict[str, Any], ...] = (
 		"headings": ("Quality",),
 		"fields": ("completeness_score", "quality_score", "confidence"),
 		"keywords": ("completeness", "quality", "confidence"),
+		"help": QUALITY_HELP,
 	},
 )
 
@@ -558,17 +571,19 @@ def normalise_sections(
 		if not fields:
 			continue
 		heading = spec["heading"]
-		out.append(
-			{
-				"id": spec["id"],
-				"heading": translate(heading) if translate else heading,
-				"heading_source": heading,
-				"i18n_key": heading,
-				"order": spec["order"],
-				"source_headings": seen_headings.get(spec["id"], []),
-				"fields": fields,
-			}
-		)
+		section_out: dict[str, Any] = {
+			"id": spec["id"],
+			"heading": translate(heading) if translate else heading,
+			"heading_source": heading,
+			"i18n_key": heading,
+			"order": spec["order"],
+			"source_headings": seen_headings.get(spec["id"], []),
+			"fields": fields,
+		}
+		if spec.get("help"):
+			# Source text only — the client translates it (labelNode pattern).
+			section_out["help"] = spec["help"]
+		out.append(section_out)
 	return out
 
 
@@ -762,17 +777,25 @@ def compute_quality_scores(profile: dict[str, Any]) -> dict[str, Any]:
 	)
 	if isinstance(auth, str) and auth in CONFIDENCE_CODES:
 		confidence = auth
+		confidence_derived = False
 	elif evidence_rows >= 2:
 		confidence = "corroborated"
+		confidence_derived = True
 	elif evidence_rows == 1:
 		confidence = "single_source"
+		confidence_derived = True
 	else:
 		confidence = "unverified"
+		confidence_derived = True
 
 	return {
 		"completeness_score": max(0, min(100, completeness)),
 		"quality_score": max(0, min(100, quality)),
 		"confidence": confidence,
+		# True when confidence came from evidence rows instead of the
+		# record's recorded authentication_level — the UI marks those
+		# values "(derived)" so recorded and derived are distinguishable.
+		"confidence_derived": confidence_derived,
 		"evidence_rows": evidence_rows,
 		"confidence_scale": list(CONFIDENCE_CODES),
 	}

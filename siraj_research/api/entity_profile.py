@@ -318,6 +318,10 @@ def get_entity_profile(doctype, name, **kwargs):
             }
             quality_section["fields"].append(entry)
         entry["value"] = scores[fieldname]
+        if fieldname == "confidence":
+            # Carry the derived/recorded distinction to the shared renderer
+            # (desk profile AND Explorer both read this payload).
+            entry["derived"] = bool(scores.get("confidence_derived"))
 
     profile = {
         "header": header,

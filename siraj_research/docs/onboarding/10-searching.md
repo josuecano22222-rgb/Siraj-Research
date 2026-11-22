@@ -7,6 +7,12 @@ its region cascade and “search this area”.
 **Prerequisites.** Steps 1–9 (data exists to find); the Siraj Explorer
 page (`/app/siraj-explorer`).
 
+**Coverage note (v2.0.0).** Bundled regions, places and boundaries cover
+**Israel and Palestine (IL/PS) only** — the examples below use Gaza for
+that reason. Exact coordinates anywhere on Earth still resolve and display
+without rounding; matches outside IL/PS appear only after you import your
+region's data ([map-search.md](../map-search.md)).
+
 ---
 
 ## 10.1 Where each search lives
@@ -81,6 +87,12 @@ section is [09-supporting-data.md §9.4](09-supporting-data.md).
 
 **المقدّمات.** الخطوات 1–9 (توجد بيانات للعثور عليها)؛ صفحة مستكشف
 السراج (`/app/siraj-explorer`).
+
+**ملاحظة التغطية (الإصدار 2.0.0).** المناطق والأماكن والحدود
+المُضمَّنة تغطي **إسرائيل وفلسطين (IL/PS) فقط** — ولذلك تستخدم الأمثلة
+غزة. الإحداثيات الدقيقة في أي مكان على الأرض تُحلَّل وتُعرض دون تقريب؛
+وتظهر المطابقات خارج IL/PS فقط بعد استيراد بيانات منطقتك
+([map-search.md](../map-search.md)).
 
 ---
 

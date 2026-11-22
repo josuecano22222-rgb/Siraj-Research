@@ -1822,3 +1822,6 @@ All direct connections are already visible.,جميع الاتصالات المب
 Unable to expand this record.,تعذّر توسيع هذا السجل.
 Quality score,درجة الجودة
 Confidence,درجة الثقة
+"Quality score = 60% completeness + 25% evidence rows (saturates at 5) + 15% primary source, rounded and clamped to 0-100; the quality fields themselves are excluded from completeness. Confidence is marked (derived) when the record stores no authentication level — it is then computed from evidence rows (2+ → corroborated, 1 → single source, 0 → unverified); otherwise it is the recorded value.",درجة الجودة = 60% اكتمال البيانات + 25% صفوف الأدلة (تتوقف عند 5) + 15% المصدر الأساسي، مُقرَّبة ومحدودة بين 0 و100؛ وحقول الجودة نفسها مستثناة من الاحتساب. تُوسم الثقة بـ(مشتق) عندما لا يحتفظ السجل بمستوى توثيق مسجَّل — عندها تُحسب من صفوف الأدلة (2+ ⇒ مُتعاضد، 1 ⇒ مصدر واحد، 0 ⇒ غير موثَّق)، وإلا فهي القيمة المسجَّلة.
+(derived),(مشتق)
+Computed from evidence rows — the record stores no recorded confidence.,تُحسب من صفوف الأدلة — السجل لا يحتفظ بثقة مسجَّلة.

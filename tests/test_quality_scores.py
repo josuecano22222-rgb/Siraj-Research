@@ -172,3 +172,34 @@ def test_normalised_payload_shape_is_accepted():
     scores = compute_quality_scores(profile)
     assert scores["completeness_score"] == 100
     assert scores["confidence"] == "corroborated"
+
+
+def test_confidence_derived_flag_distinguishes_recorded_from_evidence():
+    """confidence_derived powers the UI's (derived) badge vs recorded values."""
+    recorded = compute_quality_scores(
+        _profile([("display_name", "Ada")], evidence_rows=0, auth="institutionally_confirmed")
+    )
+    assert recorded["confidence"] == "institutionally_confirmed"
+    assert recorded["confidence_derived"] is False
+
+    derived_corroborated = compute_quality_scores(
+        _profile([("display_name", "Ada")], evidence_rows=3)
+    )
+    assert derived_corroborated["confidence"] == "corroborated"
+    assert derived_corroborated["confidence_derived"] is True
+
+    derived_zero = compute_quality_scores(_profile([("display_name", "Ada")], evidence_rows=0))
+    assert derived_zero["confidence"] == "unverified"
+    assert derived_zero["confidence_derived"] is True
+
+
+def test_quality_help_documents_the_shipped_weights():
+    """The Quality section help text and QUALITY_WEIGHTS must agree."""
+    from siraj_research.profile_presentation import QUALITY_HELP, SECTION_BLUEPRINTS
+
+    quality = next(spec for spec in SECTION_BLUEPRINTS if spec["id"] == "quality")
+    assert quality["help"] == QUALITY_HELP
+    assert QUALITY_WEIGHTS == {"completeness": 0.6, "evidence": 0.25, "source": 0.15}
+    for token in ("60%", "25%", "15%", "saturates at 5"):
+        assert token in QUALITY_HELP, f"help text must document {token!r}"
+    assert "(derived)" in QUALITY_HELP

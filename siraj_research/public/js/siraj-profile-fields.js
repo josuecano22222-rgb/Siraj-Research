@@ -426,6 +426,15 @@
 				i18nKey: field.i18n_key || labelParts.text,
 			})));
 			dt.append(demoBadge(labelParts.demo || field.label_demo, labelParts.text));
+			if (field.derived) {
+				// Derived confidence (no recorded authentication level) —
+				// distinguish it from the recorded value at a glance.
+				dt.append(
+					$('<span class="sx-derived-badge"></span>')
+						.text(translate("(derived)"))
+						.attr("title", translate("Computed from evidence rows — the record stores no recorded confidence."))
+				);
+			}
 			const dd = $("<dd></dd>").appendTo(row);
 			dd.append(valueNode(field, opts));
 			const copy = $('<button type="button" class="sx-profile-copy" aria-label="' + translate("Copy value") + '"></button>')
@@ -601,15 +610,23 @@
 						sectionHost.append(element);
 						body = element.find(".sx-section-body");
 					} else {
-						body = fieldSection(sectionHost, {
-							id: key,
-							heading: section.heading_source || section.heading,
-							count: count,
-							mode: mode,
-							profile: data,
-							open: opts.openSections[key] !== false,
-							onToggle: (sectionKey, open) => { opts.openSections[sectionKey] = open; },
-						});
+					body = fieldSection(sectionHost, {
+						id: key,
+						heading: section.heading_source || section.heading,
+						count: count,
+						mode: mode,
+						profile: data,
+						open: opts.openSections[key] !== false,
+						onToggle: (sectionKey, open) => { opts.openSections[sectionKey] = open; },
+					});
+					}
+					if (section.help) {
+						// Section-level help (e.g. the Quality scoring weights).
+						body.append(
+							$('<div class="sx-section-help"></div>').append(
+								labelNode(section.help, { mode: mode })
+							)
+						);
 					}
 					renderFields(body, section.fields || [], Object.assign({}, opts, { profile: data, mode: mode }));
 					tableNames

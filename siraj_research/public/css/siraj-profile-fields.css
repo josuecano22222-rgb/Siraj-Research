@@ -167,3 +167,25 @@ html[data-theme="dark"] .sx-demo-badge,
   .sx-profile-modes { width: 100%; }
   .sx-profile-modes button { flex: 1; }
 }
+
+/* Section-level help text (e.g. Quality scoring weights). */
+.sx-section-help {
+  margin: 2px 0 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted, #6c7680);
+}
+
+/* "(derived)" marker on values computed at presentation time (confidence). */
+.sx-derived-badge {
+  display: inline-block;
+  margin-inline-start: 6px;
+  padding: 0 6px;
+  border: 1px solid #c9d1d9;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #57606a;
+  background: #f6f8fa;
+  vertical-align: middle;
+}

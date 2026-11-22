@@ -5,6 +5,11 @@ Research platform with a global administrative hierarchy
 bilingual fields, deterministic P-Codes, offline-first maps, and fully local
 operation after setup.
 
+**Current release: [`V2.0.0`](RELEASE_NOTES_V2.0.0.md)** — highlights,
+upgrade steps and gates; full history in [`CHANGELOG.md`](CHANGELOG.md).
+Shipped geo data covers **Israel and Palestine (IL/PS) only**; coordinates
+are stored exactly as entered, never rounded.
+
 ### Installation
 
 **Read [`docs/from-scratch-runbook.md`](docs/from-scratch-runbook.md)** (fresh wipe, step-by-step) or [`docs/installation.md`](docs/installation.md)** — the full

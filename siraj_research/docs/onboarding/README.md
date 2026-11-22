@@ -21,6 +21,12 @@ carries **14 records**: the ten steps below plus the framing entries
 (workspace, settings, geo settings, geographic import) and the closing
 quality review.
 
+**Coverage (v2.0.0).** The shipped hierarchy, boundary and gazetteer data
+covers **Israel and Palestine (IL/PS) only**. Coordinates anywhere on Earth
+are stored and displayed exactly as entered (never rounded), but
+place/boundary matches outside IL/PS return nothing until you import data
+for your region — see [map-search.md](../map-search.md).
+
 ## The ten steps
 
 | # | Step | In-app record(s) | File |
@@ -67,6 +73,12 @@ run `bench migrate` once after pulling the update.
 افتح **مساحة عمل أبحاث السراج** (`/app/siraj-research`). تجمع المساحة
 كل أنواع المستندات في أقسام بعدّادات حيّة، وقائمة المهام في الأعلى.
 (السجل داخل التطبيق: «افتح مساحة عمل السراج».)
+
+**التغطية (الإصدار 2.0.0).** بيانات التسلسل الهرمي والحدود والدلائل
+المُضمَّنة تغطي **إسرائيل وفلسطين (IL/PS) فقط**. تُخزَّن الإحداثيات في
+أي مكان على الأرض كما أُدخلت تمامًا (دون تقريب)، لكن مطابقة المواقع
+والحدود خارج IL/PS لن تُرجع شيئًا حتى تستورد بيانات منطقتك — انظر
+[map-search.md](../map-search.md).
 
 ## الخطوات العشر
 
