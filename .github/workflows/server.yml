@@ -79,7 +79,10 @@ jobs:
           bench setup requirements --dev
           bench new-site --db-root-password root --admin-password admin test_site
           bench --site test_site install-app siraj_research
-          bench build
+          # Only this app's bundle is needed for run-tests; skipping the
+          # full multi-app build keeps the job fast and avoids the
+          # historical full-build failure mode.
+          bench build --app siraj_research
         env:
           CI: 'Yes'
 
@@ -89,6 +92,18 @@ jobs:
           set -Eeuo pipefail
           trap 'echo "::error title=Server tests failed::exit $? at: $BASH_COMMAND"' ERR
           bench --site test_site set-config allow_tests true
-          bench --site test_site run-tests --app siraj_research
+          # Capture output so every result line is visible as a check
+          # annotation (run logs are sign-in gated for API readers).
+          set +e
+          bench --site test_site run-tests --app siraj_research 2>&1 | tee /tmp/server-tests.log
+          status=${PIPESTATUS[0]}
+          set -e
+          grep -E "^(Ran [0-9]+ test|OK$|FAILED \(|ERROR)" /tmp/server-tests.log | tail -25 | while IFS= read -r line; do
+            echo "::notice title=server tests::${line}"
+          done
+          if [ "$status" -ne 0 ]; then
+            echo "::error title=run-tests exited ${status}::see the notice lines above for the failing modules"
+            exit "$status"
+          fi
         env:
           TYPE: server
