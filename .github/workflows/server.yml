@@ -92,15 +92,31 @@ jobs:
           echo "::notice title=server tests::step started (head ${GITHUB_SHA::8})"
           bench --site test_site set-config allow_tests true
           # The runner shell runs with -e; || status=$? keeps going on failure.
-          # Run logs are sign-in gated for API readers, so the tail of the
-          # output is re-emitted as one annotation (%0A = newline).
+          # Scope = release-gate modules (a bare --app run would also pull in
+          # the eight modules CI deliberately ignores). Run logs are sign-in
+          # gated for API readers, so per-module results and the failing tail
+          # are re-emitted as annotations (%0A = newline).
           status=0
-          bench --site test_site run-tests --app siraj_research > /tmp/server-tests.log 2>&1 || status=$?
-          tail -c 3500 /tmp/server-tests.log | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}' > /tmp/tail-encoded.txt
+          : > /tmp/server-tests.log
+          for module in \
+            test_api_static \
+            test_audit_api \
+            test_auto_fill_defaults \
+            test_role_visibility \
+            test_quality_scoring \
+            test_demo_data \
+            test_map_search_api \
+            test_person_family
+          do
+            echo "=== $module ===" >> /tmp/server-tests.log
+            bench --site test_site run-tests --module "siraj_research.tests.$module" >> /tmp/server-tests.log 2>&1 || status=1
+          done
+          grep -E "^(=== |Ran [0-9]+ test|OK$|FAILED \()" /tmp/server-tests.log | tail -40 | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > /tmp/results-encoded.txt
           if [ "$status" -ne 0 ]; then
-            echo "::error title=run-tests exit ${status}::$(cat /tmp/tail-encoded.txt)"
+            tail -c 3000 /tmp/server-tests.log | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}' > /tmp/tail-encoded.txt
+            echo "::error title=run-tests failures::$(cat /tmp/results-encoded.txt)$(cat /tmp/tail-encoded.txt)"
           else
-            echo "::notice title=run-tests passed::$(cat /tmp/tail-encoded.txt)"
+            echo "::notice title=run-tests passed::$(cat /tmp/results-encoded.txt)"
           fi
           exit "$status"
         env:
