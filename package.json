@@ -2,9 +2,9 @@
   "name": "siraj-research",
   "private": true,
   "version": "0.0.1",
-  "description": "Siraj Research — Frappe-based research registry and explorer",
+  "description": "Siraj Research \u2014 Frappe-based research registry and explorer",
   "scripts": {
-    "test:js": "node tests/test_coordinate_map_parser.js && node tests/test_explorer_assets.js && node tests/test_offline_records.js && node tests/test_offline_viewer.js && node tests/test_signed_snapshot_adversarial.js && node tests/test_signed_snapshot_crypto.js && node tests/test_profile_fields.js && node tests/test_explorer_sections.js"
+    "test:js": "node tests/test_coordinate_map_parser.js && node tests/test_explorer_assets.js && node tests/test_offline_records.js && node tests/test_offline_viewer.js && node tests/test_signed_snapshot_adversarial.js && node tests/test_signed_snapshot_crypto.js && node tests/test_profile_fields.js && node tests/test_explorer_graph.js && node tests/test_explorer_sections.js"
   },
   "devDependencies": {
     "jsdom": "^24.0.0",

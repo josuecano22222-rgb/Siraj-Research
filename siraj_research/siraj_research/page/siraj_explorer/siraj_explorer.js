@@ -1,6 +1,6 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
-const SIRAJ_EXPLORER_BUILD = '2026-11-18.profile-i18n.a.1';
+const SIRAJ_EXPLORER_BUILD = '2026-11-18.phase4.graph.a.1';
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -2033,7 +2033,7 @@ class SirajExplorer {
 		const nodeSet = new vis.DataSet();
 		const edgeSet = new vis.DataSet();
 		let currentEdges = [], currentNodes = [], history = [], trail = [], currentId = null, centerIds = [];
-		let searchTerm = '', selectedType = '', edgeType = '', hideEnded = false, evidenceOnly = false, evidenceLoaded = false, layout = 'force', maxDistance = 1;
+		let searchTerm = '', selectedType = '', edgeType = '', hideEnded = false, evidenceOnly = false, evidenceLoaded = false, layout = 'force', maxDistance = 1, nodeLimit = 400;
 		let centerButton, resetButton;
 
 		// Build a unified pool of "centerable" records covering all four map-capable
@@ -2109,6 +2109,11 @@ class SirajExplorer {
 					this.openAddRelationshipDialog(node, null, { onSaved: () => refreshGraph() });
 				})
 				.appendTo(connHead);
+			// On-demand expansion: pull this record's direct neighbourhood
+			// from the server and merge it into the current view.
+			$('<button type="button" class="btn btn-default btn-xs sx-conn-expand" aria-label="' + __("Expand this record's connections") + '">' + __('Expand') + '</button>')
+				.on('click', () => expandNode(node))
+				.appendTo(connHead);
 			if (!connected.length) $('<p class="sx-muted"></p>').text(__('No visible connections in this view. Use + Add to create one from this record.')).appendTo(this.aside);
 			connected.forEach(edge => {
 				const sourceId = JSON.stringify(edge.source), targetId = JSON.stringify(edge.target);
@@ -2133,6 +2138,34 @@ class SirajExplorer {
 						})
 						.appendTo(chipRow);
 				});
+			}
+		};
+		// On-demand node expansion: fetch the selected record's direct
+		// network from the server and merge unseen records/edges into the
+		// loaded graph, then re-render with the node still selected.
+		const expandNode = async node => {
+			try {
+				const res = await frappe.call({ method: 'siraj_research.api.map_relations.get_entity_network',
+					args: { doctype: node.doctype, name: node.name, depth: 1, limit_nodes: 400, limit_edges: 600 } });
+				if (renderId !== this.renderId) return;
+				const net = res.message || {};
+				let added = 0;
+				(net.nodes || []).forEach(n => {
+					const id = this.id(n);
+					if (!all.has(id)) { all.set(id, n); data.nodes.push(n); added++; }
+				});
+				(net.edges || []).forEach(e => {
+					if (!edgeLookup.has(e.name)) { edgeLookup.set(e.name, e); data.edges.push(e); }
+				});
+				update();
+				this.note.text(added
+					? __('Added {0} new record(s) from this connection.', [added])
+					: __('All direct connections are already visible.'));
+				showNode(this.id(node), false);
+			} catch (err) {
+				if (renderId === this.renderId) {
+					this.note.text(__('Unable to expand this record.')).addClass('sx-warning');
+				}
 			}
 		};
 		const edgeCache = {};
@@ -2479,6 +2512,19 @@ class SirajExplorer {
 				nodes = nodes.filter(n => distance.has(this.id(n)));
 				ids = new Set(distance.keys());
 			}
+			// Node-limit control: cap what is rendered (deterministically —
+			// ring distance first, then label) and say so in the status note.
+			const totalBefore = nodes.length;
+			let limitNote = '';
+			if (nodeLimit > 0 && nodes.length > nodeLimit) {
+				nodes = nodes.slice().sort((a, b) => {
+					const da = activeCenters.length ? (distance.get(this.id(a)) ?? Number.MAX_SAFE_INTEGER) : 0;
+					const db = activeCenters.length ? (distance.get(this.id(b)) ?? Number.MAX_SAFE_INTEGER) : 0;
+					return da - db || String(a.label).localeCompare(String(b.label));
+				}).slice(0, nodeLimit);
+				ids = new Set(nodes.map(n => this.id(n)));
+				limitNote = ' ' + __('Node limit reached: showing {0} of {1} records.', [nodes.length, totalBefore]);
+			}
 			currentEdges = eligibleEdges.filter(e => ids.has(JSON.stringify(e.source)) && ids.has(JSON.stringify(e.target)));
 			currentNodes = nodes;
 			edgeSet.clear(); nodeSet.clear(); history = []; currentId = null;
@@ -2524,11 +2570,11 @@ class SirajExplorer {
 			}));
 			graphHost.toggle(layout !== 'matrix'); matrixHost.toggle(layout === 'matrix');
 			if (layout === 'matrix') drawMatrix(nodes, currentEdges);
-			edgeSet.add(currentEdges.map(e => ({ id: e.name, from: JSON.stringify(e.source), to: JSON.stringify(e.target), label: e.type, arrows: /^(directed|one.way)$/i.test(e.direction) ? 'to' : '' })));
+			edgeSet.add(currentEdges.map(e => ({ id: e.name, from: JSON.stringify(e.source), to: JSON.stringify(e.target), label: [e.type, e.authentication_level].filter(Boolean).join(' · '), arrows: /^(directed|one.way)$/i.test(e.direction) ? 'to' : '' })));
 			const suffix = activeCenters.length
 				? ' ' + __('Centered on {0} record(s).', [activeCenters.length])
 				: '';
-			this.note.text(__('Showing {0} records and {1} relationships. Only visible records and links are included.', [nodes.length, currentEdges.length]) + suffix + ' ' + this.warning(data) + (evidenceOnly && data.edges.some(e => e.evidence_count == null) ? ' ' + __('Evidence counts are unavailable for some relationships.') : '') + ' ' + __('Tip: hold Shift and drag one node onto another to create a relationship.'));
+			this.note.text(__('Showing {0} records and {1} relationships. Only visible records and links are included.', [nodes.length, currentEdges.length]) + suffix + limitNote + ' ' + this.warning(data) + (evidenceOnly && data.edges.some(e => e.evidence_count == null) ? ' ' + __('Evidence counts are unavailable for some relationships.') : '') + ' ' + __('Tip: hold Shift and drag one node onto another to create a relationship.'));
 			this.showDetails(__('Relationship map'), [[__('About this view'), __('Select one or more records (via the Centre picker or by clicking a node) to walk out N degrees. Drag nodes to rearrange the network. Click an edge to inspect the relationship.')]]);
 		};
 		this.network.on('selectNode', event => showNode(event.nodes[0]));
@@ -2572,6 +2618,15 @@ class SirajExplorer {
 		depthSelect.on('change', () => {
 			maxDistance = Number(depthSelect.val()); update();
 			if (centerIds.length && layout !== 'matrix') this.network.fit({animation: true});
+		});
+		// Node-limit control: cap how many records the view renders at once
+		// (default 400, matching get_entity_network's limit_nodes convention).
+		const limitSelect = $('<select class="form-control input-sm"></select>').attr('aria-label', __('Node limit')).appendTo(this.tools);
+		[[100, '100'], [250, '250'], [400, '400'], [1000, '1000'], [0, __('All records')]].forEach(([value, title]) => $('<option></option>').val(value).text(title).appendTo(limitSelect));
+		limitSelect.val('400');
+		limitSelect.on('change', () => {
+			nodeLimit = Number(limitSelect.val()); update();
+			if (layout !== 'matrix') this.network.fit({animation: true});
 		});
 		const centerSelect = this.centerPicker(centerItems, ids => {
 			centerIds = ids.slice();

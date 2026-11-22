@@ -1812,3 +1812,11 @@ Created,تم الإنشاء
 Updated,تم التحديث
 No recorded changes.,لا توجد تغييرات مسجلة.
 Unable to load the change history for this record.,تعذّر تحميل تاريخ التغييرات لهذا السجل.
+Expand,توسيع
+Node limit,حد العُقد
+All records,جميع السجلات
+Node limit reached: showing {0} of {1} records.,تم بلوغ حد العُقد: عرض {0} من {1} سجل.
+Expand this record's connections,توسيع اتصالات هذا السجل
+Added {0} new record(s) from this connection.,تمت إضافة {0} سجل جديد من هذا الاتصال.
+All direct connections are already visible.,جميع الاتصالات المباشرة ظاهرة بالفعل.
+Unable to expand this record.,تعذّر توسيع هذا السجل.

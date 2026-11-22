@@ -39,7 +39,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -63,14 +63,18 @@ jobs:
 
       - name: Setup bench
         run: |
+          set -Eeuo pipefail
+          trap 'echo "::error title=Setup bench failed::exit $? at: $BASH_COMMAND"' ERR
           pip install frappe-bench
-          bench init --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
+          bench init --skip-redis-config-generation --skip-assets --frappe-branch version-15 --python "$(which python)" ~/frappe-bench
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
 
       - name: Install app and site
         working-directory: /home/runner/frappe-bench
         run: |
+          set -Eeuo pipefail
+          trap 'echo "::error title=Install app and site failed::exit $? at: $BASH_COMMAND"' ERR
           bench get-app siraj_research $GITHUB_WORKSPACE
           bench setup requirements --dev
           bench new-site --db-root-password root --admin-password admin test_site
@@ -82,6 +86,8 @@ jobs:
       - name: Run Frappe server tests
         working-directory: /home/runner/frappe-bench
         run: |
+          set -Eeuo pipefail
+          trap 'echo "::error title=Server tests failed::exit $? at: $BASH_COMMAND"' ERR
           bench --site test_site set-config allow_tests true
           bench --site test_site run-tests --app siraj_research
         env:
