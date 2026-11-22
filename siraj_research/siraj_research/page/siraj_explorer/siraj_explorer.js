@@ -123,6 +123,7 @@ class SirajExplorer {
 		});
 		if (target) $('<div style="margin-top:10px"></div>')
 			.append(this.button(__('Open record'), () => frappe.set_route('Form', target.doctype, target.name), true).addClass('btn-primary btn-sm'))
+			.append((window.sirajAudit ? this.button(__('History'), () => window.sirajAudit.open(target.doctype, target.name)) : $('<span></span>')).addClass('btn-sm').css('margin-left', '6px'))
 			.appendTo(sbody);
 		// Collapsible toggle
 		sum.on('click', (ev) => { ev.preventDefault(); sec.attr('open') ? sec.removeAttr('open') : sec.attr('open','open'); });
@@ -1504,9 +1505,20 @@ class SirajExplorer {
 					if (versions.length) {
 						const s = section('activity','ver',__('Recent changes'), String(versions.length)).appendTo(pane);
 						const body = s.find('.sx-section-body');
-						versions.slice(0,30).forEach(v => $('<div style="font-size:12px;padding:2px 0;color:var(--text-muted)"></div>')
-							.attr('dir','auto').text((v.owner||'') + ' · ' + v.creation)
-							.appendTo(body));
+						versions.slice(0,30).forEach(v => {
+							const line = $('<div style="font-size:12px;padding:3px 0;border-bottom:1px dashed var(--sx-line,#d4dfe0)"></div>')
+								.attr('dir','auto')
+								.text((v.by || v.owner || '') + ' · ' + (v.when || v.creation || '') + ' · ' + (v.action === 'created' ? __('Created') : __('Updated')))
+								.appendTo(body);
+							const changes = v.changes || [];
+							if (changes.length) {
+								$('<div style="font-size:11px;color:var(--text-muted);padding-left:8px"></div>')
+									.attr('dir','auto')
+									.text(changes.slice(0, 4).map(c => c.label || c.field).join(', ') + (changes.length > 4 ? ' …' : ''))
+									.appendTo(body);
+							}
+							line.attr('title', (v.by || '') + ' · ' + (v.when || ''));
+						});
 					}
 					if (!atts.length && !comments.length && !versions.length) {
 						$('<div class="sx-empty"></div>').text(__('No activity recorded.')).appendTo(pane);

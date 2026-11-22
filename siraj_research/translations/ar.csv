@@ -1806,3 +1806,9 @@ Enter exact coordinates in the Geo block and the Country→Community hierarchy a
 "Title and type, reliability rating, and Evidence rows that tie every claim in the registry back to a source. Tutorial: docs/onboarding/03-sources.md",العنوان والنوع وتصنيف الموثوقية وصفوف الأدلة التي تربط كل ادعاء في السجل بمصدر. الدليل: docs/onboarding/03-sources.md
 "Typed, directed links with date ranges, confidence and a primary source. Tutorial: docs/onboarding/08-relationships.md",روابط مُنمَّطة موجَّهة بنطاقات تواريخ وثقة ومصدر أساسي. الدليل: docs/onboarding/08-relationships.md
 "Unit name, echelon and status with parent-unit hierarchy and a linked commander. Tutorial: docs/onboarding/06-military-units.md",اسم الوحدة وطبقتها وحالتها مع تسلسل الوحدة الأب وقائد مرتبط. الدليل: docs/onboarding/06-military-units.md
+Unknown DocType,نوع مستند غير معروف
+Change history: {0},تاريخ التغييرات: {0}
+Created,تم الإنشاء
+Updated,تم التحديث
+No recorded changes.,لا توجد تغييرات مسجلة.
+Unable to load the change history for this record.,تعذّر تحميل تاريخ التغييرات لهذا السجل.
