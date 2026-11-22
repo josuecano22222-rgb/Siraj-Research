@@ -15,6 +15,8 @@ Run with:
 
 from __future__ import annotations
 
+import unittest
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
@@ -54,7 +56,8 @@ class TestQualityScoring(FrappeTestCase):
             "Source Type", pluck="name", limit=10, order_by="name"
         )
         if not types:
-            self.skipTest("Source Type registry is not seeded")
+            # classmethod — no self; SkipTest in setUpClass skips the class.
+            raise unittest.SkipTest("Source Type registry is not seeded")
         first_type = next((t for t in types if t == "report"), types[0])
         src = frappe.get_doc(
             {
