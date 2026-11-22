@@ -6,12 +6,13 @@
 # location block, and an activity summary. Designed for the details drawer on
 # every map surface. No raw SQL; all reads go through frappe.get_list/get_doc.
 
-import frappe
 import json
+
+import frappe
 from frappe import _
 from frappe.model.meta import get_meta
 
-from siraj_research.profile_presentation import organise_profile
+from siraj_research.profile_presentation import compute_quality_scores, organise_profile
 
 # Layout-only fieldtypes we never render as values. "Table" is deliberately
 # absent here: it is skipped by the scalar loop below but collected as a child
@@ -252,13 +253,13 @@ def get_entity_profile(doctype, name, **kwargs):
     except Exception:
         pass
     try:
-        if frappe.has_permission("Version", "read"):
-            activity["versions"] = frappe.get_all(
-                "Version",
-                filters={"ref_doctype": doctype, "docname": name},
-                fields=["name", "owner", "creation", "data"],
-                order_by="creation desc", limit=5,
-            )
+        # Audit history: the Version storage is System-Manager-only, but the
+        # governing permission is the record the caller already may read —
+        # collect_history() re-checks record + field level and formats the
+        # entries (same helper as the audit dialog).
+        from siraj_research.api.audit import collect_history
+
+        activity["versions"] = collect_history(doctype, name, limit=5)["history"]
     except Exception:
         pass
     try:
@@ -286,6 +287,41 @@ def get_entity_profile(doctype, name, **kwargs):
         "can_write": frappe.has_permission(doctype, "write", name),
         "can_create": frappe.has_permission("Relationship", "create"),
     }
+
+    # ---- Quality scores (presentation-time, deterministic) ----
+    # compute_quality_scores lives in the pure presentation layer; the
+    # section/field entries below reuse the existing Quality group so the
+    # drawer renders the scores with no parallel structure.
+    scores = compute_quality_scores({"sections": sections, "children": children})
+    quality_section = next(
+        (s for s in sections if s.get("heading") == "Quality"), None
+    )
+    if quality_section is None:
+        quality_section = {"heading": "Quality", "fields": []}
+        sections.append(quality_section)
+    existing_quality = {
+        f.get("fieldname"): f for f in quality_section["fields"]
+    }
+    for fieldname, label, fieldtype in (
+        ("completeness_score", "Completeness (%)", "Int"),
+        ("quality_score", "Quality score", "Int"),
+        ("confidence", "Confidence", "Select"),
+    ):
+        entry = existing_quality.get(fieldname)
+        if entry is None:
+            entry = {
+                "fieldname": fieldname,
+                "label": label,
+                "fieldtype": fieldtype,
+                "options": "",
+                "value": None,
+            }
+            quality_section["fields"].append(entry)
+        entry["value"] = scores[fieldname]
+        if fieldname == "confidence":
+            # Carry the derived/recorded distinction to the shared renderer
+            # (desk profile AND Explorer both read this payload).
+            entry["derived"] = bool(scores.get("confidence_derived"))
 
     profile = {
         "header": header,
@@ -352,10 +388,11 @@ def _inbound_links(doctype, name):
     out = []
     # Dynamic Links pointing to us can't be enumerated without a scan (their
     # options field holds the doctype at row time), so skip them here.
+    # Walk all DocTypes registered in the app — cheap because we only inspect meta.
+    import os
+
     from frappe.model.meta import get_meta as _m
     from frappe.modules import scrub
-    # Walk all DocTypes registered in the app — cheap because we only inspect meta.
-    import os, json
     doctype_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "siraj_research", "doctype")
     if not os.path.isdir(doctype_dir):
         return out
@@ -388,7 +425,8 @@ def _inbound_links(doctype, name):
             sample = frappe.get_list(target_dt, or_filters=or_filters,
                                      fields=["name"], limit=5) if count else []
         except Exception:
-            count = 0; sample = []
+            count = 0
+            sample = []
         title_field = frappe.get_meta(target_dt).get_title_field() or "name"
         sample_titles = []
         for s in sample:

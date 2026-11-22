@@ -1,0 +1,19 @@
+{
+ "action": "Go to Page",
+ "action_label": "Open the map search",
+ "creation": "2026-11-18 12:00:00.000000",
+ "description": "One box for names, P-Codes and coordinates; region cascade; search-this-area with type filters. Tutorial: docs/onboarding/10-searching.md",
+ "docstatus": 0,
+ "doctype": "Onboarding Step",
+ "idx": 0,
+ "is_complete": 0,
+ "is_skipped": 0,
+ "module_onboarding": "SIRAJ Research Setup",
+ "modified": "2026-11-18 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Siraj Research",
+ "name": "Try the map search",
+ "owner": "Administrator",
+ "path": "siraj-explorer",
+ "title": "Try the map search"
+}

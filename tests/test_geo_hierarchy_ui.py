@@ -58,6 +58,20 @@ def test_field_values_and_apply_to_doc_fill_only_empty_fields(monkeypatch, linke
     import siraj_research.geo_hierarchy as gh
 
     monkeypatch.setattr(gh, "resolve_and_link", lambda *a, **k: linked)
+
+    class Meta:
+        def has_field(self, name):
+            return name in {"country", "governorate", "district", "municipality",
+                            "place_name", "geocoding_method", "geometry_source"}
+
+        def get_field(self, name):
+            return SimpleNamespace(fieldname=name, fieldtype="Data")
+
+    # The fake must be in place before field_values: with a real frappe
+    # package but no site, frappe.get_meta dies on frappe.cache being None.
+    fake_frappe = SimpleNamespace(get_meta=lambda dt: Meta())
+    monkeypatch.setattr(ui, "frappe", fake_frappe)
+
     result = ui.display_resolution(31.78, 35.22)
     values = ui.field_values("Person", result)
     assert values["country"] == "Israel"
@@ -65,13 +79,6 @@ def test_field_values_and_apply_to_doc_fill_only_empty_fields(monkeypatch, linke
     assert values["place_name"] == "Jerusalem"
     assert "village" not in values
 
-    class Meta:
-        def has_field(self, name):
-            return name in {"country", "governorate", "district", "municipality",
-                            "place_name", "geocoding_method", "geometry_source"}
-
-    fake_frappe = SimpleNamespace(get_meta=lambda dt: Meta())
-    monkeypatch.setattr(ui, "frappe", fake_frappe)
     doc = SimpleNamespace(doctype="Person", latitude=31.78, longitude=35.22,
                           country="", governorate="Existing Governorate", place_name=None)
     applied = ui.apply_to_doc(doc, result=result)
@@ -413,8 +420,14 @@ def test_bootstrap_progress_is_immediate_and_tailable():
     assert "tail -f" in docs
 
 
-def test_bootstrap_step_failure_does_not_abort_remaining_stages():
+def test_bootstrap_step_failure_does_not_abort_remaining_stages(monkeypatch):
+    import siraj_research.offline_bootstrap as ob
     from siraj_research.offline_bootstrap import _step
+
+    # Outside a site frappe.db is unbound; the stop-flag probe would raise
+    # 'object is not bound' before the stage function runs. The test is
+    # about failure isolation, so pin the flag to False.
+    monkeypatch.setattr(ob, "stop_requested", lambda: False)
 
     def broken(**kwargs):
         raise RuntimeError("demo failure")

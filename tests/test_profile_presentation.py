@@ -241,6 +241,33 @@ class ProfilePresentationTest(unittest.TestCase):
 		identifiers = next(section for section in profile["sections"] if section["id"] == "identifiers")
 		self.assertEqual(identifiers["fields"], [])
 
+	def test_quality_help_and_derived_flag_pass_through(self):
+		"""Section help (scoring weights) and per-field derived flags reach the client."""
+		profile = raw_profile()
+		host = next(
+			section
+			for section in profile["sections"]
+			if any(f.get("fieldname") == "completeness_score" for f in section["fields"])
+		)
+		host["fields"].append(
+			{
+				"fieldname": "confidence",
+				"label": "Confidence",
+				"fieldtype": "Select",
+				"value": "unverified",
+				"derived": True,
+			}
+		)
+		out = organise_profile(profile)
+		quality = next(section for section in out["sections"] if section["id"] == "quality")
+		self.assertIn("help", quality)
+		self.assertIn("60%", quality["help"])
+		self.assertIn("25%", quality["help"])
+		self.assertIn("15%", quality["help"])
+		confidence = next(f for f in quality["fields"] if f["fieldname"] == "confidence")
+		self.assertTrue(confidence.get("derived"))
+		self.assertEqual(confidence["value"], "unverified")
+
 	def test_i18n_metadata_preserves_source_values(self):
 		profile = organise_profile(raw_profile())
 		fields = {f["fieldname"]: f for section in profile["sections"] for f in section["fields"]}

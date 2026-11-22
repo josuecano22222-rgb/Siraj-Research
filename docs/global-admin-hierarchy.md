@@ -116,6 +116,54 @@ Gazetteer points are only used as a **low-confidence village** when no
 polygon-derived village/community exists. Set
 `Geo Settings.link_gazetteer_as_village = 0` to disable that behaviour.
 
+## Dataset coverage (shipped)
+
+**Coordinate → hierarchy lookup resolves in Israel and Palestine only.**
+The shipped boundary extract is `OSM-IL-PS` — the two ISO countries `IL`
+and `PS`. A point outside those countries produces an empty hierarchy
+chain by design: the resolver reports `on_land: false` for open water and
+returns only a nearest-boundary distance (the Phase 3 diagnostics showed
+~941 km for a point near Baghdad) with **no admin levels filled**. That
+is the honest behaviour of the shipped dataset, not a defect.
+
+What ships more widely than the resolver:
+
+| Reference file | Shipped content |
+| --- | --- |
+| `reference_data/countries.json` | 249 countries (labels, ISO3, region) |
+| `reference_data/governorates.json` | 4,006 level-1 names across 200 countries |
+| `reference_data/districts.json` | 1,411 district names across 22 countries |
+| `reference_data/admin_units.json` | 80 curated municipalities/communities |
+
+These labels feed the cascade dropdowns, but **only imported polygon
+extracts resolve coordinates**. Without an active `Admin Boundary` dataset
+covering the point's country, no level is derived.
+
+**Precision rule (mandatory):** coordinates are never rounded, shortened
+or otherwise rewritten — during data entry, auto-fill or resolution.
+Every latitude/longitude is stored exactly as supplied.
+
+### Extending beyond IL/PS
+
+1. **Source & licence.** Additional extracts come from the same
+   OpenStreetMap admin-boundary pipeline (ODbL — attribution must remain
+   visible in the UI; record the licence on each `Boundary Dataset` row
+   before activation). Any non-OSM source needs an explicit licence review
+   first.
+2. **Offline package size.** Reference labels are small — the entire
+   `reference_data/` folder is ~1.1 MB. Polygon geometry is the bulk:
+   per-country extracts grow with area and boundary complexity (small
+   countries add single-digit MBs of WKB/GeoJSON; large countries tens to
+   hundreds of MB). Ship extracts per country, never one world file, so
+   the install-time package stays predictable.
+3. **Import time.** `geo_import.import_boundary_job` already imports in
+   background chunks per dataset. Budget minutes for a small/medium
+   country and scale linearly; switch the active dataset only after the
+   job reports complete (§3.5).
+4. **Verification.** After activation, test two known in-country points
+   plus one out-of-country control that must stay empty — the Phase 3
+   ocean point and Baghdad diagnostics are the template.
+
 ## 2. Reverse geocoding
 
 ### 2.1 Local first

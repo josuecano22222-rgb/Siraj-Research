@@ -43,24 +43,59 @@
    "idx": 3
   },
   {
-   "step": "Create your first Source",
+   "step": "Import a geographic dataset",
    "is_optional": 0,
    "idx": 4
   },
   {
-   "step": "Register a Person",
+   "step": "Add a Place",
    "is_optional": 0,
    "idx": 5
   },
   {
-   "step": "Import a geographic dataset",
+   "step": "Create your first Source",
    "is_optional": 0,
    "idx": 6
   },
   {
-   "step": "Review data quality",
+   "step": "Register a Person",
    "is_optional": 0,
    "idx": 7
+  },
+  {
+   "step": "Add an organization",
+   "is_optional": 0,
+   "idx": 8
+  },
+  {
+   "step": "Add a military unit",
+   "is_optional": 0,
+   "idx": 9
+  },
+  {
+   "step": "Add an event",
+   "is_optional": 0,
+   "idx": 10
+  },
+  {
+   "step": "Add a relationship",
+   "is_optional": 0,
+   "idx": 11
+  },
+  {
+   "step": "Set up imports and supporting data",
+   "is_optional": 0,
+   "idx": 12
+  },
+  {
+   "step": "Try the map search",
+   "is_optional": 0,
+   "idx": 13
+  },
+  {
+   "step": "Review data quality",
+   "is_optional": 0,
+   "idx": 14
   }
  ],
  "title": "SIRAJ Research Setup"

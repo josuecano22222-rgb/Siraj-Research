@@ -129,6 +129,18 @@ never out of sequence.
 Updates touch **only** `siraj_research`. Do **not** run `bench update --reset`
 here — that pulls Frappe/ERPNext/HRMS/themes and is unrelated to this app.
 
+**Legacy servers — remove demo data first.** If this site ever ran a
+pre-v2 demo build (records without the `siraj_demo_manifest.json`
+manifest, or tagged only via legacy sweeps), run the cleanup **once,
+before step 1**, so old demo rows cannot block migrations or mix with
+fresh content:
+
+```bash
+bench --site frappe.com siraj-research remove-demo-data
+```
+
+Sites that never loaded demo data skip this and start at step 1.
+
 ```bash
 cd ~/frappe-bench
 
@@ -379,10 +391,37 @@ bench restart
 Then run **Act V** again. If DNS is down, use the offline installers instead
 of git (`deploy_all_d18.py` and friends restore the tree without network).
 
+### Upgrading to V2.0.0
+
+```bash
+# 1. Move the app to the release (after the release PR is on main)
+git -C apps/siraj_research fetch origin main
+git -C apps/siraj_research reset --hard origin/main   # or: git checkout V2.0.0
+
+# 2. Schema + patches (only new patch = derived family-column backfill)
+cd ~/frappe-bench
+bench --site frappe.com migrate
+
+# 3. Assets + caches
+bench build --app siraj_research
+bench --site frappe.com clear-cache
+bench restart
+
+# 4. Optional: demo data → onboarding walk → map search → cleanup
+bench --site frappe.com execute siraj_research.demo_data.load
+#    walk siraj_research/docs/onboarding/README.md, try the Explorer map search
+bench --site frappe.com execute siraj_research.demo_data.remove
+```
+
+Full verification (migration safety, fresh-install integration,
+permissions): `docs/qa/v2.0.0-runbooks.md`. Release notes:
+`RELEASE_NOTES_V2.0.0.md`.
+
 ### Release tags
 
 | Tag | Meaning |
 | --- | --- |
+| `V2.0.0` | Family · map search · onboarding · demo data · quality scoring (2026-11-18) |
 | `v1.0.0` | First hierarchy foundation |
 | `v1.1.0` | Cascading + bootstrap stop control |
 | `v1.x.0` | Features |

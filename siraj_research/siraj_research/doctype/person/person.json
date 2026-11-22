@@ -56,6 +56,36 @@
   "public_activity",
   "website",
   "social_accounts",
+  "tab_family",
+  "sb_marital",
+  "marital_status",
+  "family_summary",
+  "cb_marital",
+  "is_grandparent",
+  "sb_spouse",
+  "spouse_name",
+  "cb_spouse",
+  "spouse_birth_date",
+  "spouse_nationality",
+  "spouse_occupation",
+  "marriage_date",
+  "marriage_date_as_stated",
+  "marriage_place",
+  "spouse_notes",
+  "sb_children",
+  "children",
+  "sb_grandchildren",
+  "grandchildren",
+  "sb_siblings",
+  "siblings",
+  "sb_family_origin",
+  "father_name",
+  "father_person",
+  "cb_origin",
+  "mother_name",
+  "family_name",
+  "next_of_kin",
+  "family_notes",
   "tab_evidence",
   "sb_geo",
   "sb_location",
@@ -108,7 +138,7 @@
    "options": "PER-.####\nPER-.YY.-.####",
    "reqd": 1,
    "default": "PER-.####",
-   "description": "Identifier series. 'PER-.####' numbers continuously; 'PER-.YY.-.####' restarts each year \u2014 the native equivalent of the original `sequence.reset_policy = yearly`."
+   "description": "Identifier series. 'PER-.####' numbers continuously; 'PER-.YY.-.####' restarts each year — the native equivalent of the original `sequence.reset_policy = yearly`."
   },
   {
    "fieldname": "display_name",
@@ -163,7 +193,7 @@
    "fieldtype": "Link",
    "label": "Original-name language",
    "options": "Language",
-   "description": "Native `Language` doctype \u2014 not a free-text language code."
+   "description": "Native `Language` doctype — not a free-text language code."
   },
   {
    "fieldname": "name_transliteration",
@@ -176,7 +206,7 @@
    "fieldname": "name_variants",
    "fieldtype": "Small Text",
    "label": "Other recorded forms of the name",
-   "description": "Spellings met in sources that are not the preferred form. Searchable, so 'Mosul' finds 'M\u016b\u1e63il'."
+   "description": "Spellings met in sources that are not the preferred form. Searchable, so 'Mosul' finds 'Mūṣil'."
   },
   {
    "fieldname": "cb_media",
@@ -252,7 +282,7 @@
    "fieldname": "death_date_as_stated",
    "fieldtype": "Data",
    "label": "Date of death (as stated)",
-   "description": "Exactly as the source gives it: 1950 \u00b7 1950-05 \u00b7 1950-05-12 \u00b7 1950-05-12T21:45 \u00b7 'c. 1850' \u00b7 '1850s' \u00b7 '1850?'. Authoritative value; the date field beside it is derived from it.",
+   "description": "Exactly as the source gives it: 1950 · 1950-05 · 1950-05-12 · 1950-05-12T21:45 · 'c. 1850' · '1850s' · '1850?'. Authoritative value; the date field beside it is derived from it.",
    "in_global_search": 1,
    "length": 32
   },
@@ -302,7 +332,7 @@
    "fieldtype": "Link",
    "label": "Place of birth",
    "options": "Place",
-   "description": "Association only \u2014 it never assigns that place's coordinates to this person."
+   "description": "Association only — it never assigns that place's coordinates to this person."
   },
   {
    "fieldname": "birthplace_as_stated",
@@ -338,7 +368,7 @@
    "label": "Current status",
    "options": "Person Status",
    "in_standard_filter": 1,
-   "description": "Living, deceased, whereabouts unknown \u2026",
+   "description": "Living, deceased, whereabouts unknown …",
    "in_preview": 1
   },
   {
@@ -390,7 +420,7 @@
    "label": "Service branch",
    "options": "Military Branch",
    "depends_on": "eval:doc.category == 'Military'",
-   "description": "Army, Navy, Air Force, Joint, Gendarmerie, Coast Guard \u2014 a governed vocabulary (migration 020 domain `military_branch`), extendable without a code change."
+   "description": "Army, Navy, Air Force, Joint, Gendarmerie, Coast Guard — a governed vocabulary (migration 020 domain `military_branch`), extendable without a code change."
   },
   {
    "fieldname": "commission_date",
@@ -406,14 +436,14 @@
    "options": "Military Service Status",
    "depends_on": "eval:doc.category == 'Military'",
    "in_standard_filter": 1,
-   "description": "Active \u2192 Reserve \u2192 Retired, and Retired is terminal (source `SERVICE_STATUS_TRANSITIONS`). The transition is enforced in the controller; see Del. 12 \u00a74."
+   "description": "Active → Reserve → Retired, and Retired is terminal (source `SERVICE_STATUS_TRANSITIONS`). The transition is enforced in the controller; see Del. 12 §4."
   },
   {
    "fieldname": "military_biography",
    "fieldtype": "Text Editor",
    "label": "Military biography",
    "depends_on": "eval:doc.category == 'Military'",
-   "description": "Service history, commands and campaigns \u2014 the military record behind the rank."
+   "description": "Service history, commands and campaigns — the military record behind the rank."
   },
   {
    "fieldname": "leadership_assessments",
@@ -465,6 +495,171 @@
    "label": "Official accounts",
    "options": "Social Account",
    "no_copy": 1
+  },
+  {
+   "fieldname": "tab_family",
+   "fieldtype": "Tab Break",
+   "label": "Family"
+  },
+  {
+   "fieldname": "sb_marital",
+   "fieldtype": "Section Break",
+   "label": "Marital status"
+  },
+  {
+   "fieldname": "marital_status",
+   "fieldtype": "Select",
+   "label": "Marital status",
+   "options": "\nSingle\nMarried"
+  },
+  {
+   "fieldname": "family_summary",
+   "fieldtype": "Data",
+   "label": "Family summary",
+   "read_only": 1,
+   "description": "Computed on save from marital status and family rows."
+  },
+  {
+   "fieldname": "cb_marital",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "is_grandparent",
+   "fieldtype": "Check",
+   "label": "Is grandparent",
+   "read_only": 1,
+   "hidden": 1,
+   "description": "Derived: set when any child row reports children of its own."
+  },
+  {
+   "fieldname": "sb_spouse",
+   "fieldtype": "Section Break",
+   "label": "Spouse",
+   "depends_on": "eval:doc.marital_status == 'Married'"
+  },
+  {
+   "fieldname": "spouse_name",
+   "fieldtype": "Data",
+   "label": "Spouse name (as stated)"
+  },
+  {
+   "fieldname": "cb_spouse",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "spouse_birth_date",
+   "fieldtype": "Date",
+   "label": "Spouse date of birth"
+  },
+  {
+   "fieldname": "spouse_nationality",
+   "fieldtype": "Link",
+   "label": "Spouse nationality",
+   "options": "Country"
+  },
+  {
+   "fieldname": "spouse_occupation",
+   "fieldtype": "Data",
+   "label": "Spouse occupation"
+  },
+  {
+   "fieldname": "marriage_date",
+   "fieldtype": "Date",
+   "label": "Marriage date"
+  },
+  {
+   "fieldname": "marriage_date_as_stated",
+   "fieldtype": "Data",
+   "label": "Marriage date (as stated)"
+  },
+  {
+   "fieldname": "marriage_place",
+   "fieldtype": "Link",
+   "label": "Marriage place",
+   "options": "Place"
+  },
+  {
+   "fieldname": "spouse_notes",
+   "fieldtype": "Small Text",
+   "label": "Spouse notes"
+  },
+  {
+   "fieldname": "sb_children",
+   "fieldtype": "Section Break",
+   "label": "Children",
+   "depends_on": "eval:doc.marital_status == 'Married'"
+  },
+  {
+   "fieldname": "children",
+   "fieldtype": "Table",
+   "label": "Children",
+   "options": "Person Child"
+  },
+  {
+   "fieldname": "sb_grandchildren",
+   "fieldtype": "Section Break",
+   "label": "Grandchildren",
+   "depends_on": "eval:doc.marital_status == 'Married' && doc.is_grandparent"
+  },
+  {
+   "fieldname": "grandchildren",
+   "fieldtype": "Table",
+   "label": "Grandchildren",
+   "options": "Person Grandchild"
+  },
+  {
+   "fieldname": "sb_siblings",
+   "fieldtype": "Section Break",
+   "label": "Siblings"
+  },
+  {
+   "fieldname": "siblings",
+   "fieldtype": "Table",
+   "label": "Siblings",
+   "options": "Person Sibling"
+  },
+  {
+   "fieldname": "sb_family_origin",
+   "fieldtype": "Section Break",
+   "label": "Family of origin & next of kin"
+  },
+  {
+   "fieldname": "father_name",
+   "fieldtype": "Data",
+   "label": "Father name"
+  },
+  {
+   "fieldname": "father_person",
+   "fieldtype": "Link",
+   "label": "Father (linked Person record)",
+   "options": "Person"
+  },
+  {
+   "fieldname": "cb_origin",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "mother_name",
+   "fieldtype": "Data",
+   "label": "Mother name (as stated)"
+  },
+  {
+   "fieldname": "family_name",
+   "fieldtype": "Data",
+   "label": "Family name / clan"
+  },
+  {
+   "fieldname": "next_of_kin",
+   "fieldtype": "Small Text",
+   "label": "Next of kin (name & contact)"
+  },
+  {
+   "fieldname": "family_notes",
+   "fieldtype": "Small Text",
+   "label": "Family notes"
   },
   {
    "fieldname": "tab_evidence",
@@ -646,7 +841,7 @@
    "in_standard_filter": 1,
    "search_index": 1,
    "no_copy": 1,
-   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft \u2192 In Review \u2192 Verified \u2192 Published, plus Needs Update / Disputed / Archived / Rejected)."
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
   },
   {
    "fieldname": "researcher_notes",
@@ -908,7 +1103,7 @@
  "in_create": 0,
  "title_field": "display_name",
  "image_field": "image",
- "search_fields": "display_name,name_ar,name_en,name_original,name_transliteration",
+ "search_fields": "display_name,name_ar,name_en,name_original,name_transliteration,family_summary",
  "icon": "user",
  "description": "Researchers, scholars, officials and other individuals.",
  "istable": 0,

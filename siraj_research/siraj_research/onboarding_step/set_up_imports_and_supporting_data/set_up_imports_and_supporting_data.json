@@ -1,0 +1,19 @@
+{
+ "action": "Go to Page",
+ "action_label": "Review import settings",
+ "creation": "2026-11-18 12:00:00.000000",
+ "description": "Import/export caps and modes, plus tags, evidence rows and attachments that support every claim. Tutorial: docs/onboarding/09-supporting-data.md",
+ "docstatus": 0,
+ "doctype": "Onboarding Step",
+ "idx": 0,
+ "is_complete": 0,
+ "is_skipped": 0,
+ "module_onboarding": "SIRAJ Research Setup",
+ "modified": "2026-11-18 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Siraj Research",
+ "name": "Set up imports and supporting data",
+ "owner": "Administrator",
+ "path": "siraj-settings",
+ "title": "Set up imports and supporting data"
+}

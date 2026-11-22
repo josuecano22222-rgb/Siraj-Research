@@ -1,0 +1,84 @@
+{
+ "doctype": "DocType",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "permissions": [],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "sort_field": "modified",
+ "sort_order": "ASC",
+ "row_format": "Dynamic",
+ "autoname": "hash",
+ "istable": 1,
+ "editable_grid": 1,
+ "in_create": 0,
+ "issingle": 0,
+ "creation": "2026-11-18 00:00:00.000000",
+ "modified": "2026-11-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0,
+ "name": "Person Grandchild",
+ "description": "One grandchild of the parent Person — exclusive to this record, never a separate Person.",
+ "fields": [
+  {
+   "fieldname": "grandchild_name",
+   "fieldtype": "Data",
+   "label": "Grandchild name",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "grandchild_name_ar",
+   "fieldtype": "Data",
+   "label": "Grandchild name (Arabic)",
+   "columns": 2
+  },
+  {
+   "fieldname": "cb_gc",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "through_child",
+   "fieldtype": "Select",
+   "label": "Through (child of this person)",
+   "description": "Which of this person's children this grandchild descends from — options fill from the Children table."
+  },
+  {
+   "fieldname": "gender",
+   "fieldtype": "Select",
+   "label": "Gender",
+   "options": "\nMale\nFemale\nUnknown"
+  },
+  {
+   "fieldname": "birth_date",
+   "fieldtype": "Date",
+   "label": "Date of birth"
+  },
+  {
+   "fieldname": "birth_date_as_stated",
+   "fieldtype": "Data",
+   "label": "Date of birth (as stated)"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "field_order": [
+  "grandchild_name",
+  "grandchild_name_ar",
+  "cb_gc",
+  "through_child",
+  "gender",
+  "birth_date",
+  "birth_date_as_stated",
+  "notes"
+ ]
+}

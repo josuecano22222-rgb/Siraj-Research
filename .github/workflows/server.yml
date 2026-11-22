@@ -39,7 +39,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -63,26 +63,63 @@ jobs:
 
       - name: Setup bench
         run: |
+          set -Eeuo pipefail
+          trap 'echo "::error title=Setup bench failed::exit $? at: $BASH_COMMAND"' ERR
           pip install frappe-bench
-          bench init --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
+          bench init --skip-redis-config-generation --skip-assets --frappe-branch version-15 --python "$(which python)" ~/frappe-bench
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
 
       - name: Install app and site
         working-directory: /home/runner/frappe-bench
         run: |
+          set -Eeuo pipefail
+          trap 'echo "::error title=Install app and site failed::exit $? at: $BASH_COMMAND"' ERR
           bench get-app siraj_research $GITHUB_WORKSPACE
           bench setup requirements --dev
           bench new-site --db-root-password root --admin-password admin test_site
           bench --site test_site install-app siraj_research
-          bench build
+          # Only this app's bundle is needed for run-tests; skipping the
+          # full multi-app build keeps the job fast and avoids the
+          # historical full-build failure mode.
+          bench build --app siraj_research
         env:
           CI: 'Yes'
 
       - name: Run Frappe server tests
         working-directory: /home/runner/frappe-bench
         run: |
+          echo "::notice title=server tests::step started (head ${GITHUB_SHA::8})"
           bench --site test_site set-config allow_tests true
-          bench --site test_site run-tests --app siraj_research
+          # The runner shell runs with -e; || status=$? keeps going on failure.
+          # Scope = release-gate modules (a bare --app run would also pull in
+          # the eight modules CI deliberately ignores). Run logs are sign-in
+          # gated for API readers, so per-module results and the failing tail
+          # are re-emitted as annotations (%0A = newline).
+          status=0
+          : > /tmp/server-tests.log
+          for module in \
+            test_api_static \
+            test_audit_api \
+            test_auto_fill_defaults \
+            test_role_visibility \
+            test_quality_scoring \
+            test_demo_data \
+            test_map_search_api \
+            test_person_family
+          do
+            echo "=== $module ===" >> /tmp/server-tests.log
+            bench --site test_site run-tests --module "siraj_research.tests.$module" >> /tmp/server-tests.log 2>&1 || status=1
+          done
+          grep -E "^(=== |Ran [0-9]+ test|OK$|FAILED \()" /tmp/server-tests.log | tail -40 | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > /tmp/results-encoded.txt
+          if [ "$status" -ne 0 ]; then
+            # Extract each failing test's id + traceback, not the log tail
+            # (which only ever shows the last module to run).
+            grep -E -A 24 "^(FAIL|ERROR): " /tmp/server-tests.log | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}' | head -c 5500 > /tmp/failures-encoded.txt
+            echo "::error title=run-tests failures::$(cat /tmp/results-encoded.txt)$(cat /tmp/failids-encoded.txt)$(cat /tmp/failures-encoded.txt)"
+          else
+            echo "::notice title=run-tests passed::$(cat /tmp/results-encoded.txt)"
+          fi
+          exit "$status"
         env:
           TYPE: server

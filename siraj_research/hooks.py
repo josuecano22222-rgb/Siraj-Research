@@ -80,6 +80,7 @@ from siraj_research.record_icons import SIRAJ_BUILD as _SIRAJ_BUILD
 _CSS_VER = "?v=" + _SIRAJ_BUILD
 app_include_js = [
 	"siraj.bundle.js",
+	"siraj-audit.js",
 ]
 app_include_css = [
 	"/assets/siraj_research/css/siraj-hierarchy.css" + _CSS_VER,

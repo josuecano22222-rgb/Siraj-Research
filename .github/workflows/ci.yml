@@ -61,6 +61,7 @@ jobs:
           for f in \
             tests/test_explorer_assets.js \
             tests/test_load_probe.js \
+            tests/test_map_search_ui.js \
             tests/test_offline_records.js \
             tests/test_signed_snapshot_adversarial.js \
             tests/test_signed_snapshot_crypto.js \
@@ -151,3 +152,8 @@ jobs:
           echo "Linting ${#files[@]} file(s):"
           printf '  %s\n' "${files[@]}"
           ruff check "${files[@]}"
+          # Undefined-name guard for the pure API/utils layer: the project
+          # config ignores F821 (bench-runtime names), which once hid a
+          # missing import that only exploded on a real site. These two
+          # dirs import frappe explicitly, so F821 there is always a bug.
+          ruff check --isolated --select F821 siraj_research/api siraj_research/utils

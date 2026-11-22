@@ -2,7 +2,7 @@
  "action": "Create Entry",
  "action_label": "Import geography",
  "creation": "2026-11-18 12:00:00.000000",
- "description": "Register a GADM/OSM/GeoNames source, run setup_region, and the six-level hierarchy fills with polygons, P-Codes and coordinates.",
+ "description": "Register a GADM/OSM/GeoNames source, run setup_region, and the six-level hierarchy fills with polygons, P-Codes and coordinates. Tutorial: docs/onboarding/02-locations.md",
  "docstatus": 0,
  "doctype": "Onboarding Step",
  "idx": 0,

@@ -1679,3 +1679,149 @@ Zoom out,تصغير
 Σ direct_personnel over the whole subtree.,مجموع الأفراد المباشرين عبر الشجرة الفرعية.
 "Σ direct_personnel over the whole subtree. Read-only and recomputed on save: it is the one number a commander asks for, and it must never be typed.",مجموع الأفراد المباشرين عبر الشجرة الفرعية؛ قراءة فقط.
 العنوان (Arabic),العنوان بالعربية
+Brother,أخ
+Sister,أخت
+Stepbrother,أخ غير شقيق
+Stepsister,أخت غير شقيقة
+Half-brother,أخ نصف شقيق
+Half-sister,أخت نصف شقيقة
+Child name,اسم الطفل
+Child name (Arabic),اسم الطفل (بالعربية)
+Children,الأبناء
+Children: {0},الأبناء: {0}
+Computed on save from marital status and family rows.,تُحسب عند الحفظ من الحالة الاجتماعية وصفوف العائلة.
+Derived: set when any child row reports children of its own.,مشتقّة: تُفعَّل عندما يذكر أي صف من الأبناء أبناءً لديهم.
+Family data,بيانات العائلة
+Family details are hidden while Single — they are kept; switch back to Married to review them.,تفاصيل العائلة مخفية أثناء وضع «غير متزوج» — البيانات محفوظة؛ اعد الاختيار إلى «متزوج» لعرضها.
+Family name / clan,اسم العائلة / العشيرة
+Family notes,ملاحظات العائلة
+Family of origin & next of kin,العائلة الأصلية وذوو القرابة
+Family summary,ملخص العائلة
+Father (linked Person record),الأب (سجل شخص مرتبط)
+Father name,اسم الأب
+Grandchild name,اسم الحفيد
+Grandchild name (Arabic),اسم الحفيد (بالعربية)
+Grandchildren,الأحفاد
+Grandchildren: {0},الأحفاد: {0}
+Is grandparent,لديه أحفاد
+Linked Person record,سجل شخص مرتبط
+Marital status,الحالة الاجتماعية
+Marriage date,تاريخ الزواج
+Marriage date (as stated),تاريخ الزواج (كما ورد)
+Marriage date cannot be in the future.,لا يمكن أن يكون تاريخ الزواج في المستقبل.
+Marriage date cannot precede the person's birth date.,لا يمكن أن يسبق تاريخ الزواج ميلاد الشخص.
+Marriage place,مكان الزواج
+Married,متزوج
+Mother name (as stated),اسم الأم (كما ورد)
+Next of kin (name & contact),ذوو القرابة الأقرب (الاسم والتواصل)
+Number of children,عدد الأبناء
+Occupation / school,المهنة / المدرسة
+"One child of the parent Person — exclusive to this record, never a separate Person.",طفل واحد من الشخص الأب — حصري بهذا السجل ولا يُسجَّل كشخص مستقل.
+"One grandchild of the parent Person — exclusive to this record, never a separate Person.",حفيد واحد من الشخص الأب — حصري بهذا السجل ولا يُسجَّل كشخص مستقل.
+One sibling of the parent Person — optionally linked to their own Person record.,شقيقة أو أخ واحد من الشخص الأب — مع إمكانية ربطه بسجل شخص مستقل.
+Optional — link only when the sibling exists as their own Person record.,اختياري — اربط فقط عندما يكون الشخص الآخر مسجَّلاً بسجل مستقل.
+Person Child,طفل الشخص
+Person Grandchild,حفيد الشخص
+Person Sibling,شقيق الشخص
+Row {0}: 'Through' must name one of this person's children.,الصف {0}: يجب أن يشير «من خلال» إلى أحد أبناء هذا الشخص.
+Row {0}: a child cannot be born before the person.,الصف {0}: لا يمكن أن يسبق ميلاد الطفل ميلاد الشخص.
+Row {0}: a child's date of birth cannot be in the future.,الصف {0}: لا يمكن أن يكون تاريخ ميلاد الطفل في المستقبل.
+Row {0}: a grandchild cannot be born before the person.,الصف {0}: لا يمكن أن يسبق ميلاد الحفيد ميلاد الشخص.
+Row {0}: a grandchild cannot be born before their parent.,الصف {0}: لا يمكن أن يسبق ميلاد الحفيد ميلاد والده.
+Row {0}: a grandchild's date of birth cannot be in the future.,الصف {0}: لا يمكن أن يكون تاريخ ميلاد الحفيد في المستقبل.
+Row {0}: a person cannot be listed as their own sibling.,الصف {0}: لا يمكن إدراج الشخص أخاً لنفسه.
+Sibling name,اسم الشقيق
+Sibling name (Arabic),اسم الشقيق (بالعربية)
+Siblings,الأشقاء
+Siblings: {0},الأشقاء: {0}
+Single,غير متزوج
+Spouse,الزوج/الزوجة
+Spouse date of birth,تاريخ ميلاد الزوج/الزوجة
+Spouse date of birth cannot be in the future.,لا يمكن أن يكون تاريخ ميلاد الزوج/الزوجة في المستقبل.
+Spouse name (as stated),اسم الزوج/الزوجة (كما ورد)
+Spouse nationality,جنسية الزوج/الزوجة
+Spouse notes,ملاحظات عن الزوج/الزوجة
+Spouse occupation,مهنة الزوج/الزوجة
+Spouse: {0},الزوج/الزوجة: {0}
+This child's own children — marks the parent as a grandparent.,أبناء هذا الطفل — وما يجعل الشخص جدًّا.
+Through (child of this person),من خلال (طفل من أبناء هذا الشخص)
+Which of this person's children this grandchild descends from — options fill from the Children table.,أيُّ أبناء هذا الشخص ينتمي إليه هذا الحفيد — تُملأ الخيارات من جدول الأبناء.
+A minus sign conflicts with the hemisphere letter.,علامة السالب تتعارض مع حرف الاتجاه.
+A negative sign conflicts with the hemisphere letter.,الإشارة السالبة تتعارض مع حرف الاتجاه.
+Advanced map search,بحث الخريطة المتقدم
+Advanced search,بحث متقدم
+Boundary dataset,مجموعة بيانات الحدود
+Coordinates: {0},الإحداثيان: {0}
+Could not resolve this point,تعذّر تحديد المنطقة الإدارية لهذه النقطة
+DMS · {0},درجات/دقائق/ثواني · {0}
+Degrees/minutes/seconds are out of range (minutes and seconds must be below 60).,الدرجات أو الدقائق أو الثواني خارج النطاق (يجب أن تكون الدقائق والثواني أقل من 60).
+Exact coordinates,إحداثيان بدقيقتها
+Exact fractions: {0} · {1},كسور دقيقة: {0} · {1}
+Hierarchy registry,سجل التسلسل الإداري
+Input: {0},المُدخل: {0}
+Invalid coordinates.,إحداثيات غير صالحة.
+Jumped to {0},الانتقال إلى {0}
+"Latitude must be between -90 and 90, longitude between -180 and 180.",يجب أن يكون خط العرض بين -90 و90، وخط الطول بين -180 و180.
+No coordinates recorded for {0},لا إحداثيات مسجّلة لـ{0}
+No hierarchy for this point,لا يوجد تسلسل إداري لهذه النقطة
+No results for “{0}”,لا نتائج لعبارة “{0}”
+Region level,مستوى المنطقة
+"Region, place, record or 31.5, 34.47…",منطقة أو مكان أو سجل أو 31.5، 34.47…
+Regions,المناطق
+Resolving…,جارٍ التحديد…
+Search failed — try again.,فشل البحث — أعد المحاولة.
+Search scope,نطاق البحث
+Searching…,جارٍ البحث…
+That does not look like a number.,لا يبدو هذا رقماً.
+That hemisphere letter belongs to the other coordinate.,حرف الاتجاه هذا يخص الإحداثي الآخر.
+Use {0},استخدم {0}
+Choose {0}…,اختر {0}…
+Country…,الدولة…
+Invalid map view.,عرض الخريطة غير صالح.
+Map view unavailable.,عرض الخريطة غير متاح.
+Missing levels,مستويات ناقصة
+Search this area,ابحث في هذه المنطقة
+Search this area (current map view),ابحث في هذه المنطقة (عرض الخريطة الحالي)
+Searching this area…,جارٍ البحث في هذه المنطقة…
+this area,هذه المنطقة
+{0} records · {1} places · {2} regions,{0} سجل · {1} موقع · {2} منطقة
+Add a Place,أضِف مكانًا
+Add a military unit,أضِف وحدة عسكرية
+Add a relationship,أضِف علاقة
+Add an event,أضِف حدثًا
+Add an organization,أضِف مؤسسة
+Set up imports and supporting data,إعداد الاستيراد والبيانات المساندة
+Try the map search,جرّب بحث الخريطة
+"Active boundary dataset, gazetteer, tile behaviour and the online fallback / kill switch — the prerequisite for locations. Tutorial: docs/onboarding/01-settings.md and 02-locations.md",مجموعة الحدود النشطة ودليل الأماكن وسلوك البلاطات والاحتياط عبر الإنترنت / مفتاح الإيقاف — شرط مسبق للمواقع. الدليل: docs/onboarding/01-settings.md و02-locations.md
+"Arabic name required, typed and dated with honest precision, geography and provenance attached. Tutorial: docs/onboarding/05-organizations.md",الاسم العربي إلزامي، مصنّف ومؤرّخ بصدق الدقة، مع الجغرافيا والإسناد. الدليل: docs/onboarding/05-organizations.md
+Arabic title and event type with date precision that matches what you actually know; place and source attached. Tutorial: docs/onboarding/07-events.md,عنوان عربي ونوع حدث بدقة تاريخ تطابق ما تعرفه فعلًا؛ مع المكان والمصدر. الدليل: docs/onboarding/07-events.md
+"Bilingual names, precision-annotated dates, and family fields gated by Marital Status (hidden is not cleared). Tutorial: docs/onboarding/04-individuals.md",أسماء ثنائية وتواريخ موسومة بالدقة وحقول أسرة يتحكم بها الحالة الاجتماعية (الإخفاء لا يعني المسح). الدليل: docs/onboarding/04-individuals.md
+"Completeness, linkage and gap statistics across the registry — the closing loop of the ten tutorials. Tutorial: docs/onboarding/09-supporting-data.md section 9.4",إحصاءات الاكتمال والربط والفجوات في السجل — الحلقة الختامية للدروس العشرة. الدليل: docs/onboarding/09-supporting-data.md القسم 9.4
+Enter exact coordinates in the Geo block and the Country→Community hierarchy auto-fills; unresolvable levels stay empty. Tutorial: docs/onboarding/02-locations.md,أدخل الإحداثيات الدقيقة في كتلة الجغرافيا فيمتلئ تسلسل الدولة→البلدة تلقائيًا؛ تبقى المستويات غير القابلة للتحديد فارغة. الدليل: docs/onboarding/02-locations.md
+"Import/export caps and modes, plus tags, evidence rows and attachments that support every claim. Tutorial: docs/onboarding/09-supporting-data.md",سقوف وأنماط الاستيراد/التصدير مع الوسوم وصفوف الأدلة والمرفقات التي تسند كل ادعاء. الدليل: docs/onboarding/09-supporting-data.md
+"One box for names, P-Codes and coordinates; region cascade; search-this-area with type filters. Tutorial: docs/onboarding/10-searching.md",مربع واحد للأسماء ورموز P والإحداثيات؛ تسلسل المناطق؛ بحث هذه المنطقة مع فلاتر النوع. الدليل: docs/onboarding/10-searching.md
+"Profile language and roles, plus naming, workflow, reviewer and import defaults. Tutorial: docs/onboarding/01-settings.md",لغة الملف الشخصي والأدوار مع افتراضيات التسمية وسير العمل والمراجع والاستيراد. الدليل: docs/onboarding/01-settings.md
+"Register a GADM/OSM/GeoNames source, run setup_region, and the six-level hierarchy fills with polygons, P-Codes and coordinates. Tutorial: docs/onboarding/02-locations.md",سجّل مصدر GADM/OSM/GeoNames وشغّل setup_region فيمتلئ التسلسل من ست طبقات بالمضلعات ورموز P والإحداثيات. الدليل: docs/onboarding/02-locations.md
+"Start here. The workspace groups every DocType into sections, with live counts, distributions and this checklist at the top. Tutorial: docs/onboarding/README.md",ابدأ من هنا. تجمع مساحة العمل كل نوع مستند في أقسام بعدّادات حيّة وتوزيعات وقائمة التحقق هذه في الأعلى. الدليل: docs/onboarding/README.md
+"Title and type, reliability rating, and Evidence rows that tie every claim in the registry back to a source. Tutorial: docs/onboarding/03-sources.md",العنوان والنوع وتصنيف الموثوقية وصفوف الأدلة التي تربط كل ادعاء في السجل بمصدر. الدليل: docs/onboarding/03-sources.md
+"Typed, directed links with date ranges, confidence and a primary source. Tutorial: docs/onboarding/08-relationships.md",روابط مُنمَّطة موجَّهة بنطاقات تواريخ وثقة ومصدر أساسي. الدليل: docs/onboarding/08-relationships.md
+"Unit name, echelon and status with parent-unit hierarchy and a linked commander. Tutorial: docs/onboarding/06-military-units.md",اسم الوحدة وطبقتها وحالتها مع تسلسل الوحدة الأب وقائد مرتبط. الدليل: docs/onboarding/06-military-units.md
+Unknown DocType,نوع مستند غير معروف
+Change history: {0},تاريخ التغييرات: {0}
+Created,تم الإنشاء
+Updated,تم التحديث
+No recorded changes.,لا توجد تغييرات مسجلة.
+Unable to load the change history for this record.,تعذّر تحميل تاريخ التغييرات لهذا السجل.
+Expand,توسيع
+Node limit,حد العُقد
+All records,جميع السجلات
+Node limit reached: showing {0} of {1} records.,تم بلوغ حد العُقد: عرض {0} من {1} سجل.
+Expand this record's connections,توسيع اتصالات هذا السجل
+Added {0} new record(s) from this connection.,تمت إضافة {0} سجل جديد من هذا الاتصال.
+All direct connections are already visible.,جميع الاتصالات المباشرة ظاهرة بالفعل.
+Unable to expand this record.,تعذّر توسيع هذا السجل.
+Quality score,درجة الجودة
+Confidence,درجة الثقة
+"Quality score = 60% completeness + 25% evidence rows (saturates at 5) + 15% primary source, rounded and clamped to 0-100; the quality fields themselves are excluded from completeness. Confidence is marked (derived) when the record stores no authentication level — it is then computed from evidence rows (2+ → corroborated, 1 → single source, 0 → unverified); otherwise it is the recorded value.",درجة الجودة = 60% اكتمال البيانات + 25% صفوف الأدلة (تتوقف عند 5) + 15% المصدر الأساسي، مُقرَّبة ومحدودة بين 0 و100؛ وحقول الجودة نفسها مستثناة من الاحتساب. تُوسم الثقة بـ(مشتق) عندما لا يحتفظ السجل بمستوى توثيق مسجَّل — عندها تُحسب من صفوف الأدلة (2+ ⇒ مُتعاضد، 1 ⇒ مصدر واحد، 0 ⇒ غير موثَّق)، وإلا فهي القيمة المسجَّلة.
+(derived),(مشتق)
+Computed from evidence rows — the record stores no recorded confidence.,تُحسب من صفوف الأدلة — السجل لا يحتفظ بثقة مسجَّلة.

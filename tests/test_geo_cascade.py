@@ -1,4 +1,6 @@
 """Pure regression tests for Country → Community parent/child cascading."""
+import pytest
+
 from siraj_research.geo_cascade import (
     ancestor_filters,
     cascade,
@@ -69,6 +71,44 @@ def test_merge_and_filters_chains_prefer_specific_values():
     merged = merge_chain(broad, specific)
     assert merged["country"]["value"] == "PS"  # selected record wins
     assert merged["village"]["value"] == "Vil A"
+
+
+@pytest.fixture(autouse=True)
+def _bare_frappe_surface():
+    """Make the whitelisted cascade callable without a bench site.
+
+    On CI the real frappe package is absent and `frappe is None` inside
+    geo_cascade, so nothing extra is needed. On a bench box (real frappe,
+    no initialised site) the whitelist wrapper reads ``frappe.local.flags``
+    and cascade touches has_permission/get_meta/get_all — stub exactly
+    that surface and restore it afterwards.
+    """
+    try:
+        import frappe
+    except Exception:
+        yield
+        return
+    _missing = object()
+    old_flags = getattr(frappe.local, "flags", _missing)
+    if old_flags is _missing:
+        frappe.local.flags = frappe._dict()
+    old = (frappe.has_permission, frappe.get_meta, frappe.get_all)
+    frappe.has_permission = lambda *a, **k: True
+    frappe.get_meta = lambda *a, **k: type(
+        "Meta", (), {"has_field": staticmethod(lambda name: False),
+                     "get_field": staticmethod(lambda name: None)})()
+    frappe.get_all = lambda *a, **k: []
+    try:
+        yield
+    finally:
+        frappe.has_permission, frappe.get_meta, frappe.get_all = old
+        if old_flags is _missing:
+            try:
+                del frappe.local.flags
+            except Exception:
+                pass
+        else:
+            frappe.local.flags = old_flags
 
 
 def test_cascade_rejects_unknown_field_and_returns_shape_without_frappe():

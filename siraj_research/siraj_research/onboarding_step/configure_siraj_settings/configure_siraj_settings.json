@@ -2,7 +2,7 @@
  "action": "Go to Page",
  "action_label": "Open settings",
  "creation": "2026-11-18 12:00:00.000000",
- "description": "Review naming, workflow and reviewer defaults before entering data.",
+ "description": "Profile language and roles, plus naming, workflow, reviewer and import defaults. Tutorial: docs/onboarding/01-settings.md",
  "docstatus": 0,
  "doctype": "Onboarding Step",
  "idx": 0,

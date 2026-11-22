@@ -789,6 +789,36 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Person Child",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Link",
+   "link_to": "Person Child",
+   "link_type": "DocType"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Person Grandchild",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Link",
+   "link_to": "Person Grandchild",
+   "link_type": "DocType"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Person Sibling",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Link",
+   "link_to": "Person Sibling",
+   "link_type": "DocType"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Social Account",
    "link_count": 0,
    "onboard": 0,

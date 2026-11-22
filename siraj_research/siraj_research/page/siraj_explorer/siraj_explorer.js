@@ -1,6 +1,6 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
-const SIRAJ_EXPLORER_BUILD = '2026-11-18.profile-i18n.a.1';
+const SIRAJ_EXPLORER_BUILD = '2026-11-18.phase4.graph.a.1';
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -123,6 +123,7 @@ class SirajExplorer {
 		});
 		if (target) $('<div style="margin-top:10px"></div>')
 			.append(this.button(__('Open record'), () => frappe.set_route('Form', target.doctype, target.name), true).addClass('btn-primary btn-sm'))
+			.append((window.sirajAudit ? this.button(__('History'), () => window.sirajAudit.open(target.doctype, target.name)) : $('<span></span>')).addClass('btn-sm').css('margin-left', '6px'))
 			.appendTo(sbody);
 		// Collapsible toggle
 		sum.on('click', (ev) => { ev.preventDefault(); sec.attr('open') ? sec.removeAttr('open') : sec.attr('open','open'); });
@@ -438,6 +439,8 @@ class SirajExplorer {
 			'/assets/siraj_research/js/siraj-map-kit.js',
 			'/assets/siraj_research/js/siraj-map-toolbar.js',
 			'/assets/siraj_research/js/siraj-basemap.js',
+			'/assets/siraj_research/js/siraj-map-search.js',
+			'/assets/siraj_research/css/siraj-map-search.css',
 			'/assets/siraj_research/css/siraj-map-toolbar.css',
 			'/assets/siraj_research/css/siraj-map-advanced.css',
 			'/assets/siraj_research/css/siraj-icons.css',
@@ -593,6 +596,191 @@ class SirajExplorer {
 		const FILTER_PAGE = 'siraj-explorer.geography';
 		let filterState = Filters.initialState(types, FILTER_PAGE);
 		const filterStore = Filters.createStore(filterState);
+		// ------ Advanced search (coordinates · regions · places · records) ------
+		const searchSection = $('<div class="sx-app-section"></div>').appendTo(appPanel);
+		$('<h5></h5>').text(__('Advanced search')).appendTo(searchSection);
+		const searchHost = $('<div></div>').appendTo(searchSection);
+		const searchLayer = L.layerGroup().addTo(map);
+		const searchStatus = (text, warn) => mapStatus(text, warn);
+		const searchPopup = (titleText) => {
+			const box = $('<div class="siraj-search-popup"></div>');
+			if (titleText) $('<b></b>').text(titleText).appendTo(box);
+			return box;
+		};
+		const searchCoordsLine = (latStr, lonStr) =>
+			$('<div class="sms-pop-coords"></div>').text(latStr + ', ' + lonStr);
+		const jumpToSearchResult = (group, item) => {
+			searchLayer.clearLayers();
+			const Search = window.SirajMapSearch;
+			if (group === 'coordinate') {
+				const disp = Search.coordinateDisplay(item);
+				if (disp.error) {
+					searchStatus(Search.coordinateErrorText(disp.error, (s) => __(s)), true);
+					return;
+				}
+				// Leaflet needs floats to move the viewport; the popup shows
+				// the exact strings. Rendering only — never stored.
+				const la = Number(item.lat), lo = Number(item.lon);
+				map.flyTo([la, lo], 16);
+				const dot = L.circleMarker([la, lo], {
+					radius: 7, color: '#126a68', weight: 2, fillColor: '#1b7f88', fillOpacity: 0.9,
+				}).addTo(searchLayer);
+				const box = searchPopup(__('Coordinates'));
+				searchCoordsLine(item.lat, item.lon).appendTo(box);
+				$('<div class="sms-pop-coords"></div>')
+					.text(dms(item.lat, true) + '  ·  ' + dms(item.lon, false)).appendTo(box);
+				if (item.input && item.input !== (item.lat + ', ' + item.lon)) {
+					$('<div class="sms-pop-chain"></div>').text(__('Input: {0}', [item.input])).appendTo(box);
+				}
+				if (item.lat_fraction) {
+					$('<div class="sms-pop-chain"></div>')
+						.text(__('Exact fractions: {0} · {1}', [item.lat_fraction, item.lon_fraction]))
+						.appendTo(box);
+				}
+				const resolveBtn = $('<button type="button" class="btn btn-xs btn-default" style="margin-top:6px"></button>')
+					.text(__('Resolve hierarchy'))
+					.appendTo(box)
+					.on('click', async () => {
+						resolveBtn.prop('disabled', true).text(__('Resolving…'));
+						try {
+							const r = await frappe.call({
+								method: 'siraj_research.api.geo_resolve.resolve_point',
+								args: { latitude: item.lat, longitude: item.lon },
+							});
+							const res = (r && r.message) || {};
+							const chain = res.admin_chain || {};
+							const order = ['country', 'governorate', 'district', 'municipality', 'village', 'community'];
+							const names = order.map((k) => chain[k]).filter(Boolean)
+								.map((e) => e.name_en || e.name_ar || e.pcode || '');
+							const line = names.length ? names.join(' → ') : __('No hierarchy for this point');
+							$('<div class="sms-pop-chain"></div>').text(line).appendTo(box);
+							resolveBtn.remove();
+							dot.setPopupContent(box[0]);
+						} catch (e) {
+							resolveBtn.prop('disabled', false).text(__('Resolve hierarchy'));
+							searchStatus(__('Could not resolve this point'), true);
+						}
+					});
+				dot.bindPopup(box[0]).openPopup();
+				searchStatus(__('Coordinates: {0}', [item.lat + ', ' + item.lon]));
+				return;
+			}
+			if (group === 'regions') {
+				const title = Search.regionTitle(item);
+				const hasBbox = Array.isArray(item.bbox) && item.bbox.every((v) => v != null);
+				const hasCentroid = Array.isArray(item.centroid) && item.centroid[0] != null && item.centroid[1] != null;
+				if (!hasBbox && !hasCentroid) {
+					searchStatus(__('No coordinates recorded for {0}', [title]), true);
+					return;
+				}
+				let anchor;
+				if (hasBbox) {
+					const bounds = L.latLngBounds(
+						[Number(item.bbox[0]), Number(item.bbox[1])],
+						[Number(item.bbox[2]), Number(item.bbox[3])],
+					);
+					L.rectangle(bounds, { color: '#126a68', weight: 1.5, dashArray: '5 4', fill: false })
+						.addTo(searchLayer);
+					map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+					anchor = bounds.getCenter();
+				} else {
+					anchor = [Number(item.centroid[0]), Number(item.centroid[1])];
+					map.flyTo(anchor, 12);
+				}
+				const dot = L.circleMarker(anchor, {
+					radius: 6, color: '#126a68', weight: 2, fillColor: '#1b7f88', fillOpacity: 0.9,
+				}).addTo(searchLayer);
+				const box = searchPopup((item.name_en || item.name_ar || ''));
+				if (item.name_en && item.name_ar) {
+					$('<div></div>').text(item.name_ar).appendTo(box);
+				}
+				const bits = [];
+				if (item.level_name) bits.push(__(item.level_name));
+				if (item.pcode) bits.push(item.pcode);
+				if (item.source) bits.push(item.source === 'boundary' ? __('Boundary dataset') : __('Hierarchy registry'));
+				$('<div class="sms-pop-chain"></div>').text(bits.join(' · ')).appendTo(box);
+				if (Array.isArray(item.chain) && item.chain.length > 1) {
+					const parents = item.chain.slice(1).reverse()
+						.map((c) => c.name_en || c.name_ar || c.pcode || '');
+					if (parents.length) {
+						$('<div class="sms-pop-chain"></div>').text(parents.join(' → ')).appendTo(box);
+					}
+				}
+				if (hasCentroid) searchCoordsLine(item.centroid[0], item.centroid[1]).appendTo(box);
+				dot.bindPopup(box[0]).openPopup();
+				searchStatus(__('Jumped to {0}', [title]));
+				return;
+			}
+			if (group === 'places') {
+				const title = Search.placeTitle(item);
+				const latStr = item.point && item.point[0], lonStr = item.point && item.point[1];
+				if (!latStr || !lonStr) {
+					searchStatus(__('No coordinates recorded for {0}', [title]), true);
+					return;
+				}
+				const la = Number(latStr), lo = Number(lonStr);
+				map.flyTo([la, lo], 14);
+				const dot = L.circleMarker([la, lo], {
+					radius: 6, color: '#8a6d3b', weight: 2, fillColor: '#b8952f', fillOpacity: 0.9,
+				}).addTo(searchLayer);
+				const box = searchPopup(title);
+				if (item.name_en && item.name_ar) $('<div></div>').text(item.name_ar).appendTo(box);
+				const bits = [];
+				if (item.feature_code) bits.push(item.feature_code);
+				if (item.pcode) bits.push(item.pcode);
+				if (bits.length) $('<div class="sms-pop-chain"></div>').text(bits.join(' · ')).appendTo(box);
+				searchCoordsLine(latStr, lonStr).appendTo(box);
+				dot.bindPopup(box[0]).openPopup();
+				searchStatus(__('Jumped to {0}', [title]));
+				return;
+			}
+			if (group === 'records') {
+				const title = Search.recordTitle(item);
+				const latStr = item.point && item.point[0], lonStr = item.point && item.point[1];
+				if (!latStr || !lonStr) {
+					searchStatus(__('No coordinates recorded for {0}', [title]), true);
+					return;
+				}
+				const la = Number(latStr), lo = Number(lonStr);
+				map.flyTo([la, lo], 14);
+				const dot = L.circleMarker([la, lo], {
+					radius: 7, color: '#7a4fa3', weight: 2, fillColor: '#9468c4', fillOpacity: 0.9,
+				}).addTo(searchLayer);
+				const box = searchPopup(title);
+				$('<div class="sms-pop-chain"></div>').text(__(item.doctype)).appendTo(box);
+				searchCoordsLine(latStr, lonStr).appendTo(box);
+				$('<button type="button" class="btn btn-xs btn-default" style="margin-top:6px"></button>')
+					.text(__('Open record'))
+					.appendTo(box)
+					.on('click', () => frappe.set_route('Form', item.doctype, item.name));
+				dot.bindPopup(box[0]).openPopup();
+				searchStatus(__('Jumped to {0}', [title]));
+				return;
+			}
+		};
+		if (window.SirajMapSearch) {
+			try {
+				window.SirajMapSearch.mount(searchHost[0], {
+				onJump: jumpToSearchResult,
+				// Viewport for "search this area": bounds are query params,
+				// not stored data — passed through verbatim, never rounded.
+				getBounds: () => {
+					const b = map.getBounds();
+					return {
+						min_lat: b.getSouth(), min_lon: b.getWest(),
+						max_lat: b.getNorth(), max_lon: b.getEast(),
+					};
+				},
+				});
+			} catch (searchErr) {
+				// The map and panels must survive a search-widget failure.
+				console.error('[SIRAJ] map search mount failed:', searchErr);
+				searchSection.hide();
+			}
+		} else {
+			searchSection.hide();
+		}
+
 		const recSection = $('<div class="sx-app-section"></div>').appendTo(appPanel);
 		const recordHeading = $('<h5></h5>').text(__('Mapped records')).appendTo(recSection);
 		const activeFilterBar = $('<div class="siraj-filter-bar" style="font-size:11px;color:var(--text-muted);margin-bottom:4px"></div>').appendTo(recSection);
@@ -1317,9 +1505,20 @@ class SirajExplorer {
 					if (versions.length) {
 						const s = section('activity','ver',__('Recent changes'), String(versions.length)).appendTo(pane);
 						const body = s.find('.sx-section-body');
-						versions.slice(0,30).forEach(v => $('<div style="font-size:12px;padding:2px 0;color:var(--text-muted)"></div>')
-							.attr('dir','auto').text((v.owner||'') + ' · ' + v.creation)
-							.appendTo(body));
+						versions.slice(0,30).forEach(v => {
+							const line = $('<div style="font-size:12px;padding:3px 0;border-bottom:1px dashed var(--sx-line,#d4dfe0)"></div>')
+								.attr('dir','auto')
+								.text((v.by || v.owner || '') + ' · ' + (v.when || v.creation || '') + ' · ' + (v.action === 'created' ? __('Created') : __('Updated')))
+								.appendTo(body);
+							const changes = v.changes || [];
+							if (changes.length) {
+								$('<div style="font-size:11px;color:var(--text-muted);padding-left:8px"></div>')
+									.attr('dir','auto')
+									.text(changes.slice(0, 4).map(c => c.label || c.field).join(', ') + (changes.length > 4 ? ' …' : ''))
+									.appendTo(body);
+							}
+							line.attr('title', (v.by || '') + ' · ' + (v.when || ''));
+						});
 					}
 					if (!atts.length && !comments.length && !versions.length) {
 						$('<div class="sx-empty"></div>').text(__('No activity recorded.')).appendTo(pane);
@@ -1834,7 +2033,7 @@ class SirajExplorer {
 		const nodeSet = new vis.DataSet();
 		const edgeSet = new vis.DataSet();
 		let currentEdges = [], currentNodes = [], history = [], trail = [], currentId = null, centerIds = [];
-		let searchTerm = '', selectedType = '', edgeType = '', hideEnded = false, evidenceOnly = false, evidenceLoaded = false, layout = 'force', maxDistance = 1;
+		let searchTerm = '', selectedType = '', edgeType = '', hideEnded = false, evidenceOnly = false, evidenceLoaded = false, layout = 'force', maxDistance = 1, nodeLimit = 400;
 		let centerButton, resetButton;
 
 		// Build a unified pool of "centerable" records covering all four map-capable
@@ -1910,6 +2109,11 @@ class SirajExplorer {
 					this.openAddRelationshipDialog(node, null, { onSaved: () => refreshGraph() });
 				})
 				.appendTo(connHead);
+			// On-demand expansion: pull this record's direct neighbourhood
+			// from the server and merge it into the current view.
+			$('<button type="button" class="btn btn-default btn-xs sx-conn-expand" aria-label="' + __("Expand this record's connections") + '">' + __('Expand') + '</button>')
+				.on('click', () => expandNode(node))
+				.appendTo(connHead);
 			if (!connected.length) $('<p class="sx-muted"></p>').text(__('No visible connections in this view. Use + Add to create one from this record.')).appendTo(this.aside);
 			connected.forEach(edge => {
 				const sourceId = JSON.stringify(edge.source), targetId = JSON.stringify(edge.target);
@@ -1934,6 +2138,34 @@ class SirajExplorer {
 						})
 						.appendTo(chipRow);
 				});
+			}
+		};
+		// On-demand node expansion: fetch the selected record's direct
+		// network from the server and merge unseen records/edges into the
+		// loaded graph, then re-render with the node still selected.
+		const expandNode = async node => {
+			try {
+				const res = await frappe.call({ method: 'siraj_research.api.map_relations.get_entity_network',
+					args: { doctype: node.doctype, name: node.name, depth: 1, limit_nodes: 400, limit_edges: 600 } });
+				if (renderId !== this.renderId) return;
+				const net = res.message || {};
+				let added = 0;
+				(net.nodes || []).forEach(n => {
+					const id = this.id(n);
+					if (!all.has(id)) { all.set(id, n); data.nodes.push(n); added++; }
+				});
+				(net.edges || []).forEach(e => {
+					if (!edgeLookup.has(e.name)) { edgeLookup.set(e.name, e); data.edges.push(e); }
+				});
+				update();
+				this.note.text(added
+					? __('Added {0} new record(s) from this connection.', [added])
+					: __('All direct connections are already visible.'));
+				showNode(this.id(node), false);
+			} catch (err) {
+				if (renderId === this.renderId) {
+					this.note.text(__('Unable to expand this record.')).addClass('sx-warning');
+				}
 			}
 		};
 		const edgeCache = {};
@@ -2280,6 +2512,19 @@ class SirajExplorer {
 				nodes = nodes.filter(n => distance.has(this.id(n)));
 				ids = new Set(distance.keys());
 			}
+			// Node-limit control: cap what is rendered (deterministically —
+			// ring distance first, then label) and say so in the status note.
+			const totalBefore = nodes.length;
+			let limitNote = '';
+			if (nodeLimit > 0 && nodes.length > nodeLimit) {
+				nodes = nodes.slice().sort((a, b) => {
+					const da = activeCenters.length ? (distance.get(this.id(a)) ?? Number.MAX_SAFE_INTEGER) : 0;
+					const db = activeCenters.length ? (distance.get(this.id(b)) ?? Number.MAX_SAFE_INTEGER) : 0;
+					return da - db || String(a.label).localeCompare(String(b.label));
+				}).slice(0, nodeLimit);
+				ids = new Set(nodes.map(n => this.id(n)));
+				limitNote = ' ' + __('Node limit reached: showing {0} of {1} records.', [nodes.length, totalBefore]);
+			}
 			currentEdges = eligibleEdges.filter(e => ids.has(JSON.stringify(e.source)) && ids.has(JSON.stringify(e.target)));
 			currentNodes = nodes;
 			edgeSet.clear(); nodeSet.clear(); history = []; currentId = null;
@@ -2325,11 +2570,11 @@ class SirajExplorer {
 			}));
 			graphHost.toggle(layout !== 'matrix'); matrixHost.toggle(layout === 'matrix');
 			if (layout === 'matrix') drawMatrix(nodes, currentEdges);
-			edgeSet.add(currentEdges.map(e => ({ id: e.name, from: JSON.stringify(e.source), to: JSON.stringify(e.target), label: e.type, arrows: /^(directed|one.way)$/i.test(e.direction) ? 'to' : '' })));
+			edgeSet.add(currentEdges.map(e => ({ id: e.name, from: JSON.stringify(e.source), to: JSON.stringify(e.target), label: [e.type, e.authentication_level].filter(Boolean).join(' · '), arrows: /^(directed|one.way)$/i.test(e.direction) ? 'to' : '' })));
 			const suffix = activeCenters.length
 				? ' ' + __('Centered on {0} record(s).', [activeCenters.length])
 				: '';
-			this.note.text(__('Showing {0} records and {1} relationships. Only visible records and links are included.', [nodes.length, currentEdges.length]) + suffix + ' ' + this.warning(data) + (evidenceOnly && data.edges.some(e => e.evidence_count == null) ? ' ' + __('Evidence counts are unavailable for some relationships.') : '') + ' ' + __('Tip: hold Shift and drag one node onto another to create a relationship.'));
+			this.note.text(__('Showing {0} records and {1} relationships. Only visible records and links are included.', [nodes.length, currentEdges.length]) + suffix + limitNote + ' ' + this.warning(data) + (evidenceOnly && data.edges.some(e => e.evidence_count == null) ? ' ' + __('Evidence counts are unavailable for some relationships.') : '') + ' ' + __('Tip: hold Shift and drag one node onto another to create a relationship.'));
 			this.showDetails(__('Relationship map'), [[__('About this view'), __('Select one or more records (via the Centre picker or by clicking a node) to walk out N degrees. Drag nodes to rearrange the network. Click an edge to inspect the relationship.')]]);
 		};
 		this.network.on('selectNode', event => showNode(event.nodes[0]));
@@ -2373,6 +2618,15 @@ class SirajExplorer {
 		depthSelect.on('change', () => {
 			maxDistance = Number(depthSelect.val()); update();
 			if (centerIds.length && layout !== 'matrix') this.network.fit({animation: true});
+		});
+		// Node-limit control: cap how many records the view renders at once
+		// (default 400, matching get_entity_network's limit_nodes convention).
+		const limitSelect = $('<select class="form-control input-sm"></select>').attr('aria-label', __('Node limit')).appendTo(this.tools);
+		[[100, '100'], [250, '250'], [400, '400'], [1000, '1000'], [0, __('All records')]].forEach(([value, title]) => $('<option></option>').val(value).text(title).appendTo(limitSelect));
+		limitSelect.val('400');
+		limitSelect.on('change', () => {
+			nodeLimit = Number(limitSelect.val()); update();
+			if (layout !== 'matrix') this.network.fit({animation: true});
 		});
 		const centerSelect = this.centerPicker(centerItems, ids => {
 			centerIds = ids.slice();

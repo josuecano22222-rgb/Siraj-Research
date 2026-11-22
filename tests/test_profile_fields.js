@@ -243,6 +243,23 @@ const wait = () => new Promise((resolve) => setTimeout(resolve, 130));
 	assert(!w.document.body.textContent.includes('[object Object]'));
 	assert(row('display_name'), 'legacy payload still renders fields');
 
+	// Quality section: weights help text + derived-vs-recorded confidence badge.
+	const qp = profile();
+	const qsec = qp.sections.find((s) => s.id === 'quality');
+	qsec.help = 'Quality score = 60% completeness + 25% evidence rows (saturates at 5) + 15% primary source, rounded and clamped to 0-100; the quality fields themselves are excluded from completeness.';
+	qsec.fields.push(field('confidence', 'Confidence', 'unverified', {derived: true}));
+	mount({profile: qp});
+	const qbody = section('fields:fld_quality');
+	assert(qbody.querySelector('.sx-section-help'), 'quality help mounted');
+	assert(text(qbody).includes('60%'), 'scoring weights documented in UI help');
+	assert(row('confidence').querySelector('.sx-derived-badge'), 'derived confidence badge');
+	assert(text(row('confidence')).includes('(derived)'), 'badge reads (derived)');
+	// Recorded confidence (no derived flag) renders without the badge.
+	const qp2 = profile();
+	qp2.sections.find((s) => s.id === 'quality').fields.push(field('confidence', 'Confidence', 'institutionally_confirmed', {}));
+	mount({profile: qp2});
+	assert(row('confidence') && !row('confidence').querySelector('.sx-derived-badge'), 'recorded confidence has no badge');
+
 	// 8. Defensive helpers.
 	assert.deepStrictEqual(fields.splitDemo('Name [DEMO]'), {text: 'Name', demo: true});
 	assert.strictEqual(fields.safeUrl('javascript:alert(1)'), null);

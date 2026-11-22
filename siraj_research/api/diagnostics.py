@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Siraj runtime diagnostics.
 
 Endpoints here are intentionally simple, side-effect free, and reachable
@@ -8,6 +7,8 @@ expect, without relying on *any* cached JS (which is the whole point of
 the staleness investigation).
 """
 from __future__ import annotations
+
+from pathlib import Path
 
 import frappe
 
@@ -25,8 +26,8 @@ def build_info() -> dict:
 	browser console prints another, the browser is holding a stale
 	bundle.
 	"""
-	from frappe.utils import get_build_version  # may not exist on all v15 builds
 	from frappe import __version__ as frappe_version
+	from frappe.utils import get_build_version  # may not exist on all v15 builds
 
 	served = _asset_snapshot()
 	return {

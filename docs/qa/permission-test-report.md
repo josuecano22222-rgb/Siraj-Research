@@ -1,6 +1,20 @@
 # Frappe permission test report
 
-**Status: IN PROGRESS — the working Frappe environment exists locally on the owner's machine but is not directly accessible to the development agent. Real-environment testing must therefore be coordinated with the owner.** A read-only bench probe is implemented but has only stub tests; no local role results have been reported. No real permission result is asserted here. Static JSON, code review and stubs are not evidence of the effective site permissions.
+**Status: FOUR-ROLE SUITE EXECUTED AND GREEN (2026-11-18).** The Phase 4
+suite `siraj_research/tests/test_role_visibility.py` creates one explicit
+non-Administrator user per SIRAJ role and runs 8 tests covering the
+declared-vs-effective DocPerm matrix, behavioural create/write/delete/
+export boundaries, the permlevel-1 audit split, and the Explorer / graph /
+audit API gates. It passes on a fresh CI bench (MariaDB service, site
+`test_site`): run [44976944667](https://github.com/josuecano22222-rgb/Siraj-Research/actions/runs/44976944667)
+— `test_role_visibility … Ran 8 tests … OK`, alongside the audit (3),
+quality scoring (2), auto-fill, demo-data, map-search and family modules
+(all green; see the `run-tests passed` annotation on that run). The
+remaining rows below (guest, custom role combinations, link-restricted
+fields, submit/cancel) are still **NOT RUN** and stay open as release-gate
+follow-ups. Static JSON and code review alone are not evidence of
+effective site permissions; the rows marked green now have executable
+evidence.
 
 ## Scope and static observations
 
@@ -15,11 +29,11 @@ No accounts were created or used in this audit. On an authorized isolated enviro
 | Test identity / scenario | Expected | Actual |
 | --- | --- | --- |
 | Guest and authenticated user without SIRAJ/Place access | No restricted records or local map tiles via UI or direct API | NOT RUN |
-| SIRAJ Viewer | Read only where explicitly allowed; cannot perform prohibited write/create/delete/submit/cancel via direct API | NOT RUN |
-| SIRAJ Researcher | Each operation follows effective permissions, owner/user restrictions and workflow; level-1 fields denied unless granted | NOT RUN |
-| SIRAJ Reviewer | Permitted review actions and fields work; unrelated blocked actions remain denied | NOT RUN |
-| SIRAJ Administrator and System Manager | Allowed actions work without exposing documents forbidden by effective custom rules | NOT RUN |
-| Administrator | Verify bypass semantics and baseline; not a substitute for other roles | NOT RUN |
+| SIRAJ Viewer | Read only where explicitly allowed; cannot perform prohibited write/create/delete/submit/cancel via direct API | **PASS** — `test_viewer_is_read_only_with_export` (insert/write/delete attempts raise `PermissionError`, export allowed) + full matrix scan; audit `researcher_notes` (permlevel 1) hidden; `test_explorer_and_graph_endpoints_for_viewer`, `test_graph_and_history_do_not_leak_unreadable_records` — CI run 44976944667 |
+| SIRAJ Researcher | Each operation follows effective permissions, owner/user restrictions and workflow; level-1 fields denied unless granted | **PASS** — `test_researcher_cannot_delete` + matrix scan + `test_audit_history_filters_permlevel_one_per_role` (no permlevel-1 diffs) — CI run 44976944667 |
+| SIRAJ Reviewer | Permitted review actions and fields work; unrelated blocked actions remain denied | **PASS** — matrix scan + `test_audit_history_filters_permlevel_one_per_role` (sees the `researcher_notes` diff) — CI run 44976944667 |
+| SIRAJ Administrator and System Manager | Allowed actions work without exposing documents forbidden by effective custom rules | **PASS (role only)** — `test_administrator_can_delete` + matrix scan for SIRAJ Administrator; System Manager combinations NOT RUN — CI run 44976944667 |
+| Administrator | Verify bypass semantics and baseline; not a substitute for other roles | NOT RUN (framework behaviour, documented in Frappe; suite deliberately uses non-Administrator users) |
 | Custom role / user-permission / ownership / share combinations | Query and per-document checks agree, no leaks through lists, reports, linked values, structure counts, tile metadata, downloads or direct methods | NOT RUN |
 | Field restricted with source title/relationship/link | No restricted values or derivable leaks according to approved policy | NOT RUN |
 | Submit/cancel and other operations | Not applicable only when actual effective DocType is not submittable; otherwise allowed and denied cases | NOT RUN |
