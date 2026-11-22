@@ -89,20 +89,19 @@ jobs:
       - name: Run Frappe server tests
         working-directory: /home/runner/frappe-bench
         run: |
-          set -uo pipefail
+          echo "::notice title=server tests::step started (head ${GITHUB_SHA::8})"
           bench --site test_site set-config allow_tests true
-          # Capture output: run logs are sign-in gated for API readers, so
-          # results and failure tails are re-emitted as annotations.
-          bench --site test_site run-tests --app siraj_research 2>&1 | tee /tmp/server-tests.log
-          status=${PIPESTATUS[0]}
-          grep -E "^(Ran [0-9]+ test|OK$|FAILED \(|ERROR)" /tmp/server-tests.log | tail -10 | while IFS= read -r line; do
-            echo "::notice title=server tests::${line}"
-          done
+          # The runner shell runs with -e; || status=$? keeps going on failure.
+          # Run logs are sign-in gated for API readers, so the tail of the
+          # output is re-emitted as one annotation (%0A = newline).
+          status=0
+          bench --site test_site run-tests --app siraj_research > /tmp/server-tests.log 2>&1 || status=$?
+          tail -c 3500 /tmp/server-tests.log | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}' > /tmp/tail-encoded.txt
           if [ "$status" -ne 0 ]; then
-            tail -25 /tmp/server-tests.log | while IFS= read -r line; do
-              echo "::error title=server tests tail::${line}"
-            done
-            exit "$status"
+            echo "::error title=run-tests exit ${status}::$(cat /tmp/tail-encoded.txt)"
+          else
+            echo "::notice title=run-tests passed::$(cat /tmp/tail-encoded.txt)"
           fi
+          exit "$status"
         env:
           TYPE: server
