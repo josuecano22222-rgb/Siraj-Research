@@ -150,15 +150,20 @@ class TestRoleVisibility(FrappeTestCase):
 			name = doctype.get("name")
 			if not name or doctype.get("istable"):
 				continue
-			rows = {
-				row.get("role"): row for row in doctype.get("permissions") or []
-			}
+			# Frappe's get_role_permissions only considers permlevel-0 rows
+			# and ORs them per ptype (Person has a second permlevel-1 row per
+			# role that must not shadow the base row).
+			rows = doctype.get("permissions") or []
 			ptypes = sorted(check_flags) if name == "Person" else ["read"]
 			for role in ROLES:
-				row = rows.get(role) or {}
+				applicable = [
+					row
+					for row in rows
+					if row.get("role") == role and not (row.get("permlevel") or 0)
+				]
 				with RoleUser(role):
 					for ptype in ptypes:
-						declared = bool(row.get(ptype))
+						declared = any(bool(row.get(ptype)) for row in applicable)
 						effective = frappe.has_permission(name, ptype)
 						self.assertEqual(
 							effective,
