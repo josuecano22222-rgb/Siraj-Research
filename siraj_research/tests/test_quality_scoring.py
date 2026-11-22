@@ -48,15 +48,20 @@ class TestQualityScoring(FrappeTestCase):
     def setUpClass(cls):
         cls.source = None
         cls.person = None
-        source_type = frappe.get_meta("Source").get_field("source_type")
-        options = (getattr(source_type, "options", None) or "").split("\n")
-        first_type = next((o for o in options if o.strip()), "report")
+        # source_type is a Link to the "Source Type" registry, not a Select —
+        # resolve a real registry name (seeded at install).
+        types = frappe.get_all(
+            "Source Type", pluck="name", limit=10, order_by="name"
+        )
+        if not types:
+            self.skipTest("Source Type registry is not seeded")
+        first_type = next((t for t in types if t == "report"), types[0])
         src = frappe.get_doc(
             {
                 "doctype": "Source",
                 "naming_series": "SRC-.####",
                 "title": PROBE_TAG,
-                "source_type": first_type.strip(),
+                "source_type": first_type,
             }
         )
         src.insert(ignore_permissions=True)

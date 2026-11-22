@@ -115,8 +115,7 @@ jobs:
           if [ "$status" -ne 0 ]; then
             # Extract each failing test's id + traceback, not the log tail
             # (which only ever shows the last module to run).
-            grep -E "^(FAIL|ERROR): " /tmp/server-tests.log | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > /tmp/failids-encoded.txt
-            grep -E -A 22 "^(FAILED \(|ERROR: )" /tmp/server-tests.log | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}' | head -c 4500 > /tmp/failures-encoded.txt
+            grep -E -A 24 "^(FAIL|ERROR): " /tmp/server-tests.log | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}' | head -c 5500 > /tmp/failures-encoded.txt
             echo "::error title=run-tests failures::$(cat /tmp/results-encoded.txt)$(cat /tmp/failids-encoded.txt)$(cat /tmp/failures-encoded.txt)"
           else
             echo "::notice title=run-tests passed::$(cat /tmp/results-encoded.txt)"

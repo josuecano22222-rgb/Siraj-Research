@@ -97,7 +97,9 @@ def _probe_person() -> str:
 	# in a single save: audit tests assert exactly this split per role.
 	doc.name_variants = "role probe variant"
 	doc.researcher_notes = "role probe restricted notes"
-	doc.save(ignore_permissions=True)
+	# ignore_version=False: frappe sets ignore_version=flags.in_test by
+	# default, so plain saves during tests never write Version rows.
+	doc.save(ignore_permissions=True, ignore_version=False)
 	frappe.db.commit()
 	return doc.name
 

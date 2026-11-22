@@ -45,10 +45,12 @@ class TestAuditApi(FrappeTestCase):
     def test_history_formats_updates_and_drops_noise(self):
         name = self._probe()
         person = frappe.get_doc("Person", name)
+        # ignore_version=False: frappe sets ignore_version=flags.in_test by
+        # default, so plain saves during tests never write Version rows.
         person.name_variants = "audit probe first edit"
-        person.save(ignore_permissions=True)
+        person.save(ignore_permissions=True, ignore_version=False)
         person.name_variants = "audit probe second edit"
-        person.save(ignore_permissions=True)
+        person.save(ignore_permissions=True, ignore_version=False)
 
         result = collect_history("Person", name, limit=10)
         history = result["history"]
