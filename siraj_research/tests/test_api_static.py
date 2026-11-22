@@ -92,20 +92,21 @@ def test_record_icons_tools_extended():
 
 
 def test_hooks_js_bundle_order_explicit():
+    """The audit script must load after the main bundle it enhances.
+
+    JS ships as one esbuild bundle (hooks.py documents the rewrite); the
+    legacy per-module names (siraj-record-meta.js, siraj-map/*.js) no
+    longer exist and asserting them would pin a dead architecture.
+    """
     src = (APP / "hooks.py").read_text()
-    # The four critical modules must be registered in dependency order.
-    assert "siraj-record-meta.js" in src
-    assert "siraj-map/siraj-map.js" in src
-    assert "siraj-map/siraj-graph.js" in src
-    assert "siraj-map/siraj-filters.js" in src
-    assert "siraj-map-kit.js" in src
-    order = [src.find(x) for x in [
-        "siraj-record-meta.js",
-        "siraj-map/siraj-graph.js",
-        "siraj-map/siraj-filters.js",
-        "siraj-map-kit.js",
-    ]]
-    assert order == sorted(order), "app_include_js order wrong: " + repr(order)
+    assert "app_include_js = [" in src
+    bundle = src.find('"siraj.bundle.js"')
+    audit = src.find('"siraj-audit.js"')
+    assert bundle != -1 and audit != -1, "both scripts must be registered"
+    assert bundle < audit, "siraj.bundle.js must load before siraj-audit.js"
+    # Map/toolbar CSS keeps its cache-busting version suffix.
+    assert "siraj-map-toolbar.css" in src
+    assert "_CSS_VER" in src
 
 
 def test_api_init_exists():
