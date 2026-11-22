@@ -70,8 +70,10 @@ class TestDemoData(FrappeTestCase):
         self.assertEqual(result["Relationship"], len(C.RELATIONSHIPS))
         self.assertTrue(_tagged_names("Person", "name_en"))
 
-        # manifest written and covers what was created
-        self.assertTrue(frappe.get_site_path(MANIFEST_NAME))
+        # manifest written and covers what was created (assert the FILE
+        # exists — get_site_path returns a non-empty path string, which
+        # would make a bare assertTrue vacuously pass)
+        self.assertTrue(Path(frappe.get_site_path(MANIFEST_NAME)).exists())
 
         # -- idempotent re-load ---------------------------------------
         before = sorted(_tagged_names("Person", "name_en"))
@@ -166,4 +168,6 @@ class TestDemoData(FrappeTestCase):
             frappe.get_all("Relationship",
                            filters={"primary_source": ["in", demo_sources]},
                            limit_page_length=1), [])
-        self.assertFalse(frappe.get_site_path(MANIFEST_NAME))
+        # teardown removed the manifest FILE (a bare assertFalse on the
+        # path string could never pass — the string is always truthy)
+        self.assertFalse(Path(frappe.get_site_path(MANIFEST_NAME)).exists())
