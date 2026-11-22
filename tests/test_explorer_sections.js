@@ -94,6 +94,7 @@ w.L = {
 		}),
 	},
 	geoJSON: () => new Layer(),
+	layerGroup: () => new Layer(),
 	markerClusterGroup: () => new Layer(),
 	featureGroup: () => new Layer(),
 	marker: () => new Layer(),
