@@ -129,6 +129,18 @@ never out of sequence.
 Updates touch **only** `siraj_research`. Do **not** run `bench update --reset`
 here — that pulls Frappe/ERPNext/HRMS/themes and is unrelated to this app.
 
+**Legacy servers — remove demo data first.** If this site ever ran a
+pre-v2 demo build (records without the `siraj_demo_manifest.json`
+manifest, or tagged only via legacy sweeps), run the cleanup **once,
+before step 1**, so old demo rows cannot block migrations or mix with
+fresh content:
+
+```bash
+bench --site frappe.com siraj-research remove-demo-data
+```
+
+Sites that never loaded demo data skip this and start at step 1.
+
 ```bash
 cd ~/frappe-bench
 

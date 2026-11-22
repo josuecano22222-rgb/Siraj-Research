@@ -145,3 +145,42 @@ instant on cached data and server fetches use the same semantics.
   coords-only auto-fill place, country-only missing-levels place,
   ocean point at exactly `31.6, 33.8`, `circa 1947`/`1960s`/`uncertain`
   dates.
+
+## 2026-11-18 — v2.0.0 Phase 4: audit, roles, graph, scoring
+
+- **Audit view reads Version through the record's own permissions.**
+  `api/audit.collect_history` gates on `has_permission(doctype, "read",
+  doc=name)` and then filters every changed field through the DocType's
+  permlevel rules (`has_permlevel_access_to`, incl. child tables). Frappe's
+  `Version` DocType stays System-Manager-only; the bypass read (`get_all`)
+  grants nothing beyond what the caller could already read on the audited
+  record — documented rationale: audit history is a property of the
+  record, not a separate secret. `entity_profile.activity.versions` was
+  dead for all four SIRAJ roles (it demanded Version read) and now uses
+  the same collector.
+- **Scoring is presentation-time and deterministic.**
+  `profile_presentation.compute_quality_scores` (pure, no frappe import)
+  fills the existing Quality group: completeness = non-empty data fields
+  (the three quality fields excluded from their own denominator), quality
+  = 60% completeness + 25% evidence rows (saturating at 5) + 15% primary
+  source (`QUALITY_WEIGHTS`), confidence = recorded
+  `authentication_level` when it is one of the six ordered
+  `CONFIDENCE_CODES`, else derived from evidence (≥2 corroborated, 1
+  single_source, 0 unverified). Fixture contracts unchanged: the server
+  only injects entries the synthetic fixtures do not contain.
+- **Role tests are code, not checklists.** `tests/test_role_visibility.py`
+  creates one explicit non-Administrator user per SIRAJ role, compares
+  declared DocPerm JSON against effective `has_permission` for every
+  shipped DocType, asserts behavioural create/write/delete/export
+  boundaries (attempts without `ignore_permissions`), the permlevel-1
+  audit split (Reviewer sees `researcher_notes`, Viewer/Researcher do
+  not), and the Explorer/graph/audit API gates.
+- **server.yml triage: accepted with diagnostics.** The advisory job's
+  historical failure was `Setup bench` (exit 167, ~58 s, before any
+  repository code ran — hosted-runner environment, logs sign-in gated).
+  Root causes found and fixed in the workflow: python 3.10 → 3.11, pinned
+  `--frappe-branch version-15`, app-scoped `bench build`, and ERR traps
+  that emit `::error::`/`::notice::` annotations (results + failure
+  tails) because run logs are not readable via the API. The job remains
+  `continue-on-error` (advisory) until it has been green for a week, per
+  the workflow header.

@@ -89,20 +89,19 @@ jobs:
       - name: Run Frappe server tests
         working-directory: /home/runner/frappe-bench
         run: |
-          set -Eeuo pipefail
-          trap 'echo "::error title=Server tests failed::exit $? at: $BASH_COMMAND"' ERR
+          set -uo pipefail
           bench --site test_site set-config allow_tests true
-          # Capture output so every result line is visible as a check
-          # annotation (run logs are sign-in gated for API readers).
-          set +e
+          # Capture output: run logs are sign-in gated for API readers, so
+          # results and failure tails are re-emitted as annotations.
           bench --site test_site run-tests --app siraj_research 2>&1 | tee /tmp/server-tests.log
           status=${PIPESTATUS[0]}
-          set -e
-          grep -E "^(Ran [0-9]+ test|OK$|FAILED \(|ERROR)" /tmp/server-tests.log | tail -25 | while IFS= read -r line; do
+          grep -E "^(Ran [0-9]+ test|OK$|FAILED \(|ERROR)" /tmp/server-tests.log | tail -10 | while IFS= read -r line; do
             echo "::notice title=server tests::${line}"
           done
           if [ "$status" -ne 0 ]; then
-            echo "::error title=run-tests exited ${status}::see the notice lines above for the failing modules"
+            tail -25 /tmp/server-tests.log | while IFS= read -r line; do
+              echo "::error title=server tests tail::${line}"
+            done
             exit "$status"
           fi
         env:
