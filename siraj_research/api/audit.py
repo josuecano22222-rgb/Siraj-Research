@@ -121,7 +121,7 @@ def collect_history(doctype: str, name: str, limit: int = DEFAULT_LIMIT) -> dict
 	return {"doctype": doctype, "name": name, "history": entries}
 
 
-@frappe.whitelisted()
+@frappe.whitelist()
 def document_history(doctype: str, name: str, limit: int = DEFAULT_LIMIT) -> dict:
 	"""Whitelisted entry point for the audit dialog / Explorer inspector."""
 	return collect_history(doctype, name, limit)

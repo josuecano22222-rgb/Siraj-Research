@@ -27,7 +27,7 @@ def _parse(relpath):
 def _has_whitelisted(tree, fn_name):
     """Return True iff `fn_name` is defined and decorated with @frappe.whitelist."""
     for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == fn_name:
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name == fn_name:
             for dec in node.decorator_list:
                 # @frappe.whitelist or @frappe.whitelist()
                 name = None
@@ -64,6 +64,19 @@ def test_relationship_profile_endpoint_whitelisted():
     assert "name" in args, "endpoint must take 'name'"
 
 
+def test_audit_endpoint_whitelisted():
+    """Regression: @frappe.whitelisted is a list, not the decorator.
+
+    Using it as a decorator raises TypeError at import time and takes the
+    whole bench test run down before any test executes.
+    """
+    tree = _parse("api/audit.py")
+    ok, node = _has_whitelisted(tree, "document_history")
+    assert ok, "document_history must be @frappe.whitelist (not .whitelisted)"
+    args = [a.arg for a in node.args.args]
+    assert "doctype" in args and "name" in args
+
+
 def test_record_icons_tools_extended():
     # Must define the 23 new tool glyphs for goal 1.
     src = (APP / "record_icons.py").read_text()
@@ -79,7 +92,6 @@ def test_record_icons_tools_extended():
 
 
 def test_hooks_js_bundle_order_explicit():
-    tree = _parse("hooks.py")
     src = (APP / "hooks.py").read_text()
     # The four critical modules must be registered in dependency order.
     assert "siraj-record-meta.js" in src
