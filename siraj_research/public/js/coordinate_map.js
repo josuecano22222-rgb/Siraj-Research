@@ -56,6 +56,7 @@
 	// over a detail view) do not collide.
 	let instanceCounter = 0;
 	const states = new Map();   // key: frm+cfg+docname  (handles multi-map)
+	const mounting = new Map(); // key → in-flight mount; prevents refresh races
 	const registered = new Set();
 	const boundaryReviews = new WeakMap(); // frm → latest unresolved comparison
 	const t = s => (typeof __ === 'function' ? __(s) : s);
@@ -702,6 +703,17 @@
 
 	async function mount(frm, cfg) {
 		const key = stateKey(frm, cfg);
+		// A new document receives its permanent name after save. Tear down the
+		// state keyed by its temporary name before creating the replacement;
+		// otherwise every save can leave another Leaflet listener set behind.
+		states.forEach((state, stateKeyValue) => {
+			if (
+				stateKeyValue !== key
+				&& state.frm === frm
+				&& state.cfg.lat_field === cfg.lat_field
+				&& state.cfg.lon_field === cfg.lon_field
+			) removeState(state);
+		});
 		const old = states.get(key);
 		const fields = controlsFor(frm, cfg);
 		// If lat/lon disappeared (Customize Form removed them), permissions
@@ -1131,7 +1143,13 @@
 			return;
 		}
 		cfgs.forEach(c => {
-			mount(frm, c);
+			const key = stateKey(frm, c);
+			if (!mounting.has(key)) {
+				const pending = mount(frm, c)
+					.catch(err => { try { console.warn('[SIRAJ coord] mount failed:', err && err.message); } catch (_) {} })
+					.finally(() => mounting.delete(key));
+				mounting.set(key, pending);
+			}
 			resolveFromInputs(frm, c);
 		});
 	}

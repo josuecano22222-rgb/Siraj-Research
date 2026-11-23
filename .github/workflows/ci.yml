@@ -61,6 +61,7 @@ jobs:
           for f in \
             tests/test_boundary_review.js \
             tests/test_geography_action_i18n.js \
+            tests/test_ui_lifecycle_guards.js \
             tests/test_explorer_assets.js \
             tests/test_load_probe.js \
             tests/test_map_search_ui.js \
