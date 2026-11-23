@@ -67,13 +67,12 @@ Required checks must be green before a PR merges to `main`.
 ### Quiet administrative boundary review
 
 Coordinate resolution silently fills empty administrative fields. When an
-existing value conflicts with the detected boundary, SIRAJ shows the comparison
-once—not on every resolver update or form refresh. The comparison fingerprint
-includes coordinates, current values, detected values, and dataset identity, so
-it automatically reappears only after a meaningful change. While differences
-remain, users can reopen it from **Geography → Review boundary suggestions**.
-Choosing **Keep existing** preserves researched values; **Replace with detected**
-applies the boundary result.
+existing value conflicts with the detected boundary, SIRAJ never opens a modal
+automatically—not during create, edit, refresh, map movement, or resolver
+updates. Instead, a highlighted **Geography → Review boundary suggestions**
+button appears while differences remain. The comparison opens only when the
+user presses that button. Choosing **Keep existing** preserves researched
+values; **Replace with detected** applies the boundary result.
 
 ### License
 

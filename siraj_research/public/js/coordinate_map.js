@@ -18,7 +18,7 @@
 (() => {
 	'use strict';
 
-	const MODULE_VERSION = 3;
+	const MODULE_VERSION = 4;
 
 	// DocType → editor config. Merged over window.sirajCoordinateDocs (which
 	// comes from the server via boot_session) so tests/print views that lack
@@ -547,21 +547,6 @@
 		});
 	}
 
-	function boundaryReviewStorageKey(frm) {
-		return 'siraj:boundary-review:' + encodeURIComponent(frm.doctype || '') + ':'
-			+ encodeURIComponent(frm.docname || (frm.doc && frm.doc.name) || 'new');
-	}
-
-	function wasBoundaryReviewSeen(frm, fingerprint) {
-		try { return window.localStorage.getItem(boundaryReviewStorageKey(frm)) === fingerprint; }
-		catch (_) { return false; }
-	}
-
-	function rememberBoundaryReview(frm, fingerprint) {
-		try { window.localStorage.setItem(boundaryReviewStorageKey(frm), fingerprint); }
-		catch (_) { /* private browsing / storage disabled */ }
-	}
-
 	function removeBoundaryReviewButton(frm) {
 		try { frm.remove_custom_button(t('Review boundary suggestions'), t('Geography')); }
 		catch (_) { /* button may not exist on this form */ }
@@ -574,7 +559,7 @@
 				t('Review boundary suggestions'),
 				() => {
 					const review = boundaryReviews.get(frm);
-					if (review) showDiffDialog(frm, review.cfg, review.updates, review.diffs, review.res, review.fingerprint);
+					if (review) showDiffDialog(frm, review.cfg, review.updates, review.diffs, review.res);
 				},
 				t('Geography')
 			);
@@ -630,25 +615,15 @@
 		}
 
 		const fingerprint = boundaryReviewFingerprint(frm, cfg, diffs, res);
-		const previous = boundaryReviews.get(frm);
 		boundaryReviews.set(frm, { cfg, updates: {}, diffs, res, fingerprint });
 		installBoundaryReviewButton(frm);
 
-		// Identical coordinates + current values + detected values have already
-		// been checked. Keep the unobtrusive review button, never reopen a modal
-		// merely because the form refreshed or the resolver ran again.
-		if (previous && previous.fingerprint === fingerprint) {
-			// The document name may change after the first save; remember under
-			// the current key as well so a later full refresh stays quiet.
-			rememberBoundaryReview(frm, fingerprint);
-			return;
-		}
-		if (wasBoundaryReviewSeen(frm, fingerprint)) return;
-		rememberBoundaryReview(frm, fingerprint);
-		showDiffDialog(frm, cfg, {}, diffs, res, fingerprint);
+		// Conflict review is deliberately user-initiated. Create/edit/refresh,
+		// map movement and resolver updates must never open a modal. The quiet
+		// Geography button above is the only entry point to the comparison.
 	}
 
-	function showDiffDialog(frm, cfg, updates, diffs, res, fingerprint) {
+	function showDiffDialog(frm, cfg, updates, diffs, res) {
 		const d = new frappe.ui.Dialog({
 			title: t('Administrative auto-fill'),
 			fields: [
@@ -662,18 +637,16 @@
 				Object.keys(merge).forEach(k => { try { frm.set_value(k, merge[k]); } catch(_){} });
 				boundaryReviews.delete(frm);
 				removeBoundaryReviewButton(frm);
-				rememberBoundaryReview(frm, fingerprint);
 				d.hide();
 			},
 			secondary_action() {
-				rememberBoundaryReview(frm, fingerprint);
 				d.hide();
 			},
 		});
 		let html = '<div style="font-size:13px;line-height:1.5">';
 		html += '<p>' + t('The following fields already have values that differ from what the boundary dataset detected at this point:') + '</p><ul>';
 		diffs.forEach(x => { html += '<li><b>' + frappe.utils.escape_html(x.label) + '</b>: ' + frappe.utils.escape_html(String(x.current)) + ' → <code>' + frappe.utils.escape_html(String(x.proposed)) + '</code></li>'; });
-		html += '</ul><p style="color:var(--text-muted);font-size:12px">' + t('This comparison will not open again unless the coordinates, existing values, or detected boundary values change. Use Review boundary suggestions under Geography to reopen it.') + '</p>';
+		html += '</ul><p style="color:var(--text-muted);font-size:12px">' + t('Boundary comparisons stay quiet during create, edit and refresh. They open only when you choose Review boundary suggestions under Geography.') + '</p>';
 		if (res.ambiguous) html += '<p style="color:#8a2525">⚠ ' + t('This point is near a boundary; values may be inaccurate.') + '</p>';
 		if (res.nearest_place) html += '<p>' + t('Nearest settlement') + ': <b>' + frappe.utils.escape_html(res.nearest_place.name_en || '') + '</b> — ' + Math.round(res.nearest_place.distance_m) + ' m</p>';
 		html += '</div>';

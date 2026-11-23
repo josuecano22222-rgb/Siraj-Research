@@ -4,8 +4,15 @@ const fs = require('fs');
 const vm = require('vm');
 
 const source = fs.readFileSync('siraj_research/public/js/coordinate_map.js', 'utf8');
+const applyStart = source.indexOf('\tfunction applyAdminChain');
+const dialogStart = source.indexOf('\n\tfunction showDiffDialog', applyStart);
+assert(applyStart >= 0 && dialogStart > applyStart, 'review workflow must remain extractable');
+const automaticPath = source.slice(applyStart, dialogStart);
+assert(!automaticPath.includes('showDiffDialog('), 'resolver must never open the conflict dialog automatically');
+assert(automaticPath.includes('installBoundaryReviewButton(frm)'), 'resolver must expose a quiet review button');
+
 const start = source.indexOf('\tfunction normalizedBoundaryValue');
-const end = source.indexOf('\n\tfunction boundaryReviewStorageKey', start);
+const end = source.indexOf('\n\tfunction removeBoundaryReviewButton', start);
 assert(start >= 0 && end > start, 'boundary review helpers must remain extractable');
 
 const context = {};
@@ -45,4 +52,4 @@ const redetected = fingerprint(
 );
 assert.notEqual(first, redetected, 'changed detected values must create a new review');
 
-console.log('Boundary review: identical comparisons stay quiet; meaningful changes reopen review.');
+console.log('Boundary review: resolver stays silent and exposes meaningful changes for on-demand review.');
