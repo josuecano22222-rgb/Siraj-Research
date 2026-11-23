@@ -70,8 +70,9 @@ mit
 
 ### Strict Data Group isolation
 
-The app includes a group-scoped demo DocType, **Shared Record**, and an
-idempotent setup command for two five-member sections:
+The app enforces section isolation across core user-entered SIRAJ research
+records and includes **Shared Record** as a compact verification DocType. An
+idempotent setup command provisions two five-member sections:
 
 ```bash
 # For a new app/bench (skip new-app/get-app when using this repository):
@@ -90,10 +91,32 @@ DocType test-record setup before opening the test transaction when `--doctype`
 is used, which can raise `ImplicitCommitError` before these tests execute.
 
 The setup creates `GD` and `GC`, users `gd1@example.com` … `gd5@example.com`
-and `gc1@example.com` … `gc5@example.com`, the **Group Member** role, and one
-native Data Group User Permission per user. It is safe to rerun. Keep **Apply
-Strict User Permissions** off. Turn **Disable Document Sharing** on in System
-Settings: Frappe shares can otherwise grant access across the group boundary.
+and `gc1@example.com` … `gc5@example.com`, and one native Data Group User
+Permission per user. Members receive **Group Member** plus the existing
+**SIRAJ Administrator** role, giving full SIRAJ research CRUD and SIRAJ app
+configuration access without Frappe System Manager, User, Role, or permission
+administration. It is safe to rerun and upgrades previously provisioned users.
+It also turns **Disable Document Sharing** on and leaves **Apply Strict User
+Permissions** off.
+
+Core records—including people, institutions, places, sources, events,
+relationships, military records, deployments, missions, appointments and their
+association records—are section-scoped. Geography, taxonomies, lookup masters,
+and SIRAJ settings remain shared between both sections.
+
+The setup also creates a **SIRAJ Official** Role Profile. Assign that Role
+Profile to a supervisor who must see and manage both GD and GC; do not assign
+it to ordinary section members. An official should either have no Data Group
+User Permission or have permissions for both GD and GC. When promoting an
+existing section member, add the other section's Data Group User Permission.
+Administrator remains unrestricted. Officials must select GD or GC when
+creating a scoped record, and no record can be moved between groups afterward.
+Blank-group records remain visible only to Administrator.
+
+Existing scoped records have no group after the migration and therefore become
+visible only to Administrator and SIRAJ Officials until an official assigns a
+group through a controlled migration. This is intentional fail-closed behavior;
+the application never guesses ownership of historical records.
 
 Isolation is enforced in three server layers: permission query conditions for
 collection/search/count/report/export paths, a deny-only document permission

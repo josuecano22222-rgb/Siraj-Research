@@ -71,6 +71,9 @@ def after_install():
 	print("SIRAJ reference data:", seed_master_data())
 
 GROUP_MEMBER_ROLE = "Group Member"
+APP_ADMIN_ROLE = "SIRAJ Administrator"
+OFFICIAL_ROLE = "SIRAJ Official"
+OFFICIAL_ROLE_PROFILE = "SIRAJ Official"
 DATA_GROUPS = ("GD", "GC")
 SECTION_USERS = {
 	"GD": ("GD1", "GD2", "GD3", "GD4", "GD5"),
@@ -79,7 +82,7 @@ SECTION_USERS = {
 
 
 def setup(password: str, commit: bool = True):
-	"""Idempotently create demo groups, members and native User Permissions.
+	"""Idempotently provision isolated SIRAJ sections and native permissions.
 
 	``commit`` is disabled by the integration tests so setup remains inside
 	Frappe's test transaction. Normal ``bench execute`` calls should keep the
@@ -93,10 +96,28 @@ def setup(password: str, commit: bool = True):
 	if not password:
 		frappe.throw("A non-empty password is required")
 
-	if not frappe.db.exists("Role", GROUP_MEMBER_ROLE):
-		frappe.get_doc(
-			{"doctype": "Role", "role_name": GROUP_MEMBER_ROLE, "desk_access": 1}
-		).insert(ignore_permissions=True)
+	for role in (GROUP_MEMBER_ROLE, APP_ADMIN_ROLE, OFFICIAL_ROLE):
+		if not frappe.db.exists("Role", role):
+			frappe.get_doc(
+				{"doctype": "Role", "role_name": role, "desk_access": 1}
+			).insert(ignore_permissions=True)
+
+	# Assign this profile to supervisors who must see both GD and GC. The
+	# Official role bypasses row isolation; SIRAJ Administrator supplies all
+	# application permissions without granting Frappe System Manager access.
+	if frappe.db.exists("Role Profile", OFFICIAL_ROLE_PROFILE):
+		profile = frappe.get_doc("Role Profile", OFFICIAL_ROLE_PROFILE)
+		profile.set("roles", [])
+	else:
+		profile = frappe.get_doc(
+			{"doctype": "Role Profile", "role_profile": OFFICIAL_ROLE_PROFILE}
+		)
+	for role in (GROUP_MEMBER_ROLE, APP_ADMIN_ROLE, OFFICIAL_ROLE):
+		profile.append("roles", {"role": role})
+	if profile.is_new():
+		profile.insert(ignore_permissions=True)
+	else:
+		profile.save(ignore_permissions=True)
 
 	for group in DATA_GROUPS:
 		if not frappe.db.exists("Data Group", group):
@@ -118,7 +139,7 @@ def setup(password: str, commit: bool = True):
 						"user_type": "System User",
 						"send_welcome_email": 0,
 						"new_password": password,
-						"roles": [{"role": GROUP_MEMBER_ROLE}],
+						"roles": [{"role": GROUP_MEMBER_ROLE}, {"role": APP_ADMIN_ROLE}],
 					}
 				).insert(ignore_permissions=True)
 			else:
@@ -127,8 +148,10 @@ def setup(password: str, commit: bool = True):
 				user.enabled = 1
 				user.user_type = "System User"
 				user.new_password = password
-				if GROUP_MEMBER_ROLE not in {row.role for row in user.roles}:
-					user.append("roles", {"role": GROUP_MEMBER_ROLE})
+				assigned_roles = {row.role for row in user.roles}
+				for role in (GROUP_MEMBER_ROLE, APP_ADMIN_ROLE):
+					if role not in assigned_roles:
+						user.append("roles", {"role": role})
 				user.save(ignore_permissions=True)
 
 			if not frappe.db.exists(

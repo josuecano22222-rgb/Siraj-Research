@@ -66,7 +66,8 @@
   "sb_evidence_table",
   "evidence",
   "sb_identifiers",
-  "external_identifiers"
+  "external_identifiers",
+  "data_group"
  ],
  "fields": [
   {
@@ -137,7 +138,7 @@
    "in_list_view": 1,
    "in_preview": 1,
    "in_standard_filter": 1,
-   "description": "Brigade \u2026 Detachment (`vocab.UNIT_ECHELONS`); default Brigade, as in the source."
+   "description": "Brigade … Detachment (`vocab.UNIT_ECHELONS`); default Brigade, as in the source."
   },
   {
    "fieldname": "classification",
@@ -167,7 +168,7 @@
    "options": "Person",
    "in_list_view": 1,
    "link_filters": "[[\"Person\", \"category\", \"=\", \"Military\"]]",
-   "description": "Only a person of the military category can hold a command (`rules.check_commander_person`) \u2014 the link filter makes that rule visible before it is enforced."
+   "description": "Only a person of the military category can hold a command (`rules.check_commander_person`) — the link filter makes that rule visible before it is enforced."
   },
   {
    "fieldname": "current_deployment",
@@ -202,14 +203,14 @@
    "reqd": 1,
    "in_list_view": 1,
    "non_negative": 1,
-   "description": "People posted directly to this unit, not its subordinates. The subtree total is a rollup the controller computes \u2014 the source's `descendant_personnel()` query, answered natively by the NestedSet."
+   "description": "People posted directly to this unit, not its subordinates. The subtree total is a rollup the controller computes — the source's `descendant_personnel()` query, answered natively by the NestedSet."
   },
   {
    "fieldname": "subtree_personnel",
    "fieldtype": "Int",
    "label": "Subtree personnel",
    "read_only": 1,
-   "description": "\u03a3 direct_personnel over the whole subtree. Read-only and recomputed on save: it is the one number a commander asks for, and it must never be typed."
+   "description": "Σ direct_personnel over the whole subtree. Read-only and recomputed on save: it is the one number a commander asks for, and it must never be typed."
   },
   {
    "fieldname": "sb_unit_formation",
@@ -235,7 +236,7 @@
    "options": "Unit Armament Holding",
    "no_copy": 1,
    "columns": 9,
-   "description": "One row per (unit, armament) with quantity and condition \u2014 the source's `unit_armament` table, which is genuinely data a unit owns, so it is a child table here."
+   "description": "One row per (unit, armament) with quantity and condition — the source's `unit_armament` table, which is genuinely data a unit owns, so it is a child table here."
   },
   {
    "fieldname": "tab_unit_geo",
@@ -470,7 +471,7 @@
    "in_standard_filter": 1,
    "search_index": 1,
    "no_copy": 1,
-   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft \u2192 In Review \u2192 Verified \u2192 Published, plus Needs Update / Disputed / Archived / Rejected)."
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
   },
   {
    "fieldname": "researcher_notes",
@@ -506,6 +507,17 @@
    "no_copy": 1,
    "columns": 8,
    "description": "VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record."
+  },
+  {
+   "fieldname": "data_group",
+   "fieldtype": "Link",
+   "label": "Data Group",
+   "options": "Data Group",
+   "reqd": 1,
+   "read_only": 0,
+   "no_copy": 1,
+   "search_index": 1,
+   "in_standard_filter": 1
   }
  ],
  "permissions": [
@@ -686,7 +698,7 @@
  "search_fields": "unit_name,unit_code,echelon",
  "default_view": "Tree",
  "icon": "shield",
- "description": "The military unit tree \u2014 the source's `military_unit` table and the centre of the module. A NestedSet, so the chain of command is traversable rather than merely described.",
+ "description": "The military unit tree — the source's `military_unit` table and the centre of the module. A NestedSet, so the chain of command is traversable rather than merely described.",
  "istable": 0,
  "issingle": 0,
  "creation": "2026-11-17 00:00:00.000000",

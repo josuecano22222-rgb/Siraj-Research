@@ -31,7 +31,7 @@
    "label": "Data Group",
    "no_copy": 1,
    "options": "Data Group",
-   "read_only": 1,
+   "read_only": 0,
    "reqd": 1,
    "search_index": 1
   }

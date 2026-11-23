@@ -203,12 +203,42 @@ jinja = {
 # Permissions evaluated in scripted ways
 
 # One registry drives all three isolation layers. Add protected DocTypes here only.
-SCOPED_DOCTYPES = ["Shared Record"]
+SCOPED_DOCTYPES = [
+	"Command Appointment",
+	"Institution",
+	"Institution Event",
+	"Institution Location",
+	"Institution Military Unit",
+	"Military Unit",
+	"Military Unit Event",
+	"Military Unit Institution",
+	"Military Unit Location",
+	"Mission",
+	"Operational Deployment",
+	"Person",
+	"Person Event",
+	"Person Institution",
+	"Person Location",
+	"Person Military Unit",
+	"Person Position",
+	"Place",
+	"Relationship",
+	"Research Event",
+	"Shared Record",
+	"Siraj Event",
+	"Siraj Event Institution",
+	"Siraj Event Location",
+	"Siraj Event Military Unit",
+	"Siraj Event Person",
+	"Source",
+	"Training Exercise",
+]
 
 permission_query_conditions = {
 	dt: "siraj_research.permissions.get_permission_query_conditions" for dt in SCOPED_DOCTYPES
 }
 has_permission = {dt: "siraj_research.permissions.has_permission" for dt in SCOPED_DOCTYPES}
+doctype_js.update({dt: "public/js/data_group_scope.js" for dt in SCOPED_DOCTYPES})
 
 # DocType Class
 # ---------------

@@ -130,7 +130,8 @@
   "sb_identifiers",
   "external_identifiers",
   "tab_quality",
-  "completeness_score"
+  "completeness_score",
+  "data_group"
  ],
  "fields": [
   {
@@ -986,6 +987,17 @@
    "print_hide": 1,
    "report_hide": 1,
    "description": "Share of the record's critical fields that are filled in. Computed on save; used by the quality report and by the 'minimum completeness to publish' rule. Completeness, not truth."
+  },
+  {
+   "fieldname": "data_group",
+   "fieldtype": "Link",
+   "label": "Data Group",
+   "options": "Data Group",
+   "reqd": 1,
+   "read_only": 0,
+   "no_copy": 1,
+   "search_index": 1,
+   "in_standard_filter": 1
   }
  ],
  "permissions": [

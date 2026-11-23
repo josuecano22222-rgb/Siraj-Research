@@ -29,7 +29,8 @@
   "sb_evidence_table",
   "evidence",
   "sb_identifiers",
-  "external_identifiers"
+  "external_identifiers",
+  "data_group"
  ],
  "fields": [
   {
@@ -108,7 +109,7 @@
    "fieldname": "relieved_date",
    "fieldtype": "Date",
    "label": "Relieved on",
-   "description": "Empty means the appointment is still open \u2014 which is what makes the overlap rule decidable (`rules.check_assignment`)."
+   "description": "Empty means the appointment is still open — which is what makes the overlap rule decidable (`rules.check_assignment`)."
   },
   {
    "fieldname": "sb_appointment_notes",
@@ -165,7 +166,7 @@
    "in_standard_filter": 1,
    "search_index": 1,
    "no_copy": 1,
-   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft \u2192 In Review \u2192 Verified \u2192 Published, plus Needs Update / Disputed / Archived / Rejected)."
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
   },
   {
    "fieldname": "researcher_notes",
@@ -201,6 +202,17 @@
    "no_copy": 1,
    "columns": 8,
    "description": "VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record."
+  },
+  {
+   "fieldname": "data_group",
+   "fieldtype": "Link",
+   "label": "Data Group",
+   "options": "Data Group",
+   "reqd": 1,
+   "read_only": 0,
+   "no_copy": 1,
+   "search_index": 1,
+   "in_standard_filter": 1
   }
  ],
  "permissions": [

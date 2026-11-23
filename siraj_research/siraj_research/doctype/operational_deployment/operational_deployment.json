@@ -50,7 +50,8 @@
   "sb_evidence_table",
   "evidence",
   "sb_identifiers",
-  "external_identifiers"
+  "external_identifiers",
+  "data_group"
  ],
  "fields": [
   {
@@ -70,7 +71,7 @@
    "options": "MIL-DEP-.YYYY-.####\nMIL-DEP-.####",
    "default": "MIL-DEP-.YYYY-.####",
    "reqd": 1,
-   "description": "Year-partitioned by default (`MIL-DEP-.YYYY.-`), so each year starts its own sequence \u2014 the source's `year_token` behaviour, which is the `.YYYY.` token in a native Naming Series. The unpartitioned option is available per record."
+   "description": "Year-partitioned by default (`MIL-DEP-.YYYY.-`), so each year starts its own sequence — the source's `year_token` behaviour, which is the `.YYYY.` token in a native Naming Series. The unpartitioned option is available per record."
   },
   {
    "fieldname": "deployment_name",
@@ -140,7 +141,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "search_index": 1,
-   "description": "Planned \u2192 Active / Suspended \u2192 Completed, Completed terminal (source `DEPLOYMENT_TRANSITIONS`). A Select with a controller-enforced transition table rather than a native Workflow: Frappe runs ONE workflow per DocType, and that one is taken by the editorial SIRAJ Review workflow on `workflow_state`. Two independent state machines on one record need two fields, not one workflow \u2014 see Del. 12 \u00a75."
+   "description": "Planned → Active / Suspended → Completed, Completed terminal (source `DEPLOYMENT_TRANSITIONS`). A Select with a controller-enforced transition table rather than a native Workflow: Frappe runs ONE workflow per DocType, and that one is taken by the editorial SIRAJ Review workflow on `workflow_state`. Two independent state machines on one record need two fields, not one workflow — see Del. 12 §5."
   },
   {
    "fieldname": "sb_deployment_area",
@@ -282,7 +283,7 @@
    "fieldtype": "Text Editor",
    "label": "Geographic description",
    "collapsible": 1,
-   "description": "The deployed area's own coordinates \u2014 a deployment has a position of its own, independent of the unit's home station (migration 018)."
+   "description": "The deployed area's own coordinates — a deployment has a position of its own, independent of the unit's home station (migration 018)."
   },
   {
    "fieldname": "sb_deployment_notes",
@@ -339,7 +340,7 @@
    "in_standard_filter": 1,
    "search_index": 1,
    "no_copy": 1,
-   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft \u2192 In Review \u2192 Verified \u2192 Published, plus Needs Update / Disputed / Archived / Rejected)."
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
   },
   {
    "fieldname": "researcher_notes",
@@ -375,6 +376,17 @@
    "no_copy": 1,
    "columns": 8,
    "description": "VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record."
+  },
+  {
+   "fieldname": "data_group",
+   "fieldtype": "Link",
+   "label": "Data Group",
+   "options": "Data Group",
+   "reqd": 1,
+   "read_only": 0,
+   "no_copy": 1,
+   "search_index": 1,
+   "in_standard_filter": 1
   }
  ],
  "permissions": [

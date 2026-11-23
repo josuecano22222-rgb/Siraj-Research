@@ -7,10 +7,17 @@ from frappe import _
 
 DATA_GROUP_DOCTYPE = "Data Group"
 DATA_GROUP_FIELD = "data_group"
+OFFICIAL_ROLE = "SIRAJ Official"
 
 
 def _user(user: str | None = None) -> str:
 	return user or frappe.session.user or "Guest"
+
+
+def is_official(user: str | None = None) -> bool:
+	"""Return whether the user is explicitly appointed to oversee both sections."""
+	user = _user(user)
+	return user != "Guest" and OFFICIAL_ROLE in frappe.get_roles(user)
 
 
 def get_user_data_group(user: str | None = None) -> str | None:
@@ -35,6 +42,10 @@ def get_permission_query_conditions(user: str | None = None) -> str:
 	user = _user(user)
 	if user == "Administrator":
 		return ""
+	if is_official(user):
+		# Officials oversee both sections, but blank legacy rows remain
+		# Administrator-only as required by the fail-closed policy.
+		return f"COALESCE(`{DATA_GROUP_FIELD}`, '') != ''"
 	data_group = get_user_data_group(user)
 	if not data_group:
 		return "1=0"
@@ -60,6 +71,10 @@ def has_permission(
 	user = _user(user)
 	if user == "Administrator":
 		return None
+	if is_official(user):
+		if doc.is_new() and (permission_type or ptype) == "create":
+			return None
+		return None if doc.get(DATA_GROUP_FIELD) else False
 	data_group = get_user_data_group(user)
 	if not data_group:
 		return False
@@ -79,7 +94,7 @@ def stamp_and_lock_data_group(doc, method: str | None = None) -> None:
 		return
 
 	if doc.is_new():
-		if frappe.session.user == "Administrator":
+		if frappe.session.user == "Administrator" or is_official():
 			return
 		data_group = get_user_data_group()
 		if not data_group:

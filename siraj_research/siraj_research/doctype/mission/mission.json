@@ -32,7 +32,8 @@
   "sb_evidence_table",
   "evidence",
   "sb_identifiers",
-  "external_identifiers"
+  "external_identifiers",
+  "data_group"
  ],
  "fields": [
   {
@@ -91,7 +92,7 @@
    "options": "Operational Deployment",
    "in_list_view": 1,
    "link_filters": "[[\"Operational Deployment\", \"unit\", \"=\", \"eval:doc.unit\"]]",
-   "description": "A mission's deployment must belong to the mission's own unit or to an ancestor formation (`rules.check_mission`) \u2014 the filter expresses the same-unit case, the controller the ancestor case."
+   "description": "A mission's deployment must belong to the mission's own unit or to an ancestor formation (`rules.check_mission`) — the filter expresses the same-unit case, the controller the ancestor case."
   },
   {
    "fieldname": "sb_mission_dates",
@@ -120,7 +121,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "search_index": 1,
-   "description": "Planned \u2192 Ongoing \u2192 Executed, or Cancelled from either open state (source `MISSION_TRANSITIONS`). A Select and not a Workflow for the reason given on Operational Deployment."
+   "description": "Planned → Ongoing → Executed, or Cancelled from either open state (source `MISSION_TRANSITIONS`). A Select and not a Workflow for the reason given on Operational Deployment."
   },
   {
    "fieldname": "sb_mission_area",
@@ -188,7 +189,7 @@
    "in_standard_filter": 1,
    "search_index": 1,
    "no_copy": 1,
-   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft \u2192 In Review \u2192 Verified \u2192 Published, plus Needs Update / Disputed / Archived / Rejected)."
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
   },
   {
    "fieldname": "researcher_notes",
@@ -224,6 +225,17 @@
    "no_copy": 1,
    "columns": 8,
    "description": "VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record."
+  },
+  {
+   "fieldname": "data_group",
+   "fieldtype": "Link",
+   "label": "Data Group",
+   "options": "Data Group",
+   "reqd": 1,
+   "read_only": 0,
+   "no_copy": 1,
+   "search_index": 1,
+   "in_standard_filter": 1
   }
  ],
  "permissions": [
