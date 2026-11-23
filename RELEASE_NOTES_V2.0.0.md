@@ -63,6 +63,14 @@ link-restricted fields, submit/cancel and custom-role combinations have
 ready-to-run commands in `docs/qa/v2.0.0-runbooks.md` — run them on your
 bench before declaring the release verified.
 
+## V2.0.0 maintenance update
+
+The global Desk asset registration now loads the coordinate audit script from
+its actual public URL, `/assets/siraj_research/js/siraj-audit.js`, rather than
+requesting the nonexistent root path `/siraj-audit.js`. This is a static asset
+path correction only: it requires rebuilding Siraj Research's assets and
+clearing the site cache, but no migration or data changes.
+
 ## Upgrade (v1.x → V2.0.0)
 
 ```bash

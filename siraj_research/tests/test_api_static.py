@@ -101,9 +101,10 @@ def test_hooks_js_bundle_order_explicit():
     src = (APP / "hooks.py").read_text()
     assert "app_include_js = [" in src
     bundle = src.find('"siraj.bundle.js"')
-    audit = src.find('"siraj-audit.js"')
+    audit = src.find('"/assets/siraj_research/js/siraj-audit.js"')
     assert bundle != -1 and audit != -1, "both scripts must be registered"
     assert bundle < audit, "siraj.bundle.js must load before siraj-audit.js"
+    assert (APP / "public/js/siraj-audit.js").is_file(), "audit asset must exist at the registered path"
     # Map/toolbar CSS keeps its cache-busting version suffix.
     assert "siraj-map-toolbar.css" in src
     assert "_CSS_VER" in src
