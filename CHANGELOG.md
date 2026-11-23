@@ -68,6 +68,9 @@ release-notes table in [`docs/installation.md`](docs/installation.md).
   test); Explorer `layerGroup` stub for section tests; bundle-order pins;
   history probes pass `ignore_version=False` (frappe suppresses Version
   rows during tests).
+- Registered the audit script at its actual public asset URL
+  (`/assets/siraj_research/js/siraj-audit.js`) instead of the unresolved
+  bare filename, preventing the Desk-wide `/siraj-audit.js` 404.
 
 ### Migration notes
 
