@@ -11,7 +11,7 @@ class TestSharedRecordIsolation(FrappeTestCase):
 	def setUpClass(cls):
 		super().setUpClass()
 		frappe.set_user("Administrator")
-		setup("Isolation-Test-Password-2026!")
+		setup("Isolation-Test-Password-2026!", commit=False)
 
 	def setUp(self):
 		frappe.set_user("Administrator")

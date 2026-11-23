@@ -78,8 +78,12 @@ SECTION_USERS = {
 }
 
 
-def setup(password: str):
+def setup(password: str, commit: bool = True):
 	"""Idempotently create demo groups, members and native User Permissions.
+
+	``commit`` is disabled by the integration tests so setup remains inside
+	Frappe's test transaction. Normal ``bench execute`` calls should keep the
+	default so all provisioned users are immediately available.
 
 	Run with::
 
@@ -145,5 +149,6 @@ def setup(password: str):
 	frappe.db.set_single_value("System Settings", "disable_document_sharing", 1)
 	frappe.db.set_single_value("System Settings", "apply_strict_user_permissions", 0)
 	frappe.clear_cache()
-	frappe.db.commit()
+	if commit:
+		frappe.db.commit()
 	return {"groups": len(DATA_GROUPS), "users": sum(map(len, SECTION_USERS.values()))}

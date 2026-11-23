@@ -80,9 +80,14 @@ bench --site SITE install-app siraj_research
 bench --site SITE migrate
 bench --site SITE execute siraj_research.setup.install.setup \
   --kwargs '{"password":"REPLACE-WITH-A-STRONG-PASSWORD"}'
+bench --site SITE set-config allow_tests true
 bench --site SITE run-tests --app siraj_research \
-  --doctype "Shared Record"
+  --module siraj_research.siraj_research.doctype.shared_record.test_shared_record
 ```
+
+Use the module-based test command above on Frappe v15. Some v15 builds run
+DocType test-record setup before opening the test transaction when `--doctype`
+is used, which can raise `ImplicitCommitError` before these tests execute.
 
 The setup creates `GD` and `GC`, users `gd1@example.com` … `gd5@example.com`
 and `gc1@example.com` … `gc5@example.com`, the **Group Member** role, and one
