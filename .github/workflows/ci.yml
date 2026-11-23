@@ -59,6 +59,7 @@ jobs:
         run: |
           set -e
           for f in \
+            tests/test_boundary_review.js \
             tests/test_explorer_assets.js \
             tests/test_load_probe.js \
             tests/test_map_search_ui.js \

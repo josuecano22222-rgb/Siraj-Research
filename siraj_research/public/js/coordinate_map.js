@@ -57,6 +57,7 @@
 	let instanceCounter = 0;
 	const states = new Map();   // key: frm+cfg+docname  (handles multi-map)
 	const registered = new Set();
+	const boundaryReviews = new WeakMap(); // frm → latest unresolved comparison
 	const t = s => (typeof __ === 'function' ? __(s) : s);
 
 	// Fieldtypes we can read/write numbers from/into.
@@ -528,6 +529,61 @@
 		}, 600);
 	}
 
+	function normalizedBoundaryValue(value) {
+		return value == null ? '' : String(value).trim();
+	}
+
+	function boundaryReviewFingerprint(frm, cfg, diffs, res) {
+		const doc = frm.doc || {};
+		return JSON.stringify({
+			lat: normalizedBoundaryValue(doc[cfg.lat_field]),
+			lon: normalizedBoundaryValue(doc[cfg.lon_field]),
+			diffs: diffs.map(x => [
+				x.fieldname,
+				normalizedBoundaryValue(x.current),
+				normalizedBoundaryValue(x.proposed),
+			]),
+			dataset: normalizedBoundaryValue(res && (res.dataset || res.boundary_dataset)),
+		});
+	}
+
+	function boundaryReviewStorageKey(frm) {
+		return 'siraj:boundary-review:' + encodeURIComponent(frm.doctype || '') + ':'
+			+ encodeURIComponent(frm.docname || (frm.doc && frm.doc.name) || 'new');
+	}
+
+	function wasBoundaryReviewSeen(frm, fingerprint) {
+		try { return window.localStorage.getItem(boundaryReviewStorageKey(frm)) === fingerprint; }
+		catch (_) { return false; }
+	}
+
+	function rememberBoundaryReview(frm, fingerprint) {
+		try { window.localStorage.setItem(boundaryReviewStorageKey(frm), fingerprint); }
+		catch (_) { /* private browsing / storage disabled */ }
+	}
+
+	function removeBoundaryReviewButton(frm) {
+		try { frm.remove_custom_button(t('Review boundary suggestions'), t('Geography')); }
+		catch (_) { /* button may not exist on this form */ }
+	}
+
+	function installBoundaryReviewButton(frm) {
+		removeBoundaryReviewButton(frm);
+		try {
+			const button = frm.add_custom_button(
+				t('Review boundary suggestions'),
+				() => {
+					const review = boundaryReviews.get(frm);
+					if (review) showDiffDialog(frm, review.cfg, review.updates, review.diffs, review.res, review.fingerprint);
+				},
+				t('Geography')
+			);
+			button.addClass('btn-warning').attr(
+				'title', t('Detected administrative values differ from this record. Review them when convenient.')
+			);
+		} catch (_) { /* forms without custom-button support */ }
+	}
+
 	function applyAdminChain(frm, cfg, res) {
 		if (!res || res.error) return;
 		const updates = {};
@@ -546,41 +602,53 @@
 				const isLink = field.df && field.df.fieldtype === 'Link';
 				const row = res.by_field && res.by_field[chainKey];
 				if (row) {
-					// hierarchy_for_point returns a *linked* DocType name. Only
-					// that is safe to write into a Link field; a P-Code or label
-					// would be accepted by the client but rejected on save.
-					if (isLink) {
-						value = (row.status === 'linked' && row.name) ? row.name : null;
-					} else {
-						value = row.name || row.code || row.label_en || null;
-					}
+					if (isLink) value = (row.status === 'linked' && row.name) ? row.name : null;
+					else value = row.name || row.code || row.label_en || null;
 				} else {
-					// Legacy/offline resolver payload. Never write its P-Code
-					// into a Link field; Data fields can still show the label.
 					const node = res.admin_chain && res.admin_chain[chainKey];
 					value = isLink ? null : (node ? (node.name_en || node.pcode || null) : null);
 				}
 			}
 			if (value == null) return;
 			const current = (field.$input && field.$input.val()) || (frm.doc && frm.doc[fieldname]) || '';
-			if (!current || String(current).trim() === '' || String(current) === value) {
-				updates[fieldname] = value;
-			} else if (String(current) !== String(value)) {
+			const normalizedCurrent = normalizedBoundaryValue(current);
+			const normalizedProposed = normalizedBoundaryValue(value);
+			if (!normalizedCurrent) updates[fieldname] = value;
+			else if (normalizedCurrent !== normalizedProposed) {
 				diffs.push({ fieldname, label: field.df.label || fieldname, current, proposed: value });
 			}
 		});
-		if (diffs.length === 0 && Object.keys(updates).length) {
-			// No conflicts — write silently.
-			Object.keys(updates).forEach(k => { try { frm.set_value(k, updates[k]); } catch(_){} });
-		} else if (diffs.length) {
-			// Show a Keep/Replace/Replace-all diff dialog. Never overwrite
-			// without user confirmation (existing values may come from human
-			// research).
-			showDiffDialog(frm, cfg, updates, diffs, res);
+
+		// Empty fields are safe and useful to fill immediately. They must not
+		// wait for a conflict decision, and repeated resolves become no-ops.
+		Object.keys(updates).forEach(k => { try { frm.set_value(k, updates[k]); } catch (_){} });
+
+		if (!diffs.length) {
+			boundaryReviews.delete(frm);
+			removeBoundaryReviewButton(frm);
+			return;
 		}
+
+		const fingerprint = boundaryReviewFingerprint(frm, cfg, diffs, res);
+		const previous = boundaryReviews.get(frm);
+		boundaryReviews.set(frm, { cfg, updates: {}, diffs, res, fingerprint });
+		installBoundaryReviewButton(frm);
+
+		// Identical coordinates + current values + detected values have already
+		// been checked. Keep the unobtrusive review button, never reopen a modal
+		// merely because the form refreshed or the resolver ran again.
+		if (previous && previous.fingerprint === fingerprint) {
+			// The document name may change after the first save; remember under
+			// the current key as well so a later full refresh stays quiet.
+			rememberBoundaryReview(frm, fingerprint);
+			return;
+		}
+		if (wasBoundaryReviewSeen(frm, fingerprint)) return;
+		rememberBoundaryReview(frm, fingerprint);
+		showDiffDialog(frm, cfg, {}, diffs, res, fingerprint);
 	}
 
-	function showDiffDialog(frm, cfg, updates, diffs, res) {
+	function showDiffDialog(frm, cfg, updates, diffs, res, fingerprint) {
 		const d = new frappe.ui.Dialog({
 			title: t('Administrative auto-fill'),
 			fields: [
@@ -592,13 +660,20 @@
 				const merge = Object.assign({}, updates);
 				diffs.forEach(x => { merge[x.fieldname] = x.proposed; });
 				Object.keys(merge).forEach(k => { try { frm.set_value(k, merge[k]); } catch(_){} });
+				boundaryReviews.delete(frm);
+				removeBoundaryReviewButton(frm);
+				rememberBoundaryReview(frm, fingerprint);
+				d.hide();
+			},
+			secondary_action() {
+				rememberBoundaryReview(frm, fingerprint);
 				d.hide();
 			},
 		});
 		let html = '<div style="font-size:13px;line-height:1.5">';
 		html += '<p>' + t('The following fields already have values that differ from what the boundary dataset detected at this point:') + '</p><ul>';
 		diffs.forEach(x => { html += '<li><b>' + frappe.utils.escape_html(x.label) + '</b>: ' + frappe.utils.escape_html(String(x.current)) + ' → <code>' + frappe.utils.escape_html(String(x.proposed)) + '</code></li>'; });
-		html += '</ul><p style="color:var(--text-muted);font-size:12px">' + t('"Replace" overwrites; "Keep existing" leaves your values. New/empty fields (' + Object.keys(updates).length + ') will be filled either way.') + '</p>';
+		html += '</ul><p style="color:var(--text-muted);font-size:12px">' + t('This comparison will not open again unless the coordinates, existing values, or detected boundary values change. Use Review boundary suggestions under Geography to reopen it.') + '</p>';
 		if (res.ambiguous) html += '<p style="color:#8a2525">⚠ ' + t('This point is near a boundary; values may be inaccurate.') + '</p>';
 		if (res.nearest_place) html += '<p>' + t('Nearest settlement') + ': <b>' + frappe.utils.escape_html(res.nearest_place.name_en || '') + '</b> — ' + Math.round(res.nearest_place.distance_m) + ' m</p>';
 		html += '</div>';
