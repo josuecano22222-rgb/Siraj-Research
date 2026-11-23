@@ -56,7 +56,8 @@
   "sb_evidence_table",
   "evidence",
   "sb_identifiers",
-  "external_identifiers"
+  "external_identifiers",
+  "data_group"
  ],
  "fields": [
   {
@@ -145,7 +146,7 @@
    "fieldtype": "Link",
    "label": "Part of (parent place)",
    "options": "Place",
-   "description": "Builds the geographic hierarchy: country \u2192 governorate \u2192 city \u2192 quarter. Cycles are rejected by the NestedSet.",
+   "description": "Builds the geographic hierarchy: country → governorate → city → quarter. Cycles are rejected by the NestedSet.",
    "link_filters": "[[\"Place\", \"name\", \"!=\", \"eval:doc.name\"]]"
   },
   {
@@ -278,7 +279,7 @@
    "fieldtype": "Link",
    "label": "Municipality",
    "options": "Municipality",
-   "description": "Third level of the administrative chain (country \u2192 governorate \u2192 district \u2192 municipality \u2192 village \u2192 community); only municipalities of the chosen district are offered.",
+   "description": "Third level of the administrative chain (country → governorate → district → municipality → village → community); only municipalities of the chosen district are offered.",
    "link_filters": "[[\"Municipality\", \"district\", \"=\", \"eval:doc.district\"]]",
    "insert_after": "district"
   },
@@ -402,7 +403,7 @@
    "in_standard_filter": 1,
    "search_index": 1,
    "no_copy": 1,
-   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft \u2192 In Review \u2192 Verified \u2192 Published, plus Needs Update / Disputed / Archived / Rejected)."
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
   },
   {
    "fieldname": "researcher_notes",
@@ -438,6 +439,17 @@
    "no_copy": 1,
    "columns": 8,
    "description": "VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record."
+  },
+  {
+   "fieldname": "data_group",
+   "fieldtype": "Link",
+   "label": "Data Group",
+   "options": "Data Group",
+   "reqd": 1,
+   "read_only": 0,
+   "no_copy": 1,
+   "search_index": 1,
+   "in_standard_filter": 1
   }
  ],
  "permissions": [

@@ -390,4 +390,23 @@
 	}
 	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installChartObserverGuard, { once: true });
 	else installChartObserverGuard();
+
+	/* ---------- 3) Bootstrap modal focus hand-off ----------
+	 * Bootstrap/Frappe can set aria-hidden while the modal itself or one of
+	 * its controls still owns focus (especially after Quick Entry saves).
+	 * Blur before hide so assistive technology never has focus trapped in a
+	 * hidden subtree. Namespacing keeps this idempotent across bundle reloads.
+	 */
+	function installModalFocusGuard() {
+		$(document)
+			.off('hide.bs.modal.sirajA11y', '.modal')
+			.on('hide.bs.modal.sirajA11y', '.modal', function () {
+				const active = document.activeElement;
+				if (active && (active === this || this.contains(active)) && typeof active.blur === 'function') {
+					active.blur();
+				}
+			});
+	}
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installModalFocusGuard, { once: true });
+	else installModalFocusGuard();
 })();

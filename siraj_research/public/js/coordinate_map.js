@@ -18,7 +18,7 @@
 (() => {
 	'use strict';
 
-	const MODULE_VERSION = 3;
+	const MODULE_VERSION = 4;
 
 	// DocType → editor config. Merged over window.sirajCoordinateDocs (which
 	// comes from the server via boot_session) so tests/print views that lack
@@ -56,7 +56,9 @@
 	// over a detail view) do not collide.
 	let instanceCounter = 0;
 	const states = new Map();   // key: frm+cfg+docname  (handles multi-map)
+	const mounting = new Map(); // key → in-flight mount; prevents refresh races
 	const registered = new Set();
+	const boundaryReviews = new WeakMap(); // frm → latest unresolved comparison
 	const t = s => (typeof __ === 'function' ? __(s) : s);
 
 	// Fieldtypes we can read/write numbers from/into.
@@ -528,6 +530,46 @@
 		}, 600);
 	}
 
+	function normalizedBoundaryValue(value) {
+		return value == null ? '' : String(value).trim();
+	}
+
+	function boundaryReviewFingerprint(frm, cfg, diffs, res) {
+		const doc = frm.doc || {};
+		return JSON.stringify({
+			lat: normalizedBoundaryValue(doc[cfg.lat_field]),
+			lon: normalizedBoundaryValue(doc[cfg.lon_field]),
+			diffs: diffs.map(x => [
+				x.fieldname,
+				normalizedBoundaryValue(x.current),
+				normalizedBoundaryValue(x.proposed),
+			]),
+			dataset: normalizedBoundaryValue(res && (res.dataset || res.boundary_dataset)),
+		});
+	}
+
+	function removeBoundaryReviewButton(frm) {
+		try { frm.remove_custom_button(t('Review boundary suggestions'), t('Geography')); }
+		catch (_) { /* button may not exist on this form */ }
+	}
+
+	function installBoundaryReviewButton(frm) {
+		removeBoundaryReviewButton(frm);
+		try {
+			const button = frm.add_custom_button(
+				t('Review boundary suggestions'),
+				() => {
+					const review = boundaryReviews.get(frm);
+					if (review) showDiffDialog(frm, review.cfg, review.updates, review.diffs, review.res);
+				},
+				t('Geography')
+			);
+			button.addClass('btn-warning').attr(
+				'title', t('Detected administrative values differ from this record. Review them when convenient.')
+			);
+		} catch (_) { /* forms without custom-button support */ }
+	}
+
 	function applyAdminChain(frm, cfg, res) {
 		if (!res || res.error) return;
 		const updates = {};
@@ -546,38 +588,40 @@
 				const isLink = field.df && field.df.fieldtype === 'Link';
 				const row = res.by_field && res.by_field[chainKey];
 				if (row) {
-					// hierarchy_for_point returns a *linked* DocType name. Only
-					// that is safe to write into a Link field; a P-Code or label
-					// would be accepted by the client but rejected on save.
-					if (isLink) {
-						value = (row.status === 'linked' && row.name) ? row.name : null;
-					} else {
-						value = row.name || row.code || row.label_en || null;
-					}
+					if (isLink) value = (row.status === 'linked' && row.name) ? row.name : null;
+					else value = row.name || row.code || row.label_en || null;
 				} else {
-					// Legacy/offline resolver payload. Never write its P-Code
-					// into a Link field; Data fields can still show the label.
 					const node = res.admin_chain && res.admin_chain[chainKey];
 					value = isLink ? null : (node ? (node.name_en || node.pcode || null) : null);
 				}
 			}
 			if (value == null) return;
 			const current = (field.$input && field.$input.val()) || (frm.doc && frm.doc[fieldname]) || '';
-			if (!current || String(current).trim() === '' || String(current) === value) {
-				updates[fieldname] = value;
-			} else if (String(current) !== String(value)) {
+			const normalizedCurrent = normalizedBoundaryValue(current);
+			const normalizedProposed = normalizedBoundaryValue(value);
+			if (!normalizedCurrent) updates[fieldname] = value;
+			else if (normalizedCurrent !== normalizedProposed) {
 				diffs.push({ fieldname, label: field.df.label || fieldname, current, proposed: value });
 			}
 		});
-		if (diffs.length === 0 && Object.keys(updates).length) {
-			// No conflicts — write silently.
-			Object.keys(updates).forEach(k => { try { frm.set_value(k, updates[k]); } catch(_){} });
-		} else if (diffs.length) {
-			// Show a Keep/Replace/Replace-all diff dialog. Never overwrite
-			// without user confirmation (existing values may come from human
-			// research).
-			showDiffDialog(frm, cfg, updates, diffs, res);
+
+		// Empty fields are safe and useful to fill immediately. They must not
+		// wait for a conflict decision, and repeated resolves become no-ops.
+		Object.keys(updates).forEach(k => { try { frm.set_value(k, updates[k]); } catch (_){} });
+
+		if (!diffs.length) {
+			boundaryReviews.delete(frm);
+			removeBoundaryReviewButton(frm);
+			return;
 		}
+
+		const fingerprint = boundaryReviewFingerprint(frm, cfg, diffs, res);
+		boundaryReviews.set(frm, { cfg, updates: {}, diffs, res, fingerprint });
+		installBoundaryReviewButton(frm);
+
+		// Conflict review is deliberately user-initiated. Create/edit/refresh,
+		// map movement and resolver updates must never open a modal. The quiet
+		// Geography button above is the only entry point to the comparison.
 	}
 
 	function showDiffDialog(frm, cfg, updates, diffs, res) {
@@ -592,13 +636,18 @@
 				const merge = Object.assign({}, updates);
 				diffs.forEach(x => { merge[x.fieldname] = x.proposed; });
 				Object.keys(merge).forEach(k => { try { frm.set_value(k, merge[k]); } catch(_){} });
+				boundaryReviews.delete(frm);
+				removeBoundaryReviewButton(frm);
+				d.hide();
+			},
+			secondary_action() {
 				d.hide();
 			},
 		});
 		let html = '<div style="font-size:13px;line-height:1.5">';
 		html += '<p>' + t('The following fields already have values that differ from what the boundary dataset detected at this point:') + '</p><ul>';
 		diffs.forEach(x => { html += '<li><b>' + frappe.utils.escape_html(x.label) + '</b>: ' + frappe.utils.escape_html(String(x.current)) + ' → <code>' + frappe.utils.escape_html(String(x.proposed)) + '</code></li>'; });
-		html += '</ul><p style="color:var(--text-muted);font-size:12px">' + t('"Replace" overwrites; "Keep existing" leaves your values. New/empty fields (' + Object.keys(updates).length + ') will be filled either way.') + '</p>';
+		html += '</ul><p style="color:var(--text-muted);font-size:12px">' + t('Boundary comparisons stay quiet during create, edit and refresh. They open only when you choose Review boundary suggestions under Geography.') + '</p>';
 		if (res.ambiguous) html += '<p style="color:#8a2525">⚠ ' + t('This point is near a boundary; values may be inaccurate.') + '</p>';
 		if (res.nearest_place) html += '<p>' + t('Nearest settlement') + ': <b>' + frappe.utils.escape_html(res.nearest_place.name_en || '') + '</b> — ' + Math.round(res.nearest_place.distance_m) + ' m</p>';
 		html += '</div>';
@@ -654,6 +703,17 @@
 
 	async function mount(frm, cfg) {
 		const key = stateKey(frm, cfg);
+		// A new document receives its permanent name after save. Tear down the
+		// state keyed by its temporary name before creating the replacement;
+		// otherwise every save can leave another Leaflet listener set behind.
+		states.forEach((state, stateKeyValue) => {
+			if (
+				stateKeyValue !== key
+				&& state.frm === frm
+				&& state.cfg.lat_field === cfg.lat_field
+				&& state.cfg.lon_field === cfg.lon_field
+			) removeState(state);
+		});
 		const old = states.get(key);
 		const fields = controlsFor(frm, cfg);
 		// If lat/lon disappeared (Customize Form removed them), permissions
@@ -1083,7 +1143,13 @@
 			return;
 		}
 		cfgs.forEach(c => {
-			mount(frm, c);
+			const key = stateKey(frm, c);
+			if (!mounting.has(key)) {
+				const pending = mount(frm, c)
+					.catch(err => { try { console.warn('[SIRAJ coord] mount failed:', err && err.message); } catch (_) {} })
+					.finally(() => mounting.delete(key));
+				mounting.set(key, pending);
+			}
 			resolveFromInputs(frm, c);
 		});
 	}

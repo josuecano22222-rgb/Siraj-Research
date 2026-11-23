@@ -5,8 +5,20 @@ release-notes table in [`docs/installation.md`](docs/installation.md).
 
 ## [Unreleased]
 
+## [2.1.0] — 2026-11-23
+
 ### Added
 
+- Strict GD/GC row-level isolation for 28 core research DocTypes, combining
+  native Data Group User Permissions, fail-closed list conditions, deny-only
+  document checks, and server-side group stamping and locking.
+- Idempotent section provisioning for ten users, full SIRAJ application roles,
+  security settings, and a SIRAJ Official role profile for cross-section
+  oversight.
+- On-demand administrative boundary review: conflicts expose a Geography menu
+  action and never interrupt create, edit, save, refresh, or map movement.
+- Arabic translations and CI coverage for Desk `t()` help text, map controls,
+  hierarchy prompts, geographic actions, and offline setup controls.
 - Optional Person profile fields for gender and current residence, with
   optional identity, birth, nationality, marital-status, mobile, and accounts
   data; repeatable accounts may be recorded partially.
@@ -15,6 +27,27 @@ release-notes table in [`docs/installation.md`](docs/installation.md).
   residence fields use permission level 1.
 - ID and mobile fields on Person and related spouse, parent, child, sibling,
   and grandchild records; enter one mobile number per line.
+
+### Changed
+
+- Version advanced from 2.0.0 to 2.1.0.
+- Empty administrative fields continue to fill silently, while conflicting
+  detected values remain available through an explicit review action.
+
+### Fixed
+
+- Deduplicated concurrent coordinate-map mounts and cleaned up stale maps after
+  temporary documents receive permanent names.
+- Released modal focus before Bootstrap applies `aria-hidden`, preventing a
+  focused element from remaining inside a hidden modal.
+- Localized geographic DocType action dropdowns on Frappe v15 builds that
+  render their metadata labels without translation.
+
+### Migration notes
+
+- Run `bench --site SITE migrate`, rebuild assets, clear cache, and rerun the
+  idempotent section setup command. Existing blank-group records intentionally
+  remain Administrator-only until assigned to GD or GC.
 
 ## [2.0.0] — 2026-11-18
 

@@ -421,6 +421,7 @@ permissions): `docs/qa/v2.0.0-runbooks.md`. Release notes:
 
 | Tag | Meaning |
 | --- | --- |
+| `v2.1.0` | GD/GC isolation · quiet boundary review · Arabic Desk controls · UI lifecycle fixes (2026-11-23) |
 | `V2.0.0` | Family · map search · onboarding · demo data · quality scoring (2026-11-18) |
 | `v1.0.0` | First hierarchy foundation |
 | `v1.1.0` | Cascading + bootstrap stop control |

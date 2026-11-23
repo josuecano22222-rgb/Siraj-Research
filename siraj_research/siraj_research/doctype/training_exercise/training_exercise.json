@@ -35,7 +35,8 @@
   "sb_evidence_table",
   "evidence",
   "sb_identifiers",
-  "external_identifiers"
+  "external_identifiers",
+  "data_group"
  ],
  "fields": [
   {
@@ -120,7 +121,7 @@
    "label": "Duration (days)",
    "read_only": 1,
    "non_negative": 1,
-   "description": "Computed from the dates, inclusive \u2014 the source validates that `duration_days` equals the span, so it is derived here rather than typed and checked."
+   "description": "Computed from the dates, inclusive — the source validates that `duration_days` equals the span, so it is derived here rather than typed and checked."
   },
   {
    "fieldname": "participant_count",
@@ -129,7 +130,7 @@
    "reqd": 1,
    "non_negative": 1,
    "in_list_view": 1,
-   "description": "Cannot exceed the unit's subtree personnel total (`rules.check_training` \u2014 capacity is real, not advisory)."
+   "description": "Cannot exceed the unit's subtree personnel total (`rules.check_training` — capacity is real, not advisory)."
   },
   {
    "fieldname": "cb_training_staff",
@@ -209,7 +210,7 @@
    "in_standard_filter": 1,
    "search_index": 1,
    "no_copy": 1,
-   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft \u2192 In Review \u2192 Verified \u2192 Published, plus Needs Update / Disputed / Archived / Rejected)."
+   "description": "Editorial state, driven by the SIRAJ Review workflow (Draft → In Review → Verified → Published, plus Needs Update / Disputed / Archived / Rejected)."
   },
   {
    "fieldname": "researcher_notes",
@@ -245,6 +246,17 @@
    "no_copy": 1,
    "columns": 8,
    "description": "VIAF, Wikidata, ORCID, library catalogue or legacy numbers, kept out of the record's own identifier. Never copied: an authority identifier belongs to exactly one record."
+  },
+  {
+   "fieldname": "data_group",
+   "fieldtype": "Link",
+   "label": "Data Group",
+   "options": "Data Group",
+   "reqd": 1,
+   "read_only": 0,
+   "no_copy": 1,
+   "search_index": 1,
+   "in_standard_filter": 1
   }
  ],
  "permissions": [

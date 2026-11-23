@@ -30,7 +30,8 @@
   "cb_prov",
   "workflow_state",
   "evidence",
-  "external_identifiers"
+  "external_identifiers",
+  "data_group"
  ],
  "fields": [
   {
@@ -44,7 +45,7 @@
   {
    "fieldname": "title_ar",
    "fieldtype": "Data",
-   "label": "\u0627\u0644\u0639\u0646\u0648\u0627\u0646 (Arabic)",
+   "label": "العنوان (Arabic)",
    "in_list_view": 1,
    "translatable": 1
   },
@@ -156,6 +157,17 @@
    "fieldtype": "Table",
    "label": "External identifiers",
    "options": "External Identifier"
+  },
+  {
+   "fieldname": "data_group",
+   "fieldtype": "Link",
+   "label": "Data Group",
+   "options": "Data Group",
+   "reqd": 1,
+   "read_only": 0,
+   "no_copy": 1,
+   "search_index": 1,
+   "in_standard_filter": 1
   }
  ],
  "in_create": 0,

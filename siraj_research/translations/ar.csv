@@ -1859,3 +1859,65 @@ Person Additional Field,حقل إضافي للشخص
 Row {0}: a custom field needs a label.,الصف {0}: يحتاج الحقل المخصص إلى تسمية.
 Row {0}: custom field label '{1}' is already used on this Person.,الصف {0}: تسمية الحقل المخصص «{1}» مستخدمة بالفعل لهذا الشخص.
 Enter one mobile number per line. Include the country code when known.,أدخل رقم هاتف محمول واحداً في كل سطر، مع رمز الدولة عند معرفته.
+Data Group,مجموعة البيانات
+Group Name,اسم المجموعة
+Shared Record,سجل مشترك
+A Data Group membership is required.,يلزم الانضمام إلى مجموعة بيانات.
+Data Group cannot be changed after creation.,لا يمكن تغيير مجموعة البيانات بعد الإنشاء.
+Data Isolation,عزل البيانات
+(all countries — pick a parent to narrow),(كل الدول — اختر أصلاً لتضييق النتائج)
+Administrative auto-fill,الملء التلقائي للتقسيمات الإدارية
+"Boundary comparisons stay quiet during create, edit and refresh. They open only when you choose Review boundary suggestions under Geography.",تبقى مقارنات الحدود صامتة أثناء الإنشاء والتعديل والتحديث. ولا تُفتح إلا عند اختيار «مراجعة اقتراحات الحدود» ضمن «الجغرافيا».
+Clear,مسح
+"Click the map to pick a point, or type coordinates above.",انقر على الخريطة لاختيار نقطة، أو اكتب الإحداثيات أعلاه.
+"Click the map to place the pin, or drag the pin to move it. Tools live in the dock on the right edge of the map.",انقر على الخريطة لوضع الدبوس، أو اسحبه لنقله. توجد الأدوات في الشريط عند الحافة اليمنى للخريطة.
+Click the map to place this record.,انقر على الخريطة لتحديد موقع هذا السجل.
+Coordinates copied from linked place.,نُسخت الإحداثيات من المكان المرتبط.
+Coordinates copied to clipboard.,نُسخت الإحداثيات إلى الحافظة.
+Copy coordinates from the linked place,نسخ الإحداثيات من المكان المرتبط
+Could not apply coordinates from linked place.,تعذر تطبيق إحداثيات المكان المرتبط.
+Could not clear the coordinate fields.,تعذر مسح حقول الإحداثيات.
+Could not stop bootstrap,تعذر إيقاف عملية الإعداد
+Detected administrative values differ from this record. Review them when convenient.,تختلف القيم الإدارية المكتشفة عن هذا السجل. راجعها عندما يناسبك.
+Empty fields are filled either way; source: {0}.,تُملأ الحقول الفارغة في كلتا الحالتين؛ المصدر: {0}.
+Fetch,جلب
+Fetch coordinates of linked place,جلب إحداثيات المكان المرتبط
+Hierarchy selection,اختيار التسلسل الإداري
+Home,الرئيسية
+In,تكبير
+Keep existing,الاحتفاظ بالقيم الحالية
+Latitude value is outside −90…90° and looks like a longitude — fields may be swapped.,قيمة خط العرض خارج النطاق −90…90° وتبدو كخط طول — قد يكون الحقلان معكوسين.
+Linked place,المكان المرتبط
+Linked place has no coordinates saved.,لا توجد إحداثيات محفوظة للمكان المرتبط.
+Local-only preparation finished (online setup disabled).,اكتمل الإعداد المحلي فقط (الإعداد عبر الإنترنت معطل).
+Location shown (read-only).,الموقع معروض (للقراءة فقط).
+"Location shown. Click the map to move the pin, or drag the pin directly.",الموقع معروض. انقر على الخريطة لنقل الدبوس، أو اسحب الدبوس مباشرة.
+My loc,موقعي
+Nearest settlement,أقرب تجمع سكاني
+No matching children in the offline dataset.,لا توجد عناصر فرعية مطابقة في مجموعة البيانات غير المتصلة.
+No rows at this level yet. Import a boundary dataset to populate the hierarchy.,لا توجد سجلات في هذا المستوى بعد. استورد مجموعة بيانات حدود لتعبئة التسلسل الإداري.
+Online setup,الإعداد عبر الإنترنت
+Online setup disabled — Run Online Setup will only use local data.,الإعداد عبر الإنترنت معطل — سيستخدم تشغيل الإعداد عبر الإنترنت البيانات المحلية فقط.
+Online setup disabled: preparation will use local data only.,الإعداد عبر الإنترنت معطل: سيستخدم الإعداد البيانات المحلية فقط.
+Online setup failed,فشل الإعداد عبر الإنترنت
+Online setup finished — see bootstrap_last_status.,اكتمل الإعداد عبر الإنترنت — راجع bootstrap_last_status.
+Online setup is disabled. Run a local-only preparation (no downloads)?,الإعداد عبر الإنترنت معطل. هل تريد تشغيل إعداد محلي فقط (من دون تنزيلات)؟
+"Online setup may download wheels, tiles and packages.",قد ينزّل الإعداد عبر الإنترنت حزم بايثون والبلاطات والحزم الأخرى.
+Out,تصغير
+Point,النقطة
+Replace higher levels,استبدال المستويات الأعلى
+Replace with detected,الاستبدال بالقيم المكتشفة
+Resolve coordinates to hierarchy,مطابقة الإحداثيات مع التسلسل الإداري
+Resolve the full hierarchy at the pin,اكتشاف التسلسل الإداري الكامل عند الدبوس
+Review boundary suggestions,مراجعة اقتراحات الحدود
+"Run the full online setup now? Wheels, tiles and packages will be downloaded while the bench has internet, then the site locks offline.",هل تريد تشغيل الإعداد الكامل عبر الإنترنت الآن؟ ستُنزل حزم بايثون والبلاطات والحزم الأخرى أثناء اتصال المنصة بالإنترنت، ثم سيُقفل الموقع للعمل دون اتصال.
+Stop requested. The bootstrap will pause after the current tile batch.,طُلب الإيقاف. ستتوقف عملية الإعداد بعد دفعة البلاطات الحالية.
+Stop the running offline bootstrap at the next safe point? Downloaded tiles already cached will be kept.,هل تريد إيقاف الإعداد غير المتصل عند أقرب نقطة آمنة؟ سيُحتفظ بالبلاطات المنزلة والمخزنة مؤقتاً.
+The following fields already have values that differ from what the boundary dataset detected at this point:,تحتوي الحقول التالية على قيم تختلف عما اكتشفته مجموعة بيانات الحدود عند هذه النقطة:
+The selected place implies different higher-level values:,يشير المكان المحدد إلى قيم مختلفة في المستويات الأعلى:
+This point is near a boundary; values may be inaccurate.,هذه النقطة قريبة من حد؛ قد لا تكون القيم دقيقة.
+Use coordinates,استخدام الإحداثيات
+You do not have write access to these coordinates.,ليست لديك صلاحية تعديل هذه الإحداثيات.
+"Zero pair (0,0) shown — this often means ""unknown"" in legacy data. Confirm before interpreting.",يظهر الزوج الصفري (0،0) — وغالباً ما يعني «غير معروف» في البيانات القديمة. تحقّق قبل تفسيره.
+offline data,بيانات غير متصلة
+{0} available,{0} متاح

@@ -110,11 +110,20 @@ def extract_app_sources(app_dir: Path | None = None) -> set[str]:
         re.compile(r'__\(\s*"((?:[^"\\]|\\.)*)"'),
         re.compile(r"__\(\s*`((?:[^`\\$]|\\.)*)`"),
     ]
+    desk_t_pats = [
+        # SIRAJ's Desk modules use a small `t()` wrapper around Frappe's
+        # translator. Audit literal help text and button labels from it too.
+        # The standalone offline viewer has a different key-based t() helper.
+        re.compile(r"\bt\(\s*'((?:[^'\\]|\\.)*)'"),
+        re.compile(r'\bt\(\s*"((?:[^"\\]|\\.)*)"'),
+    ]
     for path in root.rglob("*.js"):
-        if "node_modules" in str(path):
+        path_posix = path.as_posix()
+        if "node_modules" in str(path) or "public/vendor" in path_posix:
             continue
         text = path.read_text(encoding="utf-8", errors="replace")
-        for pat in js_pats:
+        patterns = js_pats + (desk_t_pats if "/public/js/" in f"/{path_posix}" else [])
+        for pat in patterns:
             for raw in pat.findall(text):
                 s = raw.replace("\\n", "\n").strip()
                 if s and "${" not in s:
