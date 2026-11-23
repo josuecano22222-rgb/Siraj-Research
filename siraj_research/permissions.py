@@ -43,11 +43,19 @@ def get_permission_query_conditions(user: str | None = None) -> str:
 	return f"`{DATA_GROUP_FIELD}` = {frappe.db.escape(data_group)}"
 
 
-def has_permission(doc, user: str | None = None, permission_type: str | None = None):
+def has_permission(
+	doc,
+	user: str | None = None,
+	permission_type: str | None = None,
+	ptype: str | None = None,
+	**kwargs,
+):
 	"""Deny cross-group/scope-less documents; defer positive role checks to Frappe.
 
-	Returning ``None`` is deny-only hook semantics. A blank group is permitted
-	on a new document only so ``before_validate`` can stamp it.
+	Returning ``None`` is deny-only hook semantics. Frappe evaluates native User
+	Permissions before ``before_validate`` during insert, so the create check also
+	rewrites any client-supplied group before native Link permission evaluation.
+	The doc event remains the authoritative stamp and immutable-group guard.
 	"""
 	user = _user(user)
 	if user == "Administrator":
@@ -55,8 +63,10 @@ def has_permission(doc, user: str | None = None, permission_type: str | None = N
 	data_group = get_user_data_group(user)
 	if not data_group:
 		return False
-	# Any client value is accepted only until before_validate rewrites it.
+
+	permission_type = permission_type or ptype
 	if doc.is_new() and permission_type == "create":
+		doc.set(DATA_GROUP_FIELD, data_group)
 		return None
 	if doc.get(DATA_GROUP_FIELD) != data_group:
 		return False
