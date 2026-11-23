@@ -32,6 +32,42 @@ class TestPersonFamily(FrappeTestCase):
 		doc.insert()
 		return doc
 
+	def test_profile_is_saveable_without_optional_person_details(self):
+		doc = frappe.get_doc({"doctype": "Person"})
+		doc.insert()
+		doc.reload()
+		self.assertFalse(doc.name_ar)
+		self.assertFalse(doc.birth_date_as_stated)
+		self.assertFalse(doc.birthplace)
+		self.assertFalse(doc.birthplace_as_stated)
+		self.assertFalse(doc.current_residence)
+		self.assertFalse(doc.nationality)
+		self.assertFalse(doc.gender)
+		self.assertFalse(doc.personal_id_number)
+		self.assertFalse(doc.phone_numbers)
+
+	def test_custom_fields_allow_labelled_rows_without_values(self):
+		doc = self.make_person(
+			additional_fields=[
+				{"field_label": "Preferred alias", "field_value": "Alias A"},
+				{"field_label": "Unknown custom value"},
+			]
+		)
+		doc.reload()
+		self.assertEqual(doc.additional_fields[0].field_label, "Preferred alias")
+		self.assertEqual(doc.additional_fields[0].field_value, "Alias A")
+		self.assertEqual(doc.additional_fields[1].field_label, "Unknown custom value")
+		self.assertFalse(doc.additional_fields[1].field_value)
+
+	def test_duplicate_custom_field_labels_are_rejected_case_insensitively(self):
+		with self.assertRaises(frappe.ValidationError):
+			self.make_person(
+				additional_fields=[
+					{"field_label": "Reference"},
+					{"field_label": " reference "},
+				]
+			)
+
 	# -- marital status gates the UI, never the data ----------------------
 
 	def test_single_status_keeps_hidden_family_data(self):

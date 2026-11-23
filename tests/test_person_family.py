@@ -97,6 +97,60 @@ class TestPersonFamilyTab:
 		missing = [f["fieldname"] for f in doc["fields"] if f["fieldname"] not in doc["field_order"]]
 		assert missing == []
 
+	def test_personal_identifiers_and_phone_lists_cover_related_people(self):
+		doc = self.person()
+		fields = {f["fieldname"]: f for f in doc["fields"]}
+		for name in ("personal_id_number", "phone_numbers"):
+			assert fields[name]["permlevel"] == 1
+		assert fields["personal_id_number"]["fieldtype"] == "Data"
+		assert fields["phone_numbers"]["fieldtype"] == "Small Text"
+		assert "one mobile number per line" in fields["phone_numbers"]["description"]
+
+		for name in (
+			"spouse_personal_id_number", "spouse_phone_numbers",
+			"father_personal_id_number", "father_phone_numbers",
+			"mother_personal_id_number", "mother_phone_numbers",
+		):
+			assert name in fields
+			assert fields[name]["permlevel"] == 1
+
+		for folder in ("person_child", "person_sibling", "person_grandchild"):
+			member_fields = {f["fieldname"]: f for f in load(folder)["fields"]}
+			assert member_fields["personal_id_number"]["fieldtype"] == "Data"
+			assert member_fields["phone_numbers"]["fieldtype"] == "Small Text"
+			assert member_fields["personal_id_number"]["permlevel"] == 1
+			assert member_fields["phone_numbers"]["permlevel"] == 1
+
+	def test_person_profile_fields_are_optional_and_accounts_are_repeatable(self):
+		doc = self.person()
+		fields = {f["fieldname"]: f for f in doc["fields"]}
+		optional_fields = (
+			"name_ar", "name_en", "birth_date_as_stated", "birthplace",
+			"birthplace_as_stated", "current_residence", "marital_status",
+			"nationality", "gender", "personal_id_number", "phone_numbers",
+			"social_accounts",
+		)
+		for name in optional_fields:
+			assert not fields[name].get("reqd"), name
+			assert not fields[name].get("mandatory_depends_on"), name
+		assert fields["gender"]["options"] == "\nMale\nFemale\nUnknown"
+		assert fields["social_accounts"]["fieldtype"] == "Table"
+		assert fields["social_accounts"]["options"] == "Social Account"
+		account = load("social_account")
+		platform = next(f for f in account["fields"] if f["fieldname"] == "platform")
+		assert not platform.get("reqd")
+
+	def test_per_person_custom_label_fields(self):
+		doc = self.person()
+		fields = {f["fieldname"]: f for f in doc["fields"]}
+		assert fields["additional_fields"]["fieldtype"] == "Table"
+		assert fields["additional_fields"]["options"] == "Person Additional Field"
+		custom = load("person_additional_field")
+		custom_fields = {f["fieldname"]: f for f in custom["fields"]}
+		assert custom_fields["field_label"]["reqd"] == 1
+		assert custom_fields["field_value"]["fieldtype"] == "Small Text"
+		assert not custom_fields["field_value"].get("reqd")
+
 	def test_table_options_point_at_child_doctypes(self):
 		fields = {f["fieldname"]: f for f in self.person()["fields"]}
 		assert fields["children"]["options"] == "Person Child"

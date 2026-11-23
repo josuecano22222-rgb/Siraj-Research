@@ -60,6 +60,20 @@
    "label": "Date of birth (as stated)"
   },
   {
+   "fieldname": "personal_id_number",
+   "fieldtype": "Data",
+   "label": "ID number",
+   "permlevel": 1,
+   "description": "Personal identifier as recorded in the source; preserve its original format."
+  },
+  {
+   "fieldname": "phone_numbers",
+   "fieldtype": "Small Text",
+   "label": "Mobile number(s)",
+   "permlevel": 1,
+   "description": "Enter one mobile number per line. Include the country code when known."
+  },
+  {
    "fieldname": "occupation_or_school",
    "fieldtype": "Data",
    "label": "Occupation / school"
@@ -83,6 +97,8 @@
   "gender",
   "birth_date",
   "birth_date_as_stated",
+  "personal_id_number",
+  "phone_numbers",
   "occupation_or_school",
   "number_of_children",
   "notes"

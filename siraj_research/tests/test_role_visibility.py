@@ -247,6 +247,23 @@ class TestRoleVisibility(FrappeTestCase):
 					f"{role} must not see permlevel-1 diffs",
 				)
 
+	def test_personal_identifiers_require_reviewer_level(self):
+		person = frappe.get_doc("Person", self.person)
+		fields = ("personal_id_number", "phone_numbers", "current_residence")
+		for role in ("SIRAJ Viewer", "SIRAJ Researcher"):
+			with RoleUser(role):
+				for field in fields:
+					self.assertFalse(
+						person.has_permlevel_access_to(field),
+						f"{role} must not access Person.{field}",
+					)
+		with RoleUser("SIRAJ Reviewer"):
+			for field in fields:
+				self.assertTrue(
+					person.has_permlevel_access_to(field),
+					f"Reviewer must access Person.{field}",
+				)
+
 	def test_audit_history_denies_unreadable_doctype(self):
 		# Evidence is a child DocType without Viewer rows: no history access.
 		with RoleUser("SIRAJ Viewer"):

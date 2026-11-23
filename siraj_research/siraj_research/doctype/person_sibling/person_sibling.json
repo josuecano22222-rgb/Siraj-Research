@@ -62,6 +62,20 @@
    "label": "Date of birth"
   },
   {
+   "fieldname": "personal_id_number",
+   "fieldtype": "Data",
+   "label": "ID number",
+   "permlevel": 1,
+   "description": "Personal identifier as recorded in the source; preserve its original format."
+  },
+  {
+   "fieldname": "phone_numbers",
+   "fieldtype": "Small Text",
+   "label": "Mobile number(s)",
+   "permlevel": 1,
+   "description": "Enter one mobile number per line. Include the country code when known."
+  },
+  {
    "fieldname": "notes",
    "fieldtype": "Small Text",
    "label": "Notes"
@@ -74,6 +88,8 @@
   "relation",
   "person",
   "birth_date",
+  "personal_id_number",
+  "phone_numbers",
   "notes"
  ]
 }

@@ -6,6 +6,30 @@ The **Family** tab on a Person record captures family data the way research note
 
 **Spouse, children, and grandchildren are exclusive to the person's record.** They are embedded rows (`Person Child`, `Person Grandchild` child tables) and are never saved as links to other Person DocTypes — one subject, one file. **Siblings are the exception**: a sibling is often a subject in their own right, so each `Person Sibling` row may optionally link to an existing Person record. The row still keeps its own editable name, so the link is a convenience, never a requirement.
 
+## Identifiers and contact numbers
+
+The Person identity section records an ID number and mobile numbers. The
+spouse, father, mother, child, sibling, and grandchild details support the same
+data. Enter **one mobile number per line**; retain the country code when known.
+ID numbers are stored as recorded, without normalization. ID, mobile, and
+current-residence fields use permission level 1, matching the existing
+restricted-fields policy (Reviewer, Administrator, and System Manager
+access); confirm effective visibility on the target site after migration.
+
+The base profile also provides optional name, date of birth, place of birth,
+current residence, marital status, nationality, and gender fields. Place of
+birth can be selected from the Place registry or recorded as stated. Accounts
+are repeatable rows with optional platform, handle, and URL fields.
+
+## Per-person custom fields
+
+The **Additional fields** table lets a user add arbitrary label/value pairs to
+one Person record without changing the app's schema. A custom label is needed
+for each row; its value can be left blank. Labels must be unique within that
+Person record (case-insensitive). These are per-record attributes, not fields
+added to every Person form. Schema-wide fields remain available through
+Frappe's Customize Form for administrators.
+
 ## Marital status gates the UI, not the data
 
 | `marital_status` | What is visible |
