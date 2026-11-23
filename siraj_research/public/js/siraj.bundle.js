@@ -19,6 +19,7 @@ import './siraj-geopoint-core.js';
 import './siraj-location-layout.js';
 import './siraj-geopoint.js';
 import './coordinate_map.js';
+import './geography-action-i18n.js';
 import './siraj-geo.js';
 import './siraj-hierarchy.js';
 import './siraj-cascade-core.js';
