@@ -16,6 +16,8 @@
   "name_original_lang",
   "name_transliteration",
   "name_variants",
+  "personal_id_number",
+  "phone_numbers",
   "cb_media",
   "image",
   "image_url",
@@ -25,6 +27,7 @@
   "birth_date_as_stated",
   "birth_date",
   "birth_date_precision",
+  "gender",
   "sb_death",
   "death_date_as_stated",
   "death_date",
@@ -56,6 +59,8 @@
   "public_activity",
   "website",
   "social_accounts",
+  "sb_additional_fields",
+  "additional_fields",
   "tab_family",
   "sb_marital",
   "marital_status",
@@ -64,6 +69,8 @@
   "is_grandparent",
   "sb_spouse",
   "spouse_name",
+  "spouse_personal_id_number",
+  "spouse_phone_numbers",
   "cb_spouse",
   "spouse_birth_date",
   "spouse_nationality",
@@ -81,14 +88,19 @@
   "sb_family_origin",
   "father_name",
   "father_person",
+  "father_personal_id_number",
+  "father_phone_numbers",
   "cb_origin",
   "mother_name",
+  "mother_personal_id_number",
+  "mother_phone_numbers",
   "family_name",
   "next_of_kin",
   "family_notes",
   "tab_evidence",
   "sb_geo",
   "sb_location",
+  "current_residence",
   "latitude",
   "longitude",
   "geo_point",
@@ -162,7 +174,6 @@
    "fieldname": "name_ar",
    "fieldtype": "Data",
    "label": "Name (Arabic)",
-   "reqd": 1,
    "in_list_view": 1,
    "search_index": 1,
    "in_global_search": 1,
@@ -207,6 +218,20 @@
    "fieldtype": "Small Text",
    "label": "Other recorded forms of the name",
    "description": "Spellings met in sources that are not the preferred form. Searchable, so 'Mosul' finds 'Mūṣil'."
+  },
+  {
+   "fieldname": "personal_id_number",
+   "fieldtype": "Data",
+   "label": "ID number",
+   "permlevel": 1,
+   "description": "Personal identifier as recorded in the source; preserve its original format."
+  },
+  {
+   "fieldname": "phone_numbers",
+   "fieldtype": "Small Text",
+   "label": "Mobile number(s)",
+   "permlevel": 1,
+   "description": "Enter one mobile number per line. Include the country code when known."
   },
   {
    "fieldname": "cb_media",
@@ -274,6 +299,12 @@
    "description": "How much of the date is actually known. 'approximate' keeps c. 1850; 'year' keeps 1850; 'decade' keeps '1850s'; 'minute' keeps a time of day."
   },
   {
+   "fieldname": "gender",
+   "fieldtype": "Select",
+   "label": "Gender",
+   "options": "\nMale\nFemale\nUnknown"
+  },
+  {
    "fieldname": "sb_death",
    "fieldtype": "Section Break",
    "label": "Death"
@@ -339,8 +370,7 @@
    "fieldtype": "Data",
    "label": "Place of birth (as stated)",
    "length": 140,
-   "mandatory_depends_on": "eval:!doc.birthplace",
-   "description": "What the source says, kept verbatim even when the place cannot be linked to a Place record. Mandatory while no Place is linked: an unlinked place must still be recorded."
+   "description": "What the source says, kept verbatim when available, including when the place cannot be linked."
   },
   {
    "fieldname": "tab_career",
@@ -492,9 +522,23 @@
   {
    "fieldname": "social_accounts",
    "fieldtype": "Table",
-   "label": "Official accounts",
+   "label": "Accounts",
    "options": "Social Account",
-   "no_copy": 1
+   "no_copy": 1,
+   "description": "Add one row per account; platform, handle and URL are optional."
+  },
+  {
+   "fieldname": "sb_additional_fields",
+   "fieldtype": "Section Break",
+   "label": "Additional user-defined fields"
+  },
+  {
+   "fieldname": "additional_fields",
+   "fieldtype": "Table",
+   "label": "Additional fields",
+   "options": "Person Additional Field",
+   "no_copy": 1,
+   "description": "Optional per-person fields. Add a custom label and value for each item."
   },
   {
    "fieldname": "tab_family",
@@ -542,6 +586,20 @@
    "fieldname": "spouse_name",
    "fieldtype": "Data",
    "label": "Spouse name (as stated)"
+  },
+  {
+   "fieldname": "spouse_personal_id_number",
+   "fieldtype": "Data",
+   "label": "Spouse ID number",
+   "permlevel": 1,
+   "description": "Personal identifier as recorded in the source; preserve its original format."
+  },
+  {
+   "fieldname": "spouse_phone_numbers",
+   "fieldtype": "Small Text",
+   "label": "Spouse mobile number(s)",
+   "permlevel": 1,
+   "description": "Enter one mobile number per line. Include the country code when known."
   },
   {
    "fieldname": "cb_spouse",
@@ -637,6 +695,20 @@
    "options": "Person"
   },
   {
+   "fieldname": "father_personal_id_number",
+   "fieldtype": "Data",
+   "label": "Father ID number",
+   "permlevel": 1,
+   "description": "Personal identifier as recorded in the source; preserve its original format."
+  },
+  {
+   "fieldname": "father_phone_numbers",
+   "fieldtype": "Small Text",
+   "label": "Father mobile number(s)",
+   "permlevel": 1,
+   "description": "Enter one mobile number per line. Include the country code when known."
+  },
+  {
    "fieldname": "cb_origin",
    "fieldtype": "Column Break",
    "label": ""
@@ -645,6 +717,20 @@
    "fieldname": "mother_name",
    "fieldtype": "Data",
    "label": "Mother name (as stated)"
+  },
+  {
+   "fieldname": "mother_personal_id_number",
+   "fieldtype": "Data",
+   "label": "Mother ID number",
+   "permlevel": 1,
+   "description": "Personal identifier as recorded in the source; preserve its original format."
+  },
+  {
+   "fieldname": "mother_phone_numbers",
+   "fieldtype": "Small Text",
+   "label": "Mother mobile number(s)",
+   "permlevel": 1,
+   "description": "Enter one mobile number per line. Include the country code when known."
   },
   {
    "fieldname": "family_name",
@@ -677,6 +763,13 @@
    "fieldname": "sb_location",
    "label": "Location",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "current_residence",
+   "fieldtype": "Small Text",
+   "label": "Current residence",
+   "permlevel": 1,
+   "description": "As stated by the source or person; optional and not inferred from coordinates."
   },
   {
    "fieldname": "latitude",

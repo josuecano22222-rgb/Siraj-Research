@@ -1825,3 +1825,37 @@ Confidence,درجة الثقة
 "Quality score = 60% completeness + 25% evidence rows (saturates at 5) + 15% primary source, rounded and clamped to 0-100; the quality fields themselves are excluded from completeness. Confidence is marked (derived) when the record stores no authentication level — it is then computed from evidence rows (2+ → corroborated, 1 → single source, 0 → unverified); otherwise it is the recorded value.",درجة الجودة = 60% اكتمال البيانات + 25% صفوف الأدلة (تتوقف عند 5) + 15% المصدر الأساسي، مُقرَّبة ومحدودة بين 0 و100؛ وحقول الجودة نفسها مستثناة من الاحتساب. تُوسم الثقة بـ(مشتق) عندما لا يحتفظ السجل بمستوى توثيق مسجَّل — عندها تُحسب من صفوف الأدلة (2+ ⇒ مُتعاضد، 1 ⇒ مصدر واحد، 0 ⇒ غير موثَّق)، وإلا فهي القيمة المسجَّلة.
 (derived),(مشتق)
 Computed from evidence rows — the record stores no recorded confidence.,تُحسب من صفوف الأدلة — السجل لا يحتفظ بثقة مسجَّلة.
+Personal ID number,رقم الهوية الشخصية
+Personal phone number(s),أرقام الهاتف الشخصية
+Spouse personal ID number,رقم هوية الزوج/الزوجة
+Spouse phone number(s),أرقام هاتف الزوج/الزوجة
+Father personal ID number,رقم هوية الأب
+Father phone number(s),أرقام هاتف الأب
+Mother personal ID number,رقم هوية الأم
+Mother phone number(s),أرقام هاتف الأم
+Personal identifier as recorded in the source; preserve its original format.,رقم الهوية كما ورد في المصدر؛ يُحافظ على صيغته الأصلية.
+Enter one phone number per line. Include the country code when known.,أدخل رقم هاتف واحداً في كل سطر، مع رمز الدولة عند معرفته.
+Accounts,الحسابات
+ID number,رقم الهوية
+Mobile number(s),أرقام الهاتف المحمول
+Spouse ID number,رقم هوية الزوج/الزوجة
+Spouse mobile number(s),أرقام الهاتف المحمول للزوج/الزوجة
+Father ID number,رقم هوية الأب
+Father mobile number(s),أرقام الهاتف المحمول للأب
+Mother ID number,رقم هوية الأم
+Mother mobile number(s),أرقام الهاتف المحمول للأم
+Current residence,مكان الإقامة الحالي
+Additional user-defined fields,حقول إضافية يحددها المستخدم
+Additional fields,حقول إضافية
+Custom label,تسمية مخصصة
+As stated by the source or person; optional and not inferred from coordinates.,كما ورد عن المصدر أو الشخص؛ اختياري ولا يُستنتج من الإحداثيات.
+"Add one row per account; platform, handle and URL are optional.",أضف صفاً لكل حساب؛ المنصة واسم المستخدم والرابط اختيارية.
+Optional per-person fields. Add a custom label and value for each item.,حقول اختيارية لكل شخص. أضف تسمية مخصصة وقيمة لكل عنصر.
+"Platform, handle and URL are recorded when known.",تُسجل المنصة واسم المستخدم والرابط عند توفرها.
+"What the source says, kept verbatim when available, including when the place cannot be linked.",ما يذكره المصدر يُحفظ حرفياً عند توفره، حتى إن تعذر ربط المكان.
+Duplicate custom field label,تسمية مخصصة مكررة
+One user-defined optional label/value pair on a Person record.,زوج اختياري من التسمية والقيمة يحدده المستخدم في سجل الشخص.
+Person Additional Field,حقل إضافي للشخص
+Row {0}: a custom field needs a label.,الصف {0}: يحتاج الحقل المخصص إلى تسمية.
+Row {0}: custom field label '{1}' is already used on this Person.,الصف {0}: تسمية الحقل المخصص «{1}» مستخدمة بالفعل لهذا الشخص.
+Enter one mobile number per line. Include the country code when known.,أدخل رقم هاتف محمول واحداً في كل سطر، مع رمز الدولة عند معرفته.

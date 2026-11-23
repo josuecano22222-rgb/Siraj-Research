@@ -19,6 +19,7 @@ class Person(Document):
 		self.validate_service_status()
 		self.validate_leadership_assessments()
 		self.validate_family()
+		self.validate_additional_fields()
 
 	def validate_military(self):
 		"""The six military attributes only apply to a military person (migration 020)."""
@@ -72,6 +73,24 @@ class Person(Document):
 				)
 			if row.assessed_at and getdate(row.assessed_at) > today:
 				frappe.throw(_("Row {0}: an assessment cannot be dated in the future.").format(row.idx))
+
+	def validate_additional_fields(self):
+		"""Keep per-person custom labels clear and unambiguous."""
+		seen = set()
+		for row in self.get("additional_fields") or []:
+			label = (row.field_label or "").strip()
+			if not label:
+				frappe.throw(_("Row {0}: a custom field needs a label.").format(row.idx))
+			row.field_label = label
+			key = label.casefold()
+			if key in seen:
+				frappe.throw(
+					_("Row {0}: custom field label '{1}' is already used on this Person.").format(
+						row.idx, label
+					),
+					title=_("Duplicate custom field label"),
+				)
+			seen.add(key)
 
 	def validate_family(self):
 		"""Family tab: date sanity, person-exclusive rules, derived fields.

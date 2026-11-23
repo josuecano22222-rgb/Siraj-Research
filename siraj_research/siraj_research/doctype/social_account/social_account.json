@@ -16,9 +16,9 @@
    "fieldtype": "Link",
    "label": "Platform",
    "options": "Social Platform",
-   "reqd": 1,
    "in_list_view": 1,
-   "columns": 2
+   "columns": 2,
+   "description": "Platform, handle and URL are recorded when known."
   },
   {
    "fieldname": "handle",

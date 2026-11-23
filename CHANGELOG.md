@@ -3,6 +3,19 @@
 All notable changes to `siraj_research`. Dates are UTC. Tags follow the
 release-notes table in [`docs/installation.md`](docs/installation.md).
 
+## [Unreleased]
+
+### Added
+
+- Optional Person profile fields for gender and current residence, with
+  optional identity, birth, nationality, marital-status, mobile, and accounts
+  data; repeatable accounts may be recorded partially.
+- Per-Person custom label/value rows for user-defined information (case-
+  insensitive unique labels; values may be blank). ID, mobile, and current-
+  residence fields use permission level 1.
+- ID and mobile fields on Person and related spouse, parent, child, sibling,
+  and grandchild records; enter one mobile number per line.
+
 ## [2.0.0] — 2026-11-18
 
 ### Added
