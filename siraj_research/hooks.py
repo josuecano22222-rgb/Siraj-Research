@@ -202,13 +202,13 @@ jinja = {
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
-#
-# has_permission = {
-# 	"Event": "frappe.desk.doctype.event.event.has_permission",
-# }
+# One registry drives all three isolation layers. Add protected DocTypes here only.
+SCOPED_DOCTYPES = ["Shared Record"]
+
+permission_query_conditions = {
+	dt: "siraj_research.permissions.get_permission_query_conditions" for dt in SCOPED_DOCTYPES
+}
+has_permission = {dt: "siraj_research.permissions.has_permission" for dt in SCOPED_DOCTYPES}
 
 # DocType Class
 # ---------------
@@ -229,6 +229,10 @@ doc_events = {
 		"Military Unit", "Operational Deployment",
 	)
 }
+for _scoped_doctype in SCOPED_DOCTYPES:
+	doc_events.setdefault(_scoped_doctype, {})["before_validate"] = (
+		"siraj_research.permissions.stamp_and_lock_data_group"
+	)
 
 # Scheduled Tasks
 # ---------------

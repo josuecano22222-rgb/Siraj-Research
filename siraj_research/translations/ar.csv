@@ -1859,3 +1859,9 @@ Person Additional Field,حقل إضافي للشخص
 Row {0}: a custom field needs a label.,الصف {0}: يحتاج الحقل المخصص إلى تسمية.
 Row {0}: custom field label '{1}' is already used on this Person.,الصف {0}: تسمية الحقل المخصص «{1}» مستخدمة بالفعل لهذا الشخص.
 Enter one mobile number per line. Include the country code when known.,أدخل رقم هاتف محمول واحداً في كل سطر، مع رمز الدولة عند معرفته.
+Data Group,مجموعة البيانات
+Group Name,اسم المجموعة
+Shared Record,سجل مشترك
+A Data Group membership is required.,يلزم الانضمام إلى مجموعة بيانات.
+Data Group cannot be changed after creation.,لا يمكن تغيير مجموعة البيانات بعد الإنشاء.
+Data Isolation,عزل البيانات

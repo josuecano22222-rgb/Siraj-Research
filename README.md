@@ -67,3 +67,44 @@ Required checks must be green before a PR merges to `main`.
 ### License
 
 mit
+
+### Strict Data Group isolation
+
+The app includes a group-scoped demo DocType, **Shared Record**, and an
+idempotent setup command for two five-member sections:
+
+```bash
+# For a new app/bench (skip new-app/get-app when using this repository):
+bench new-app siraj_research
+bench --site SITE install-app siraj_research
+bench --site SITE migrate
+bench --site SITE execute siraj_research.setup.install.setup \
+  --kwargs '{"password":"REPLACE-WITH-A-STRONG-PASSWORD"}'
+bench --site SITE run-tests --app siraj_research \
+  --doctype "Shared Record"
+```
+
+The setup creates `GD` and `GC`, users `gd1@example.com` … `gd5@example.com`
+and `gc1@example.com` … `gc5@example.com`, the **Group Member** role, and one
+native Data Group User Permission per user. It is safe to rerun. Keep **Apply
+Strict User Permissions** off. Turn **Disable Document Sharing** on in System
+Settings: Frappe shares can otherwise grant access across the group boundary.
+
+Isolation is enforced in three server layers: permission query conditions for
+collection/search/count/report/export paths, a deny-only document permission
+hook for direct access/print/API paths, and a `before_validate` event that
+server-stamps and locks `data_group`. Administrator remains unrestricted;
+missing memberships and blank groups fail closed.
+
+#### Protecting another DocType
+
+1. Add a required, read-only Link field named `data_group`, with options
+   `Data Group` (also mark it `no_copy` and `search_index`).
+2. Grant the ordinary role-level operations needed by **Group Member** and
+   leave **If Owner** disabled. Do not grant Share.
+3. Add the DocType name to the single `SCOPED_DOCTYPES` list in
+   `siraj_research/hooks.py`; that registers all three enforcement layers.
+4. Run `bench --site SITE migrate`, clear cache, and add cross-group tests.
+5. Ensure custom reports/APIs use Frappe permission-aware document/query APIs;
+   never use raw SQL, `frappe.get_all`, or `ignore_permissions=True` in request
+   paths.
