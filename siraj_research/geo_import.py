@@ -18,6 +18,7 @@ import hashlib
 import io
 import json
 import re
+import stat
 import zipfile
 from collections.abc import Iterable
 from pathlib import Path
@@ -70,21 +71,32 @@ def deps_ok() -> tuple[bool, list[str]]:
 # ---------------------------------------------------------------------------
 
 UPLOAD_SUBDIR = "siraj_boundary_uploads"
+MAX_UPLOAD_BYTES = 500 * 1024 * 1024  # 500 MiB raw upload ceiling
+MAX_ZIP_MEMBERS = 256
+MAX_ZIP_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024  # 2 GiB total uncompressed ceiling
+
+
+def _upload_root() -> Path:
+    private = Path(frappe.get_site_path("private"))
+    root = private / UPLOAD_SUBDIR
+    root.mkdir(parents=True, exist_ok=True)
+    return root.resolve()
 
 
 def _save_upload(filedata: bytes, filename: str) -> Path:
     """Write the uploaded bytes to the site's private directory and return
     the path. Caller is responsible for cleanup.
     """
-    import frappe.utils.file_manager as fm
-    # The simplest safe path: private/files/<boundary-dataset>/<name>
-    private = Path(frappe.get_site_path("private"))
-    root = private / UPLOAD_SUBDIR
-    root.mkdir(parents=True, exist_ok=True)
+    root = _upload_root()
     safe_name = re.sub(r"[^A-Za-z0-9._-]", "_", filename)
     out = root / safe_name
     out.write_bytes(filedata)
     return out
+
+
+def _is_zip_symlink(info: zipfile.ZipInfo) -> bool:
+    mode = (info.external_attr >> 16) & 0xFFFF
+    return stat.S_ISLNK(mode)
 
 
 def _extract_if_zip(path: Path, workdir: Path) -> list[Path]:
@@ -94,6 +106,25 @@ def _extract_if_zip(path: Path, workdir: Path) -> list[Path]:
     """
     if zipfile.is_zipfile(path):
         with zipfile.ZipFile(path) as zf:
+            members = zf.infolist()
+            if len(members) > MAX_ZIP_MEMBERS:
+                frappe.throw(
+                    f"Archive contains too many entries ({len(members)} > {MAX_ZIP_MEMBERS}).",
+                    frappe.ValidationError,
+                )
+            total_uncompressed = 0
+            for info in members:
+                if _is_zip_symlink(info):
+                    frappe.throw(
+                        "Archive entries must not contain symbolic links.",
+                        frappe.ValidationError,
+                    )
+                total_uncompressed += max(0, int(info.file_size or 0))
+                if total_uncompressed > MAX_ZIP_UNCOMPRESSED_BYTES:
+                    frappe.throw(
+                        "Archive uncompressed size exceeds the allowed limit.",
+                        frappe.ValidationError,
+                    )
             zf.extractall(workdir)
         # Look for a primary data file inside the extracted tree.
         patterns = ("*.gpkg", "*.geojson", "*.json", "*.shp")

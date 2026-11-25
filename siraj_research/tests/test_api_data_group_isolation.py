@@ -15,6 +15,7 @@ from __future__ import annotations
 import base64
 import json
 import unittest
+from pathlib import Path
 from typing import ClassVar
 
 import frappe
@@ -711,16 +712,41 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 				update_modified=False,
 			)
 
-	@unittest.expectedFailure
 	def test_10_boundary_import_dependencies_and_path_confinement_c05(self):
-		"""C-05: dependencies() requires admin; start_import() rejects paths outside boundary_uploads."""
+		"""C-05: dependencies() requires admin; start_import() confines paths (incl. symlinks); zip/upload caps enforced."""
+		from unittest.mock import patch
+
 		frappe.set_user(VIEWER_GD_USER)
 		with self.assertRaises(frappe.PermissionError):
 			boundary_import.dependencies()
 
 		frappe.set_user(GD_ADMIN_USER)
+		dep = boundary_import.dependencies()
+		self.assertIn("ok", dep)
+
 		with self.assertRaises(frappe.PermissionError):
 			boundary_import.start_import("ISO-TEST-BND", "/etc/hosts")
+
+		# Symlink inside private/siraj_boundary_uploads pointing outside -> PermissionError.
+		upload_root = Path(frappe.get_site_path("private")) / boundary_import.UPLOAD_SUBDIR
+		upload_root.mkdir(parents=True, exist_ok=True)
+		symlink_probe = upload_root / "iso_c05_symlink_escape.geojson"
+		try:
+			if symlink_probe.exists() or symlink_probe.is_symlink():
+				symlink_probe.unlink()
+			symlink_probe.symlink_to("/etc/hosts")
+			with self.assertRaises(frappe.PermissionError):
+				boundary_import.start_import("ISO-TEST-BND", str(symlink_probe))
+		finally:
+			if symlink_probe.exists() or symlink_probe.is_symlink():
+				symlink_probe.unlink()
+
+		# Oversized upload rejected under patched MAX_UPLOAD_BYTES.
+		with patch.object(boundary_import, "MAX_UPLOAD_BYTES", 32):
+			with self.assertRaises(frappe.ValidationError):
+				boundary_import.upload_file(
+					"oversized.geojson", base64.b64encode(b"x" * 64).decode("ascii")
+				)
 
 	def test_11_boundary_import_upload_and_status_admin_gated(self):
 		"""upload_file, start_import, and status already block non-admin viewers; admins can check status."""
@@ -737,6 +763,10 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		self.assertIn("import_status", st)
 		uploaded = boundary_import.upload_file("probe.geojson", base64.b64encode(b"{}").decode("ascii"))
 		self._upload_paths.append(uploaded.get("path", ""))
+		# File inside private/siraj_boundary_uploads that was not uploaded raises ValidationError (not found), not PermissionError.
+		missing_inside = Path(frappe.get_site_path("private")) / boundary_import.UPLOAD_SUBDIR / "missing_probe.geojson"
+		with self.assertRaises(frappe.ValidationError):
+			boundary_import.start_import("ISO-TEST-BND", str(missing_inside))
 
 	@unittest.expectedFailure
 	def test_12_geo_resolve_sweep_points_enforces_place_read_and_string_json_c07(self):
