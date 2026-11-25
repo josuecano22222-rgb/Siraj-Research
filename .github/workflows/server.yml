@@ -108,7 +108,7 @@ jobs:
             test_demo_data \
             test_map_search_api \
             test_person_family \
-            siraj_research.doctype.shared_record.test_shared_record
+            siraj_research.siraj_research.doctype.shared_record.test_shared_record
           do
             echo "=== $module ===" >> /tmp/server-tests.log
             if [[ "$module" == siraj_research.* ]]; then
