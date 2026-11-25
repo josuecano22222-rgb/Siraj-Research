@@ -52,11 +52,6 @@ def quality_report(doctype: str | None = None) -> dict:
 	Returned dicts are plain lists of {name, label, latitude, longitude, reasons};
 	respects DocType and per-document Data Group read permissions via ``readable_rows``.
 	"""
-	try:
-		include_samples = bool(frappe.has_permission("SIRAJ Settings", "read"))
-	except Exception:
-		include_samples = False
-
 	if doctype:
 		if doctype not in LOCATED_DOCTYPES:
 			return {"totals": {}, "samples": {}}
@@ -68,10 +63,7 @@ def quality_report(doctype: str | None = None) -> dict:
 	samples: dict[str, list[dict]] = {}
 
 	for dt in doctypes:
-		try:
-			if not frappe.has_permission(dt, "read"):
-				continue
-		except Exception:
+		if not frappe.has_permission(dt, "read"):
 			continue
 
 		fields, title_field = _query_fields_for(dt)
@@ -117,7 +109,7 @@ def quality_report(doctype: str | None = None) -> dict:
 			if reasons:
 				for x in set(reasons):
 					cats[x] += 1
-				if include_samples and len(bad) < 50:
+				if len(bad) < 50:
 					bad.append({
 						"name": r["name"], "label": label,
 						"latitude": lat, "longitude": lon,

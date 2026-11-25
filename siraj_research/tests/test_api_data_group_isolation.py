@@ -668,3 +668,9 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 			"amended_from",
 		):
 			self.assertNotIn(excluded, outbound_fields)
+
+	def test_21_geo_quality_report_non_located_doctype_returns_empty(self):
+		"""C-01: quality_report('<non-located doctype>') returns empty totals and samples."""
+		frappe.set_user(VIEWER_GD_USER)
+		self.assertEqual(geo_quality.quality_report("Source"), {"totals": {}, "samples": {}})
+		self.assertEqual(geo_quality.quality_report("Shared Record"), {"totals": {}, "samples": {}})

@@ -145,7 +145,7 @@ class ReportTest(unittest.TestCase):
 		self.frappe.denied = {("Person", "p1")}
 		self.assertEqual(len(list(self.access.readable_rows("Person", [], page_size=2))), 4)
 
-	def test_geo_quality_report_isolates_rows_and_falls_back_to_counts_without_settings_read(self):
+	def test_geo_quality_report_isolates_rows_and_rejects_non_located_doctype(self):
 		geo_quality = load("siraj_research/geo_quality.py", "test_geo_quality", self.injected)
 		self.frappe.rows["Person"] = [
 			{"name": "p-gd", "display_name": "GD Analyst", "latitude": None, "longitude": None},
@@ -154,24 +154,17 @@ class ReportTest(unittest.TestCase):
 		self.frappe.rows["Military Unit"] = [
 			{"name": "u-gd", "unit_name": "GD Brigade", "latitude": 0.0, "longitude": 0.0},
 		]
-		self.frappe.denied = {("Person", "p-gc")}
+		self.frappe.denied = {("Person", "p-gc"), "SIRAJ Settings"}
 
-		# Caller with SIRAJ Settings read receives readable totals + readable samples only.
+		# Every row approved by readable_rows(dt, ...) returns its sample regardless of SIRAJ Settings.
 		report = geo_quality.quality_report()
 		self.assertEqual(report["totals"]["Person"]["total"], 1)
 		self.assertEqual([r["name"] for r in report["samples"]["Person"]], ["p-gd"])
 		self.assertEqual(report["samples"]["Military Unit"][0]["label"], "GD Brigade")
 
-		# Unknown doctype is rejected rather than queried arbitrarily.
+		# Non-located SIRAJ DocType ("Source") and non-located system DocType ("User") both return empty.
+		self.assertEqual(geo_quality.quality_report("Source"), {"totals": {}, "samples": {}})
 		self.assertEqual(geo_quality.quality_report("User"), {"totals": {}, "samples": {}})
-
-		# Caller without SIRAJ Settings read falls back to counts-only (no row samples leaked)
-		# for DocTypes they can read.
-		self.frappe.denied.add("SIRAJ Settings")
-		restricted = geo_quality.quality_report("Person")
-		self.assertEqual(restricted["totals"]["Person"]["total"], 1)
-		self.assertEqual(restricted["totals"]["Person"]["missing"], 1)
-		self.assertEqual(restricted["samples"]["Person"], [])
 
 
 if __name__ == "__main__":

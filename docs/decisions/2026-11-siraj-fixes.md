@@ -73,6 +73,14 @@ Inspected directly in `frappe 15.128.0` (`version-15` @ `fd94443`):
 
 ---
 
+## Gate 2 Decision — `geo_quality.quality_report` and `SIRAJ Settings` (`C-01`)
+
+**Verified repository fact:** The singleton DocType `SIRAJ Settings` **exists** in the repository at `siraj_research/siraj_research/doctype/siraj_settings/siraj_settings.json` (`issingle: 1`, granting `read: 1` to all four `SIRAJ` roles plus `System Manager`).
+
+**Decision:** Remove the secondary `frappe.has_permission("SIRAJ Settings", "read")` sample gate and remove the bare `try/except Exception` wrappers around `frappe.has_permission(...)` in `siraj_research/geo_quality.py`. `quality_report` already filters every located DocType through `frappe.has_permission(dt, "read")` and `readable_rows(dt, fields)` (which enforces both SQL `permission_query_conditions` and per-row `frappe.has_permission(dt, "read", doc=row["name"])`), so returning up to 50 suspect-coordinate samples directly from the rows `readable_rows` approved is self-contained, never leaks unreadable rows, and avoids silently swallowing unexpected permission errors or suppressing samples for role configurations such as `Group Member`.
+
+---
+
 ## Local Verification Limits (Without Local MariaDB / Redis)
 
 Because the local sandbox lacks `mariadbd` and `redis-server` (outbound egress is restricted to `github.com`, `pypi.org`, and `registry.npmjs.org`), the following behaviors **cannot** be marked `verified: live bench` from local mock/static runs alone and require either GitHub Actions `server.yml` or an operator bench (`frappe.com`):
