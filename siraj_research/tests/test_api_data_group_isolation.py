@@ -564,13 +564,38 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		self.assertNotEqual(probe.siblings[0].sibling_name, "GC Classified Commander")
 		self.assertFalse(probe.siblings[0].sibling_name)
 
-		# 3) OperationalDeployment: validate() does NOT mutate Military Unit.current_deployment prematurely;
-		#    on_update sets current_deployment (and clears when is_current=0); on_trash clears current_deployment.
+		# 3) OperationalDeployment: failed save leaves NO partial write on Military Unit;
+		#    on_update sets current_deployment, reassignment clears the old unit, and on_trash clears current_deployment.
 		frappe.set_user(GD_ADMIN_USER)
-		unsaved_dep = frappe.get_doc(
+		failed_dep = frappe.get_doc(
 			{
 				"doctype": "Operational Deployment",
-				"deployment_name": "GD Unsaved Validation Probe",
+				"deployment_name": "GD Failed Validation Probe",
+				"unit": gd["unit"],
+				"deployment_type": vocab["dep_type"],
+				"status": "Completed",
+				"is_current": 1,
+				"start_date": "2026-03-01",
+				# Missing mandatory end_date for Completed status -> fails in validate_end_date!
+				"data_group": "GD",
+			}
+		)
+		with self.assertRaises(frappe.ValidationError):
+			failed_dep.insert()
+		self.assertIsNone(frappe.db.get_value("Military Unit", gd["unit"], "current_deployment"))
+
+		alt_unit = frappe.get_doc(
+			{
+				"doctype": "Military Unit",
+				"unit_name": "GD 12th Coastal Battalion",
+				"echelon": "Battalion",
+				"data_group": "GD",
+			}
+		).insert()
+		saved_dep = frappe.get_doc(
+			{
+				"doctype": "Operational Deployment",
+				"deployment_name": "GD Active Reassignable Probe",
 				"unit": gd["unit"],
 				"deployment_type": vocab["dep_type"],
 				"status": "Active",
@@ -578,33 +603,41 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 				"start_date": "2026-03-01",
 				"data_group": "GD",
 			}
-		)
-		unsaved_dep.validate()
-		self.assertIsNone(frappe.db.get_value("Military Unit", gd["unit"], "current_deployment"))
-
-		saved_dep = unsaved_dep.insert()
+		).insert()
 		try:
 			self.assertEqual(
 				frappe.db.get_value("Military Unit", gd["unit"], "current_deployment"),
 				saved_dep.name,
 			)
+			# Reassigning unit clears current_deployment on the old unit and sets it on the new unit.
+			saved_dep.unit = alt_unit.name
+			saved_dep.save()
+			self.assertIsNone(frappe.db.get_value("Military Unit", gd["unit"], "current_deployment"))
+			self.assertEqual(
+				frappe.db.get_value("Military Unit", alt_unit.name, "current_deployment"),
+				saved_dep.name,
+			)
+
 			# Unsetting is_current on save clears current_deployment on the unit.
 			saved_dep.is_current = 0
 			saved_dep.save()
-			self.assertIsNone(frappe.db.get_value("Military Unit", gd["unit"], "current_deployment"))
+			self.assertIsNone(frappe.db.get_value("Military Unit", alt_unit.name, "current_deployment"))
 
 			# Re-marking is_current=1 sets it again, and deleting the deployment clears it via on_trash.
 			saved_dep.is_current = 1
 			saved_dep.save()
 			self.assertEqual(
-				frappe.db.get_value("Military Unit", gd["unit"], "current_deployment"),
+				frappe.db.get_value("Military Unit", alt_unit.name, "current_deployment"),
 				saved_dep.name,
 			)
 		finally:
 			frappe.set_user("Administrator")
 			if frappe.db.exists("Operational Deployment", saved_dep.name):
 				frappe.delete_doc("Operational Deployment", saved_dep.name, force=True, ignore_permissions=True)
-		self.assertIsNone(frappe.db.get_value("Military Unit", gd["unit"], "current_deployment"))
+			self.assertIsNone(frappe.db.get_value("Military Unit", gd["unit"], "current_deployment"))
+			self.assertIsNone(frappe.db.get_value("Military Unit", alt_unit.name, "current_deployment"))
+			if frappe.db.exists("Military Unit", alt_unit.name):
+				frappe.delete_doc("Military Unit", alt_unit.name, force=True, ignore_permissions=True)
 
 	@unittest.expectedFailure
 	def test_09_non_admin_blocked_from_offline_bootstrap_mutations_c04(self):
@@ -981,3 +1014,42 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 						)
 		finally:
 			frappe.db.rollback(save_point="c03a_test_data_seed")
+
+		# 4) Live Data Import (validation on) carrying a cross-group link is rejected by Importer.process_doc.
+		from frappe.core.doctype.data_import.importer import Importer
+
+		csv_content = (
+			"name_ar,name_en,birthplace,data_group\n"
+			f"استيراد عابر,Cross Group CSV Import,{gc['place']},GD\n"
+		)
+		csv_file = frappe.get_doc(
+			{
+				"doctype": "File",
+				"file_name": "c03a_cross_group_import.csv",
+				"content": csv_content,
+				"is_private": 1,
+			}
+		).insert(ignore_permissions=True)
+		data_import = frappe.get_doc(
+			{
+				"doctype": "Data Import",
+				"reference_doctype": "Person",
+				"import_type": "Insert New Records",
+				"import_file": csv_file.file_url,
+			}
+		).insert(ignore_permissions=True)
+		try:
+			importer = Importer("Person", data_import=data_import)
+			payloads = importer.import_file.get_payloads_for_import()
+			self.assertEqual(len(payloads), 1)
+			with self.assertRaises(frappe.PermissionError) as di_ctx:
+				importer.process_doc(payloads[0].doc)
+			self.assertNotIn(gc["place"], str(di_ctx.exception))
+			self.assertNotIn("GC Secret Citadel", str(di_ctx.exception))
+			self.assertFalse(
+				frappe.db.exists("Person", {"name_en": "Cross Group CSV Import"}),
+				"Data Import must not persist a cross-group linked record",
+			)
+		finally:
+			frappe.delete_doc("Data Import", data_import.name, force=True, ignore_permissions=True)
+			frappe.delete_doc("File", csv_file.name, force=True, ignore_permissions=True)
