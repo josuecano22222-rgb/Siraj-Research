@@ -222,11 +222,10 @@ def get_relationship_profile(name, **kwargs):
 	}
 
 	# ---- Permissions ----
-	# frappe.has_permission signature: (doctype, ptype="read", doc=None,
-	# user=None, ...) — pass the doc as a positional arg (entity_profile uses the
-	# same shape; v15 does NOT accept a `name=` kwarg).
+	# frappe.has_permission signature: (doctype=None, ptype="read", doc=None,
+	# user=None, ...) — pass explicit `doc=` keyword (v15 does NOT accept `name=`).
 	permissions = {
-		"can_write": bool(frappe.has_permission("Relationship", "write", doc)),
+		"can_write": bool(frappe.has_permission("Relationship", "write", doc=doc)),
 		"can_create": bool(frappe.has_permission("Relationship", "create")),
 	}
 

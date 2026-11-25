@@ -131,7 +131,7 @@ def get_entity_profile(doctype, name, **kwargs):
     (relationships, outbound_links, inbound_links), location, activity,
     network_summary, permissions.
     """
-    if not frappe.has_permission(doctype, "read", name):
+    if not frappe.has_permission(doctype, "read", doc=name):
         frappe.throw(_("Not permitted to read {0} {1}").format(doctype, name),
                      frappe.PermissionError)
 
@@ -345,7 +345,7 @@ def get_entity_profile(doctype, name, **kwargs):
 
     # ---- Permissions for actions ----
     perms = {
-        "can_write": frappe.has_permission(doctype, "write", name),
+        "can_write": frappe.has_permission(doctype, "write", doc=name),
         "can_create": frappe.has_permission("Relationship", "create"),
     }
 
