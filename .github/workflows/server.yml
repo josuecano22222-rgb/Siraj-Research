@@ -107,10 +107,16 @@ jobs:
             test_quality_scoring \
             test_demo_data \
             test_map_search_api \
-            test_person_family
+            test_person_family \
+            siraj_research.doctype.shared_record.test_shared_record
           do
             echo "=== $module ===" >> /tmp/server-tests.log
-            bench --site test_site run-tests --module "siraj_research.tests.$module" >> /tmp/server-tests.log 2>&1 || status=1
+            if [[ "$module" == siraj_research.* ]]; then
+              target_module="$module"
+            else
+              target_module="siraj_research.tests.$module"
+            fi
+            bench --site test_site run-tests --module "$target_module" >> /tmp/server-tests.log 2>&1 || status=1
           done
           grep -E "^(=== |Ran [0-9]+ test|OK.*|FAILED \()" /tmp/server-tests.log | tail -40 | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > /tmp/results-encoded.txt
           if [ "$status" -ne 0 ]; then

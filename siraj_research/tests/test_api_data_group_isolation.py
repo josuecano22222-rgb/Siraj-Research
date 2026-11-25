@@ -5,16 +5,13 @@
 Run on a live bench with:
     bench --site frappe.com run-tests --module siraj_research.tests.test_api_data_group_isolation
 
-Pre-fix Phase 2 defects are decorated with ``@unittest.expectedFailure`` and citing
-their exact Phase 2 work item (`C-01`..`C-12`) so they flip to ``unexpected success``
-immediately if fixed and are promoted to strict assertions in Phase 2.
+All Phase 2 work items (`C-01`..`C-12`) are promoted to strict passing assertions.
 """
 
 from __future__ import annotations
 
 import base64
 import json
-import unittest
 from pathlib import Path
 from typing import ClassVar
 
@@ -850,7 +847,6 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		hashes = diagnostics.asset_hashes()
 		self.assertIsNotNone(hashes.get("/assets/siraj_research/js/siraj.bundle.js"))
 
-	@unittest.expectedFailure
 	def test_15_shared_record_accessible_to_standard_siraj_roles_within_group_c12(self):
 		"""C-12 (HD-3): Standard SIRAJ roles (Viewer read-only, Researcher read/write) work on Shared Record."""
 		gc = self.world["gc"]
@@ -872,6 +868,8 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 			{"doctype": "Shared Record", "title": "GD Researcher Note", "details": "Scoped"}
 		).insert()
 		self.assertEqual(created.data_group, "GD")
+		with self.assertRaises(frappe.PermissionError):
+			created.delete()
 
 	def test_16_relationship_profile_strips_permlevel_1_for_viewer_and_researcher(self):
 		"""C-02: relationship_profile strips permlevel-1 researcher_notes for Viewer/Researcher, shows Reviewer."""
