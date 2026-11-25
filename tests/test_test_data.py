@@ -375,6 +375,16 @@ class FixtureTest(unittest.TestCase):
 		)
 		self.assertEqual(target.decorator_list, [])
 
+	def test_all_seeded_scoped_records_stamp_valid_data_group(self):
+		result = self.module.seed_test_data()
+		self.assertIn("GD", self.frappe.records["Data Group"])
+		for doctype, names in result["created_names"].items():
+			has_dg = any(f.get("fieldname") == "data_group" for f in SCHEMAS[doctype]["fields"])
+			for name in names:
+				doc = self.frappe.records[doctype][name]
+				if has_dg:
+					self.assertEqual(doc.values.get("data_group"), "GD", f"{doctype}/{name}")
+
 	def test_failure_rolls_back(self):
 		self.frappe.records["Person"] = {"PER-REAL": {"name_en": "A real record"}}
 		self.frappe.initial = copy.deepcopy(self.frappe.records)

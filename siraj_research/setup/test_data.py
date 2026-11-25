@@ -11,6 +11,10 @@ from copy import deepcopy
 
 import frappe
 
+from siraj_research.hooks import SCOPED_DOCTYPES
+
+TEST_DATA_GROUP = "GD"
+
 LOOKUPS = (
 	"Authentication Level",
 	"Documentation Level",
@@ -145,6 +149,8 @@ def seed_test_data():
 	created_names = {}
 
 	def add(doctype, **values):
+		if doctype in SCOPED_DOCTYPES and not values.get("data_group"):
+			values["data_group"] = TEST_DATA_GROUP
 		if doctype in OPERATIONAL_TYPES:
 			values["researcher_notes"] = "TEST SAMPLE — fictional data, not a real record."
 		doc = frappe.get_doc({"doctype": doctype, **deepcopy(values)})
@@ -157,6 +163,8 @@ def seed_test_data():
 		return doc.name
 
 	try:
+		if not frappe.db.exists("Data Group", TEST_DATA_GROUP):
+			add("Data Group", group_name=TEST_DATA_GROUP)
 		lookup = {}
 		for doctype in LOOKUPS:
 			label = "TEST " + doctype
@@ -313,14 +321,6 @@ def seed_test_data():
 			primary_source=source,
 			latitude=33.32,
 			longitude=44.32,
-			positions=[
-				{
-					"title_ar": "اختبار منسقة التواصل المجتمعي",
-					"title_en": "TEST Community Outreach Coordinator",
-					"institution": institution,
-					"place": place,
-				}
-			],
 			specializations=[{"specialization": lookup["Specialization"]}],
 			leadership_assessments=[
 				{
@@ -330,6 +330,14 @@ def seed_test_data():
 				}
 			],
 			evidence=evidence,
+		)
+		add(
+			"Person Position",
+			title_ar="اختبار منسقة التواصل المجتمعي",
+			title_en="TEST Community Outreach Coordinator",
+			person=person,
+			institution=institution,
+			place=place,
 		)
 		other_person = add(
 			"Person",
@@ -476,25 +484,43 @@ def seed_test_data():
 		)
 		add("Research Event", title_ar="اختبار حدث ناقص البيانات", event_type=lookup["Event Type"])
 		region = add(
-			"Place", place_name="TEST Region Place", place_type=lookup["Place Type"],
-			country="Iraq", is_group=1,
-			latitude=33.34, longitude=44.34, geo_precision="approximate",
-			geocoding_method="test", geo_uncertainty_m=5000,
+			"Place",
+			name_ar="اختبار منطقة قيادة",
+			name_en="TEST Region Place",
+			place_type=lookup["Place Type"],
+			country="Iraq",
+			is_group=1,
+			latitude=33.34,
+			longitude=44.34,
+			geo_precision="approximate",
+			geocoding_method="manual",
+			geo_uncertainty_m=5000,
 		)
 		subregion = add(
 			"Place",
-			place_name="TEST Subregion Place",
+			name_ar="اختبار قطاع فرعي",
+			name_en="TEST Subregion Place",
 			place_type=lookup["Place Type"],
 			country="Iraq",
 			parent_place=region,
-			latitude=33.345, longitude=44.345, geo_precision="approximate",
-			geocoding_method="test", geo_uncertainty_m=2000,
+			latitude=33.345,
+			longitude=44.345,
+			geo_precision="approximate",
+			geocoding_method="manual",
+			geo_uncertainty_m=2000,
 		)
 		division = add(
-			"Military Unit", unit_name="TEST Division Unit", echelon="Division",
-			status="Active", is_group=1, linked_place=subregion,
-			classification=add("Unit Classification",
-				classification_name="TEST Div Class", category="Line"),
+			"Military Unit",
+			unit_name="TEST Division Unit",
+			echelon="Division",
+			status="Active",
+			is_group=1,
+			linked_place=subregion,
+			classification=add(
+				"Unit Classification",
+				classification_name="TEST Div Class",
+				category="Combat",
+			),
 		)
 		classification = add(
 			"Unit Classification",

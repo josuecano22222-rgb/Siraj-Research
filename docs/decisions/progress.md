@@ -11,8 +11,8 @@ Every item carries an honest verification tag:
 | Phase | Item | Commit | Status | Verification | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **0** | `P0-docs` | `744bbb9` | Done | `verified: mock/static` | Finalized `2026-11-siraj-fixes.md`, `baseline.md`, and `progress.md` after Gate 0 approval (items A–F). |
-| **1** | `C-13` | *(this commit)* | Done | `verified: mock/static` | Added `import frappe` in all 48 `doctype/*/test_*.py`, removed `F821` from `pyproject.toml`, and added `tests/test_doctype_test_imports.py` (`+1` passed, `+49` subtests vs baseline; `0` `F821` repo-wide). |
-| **1** | `C-17` | pending | Todo | — | Stamp valid `data_group` in `setup/test_data.py`. |
+| **1** | `C-13` | `f1ac55f` | Done | `verified: mock/static` | Added `import frappe` in all 48 `doctype/*/test_*.py`, removed `F821` from `pyproject.toml`, and added `tests/test_doctype_test_imports.py` (`+1` passed, `+49` subtests vs baseline; `0` `F821` repo-wide). |
+| **1** | `C-17` | *(this commit)* | Done | `verified: mock/static` | Stamped `data_group="GD"` on scoped DocTypes in `setup/test_data.py` (+ fixed stale `Person.positions` child table, `Place.place_name`, and `Unit Classification.category="Line"` schema drift in `test_data.py`). Full `pytest` moved from `35 failed, 440 passed` to `29 failed, 447 passed` (`tests/test_fixture_controllers.py` now green; 2 drifted schema-count assertions in `test_test_data.py` remain for `C-16`/Phase 3 L4). |
 | **1** | `C-18` | pending | Todo | — | `workflow_state` `"default": "Draft"` on 15 standalone relation DocTypes (`Siraj Event` in Phase 3 L1). |
 | **1** | `C-25` | pending | Todo | — | Real `FrappeTestCase` adversarial isolation suite `siraj_research/tests/test_api_data_group_isolation.py` (+ local smoke runner); trigger `server.yml`. **GATE 1** |
 | **2** | `C-01` | pending | Todo | — | `geo_quality.py` per-DocType `readable_rows` + deliberate `SIRAJ Settings` fallback. |
