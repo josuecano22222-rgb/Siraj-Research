@@ -1181,10 +1181,11 @@ class SirajExplorer {
 				if (typeof titleHTML === 'string') lbl.html(titleHTML); else lbl.append(titleHTML);
 				sum.append(lbl);
 				if (countNode != null) {
-					const c = $('<span class="sx-section-count"></span>');
-					if (typeof countNode === 'function') c.data('__fill', countNode);
-					else c.text(String(countNode));
-					sum.append(c);
+					const resolved = typeof countNode === 'function' ? countNode() : countNode;
+					if (resolved != null && resolved !== '') {
+						const c = $('<span class="sx-section-count"></span>').text(String(resolved));
+						sum.append(c);
+					}
 				}
 				const body = $('<div class="sx-section-body"></div>').appendTo(sec);
 				sum.on('click', (ev) => {
