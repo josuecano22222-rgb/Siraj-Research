@@ -56,10 +56,10 @@ def _fmt_value(doc, f):
 			if frappe.has_permission(f.options, "read", doc=val):
 				title_field = frappe.get_meta(f.options).get_title_field() or "name"
 				title = frappe.db.get_value(f.options, val, title_field) or val
-				return {"type": "link", "doctype": f.options, "name": val, "title": title}
+				return {"type": "link", "doctype": f.options, "name": val, "title": title, "restricted": False}
 		except Exception:
 			pass
-		return {"type": "link", "doctype": f.options, "name": val, "title": val}
+		return {"type": "link", "doctype": f.options, "name": None, "title": _("Restricted"), "restricted": True}
 	if ft == "Dynamic Link":
 		target_doctype = doc.get(f.options)
 		if not target_doctype:
@@ -68,10 +68,10 @@ def _fmt_value(doc, f):
 			if frappe.has_permission(target_doctype, "read", doc=val):
 				title_field = frappe.get_meta(target_doctype).get_title_field() or "name"
 				title = frappe.db.get_value(target_doctype, val, title_field) or val
-				return {"type": "link", "doctype": target_doctype, "name": val, "title": title}
+				return {"type": "link", "doctype": target_doctype, "name": val, "title": title, "restricted": False}
 		except Exception:
 			pass
-		return {"type": "link", "doctype": target_doctype, "name": val, "title": val}
+		return {"type": "link", "doctype": target_doctype, "name": None, "title": _("Restricted"), "restricted": True}
 	if ft == "Select":
 		# Preserve the recorded option; profile_presentation marks it as
 		# translatable so the client can show source/translation side by side.

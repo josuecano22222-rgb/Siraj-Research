@@ -330,19 +330,45 @@ class ProfilePrivacyTest(unittest.TestCase):
 			profile = ep.get_entity_profile("Person", "PER-GD")
 		dumped = json.dumps(profile)
 
-		# Foreign titles and private attachments must never appear anywhere in payload.
+		# Brand-new vocabulary types are NOT readable in this test so _fmt_value also redacts VOCAB-001 -> None;
+		# verify PLC-GC, INST-GC, and SRC-GC never leak anywhere in entity_profile.
 		self.assertNotIn("GC Secret Citadel", dumped)
 		self.assertNotIn("GC Shadow Directorate", dumped)
 		self.assertNotIn("GC Eyes-Only Dossier", dumped)
+		self.assertNotIn("PLC-GC", dumped)
+		self.assertNotIn("INST-GC", dumped)
+		self.assertNotIn("SRC-GC", dumped)
 		self.assertNotIn("gc-secret-attachment.pdf", dumped)
 		self.assertIn("gd-note.txt", dumped)
 
 		# Outbound Link block actually ran (fixing f.get(f.fieldname) -> doc.get(f.fieldname))
-		# and marked the unreadable Link as restricted.
+		# and redacted the unreadable Link with name=None, title="Restricted", restricted=True.
 		outbound = profile["connections"]["outbound_links"]
 		self.assertTrue(
-			any(o["field"] == "birthplace" and o["restricted"] is True and o["title"] == "Restricted" for o in outbound)
+			any(
+				o["field"] == "birthplace"
+				and o["restricted"] is True
+				and o["name"] is None
+				and o["title"] == "Restricted"
+				for o in outbound
+			)
 		)
+		# _fmt_value on birthplace (scalar section) and evidence.source (child row) also sets name=None:
+		all_fields = {f["fieldname"]: f for s in profile["sections"] for f in s["fields"]}
+		self.assertEqual(
+			all_fields["birthplace"]["value"],
+			{"type": "link", "doctype": "Place", "name": None, "title": "Restricted", "restricted": True},
+		)
+		ev_source = profile["children"]["evidence"]["rows"][0]["source"]["value"]
+		self.assertEqual(
+			ev_source,
+			{"type": "link", "doctype": "Source", "name": None, "title": "Restricted", "restricted": True},
+		)
+		# _authored_relationships redacts counterpart_name=None when unreadable:
+		rel_row = profile["connections"]["relationships"][0]
+		self.assertIsNone(rel_row["counterpart_name"])
+		self.assertEqual(rel_row["counterpart_title"], "Restricted")
+		self.assertTrue(rel_row["counterpart_restricted"])
 
 		# Inbound counts come from permission-scoped reads (1 GD Military Unit, not db.count across GC).
 		inbound_mu = next(i for i in profile["connections"]["inbound_links"] if i["doctype"] == "Military Unit")
@@ -357,6 +383,14 @@ class ProfilePrivacyTest(unittest.TestCase):
 
 		self.assertNotIn("GC Eyes-Only Dossier", dumped)
 		self.assertNotIn("GC Shadow Directorate", dumped)
+		self.assertNotIn("SRC-GC", dumped)
+		# _fmt_value on Relationship.primary_source and Evidence.source redacts name=None:
+		rel_fields = {f["fieldname"]: f for s in rel_profile["sections"] for f in s["fields"]}
+		self.assertEqual(
+			rel_fields["primary_source"]["value"],
+			{"type": "link", "doctype": "Source", "name": None, "title": "Restricted", "restricted": True},
+		)
+		# _resolve_endpoint remains untouched per standing C-02 constraint:
 		self.assertEqual(rel_profile["endpoints"]["object"]["readable"], False)
 		self.assertEqual(rel_profile["endpoints"]["object"]["title"], "INST-GC")
 

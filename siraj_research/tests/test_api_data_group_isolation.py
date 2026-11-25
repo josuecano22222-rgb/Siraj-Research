@@ -280,10 +280,38 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 			prof = entity_profile.get_entity_profile("Person", gd["person"])
 			dumped_prof = json.dumps(prof, default=str)
 			self.assertNotIn("GC Shadow Directorate", dumped_prof)
+			self.assertNotIn(gc["inst"], dumped_prof)
 
-			# Outbound Link block on Person (fixing f.get(f.fieldname) -> doc.get(f.fieldname)) populates birthplace.
+			# Authored Relationship to unreadable GC Institution returns counterpart_name=None (F3):
+			rel_conn = next(r for r in prof["connections"]["relationships"] if r["name"] == gd["rel"])
+			self.assertIsNone(rel_conn["counterpart_name"])
+			self.assertTrue(rel_conn["counterpart_restricted"])
+
+			# Outbound Link block on Person (fixing f.get(f.fieldname) -> doc.get(f.fieldname)) populates birthplace;
+			# also verify an unreadable outbound Link returns name=None (F3).
 			outbound_fields = {o["field"] for o in prof["connections"]["outbound_links"]}
 			self.assertIn("birthplace", outbound_fields)
+
+			frappe.set_user("Administrator")
+			frappe.db.set_value("Person", gd["person"], "marriage_place", gc["place"], update_modified=False)
+			frappe.set_user(GD_ADMIN_USER)
+			prof_unreadable_link = entity_profile.get_entity_profile("Person", gd["person"])
+			mp_outbound = next(
+				o for o in prof_unreadable_link["connections"]["outbound_links"] if o["field"] == "marriage_place"
+			)
+			self.assertIsNone(mp_outbound["name"])
+			self.assertTrue(mp_outbound["restricted"])
+			mp_scalar = next(
+				f
+				for s in prof_unreadable_link["sections"]
+				for f in s["fields"]
+				if f["fieldname"] == "marriage_place"
+			)
+			self.assertIsNone(mp_scalar["value"]["name"])
+			self.assertTrue(mp_scalar["value"]["restricted"])
+			frappe.set_user("Administrator")
+			frappe.db.set_value("Person", gd["person"], "marriage_place", None, update_modified=False)
+			frappe.set_user(VIEWER_GD_USER)
 
 			# Inbound Military Unit count on GD Person must count ONLY the readable GD unit (1), not the GC unit!
 			inbound_mu = next(
@@ -310,6 +338,14 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 			dumped_rel_admin = json.dumps(rel_prof_admin, default=str)
 			self.assertNotIn("GC Shadow Directorate", dumped_rel_admin)
 			self.assertNotIn("GC Eyes-Only Dossier", dumped_rel_admin)
+			ps_scalar = next(
+				f
+				for s in rel_prof_admin["sections"]
+				for f in s["fields"]
+				if f["fieldname"] == "primary_source"
+			)
+			self.assertIsNone(ps_scalar["value"]["name"])
+			self.assertTrue(ps_scalar["value"]["restricted"])
 		finally:
 			frappe.set_user("Administrator")
 			frappe.db.set_value(

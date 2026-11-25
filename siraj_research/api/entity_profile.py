@@ -65,14 +65,14 @@ def _fmt_value(doc, f):
     if ft in ("Attach", "Attach Image", "Image"):
         return {"type": "attach", "url": val}
     if ft == "Link":
-        # Resolve title of the linked doc if permitted.
+        # Resolve title of the linked doc if permitted; redact ID (name=None) when unreadable.
         try:
             if frappe.has_permission(f.options, "read", doc=val):
                 title = frappe.db.get_value(f.options, val, frappe.get_meta(f.options).get_title_field() or "name") or val
-                return {"type": "link", "doctype": f.options, "name": val, "title": title}
+                return {"type": "link", "doctype": f.options, "name": val, "title": title, "restricted": False}
         except Exception:
             pass
-        return {"type": "link", "doctype": f.options, "name": val, "title": val}
+        return {"type": "link", "doctype": f.options, "name": None, "title": _("Restricted"), "restricted": True}
     if ft == "Dynamic Link":
         target_doctype = doc.get(f.options)
         if not target_doctype:
@@ -80,10 +80,10 @@ def _fmt_value(doc, f):
         try:
             if frappe.has_permission(target_doctype, "read", doc=val):
                 title = frappe.db.get_value(target_doctype, val, frappe.get_meta(target_doctype).get_title_field() or "name") or val
-                return {"type": "link", "doctype": target_doctype, "name": val, "title": title}
+                return {"type": "link", "doctype": target_doctype, "name": val, "title": title, "restricted": False}
         except Exception:
             pass
-        return {"type": "link", "doctype": target_doctype, "name": val, "title": val}
+        return {"type": "link", "doctype": target_doctype, "name": None, "title": _("Restricted"), "restricted": True}
     if ft == "Select":
         # Do not translate here. The profile keeps the recorded value and the
         # client translates controlled vocabulary through __(); see
@@ -220,7 +220,8 @@ def get_entity_profile(doctype, name, **kwargs):
                     except Exception:
                         pass
                 outbound.append({
-                    "field": f.fieldname, "label": _field_label(f), "doctype": target_dt, "name": val,
+                    "field": f.fieldname, "label": _field_label(f), "doctype": target_dt,
+                    "name": val if can_read else None,
                     "title": title if can_read else _("Restricted"),
                     "restricted": not can_read,
                 })
@@ -239,7 +240,8 @@ def get_entity_profile(doctype, name, **kwargs):
                     except Exception:
                         pass
                 outbound.append({
-                    "field": f.fieldname, "label": _field_label(f), "doctype": target_dt, "name": val,
+                    "field": f.fieldname, "label": _field_label(f), "doctype": target_dt,
+                    "name": val if can_read else None,
                     "title": title if can_read else _("Restricted"),
                     "restricted": not can_read,
                 })
@@ -414,7 +416,7 @@ def _authored_relationships(doctype, name):
                 "direction": r.get("direction"),
                 "relationship_type": r.get("relationship_type"),
                 "counterpart_doctype": other_dt,
-                "counterpart_name": other_name,
+                "counterpart_name": other_name if can_read else None,
                 "counterpart_title": title if can_read else _("Restricted"),
                 "counterpart_restricted": not can_read,
                 "start_date": r.get("start_date"),

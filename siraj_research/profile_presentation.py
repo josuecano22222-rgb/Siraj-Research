@@ -493,13 +493,17 @@ def normalise_field(field: dict[str, Any], doctype: str | None = None) -> dict[s
 	out["value_kind"] = kind
 
 	if isinstance(raw, dict) and raw.get("type") == "link":
-		out["value"] = {
+		restricted = bool(raw.get("restricted"))
+		link_val = {
 			"type": "link",
 			"doctype": raw.get("doctype", ""),
-			"name": raw.get("name", ""),
-			"title": raw.get("title", raw.get("name", "")),
+			"name": None if restricted else raw.get("name", ""),
+			"title": raw.get("title", "" if restricted else raw.get("name", "")),
 		}
-		out["value_source"] = str(raw.get("title") or raw.get("name") or "")
+		if "restricted" in raw:
+			link_val["restricted"] = restricted
+		out["value"] = link_val
+		out["value_source"] = str(link_val.get("title") or link_val.get("name") or "")
 		out["translatable_value"] = False
 	elif isinstance(raw, dict) and raw.get("type") == "attach":
 		out["value"] = {"type": "attach", "url": raw.get("url", "")}
@@ -514,7 +518,7 @@ def normalise_field(field: dict[str, Any], doctype: str | None = None) -> dict[s
 
 	clean_label, label_is_demo = strip_demo_tag(label_source)
 	out["label_demo"] = label_is_demo
-	clean_value, value_is_demo = strip_demo_tag(out["value_source"])
+	_clean_value, value_is_demo = strip_demo_tag(out["value_source"])
 	out["value_demo"] = value_is_demo
 	if label_is_demo:
 		out["label"] = clean_label

@@ -81,6 +81,17 @@ Inspected directly in `frappe 15.128.0` (`version-15` @ `fd94443`):
 
 ---
 
+## Gate 2 Follow-up F3 Decision — Unreadable Link Payload Redaction (`name=None`)
+
+**DECIDED.** Unreadable `Link` and `Dynamic Link` targets in profile APIs return `name: None` (JSON `null`), `title: _("Restricted")`, and `restricted: True` (and `counterpart_name: None`, `counterpart_title: _("Restricted")`, `counterpart_restricted: True` in `_authored_relationships`).
+
+**Rationale & scope:** Several SIRAJ DocTypes use human-meaningful `autoname` (`field:label_en`, `field:title`) or predictable `naming_series` (`PER-0001`, `PLC-0001`), so returning the raw target `name` on an unreadable link leaks either the record's title or its exact series identifier across `Data Group` boundaries. Applied consistently across:
+1. `siraj_research/api/entity_profile.py`: `_fmt_value` (`Link` & `Dynamic Link` on parent and child-table fields), `outbound_links` (`Link` & `Dynamic Link`), and `_authored_relationships` (`counterpart_name`),
+2. `siraj_research/api/relationship_profile.py`: `_fmt_value` (`Link` & `Dynamic Link` on parent and child-table fields; `_resolve_endpoint` remains untouched until its scheduled item per standing constraint), and
+3. `siraj_research/profile_presentation.py`: `normalise_field` preserves `name: None` and `restricted: True` instead of coercing `None` to `""`.
+
+---
+
 ## Local Verification Limits (Without Local MariaDB / Redis)
 
 Because the local sandbox lacks `mariadbd` and `redis-server` (outbound egress is restricted to `github.com`, `pypi.org`, and `registry.npmjs.org`), the following behaviors **cannot** be marked `verified: live bench` from local mock/static runs alone and require either GitHub Actions `server.yml` or an operator bench (`frappe.com`):
