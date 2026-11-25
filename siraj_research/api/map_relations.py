@@ -122,7 +122,7 @@ def get_entity_network(doctype: str, name: str, depth: int = 1, types: str | Non
 	# Seed the center.
 	seed = _node_record(doctype, name, restricted_names, unmapped, hops=0)
 	if seed is None:
-		frappe.throw(_("Record not found or not readable: {0} {1}", doctype, name))
+		frappe.throw(_("Record not found or not readable: {0} {1}").format(doctype, name))
 	visited_nodes[start_id] = seed
 
 	for d in range(depth + 1):
@@ -200,7 +200,7 @@ def get_entity_network(doctype: str, name: str, depth: int = 1, types: str | Non
 				"display_name": edge["display_name"],
 			}
 			# Add both endpoints if permitted and within node cap.
-			for endpoint_dt, endpoint_nm, role in (
+			for endpoint_dt, endpoint_nm, _role in (
 				(edge["subject_type"], edge["subject"], "source"),
 				(edge["object_type"],  edge["object"],  "target"),
 			):
@@ -235,8 +235,10 @@ def get_entity_network(doctype: str, name: str, depth: int = 1, types: str | Non
 		if frappe.db.exists("Relationship Type", t):
 			color = frappe.db.get_value("Relationship Type", t, "color")
 			is_sym = frappe.db.get_value("Relationship Type", t, "is_symmetric")
-			if color: meta["color"] = color
-			if is_sym is not None: meta["is_symmetric"] = bool(is_sym)
+			if color:
+				meta["color"] = color
+			if is_sym is not None:
+				meta["is_symmetric"] = bool(is_sym)
 
 	return {
 		"center": list(start_id),
@@ -292,9 +294,13 @@ def _node_record(doctype: str, name: str, restricted: set, unmapped: list, hops:
 				link_fields_available = {df.fieldname for df in (link_meta.fields or [])}
 				link_doc = frappe.get_cached_value(
 					chain_doctype, chain_name,
-					["latitude", "longitude"] + sorted(
-						{f for f, _dt in INFERENCE_CHAINS.get(chain_doctype, ()) if f in link_fields_available}
-					),
+					[
+						"latitude",
+						"longitude",
+						*sorted(
+							{f for f, _dt in INFERENCE_CHAINS.get(chain_doctype, ()) if f in link_fields_available}
+						),
+					],
 					as_dict=True,
 				) if frappe.has_permission(chain_doctype, "read", chain_name) else None
 			except Exception:

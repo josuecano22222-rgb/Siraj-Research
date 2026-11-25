@@ -259,15 +259,13 @@ STRUCTURE_MAX_CHILDREN = 24
 
 def _structure_counts(rows, dimensions, title_field=None):
 	"""Count all permitted rows in one streaming pass, without a record cutoff."""
-	root = {"count": 0, "groups": {}, "skipped": 0}
+	root = {"count": 0, "groups": {}}
 	for row in rows:
 		# get_list removes fields hidden by Frappe field-level permissions.
-		# Silently skip rows whose grouping field the current user can't read
-		# instead of throwing a hard PermissionError — the chart still renders
-		# for the fields they *can* see, and the skipped count is reported.
+		# Fail closed when a requested grouping dimension is unreadable so
+		# restricted fields are never silently misreported as missing values.
 		if any(field not in row for field in dimensions):
-			root["skipped"] += 1
-			continue
+			frappe.throw(_("A structure grouping field is not readable."), frappe.PermissionError)
 		node = root
 		node["count"] += 1
 		for field in dimensions:
@@ -503,7 +501,7 @@ def structure_data(source="people"):
 		return _composite(source)
 	if source == "units":
 		return _hierarchy("Military Unit", "unit_name", "parent_unit")
-	# 'regions' / 'regions-units' removed 2026-11 (now Places / Units × Operations).
+	# 'regions' / 'regions-units' removed 2026-11 (now Places / Units x Operations).
 	if source not in STRUCTURES:
 		frappe.throw(_("Unknown structure source"), frappe.ValidationError)
 	doctype, dimensions = STRUCTURES[source]
@@ -513,6 +511,13 @@ def structure_data(source="people"):
 	# Drop any dimension that no longer exists on the DocType (schema drift).
 	meta = frappe.get_meta(doctype)
 	valid_dimensions = tuple(f for f in dimensions if meta.get_field(f))
+	get_permitted = getattr(meta, "get_permitted_fieldnames", None)
+	if callable(get_permitted) and any(
+		int(getattr(meta.get_field(f), "permlevel", 0) or 0) for f in valid_dimensions
+	):
+		permitted = set(get_permitted(permission_type="read"))
+		if any(f not in permitted for f in valid_dimensions):
+			frappe.throw(_("A structure grouping field is not readable."), frappe.PermissionError)
 	root = _structure_counts(readable_rows(doctype, (*valid_dimensions, title)), valid_dimensions, title)
 	labels = [(meta.get_field(f).label or f) for f in valid_dimensions]
 	return {
@@ -521,5 +526,5 @@ def structure_data(source="people"):
 		"count": root["count"],
 		"truncated": False,
 		"group_count": len(root["groups"]),
-		"children": _structure_children(root, dimensions),
+		"children": _structure_children(root, valid_dimensions),
 	}

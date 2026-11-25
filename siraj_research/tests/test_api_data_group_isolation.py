@@ -833,9 +833,8 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		self.assertNotIn("GC Secret Citadel", json.dumps(info))
 		self.assertIsInstance(hashes, dict)
 
-	@unittest.expectedFailure
 	def test_14_visualization_structure_data_raises_on_unreadable_permlevel_c08(self):
-		"""C-08 (HD-5): structure_data must raise PermissionError when a grouping dimension is unreadable."""
+		"""C-08 (HD-5): structure_data raises on unreadable permlevel; map_relations formats _(); diagnostics uses get_app_path."""
 		orig = visualization.STRUCTURES["people"]
 		visualization.STRUCTURES["people"] = ("Person", ("researcher_notes",))
 		try:
@@ -844,6 +843,12 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 				visualization.structure_data("people")
 		finally:
 			visualization.STRUCTURES["people"] = orig
+
+		# C-08: diagnostics.asset_hashes() resolves public/ via frappe.get_app_path("siraj_research", "public")
+		# so JS/CSS hashes are non-null on an installed bench.
+		frappe.set_user(VIEWER_GD_USER)
+		hashes = diagnostics.asset_hashes()
+		self.assertIsNotNone(hashes.get("/assets/siraj_research/js/siraj.bundle.js"))
 
 	@unittest.expectedFailure
 	def test_15_shared_record_accessible_to_standard_siraj_roles_within_group_c12(self):
