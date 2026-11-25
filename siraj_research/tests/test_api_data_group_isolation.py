@@ -650,3 +650,21 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		finally:
 			frappe.set_user("Administrator")
 			frappe.delete_doc("Relationship", gc_to_gd_rel.name, force=True, ignore_permissions=True)
+
+	def test_20_person_entity_profile_outbound_links_excludes_system_and_workflow_fields(self):
+		"""C-02: Person outbound_links excludes system/tenant/workflow/vocabulary Link fields."""
+		gd = self.world["gd"]
+		frappe.set_user(VIEWER_GD_USER)
+		prof = entity_profile.get_entity_profile("Person", gd["person"])
+		outbound = prof["connections"]["outbound_links"]
+		outbound_fields = {item["field"] for item in outbound}
+		self.assertIn("birthplace", outbound_fields)
+		for excluded in (
+			"data_group",
+			"workflow_state",
+			"documentation_level",
+			"authentication_level",
+			"name_original_lang",
+			"amended_from",
+		):
+			self.assertNotIn(excluded, outbound_fields)

@@ -28,6 +28,44 @@ VALUE_FIELDTYPES = {
 }
 PASSWORD_PLACEHOLDER = "••••••"
 INBOUND_LINKS_CAP = 200
+# System, tenant-scoping, workflow, and vocabulary/taxonomy Link targets that
+# represent record metadata rather than navigable entity-to-entity connections.
+EXCLUDED_OUTBOUND_FIELDS = frozenset({
+    "data_group",
+    "workflow_state",
+    "amended_from",
+    "owner",
+    "modified_by",
+    "documentation_level",
+    "authentication_level",
+    "name_original_lang",
+    "linked_hierarchy_doctype",
+    "applies_to_subject",
+    "applies_to_object",
+})
+EXCLUDED_OUTBOUND_DOCTYPES = frozenset({
+    "Data Group",
+    "Workflow State",
+    "DocType",
+    "Language",
+    "Country",
+    "Documentation Level",
+    "Authentication Level",
+    "Person Classification",
+    "Person Status",
+    "Person Category",
+    "Military Branch",
+    "Military Service Status",
+    "Institution Type",
+    "Institution Subcategory",
+    "Governance System",
+    "Place Type",
+    "Event Type",
+    "Source Type",
+    "Source Reliability",
+    "Relationship Type",
+    "Unit Classification",
+})
 
 
 def _inbound_numeric_count(item):
@@ -190,9 +228,11 @@ def get_entity_profile(doctype, name, **kwargs):
     # ---- Connections: structural outbound (Link / Dynamic Link fields on this doc) ----
     outbound = []
     for f in meta.fields:
+        if f.fieldname in EXCLUDED_OUTBOUND_FIELDS:
+            continue
         if (f.permlevel or 0) > 0 and not doc.has_permlevel_access_to(f.fieldname, f, "read"):
             continue
-        if f.fieldtype == "Link" and f.options and doc.get(f.fieldname):
+        if f.fieldtype == "Link" and f.options and f.options not in EXCLUDED_OUTBOUND_DOCTYPES and doc.get(f.fieldname):
             val = doc.get(f.fieldname)
             if val:
                 target_dt = f.options

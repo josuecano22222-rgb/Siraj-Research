@@ -76,6 +76,21 @@ class ProfilePrivacyTest(unittest.TestCase):
 		person_meta_fields = [
 			_field_ns(fieldname="display_name", fieldtype="Data", label="Display name"),
 			_field_ns(fieldname="birthplace", fieldtype="Link", label="Place of birth", options="Place"),
+			_field_ns(fieldname="data_group", fieldtype="Link", label="Data Group", options="Data Group"),
+			_field_ns(fieldname="workflow_state", fieldtype="Link", label="Record status", options="Workflow State"),
+			_field_ns(
+				fieldname="documentation_level",
+				fieldtype="Link",
+				label="Documentation level",
+				options="Documentation Level",
+			),
+			_field_ns(
+				fieldname="authentication_level",
+				fieldtype="Link",
+				label="Authentication level",
+				options="Authentication Level",
+			),
+			_field_ns(fieldname="name_original_lang", fieldtype="Link", label="Language", options="Language"),
 			_field_ns(
 				fieldname="researcher_notes",
 				fieldtype="Small Text",
@@ -150,6 +165,11 @@ class ProfilePrivacyTest(unittest.TestCase):
 			allowed_permlevels=allowed_permlevels,
 			display_name="GD Field Commander",
 			birthplace="PLC-GC",
+			data_group="GD",
+			workflow_state="Draft",
+			documentation_level="Fully documented",
+			authentication_level="Corroborated",
+			name_original_lang="ar",
 			researcher_notes="GD-INTERNAL-SENSITIVE-NOTE",
 			siblings=[
 				{
@@ -432,6 +452,23 @@ class ProfilePrivacyTest(unittest.TestCase):
 		self.assertEqual(seen_filters[0][0].get("docstatus"), ("<", 2))
 		self.assertIn("name", seen_filters[0][1])
 		self.assertTrue(len(env_err["frappe"]._logged_errors) >= 1)
+
+	def test_outbound_links_excludes_system_workflow_tenant_and_taxonomy_links(self):
+		env = self._build_env()
+		ep = self._load("siraj_research/api/entity_profile.py", "ep_outbound_sys", env)
+		with patch.dict(sys.modules, env):
+			profile = ep.get_entity_profile("Person", "PER-GD")
+		outbound = profile["connections"]["outbound_links"]
+		outbound_fields = {item["field"] for item in outbound}
+		self.assertIn("birthplace", outbound_fields)
+		for excluded in (
+			"data_group",
+			"workflow_state",
+			"documentation_level",
+			"authentication_level",
+			"name_original_lang",
+		):
+			self.assertNotIn(excluded, outbound_fields)
 
 
 if __name__ == "__main__":
