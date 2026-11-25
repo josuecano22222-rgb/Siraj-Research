@@ -28,6 +28,33 @@ except Exception:  # pragma: no cover
 
 DEFAULT_BBOX = (29.4, 34.2, 33.4, 35.9)  # Israel + Palestine (lat_min, lon_min, lat_max, lon_max)
 OFFLINE_LAYERS = ("standard", "aerial", "hybrid", "hybrid_labels")
+BOOTSTRAP_ADMIN_ROLES = ("System Manager", "SIRAJ Administrator")
+BOOTSTRAP_JOB_ID = "siraj_offline_bootstrap"
+MIN_BOOTSTRAP_ZOOM = 0
+MAX_BOOTSTRAP_ZOOM = 14
+
+
+def _clamp_max_zoom(max_zoom: int | str | None) -> int:
+    try:
+        z = int(11 if max_zoom is None else max_zoom)
+    except (TypeError, ValueError):
+        z = 11
+    return max(MIN_BOOTSTRAP_ZOOM, min(MAX_BOOTSTRAP_ZOOM, z))
+
+
+def _require_admin() -> None:
+    if frappe is None:
+        return
+    user = getattr(getattr(frappe, "session", None), "user", None) or "Guest"
+    if user == "Administrator":
+        return
+    roles = set(frappe.get_roles(user))
+    if user == "Guest" or roles.isdisjoint(BOOTSTRAP_ADMIN_ROLES):
+        frappe.throw(
+            frappe._("Administrator role required for offline bootstrap."),
+            frappe.PermissionError,
+        )
+
 
 def progress_path() -> Path | None:
     if frappe is None:
@@ -93,6 +120,7 @@ if frappe is not None:  # pragma: no cover - bench only
     @frappe.whitelist()
     def request_stop():
         """Set the cooperative stop flag from the Geo Settings button."""
+        _require_admin()
         _set_status(bootstrap_stop_requested=1,
                     bootstrap_last_status="stop requested")
         emit("stop", "Stop requested from Geo Settings")
@@ -101,6 +129,7 @@ if frappe is not None:  # pragma: no cover - bench only
     @frappe.whitelist()
     def clear_stop():
         """Clear the stop flag before a new bootstrap run."""
+        _require_admin()
         _set_status(bootstrap_stop_requested=0)
         return {"stop_requested": False}
 
@@ -334,9 +363,11 @@ def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
     """
     if frappe is None:
         return {"error": "bench required"}
+    max_zoom = _clamp_max_zoom(max_zoom)
     cfg = frappe.get_single("Geo Settings")
     dataset = dataset or getattr(cfg, "active_boundary_dataset", None)
     if not dataset:
+        _set_status(bootstrap_running=0)
         return {"error": "No active boundary dataset"}
     allow_online = online_setup_allowed()
     _set_status(bootstrap_stop_requested=0, bootstrap_running=1,
@@ -391,11 +422,53 @@ if frappe is not None:  # pragma: no cover - bench only
     def run_online_setup(dataset: str | None = None, max_zoom: int = 11) -> dict:
         """Geo Settings → Run Online Setup (honours the online-setup toggle).
 
-        When **Allow online setup downloads** is unchecked, network stages
-        (wheels/tiles) are skipped and only local hierarchy + package work
-        runs — the process is disabled for external hosts, not for the site.
+        Enqueues ``prepare_offline_site`` onto Frappe's ``long`` queue with a
+        fixed ``job_id`` and clamped ``max_zoom`` (``0..14``), refusing a
+        second concurrent run while one is already queued or running.
         """
-        if not online_setup_allowed():
+        _require_admin()
+        from frappe.utils import cint
+        from frappe.utils.background_jobs import create_job_id, is_job_enqueued
+
+        clamped_zoom = _clamp_max_zoom(max_zoom)
+        cfg = frappe.get_single("Geo Settings")
+        resolved_dataset = dataset or getattr(cfg, "active_boundary_dataset", None)
+        if not resolved_dataset:
+            return {"error": "No active boundary dataset"}
+
+        namespaced_job_id = create_job_id(BOOTSTRAP_JOB_ID)
+        try:
+            job_active = bool(is_job_enqueued(namespaced_job_id))
+        except Exception:
+            job_active = False
+        if bool(cint(_settings_value("bootstrap_running"))) or job_active:
+            frappe.throw(
+                frappe._("Offline bootstrap is already running."),
+                frappe.ValidationError,
+            )
+
+        allow_online = online_setup_allowed()
+        if not allow_online:
             emit("start", "Online setup disabled in Geo Settings — "
                           "running local-only preparation (no downloads).")
-        return prepare_offline_site(dataset=dataset, max_zoom=max_zoom)
+        _set_status(
+            bootstrap_stop_requested=0,
+            bootstrap_running=1,
+            bootstrap_last_status="queued",
+        )
+        frappe.enqueue(
+            "siraj_research.offline_bootstrap.prepare_offline_site",
+            queue="long",
+            timeout=7200,
+            job_id=BOOTSTRAP_JOB_ID,
+            deduplicate=True,
+            dataset=resolved_dataset,
+            max_zoom=clamped_zoom,
+        )
+        return {
+            "queued": True,
+            "job_id": BOOTSTRAP_JOB_ID,
+            "dataset": resolved_dataset,
+            "max_zoom": clamped_zoom,
+            "online_setup_enabled": allow_online,
+        }

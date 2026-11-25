@@ -639,16 +639,77 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 			if frappe.db.exists("Military Unit", alt_unit.name):
 				frappe.delete_doc("Military Unit", alt_unit.name, force=True, ignore_permissions=True)
 
-	@unittest.expectedFailure
 	def test_09_non_admin_blocked_from_offline_bootstrap_mutations_c04(self):
-		"""C-04 (HD-2): Non-admin viewer/researcher must be denied run_online_setup, request_stop, clear_stop."""
-		frappe.set_user(VIEWER_GD_USER)
-		with self.assertRaises(frappe.PermissionError):
-			offline_bootstrap.request_stop()
-		with self.assertRaises(frappe.PermissionError):
-			offline_bootstrap.clear_stop()
-		with self.assertRaises(frappe.PermissionError):
-			offline_bootstrap.run_online_setup(dataset="ISO-TEST-BND", max_zoom=5)
+		"""C-04 (HD-2): Non-admins denied; max_zoom clamped 0..14; long-queue enqueue with job_id; concurrent run refused."""
+		from unittest.mock import patch
+
+		for non_admin in (VIEWER_GD_USER, RESEARCHER_GD_USER, REVIEWER_GD_USER, NO_SIRAJ_USER):
+			frappe.set_user(non_admin)
+			with self.assertRaises(frappe.PermissionError):
+				offline_bootstrap.request_stop()
+			with self.assertRaises(frappe.PermissionError):
+				offline_bootstrap.clear_stop()
+			with self.assertRaises(frappe.PermissionError):
+				offline_bootstrap.run_online_setup(dataset="ISO-TEST-BND", max_zoom=5)
+
+		# Admin path: max_zoom=20 is clamped to 14, max_zoom=-5 is clamped to 0,
+		# enqueued on queue='long' with job_id='siraj_offline_bootstrap',
+		# and a second concurrent run while active is refused.
+		frappe.set_user(GD_ADMIN_USER)
+		enqueued_calls = []
+
+		def fake_enqueue(method, **kwargs):
+			enqueued_calls.append((method, kwargs))
+
+		try:
+			frappe.db.set_value(
+				"Geo Settings",
+				"Geo Settings",
+				{"bootstrap_running": 0, "bootstrap_stop_requested": 0, "bootstrap_last_status": ""},
+				update_modified=False,
+			)
+			with (
+				patch.object(frappe, "enqueue", side_effect=fake_enqueue),
+				patch("frappe.utils.background_jobs.is_job_enqueued", return_value=False),
+			):
+				res = offline_bootstrap.run_online_setup(dataset="ISO-TEST-BND", max_zoom=20)
+				self.assertTrue(res["queued"])
+				self.assertEqual(res["max_zoom"], 14)
+				self.assertEqual(res["job_id"], offline_bootstrap.BOOTSTRAP_JOB_ID)
+				self.assertEqual(len(enqueued_calls), 1)
+				_, eq_kwargs = enqueued_calls[0]
+				self.assertEqual(eq_kwargs["queue"], "long")
+				self.assertEqual(eq_kwargs["job_id"], offline_bootstrap.BOOTSTRAP_JOB_ID)
+				self.assertEqual(eq_kwargs["max_zoom"], 14)
+
+				# Second concurrent run while bootstrap_running=1 (set when queued) is refused!
+				with self.assertRaises(frappe.ValidationError):
+					offline_bootstrap.run_online_setup(dataset="ISO-TEST-BND", max_zoom=8)
+
+			# Also refused when bootstrap_running=0 in DB if RQ reports the job_id is still queued/started.
+			frappe.db.set_value("Geo Settings", "Geo Settings", "bootstrap_running", 0, update_modified=False)
+			with (
+				patch.object(frappe, "enqueue", side_effect=fake_enqueue),
+				patch("frappe.utils.background_jobs.is_job_enqueued", return_value=True),
+			):
+				with self.assertRaises(frappe.ValidationError):
+					offline_bootstrap.run_online_setup(dataset="ISO-TEST-BND", max_zoom=8)
+
+			# Negative zoom clamped to 0.
+			with (
+				patch.object(frappe, "enqueue", side_effect=fake_enqueue),
+				patch("frappe.utils.background_jobs.is_job_enqueued", return_value=False),
+			):
+				res_neg = offline_bootstrap.run_online_setup(dataset="ISO-TEST-BND", max_zoom=-3)
+				self.assertEqual(res_neg["max_zoom"], 0)
+		finally:
+			frappe.set_user("Administrator")
+			frappe.db.set_value(
+				"Geo Settings",
+				"Geo Settings",
+				{"bootstrap_running": 0, "bootstrap_stop_requested": 0, "bootstrap_last_status": ""},
+				update_modified=False,
+			)
 
 	@unittest.expectedFailure
 	def test_10_boundary_import_dependencies_and_path_confinement_c05(self):

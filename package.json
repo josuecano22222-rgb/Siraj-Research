@@ -4,7 +4,7 @@
   "version": "2.1.0",
   "description": "Siraj Research \u2014 Frappe-based research registry and explorer",
   "scripts": {
-    "test:js": "node tests/test_boundary_review.js && node tests/test_geography_action_i18n.js && node tests/test_ui_lifecycle_guards.js && node tests/test_coordinate_map_parser.js && node tests/test_explorer_assets.js && node tests/test_offline_records.js && node tests/test_offline_viewer.js && node tests/test_signed_snapshot_adversarial.js && node tests/test_signed_snapshot_crypto.js && node tests/test_profile_fields.js && node tests/test_explorer_graph.js && node tests/test_explorer_sections.js && node tests/test_load_probe.js && node tests/test_map_search_ui.js && node tests/test_siraj_cascade_core.js && node tests/test_siraj_geopoint_core.js"
+    "test:js": "node tests/test_boundary_review.js && node tests/test_geography_action_i18n.js && node tests/test_ui_lifecycle_guards.js && node tests/test_coordinate_map_parser.js && node tests/test_explorer_assets.js && node tests/test_offline_records.js && node tests/test_offline_viewer.js && node tests/test_signed_snapshot_adversarial.js && node tests/test_signed_snapshot_crypto.js && node tests/test_profile_fields.js && node tests/test_explorer_graph.js && node tests/test_explorer_sections.js && node tests/test_load_probe.js && node tests/test_map_search_ui.js && node tests/test_siraj_cascade_core.js && node tests/test_siraj_geopoint_core.js && node tests/test_geo_settings_polling.js"
   },
   "devDependencies": {
     "jsdom": "^24.0.0",

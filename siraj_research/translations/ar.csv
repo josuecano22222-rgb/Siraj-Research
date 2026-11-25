@@ -1902,6 +1902,10 @@ Online setup disabled — Run Online Setup will only use local data.,الإعد�
 Online setup disabled: preparation will use local data only.,الإعداد عبر الإنترنت معطل: سيستخدم الإعداد البيانات المحلية فقط.
 Online setup failed,فشل الإعداد عبر الإنترنت
 Online setup finished — see bootstrap_last_status.,اكتمل الإعداد عبر الإنترنت — راجع bootstrap_last_status.
+Online setup queued — polling bootstrap_last_status.,أُدرج الإعداد عبر الإنترنت في قائمة الانتظار — تجري متابعة bootstrap_last_status.
+Local-only preparation queued (online setup disabled).,أُدرج الإعداد المحلي فقط في قائمة الانتظار (الإعداد عبر الإنترنت معطل).
+Administrator role required for offline bootstrap.,يتطلب الإعداد غير المتصل صلاحية المسؤول.
+Offline bootstrap is already running.,الإعداد غير المتصل قيد التشغيل بالفعل.
 Online setup is disabled. Run a local-only preparation (no downloads)?,الإعداد عبر الإنترنت معطل. هل تريد تشغيل إعداد محلي فقط (من دون تنزيلات)؟
 "Online setup may download wheels, tiles and packages.",قد ينزّل الإعداد عبر الإنترنت حزم بايثون والبلاطات والحزم الأخرى.
 Out,تصغير
