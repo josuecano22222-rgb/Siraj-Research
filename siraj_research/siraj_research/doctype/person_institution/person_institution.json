@@ -144,7 +144,8 @@
    "fieldtype": "Link",
    "label": "Workflow state",
    "options": "Workflow State",
-   "no_copy": 1
+   "no_copy": 1,
+   "default": "Draft"
   },
   {
    "fieldname": "evidence",
