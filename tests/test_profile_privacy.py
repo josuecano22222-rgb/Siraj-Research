@@ -333,6 +333,21 @@ class ProfilePrivacyTest(unittest.TestCase):
 			rel_pl1 = json.dumps(rp_rev.get_relationship_profile("REL-GD"))
 		self.assertIn("GD-REL-REVIEWER-ONLY-NOTE", rel_pl1)
 
+	def test_entity_profile_permlevel_1_parent_and_child_stripped_for_permlevel_0_and_present_for_reviewer(self):
+		viewer_env = self._build_env(allowed_permlevels=(0,))
+		ep = self._load("siraj_research/api/entity_profile.py", "ep_pl0", viewer_env)
+		with patch.dict(sys.modules, viewer_env):
+			ent_pl0 = json.dumps(ep.get_entity_profile("Person", "PER-GD"))
+		self.assertNotIn("GD-INTERNAL-SENSITIVE-NOTE", ent_pl0)
+		self.assertNotIn("GD-SIBLING-PERMLEVEL1-ID", ent_pl0)
+
+		rev_env = self._build_env(allowed_permlevels=(0, 1))
+		ep_rev = self._load("siraj_research/api/entity_profile.py", "ep_pl1", rev_env)
+		with patch.dict(sys.modules, rev_env):
+			ent_pl1 = json.dumps(ep_rev.get_entity_profile("Person", "PER-GD"))
+		self.assertIn("GD-INTERNAL-SENSITIVE-NOTE", ent_pl1)
+		self.assertIn("GD-SIBLING-PERMLEVEL1-ID", ent_pl1)
+
 
 if __name__ == "__main__":
 	unittest.main()

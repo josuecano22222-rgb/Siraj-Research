@@ -50,7 +50,7 @@ def _fmt_value(doc, f):
     if ft == "Link":
         # Resolve title of the linked doc if permitted.
         try:
-            if frappe.has_permission(f.options, "read", val):
+            if frappe.has_permission(f.options, "read", doc=val):
                 title = frappe.db.get_value(f.options, val, frappe.get_meta(f.options).get_title_field() or "name") or val
                 return {"type": "link", "doctype": f.options, "name": val, "title": title}
         except Exception:
@@ -61,7 +61,7 @@ def _fmt_value(doc, f):
         if not target_doctype:
             return val
         try:
-            if frappe.has_permission(target_doctype, "read", val):
+            if frappe.has_permission(target_doctype, "read", doc=val):
                 title = frappe.db.get_value(target_doctype, val, frappe.get_meta(target_doctype).get_title_field() or "name") or val
                 return {"type": "link", "doctype": target_doctype, "name": val, "title": title}
         except Exception:
@@ -124,17 +124,8 @@ def get_entity_profile(doctype, name, **kwargs):
             continue
         if f.hidden:
             continue
-        # permlevel: skip fields at higher permlevels the user cannot read.
-        # frappe.has_permission(doctype, 'read', doc=name, permlevel=N) is the
-        # supported v15 check; fall back to allowing permlevel 0 (the common
-        # case) when anything goes wrong.
-        try:
-            if f.permlevel and f.permlevel > 0:
-                if not frappe.has_permission(doctype, "read", doc=name, permlevel=f.permlevel):
-                    continue
-        except TypeError:
-            # Older signatures don't accept permlevel= kwarg; be permissive.
-            pass
+        if (f.permlevel or 0) > 0 and not doc.has_permlevel_access_to(f.fieldname, f, "read"):
+            continue
         val = _fmt_value(doc, f)
         entry = {
             "fieldname": f.fieldname,
@@ -151,20 +142,24 @@ def get_entity_profile(doctype, name, **kwargs):
     sections = [s for s in sections if s["fields"]]
 
     # ---- Child tables ----
+    allowed_permlevels = set(doc.get_permlevel_access("read"))
     children = {}
     for f in meta.fields:
         if f.fieldtype == "Table" and f.options:
+            if (f.permlevel or 0) > 0 and not doc.has_permlevel_access_to(f.fieldname, f, "read"):
+                continue
             rows = []
             rmeta = get_meta(f.options)
-            column_order = [
-                rf.fieldname for rf in rmeta.fields
-                if rf.fieldtype not in SKIP_FIELDTYPES and not rf.hidden
+            readable_child_fields = [
+                rf for rf in rmeta.fields
+                if rf.fieldtype not in SKIP_FIELDTYPES
+                and not rf.hidden
+                and ((rf.permlevel or 0) == 0 or (rf.permlevel or 0) in allowed_permlevels)
             ]
+            column_order = [rf.fieldname for rf in readable_child_fields]
             for r in (doc.get(f.fieldname) or [])[:50]:
                 row = {}
-                for rf in rmeta.fields:
-                    if rf.fieldtype in SKIP_FIELDTYPES or rf.hidden:
-                        continue
+                for rf in readable_child_fields:
                     v = _fmt_value(r, rf)
                     if v is not None:
                         row[rf.fieldname] = {
@@ -185,12 +180,14 @@ def get_entity_profile(doctype, name, **kwargs):
     # ---- Connections: structural outbound (Link / Dynamic Link fields on this doc) ----
     outbound = []
     for f in meta.fields:
+        if (f.permlevel or 0) > 0 and not doc.has_permlevel_access_to(f.fieldname, f, "read"):
+            continue
         if f.fieldtype == "Link" and f.options and doc.get(f.fieldname):
             val = doc.get(f.fieldname)
             if val:
                 target_dt = f.options
                 try:
-                    can_read = bool(frappe.has_permission(target_dt, "read", val))
+                    can_read = bool(frappe.has_permission(target_dt, "read", doc=val))
                 except Exception:
                     can_read = False
                 title = val
@@ -209,7 +206,7 @@ def get_entity_profile(doctype, name, **kwargs):
             val = doc.get(f.fieldname)
             if val and target_dt:
                 try:
-                    can_read = bool(frappe.has_permission(target_dt, "read", val))
+                    can_read = bool(frappe.has_permission(target_dt, "read", doc=val))
                 except Exception:
                     can_read = False
                 title = val
@@ -278,7 +275,7 @@ def get_entity_profile(doctype, name, **kwargs):
                 limit=10,
             )
             activity["attachments"] = [
-                row for row in raw_files if frappe.has_permission("File", "read", row["name"])
+                row for row in raw_files if frappe.has_permission("File", "read", doc=row["name"])
             ]
     except Exception:
         pass
@@ -367,12 +364,12 @@ def _authored_relationships(doctype, name):
         except Exception:
             continue
         for r in rows:
-            if not frappe.has_permission("Relationship", "read", r["name"]):
+            if not frappe.has_permission("Relationship", "read", doc=r["name"]):
                 continue
             other_dt = r.get(other_type_field)
             other_name = r.get(other_field)
             try:
-                can_read = bool(other_dt and other_name and frappe.has_permission(other_dt, "read", other_name))
+                can_read = bool(other_dt and other_name and frappe.has_permission(other_dt, "read", doc=other_name))
             except Exception:
                 can_read = False
             title = other_name

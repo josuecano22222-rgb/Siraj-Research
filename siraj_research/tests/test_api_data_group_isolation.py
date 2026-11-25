@@ -566,3 +566,17 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		frappe.set_user(REVIEWER_GD_USER)
 		reviewer_payload = json.dumps(relationship_profile.get_relationship_profile(gd_rel), default=str)
 		self.assertIn("GD-REL-REVIEWER-ONLY-NOTE", reviewer_payload)
+
+	def test_17_entity_profile_strips_permlevel_1_parent_and_child_fields_for_viewer_and_researcher(self):
+		"""C-02: entity_profile strips permlevel-1 parent & child fields for Viewer/Researcher, shows Reviewer."""
+		gd_person = self.world["gd"]["person"]
+		for caller in (VIEWER_GD_USER, RESEARCHER_GD_USER):
+			frappe.set_user(caller)
+			payload = json.dumps(entity_profile.get_entity_profile("Person", gd_person), default=str)
+			self.assertNotIn("GD-INTERNAL-SENSITIVE-NOTE", payload, f"{caller} leaked Person researcher_notes")
+			self.assertNotIn("GD-SIBLING-PERMLEVEL1-ID", payload, f"{caller} leaked Person Sibling personal_id_number")
+
+		frappe.set_user(REVIEWER_GD_USER)
+		reviewer_payload = json.dumps(entity_profile.get_entity_profile("Person", gd_person), default=str)
+		self.assertIn("GD-INTERNAL-SENSITIVE-NOTE", reviewer_payload)
+		self.assertIn("GD-SIBLING-PERMLEVEL1-ID", reviewer_payload)
