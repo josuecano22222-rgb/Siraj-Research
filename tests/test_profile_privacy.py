@@ -28,11 +28,12 @@ def _field_ns(**kwargs):
 
 
 class _DocStub(dict):
-	def __init__(self, doctype, name, meta, **values):
+	def __init__(self, doctype, name, meta, allowed_permlevels=(0,), **values):
 		super().__init__(values)
 		self.doctype = doctype
 		self.name = name
 		self.meta = meta
+		self._allowed_permlevels = set(allowed_permlevels)
 		self.owner = "gd1@example.com"
 		self.modified = "2026-11-24 00:00:00"
 		self.docstatus = 0
@@ -44,9 +45,17 @@ class _DocStub(dict):
 	def check_permission(self, ptype="read"):
 		return True
 
+	def get_permlevel_access(self, permission_type="read"):
+		return sorted(self._allowed_permlevels)
+
+	def has_permlevel_access_to(self, fieldname, df=None, permission_type="read"):
+		if not df:
+			df = self.meta.get_field(fieldname)
+		return (df.permlevel or 0) in self.get_permlevel_access(permission_type)
+
 
 class ProfilePrivacyTest(unittest.TestCase):
-	def _build_env(self):
+	def _build_env(self, allowed_permlevels=(0,)):
 		denied_docs = {
 			("Place", "PLC-GC"),
 			("Institution", "INST-GC"),
@@ -67,6 +76,13 @@ class ProfilePrivacyTest(unittest.TestCase):
 		person_meta_fields = [
 			_field_ns(fieldname="display_name", fieldtype="Data", label="Display name"),
 			_field_ns(fieldname="birthplace", fieldtype="Link", label="Place of birth", options="Place"),
+			_field_ns(
+				fieldname="researcher_notes",
+				fieldtype="Small Text",
+				label="Researcher notes",
+				permlevel=1,
+			),
+			_field_ns(fieldname="siblings", fieldtype="Table", label="Siblings", options="Person Sibling"),
 			_field_ns(fieldname="evidence", fieldtype="Table", label="Evidence", options="Evidence"),
 		]
 		rel_meta_fields = [
@@ -77,10 +93,25 @@ class ProfilePrivacyTest(unittest.TestCase):
 			_field_ns(fieldname="object_type", fieldtype="Link", label="Object type", options="DocType"),
 			_field_ns(fieldname="object", fieldtype="Dynamic Link", label="Object", options="object_type"),
 			_field_ns(fieldname="primary_source", fieldtype="Link", label="Primary source", options="Source"),
+			_field_ns(
+				fieldname="researcher_notes",
+				fieldtype="Small Text",
+				label="Researcher notes",
+				permlevel=1,
+			),
 			_field_ns(fieldname="evidence", fieldtype="Table", label="Evidence", options="Evidence"),
 		]
 		evidence_meta_fields = [
 			_field_ns(fieldname="source", fieldtype="Link", label="Source", options="Source"),
+		]
+		sibling_meta_fields = [
+			_field_ns(fieldname="sibling_name", fieldtype="Data", label="Sibling name"),
+			_field_ns(
+				fieldname="personal_id_number",
+				fieldtype="Data",
+				label="Personal ID",
+				permlevel=1,
+			),
 		]
 
 		def make_meta(dt):
@@ -92,6 +123,9 @@ class ProfilePrivacyTest(unittest.TestCase):
 				tf = "display_name"
 			elif dt == "Evidence":
 				fields = evidence_meta_fields
+				tf = "name"
+			elif dt == "Person Sibling":
+				fields = sibling_meta_fields
 				tf = "name"
 			elif dt == "Military Unit":
 				fields = []
@@ -113,14 +147,23 @@ class ProfilePrivacyTest(unittest.TestCase):
 			"Person",
 			"PER-GD",
 			make_meta("Person"),
+			allowed_permlevels=allowed_permlevels,
 			display_name="GD Field Commander",
 			birthplace="PLC-GC",
+			researcher_notes="GD-INTERNAL-SENSITIVE-NOTE",
+			siblings=[
+				{
+					"sibling_name": "GD Sibling Alpha",
+					"personal_id_number": "GD-SIBLING-PERMLEVEL1-ID",
+				}
+			],
 			evidence=[{"source": "SRC-GC"}],
 		)
 		gd_rel = _DocStub(
 			"Relationship",
 			"REL-GD",
 			make_meta("Relationship"),
+			allowed_permlevels=allowed_permlevels,
 			display_name="REL-GD",
 			relationship_type="ISO_AFFILIATED",
 			subject_type="Person",
@@ -128,6 +171,7 @@ class ProfilePrivacyTest(unittest.TestCase):
 			object_type="Institution",
 			object="INST-GC",
 			primary_source="SRC-GC",
+			researcher_notes="GD-REL-REVIEWER-ONLY-NOTE",
 			evidence=[{"source": "SRC-GC"}],
 		)
 		docs = {
@@ -135,7 +179,18 @@ class ProfilePrivacyTest(unittest.TestCase):
 			("Relationship", "REL-GD"): gd_rel,
 		}
 
-		def has_permission(doctype, ptype="read", doc=None, **kwargs):
+		# Exact Frappe 15.128.0 signature: NO `permlevel` keyword argument!
+		def has_permission(
+			doctype=None,
+			ptype="read",
+			doc=None,
+			user=None,
+			throw=False,
+			*,
+			parent_doctype=None,
+			debug=False,
+			ignore_share_permissions=False,
+		):
 			doc_name = getattr(doc, "name", doc)
 			if doc_name is not None and (doctype, doc_name) in denied_docs:
 				return False
@@ -264,6 +319,19 @@ class ProfilePrivacyTest(unittest.TestCase):
 		self.assertNotIn("GC Shadow Directorate", dumped)
 		self.assertEqual(rel_profile["endpoints"]["object"]["readable"], False)
 		self.assertEqual(rel_profile["endpoints"]["object"]["title"], "INST-GC")
+
+	def test_relationship_profile_permlevel_1_stripped_for_permlevel_0_and_present_for_reviewer(self):
+		viewer_env = self._build_env(allowed_permlevels=(0,))
+		rp = self._load("siraj_research/api/relationship_profile.py", "rp_pl0", viewer_env)
+		with patch.dict(sys.modules, viewer_env):
+			rel_pl0 = json.dumps(rp.get_relationship_profile("REL-GD"))
+		self.assertNotIn("GD-REL-REVIEWER-ONLY-NOTE", rel_pl0)
+
+		rev_env = self._build_env(allowed_permlevels=(0, 1))
+		rp_rev = self._load("siraj_research/api/relationship_profile.py", "rp_pl1", rev_env)
+		with patch.dict(sys.modules, rev_env):
+			rel_pl1 = json.dumps(rp_rev.get_relationship_profile("REL-GD"))
+		self.assertIn("GD-REL-REVIEWER-ONLY-NOTE", rel_pl1)
 
 
 if __name__ == "__main__":

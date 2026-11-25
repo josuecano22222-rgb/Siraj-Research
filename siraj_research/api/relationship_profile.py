@@ -53,7 +53,7 @@ def _fmt_value(doc, f):
 		return {"type": "attach", "url": val}
 	if ft == "Link":
 		try:
-			if frappe.has_permission(f.options, "read", val):
+			if frappe.has_permission(f.options, "read", doc=val):
 				title_field = frappe.get_meta(f.options).get_title_field() or "name"
 				title = frappe.db.get_value(f.options, val, title_field) or val
 				return {"type": "link", "doctype": f.options, "name": val, "title": title}
@@ -65,7 +65,7 @@ def _fmt_value(doc, f):
 		if not target_doctype:
 			return val
 		try:
-			if frappe.has_permission(target_doctype, "read", val):
+			if frappe.has_permission(target_doctype, "read", doc=val):
 				title_field = frappe.get_meta(target_doctype).get_title_field() or "name"
 				title = frappe.db.get_value(target_doctype, val, title_field) or val
 				return {"type": "link", "doctype": target_doctype, "name": val, "title": title}
@@ -155,12 +155,8 @@ def get_relationship_profile(name, **kwargs):
 		):
 			# Endpoints are rendered separately in the endpoints tab.
 			continue
-		try:
-			if f.permlevel and f.permlevel > 0:
-				if not frappe.has_permission("Relationship", "read", doc=name, permlevel=f.permlevel):
-					continue
-		except TypeError:
-			pass
+		if (f.permlevel or 0) > 0 and not doc.has_permlevel_access_to(f.fieldname, f, "read"):
+			continue
 		val = _fmt_value(doc, f)
 		if val is None:
 			continue
@@ -174,6 +170,7 @@ def get_relationship_profile(name, **kwargs):
 		sections.append(cur)
 
 	# ---- Child tables (evidence + external identifiers) ----
+	allowed_permlevels = set(doc.get_permlevel_access("read"))
 	children = {}
 	for table_meta in meta.get_table_fields():
 		fn = table_meta.fieldname
@@ -186,6 +183,7 @@ def get_relationship_profile(name, **kwargs):
 			if cf.fieldtype not in SKIP_FIELDTYPES
 			and cf.fieldtype != "Table"
 			and not cf.hidden
+			and ((cf.permlevel or 0) == 0 or (cf.permlevel or 0) in allowed_permlevels)
 		]
 		out_rows = []
 		for row in rows:

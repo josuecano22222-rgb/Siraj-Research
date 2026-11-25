@@ -21,6 +21,7 @@ from siraj_research.setup.install import ROLES, setup
 UNASSIGNED_USER = "unassigned-siraj@example.com"
 VIEWER_GD_USER = "viewer-gd@example.com"
 RESEARCHER_GD_USER = "researcher-gd@example.com"
+REVIEWER_GD_USER = "reviewer-gd@example.com"
 ROLE_ONLY_VIEWER_GD_USER = "role-only-viewer-gd@example.com"
 ROLE_ONLY_RESEARCHER_GD_USER = "role-only-researcher-gd@example.com"
 OFFICIAL_USER = "official-siraj@example.com"
@@ -181,6 +182,7 @@ def build_isolation_world() -> dict:
 	_ensure_user(UNASSIGNED_USER, "Unassigned Researcher", ("Group Member", "SIRAJ Researcher"), data_group=None)
 	_ensure_user(VIEWER_GD_USER, "Viewer GD", ("Group Member", "SIRAJ Viewer"), data_group="GD")
 	_ensure_user(RESEARCHER_GD_USER, "Researcher GD", ("Group Member", "SIRAJ Researcher"), data_group="GD")
+	_ensure_user(REVIEWER_GD_USER, "Reviewer GD", ("Group Member", "SIRAJ Reviewer"), data_group="GD")
 	_ensure_user(ROLE_ONLY_VIEWER_GD_USER, "Role Only Viewer GD", ("SIRAJ Viewer",), data_group="GD")
 	_ensure_user(ROLE_ONLY_RESEARCHER_GD_USER, "Role Only Researcher GD", ("SIRAJ Researcher",), data_group="GD")
 	_ensure_user(
@@ -271,6 +273,12 @@ def build_isolation_world() -> dict:
 			"category": "Military",
 			"birthplace": gd_place.name,
 			"researcher_notes": "GD-INTERNAL-SENSITIVE-NOTE",
+			"siblings": [
+				{
+					"sibling_name": "GD Sibling Alpha",
+					"personal_id_number": "GD-SIBLING-PERMLEVEL1-ID",
+				}
+			],
 			"latitude": 31.5230,
 			"longitude": 34.4670,
 			"geocoding_method": "manual",

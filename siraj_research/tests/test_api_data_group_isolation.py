@@ -48,6 +48,8 @@ from siraj_research.tests._isolation_fixtures import (
 	GD_ADMIN_USER,
 	NO_SIRAJ_USER,
 	OFFICIAL_USER,
+	RESEARCHER_GD_USER,
+	REVIEWER_GD_USER,
 	ROLE_ONLY_RESEARCHER_GD_USER,
 	ROLE_ONLY_VIEWER_GD_USER,
 	SAMPLE_POLYGON_GEOJSON,
@@ -552,3 +554,15 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 			{"doctype": "Shared Record", "title": "GD Researcher Note", "details": "Scoped"}
 		).insert()
 		self.assertEqual(created.data_group, "GD")
+
+	def test_16_relationship_profile_strips_permlevel_1_for_viewer_and_researcher(self):
+		"""C-02: relationship_profile strips permlevel-1 researcher_notes for Viewer/Researcher, shows Reviewer."""
+		gd_rel = self.world["gd"]["rel"]
+		for caller in (VIEWER_GD_USER, RESEARCHER_GD_USER):
+			frappe.set_user(caller)
+			payload = json.dumps(relationship_profile.get_relationship_profile(gd_rel), default=str)
+			self.assertNotIn("GD-REL-REVIEWER-ONLY-NOTE", payload, f"{caller} leaked Relationship researcher_notes")
+
+		frappe.set_user(REVIEWER_GD_USER)
+		reviewer_payload = json.dumps(relationship_profile.get_relationship_profile(gd_rel), default=str)
+		self.assertIn("GD-REL-REVIEWER-ONLY-NOTE", reviewer_payload)
