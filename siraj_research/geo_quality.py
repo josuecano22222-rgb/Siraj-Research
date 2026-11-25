@@ -6,9 +6,11 @@ that have no location but should, etc.). Read-only; never modifies data.
 """
 from __future__ import annotations
 
-import frappe
-from frappe import _
+import itertools
 
+import frappe
+
+from siraj_research.report_access import readable_rows
 
 # DocTypes that are expected to carry coordinates once Workstream B lands.
 # Today only these six have latitude/longitude Float fields.
@@ -20,6 +22,18 @@ LOCATED_DOCTYPES: tuple[str, ...] = (
 	"Military Unit",
 	"Operational Deployment",
 )
+
+MAX_QUALITY_ROWS = 5000
+
+
+def _query_fields_for(doctype: str) -> tuple[list[str], str]:
+	meta = frappe.get_meta(doctype)
+	title_field = meta.get_title_field() or "name"
+	fields: list[str] = []
+	for candidate in (title_field, "display_name", "label", "title", "latitude", "longitude", "geo_precision"):
+		if candidate != "name" and meta.has_field(candidate) and candidate not in fields:
+			fields.append(candidate)
+	return fields, title_field
 
 
 @frappe.whitelist()
@@ -36,14 +50,20 @@ def quality_report(doctype: str | None = None) -> dict:
 	* no_precision     -- located but no geo_precision set
 
 	Returned dicts are plain lists of {name, label, latitude, longitude, reasons};
-	respects DocType read permissions.
+	respects DocType and per-document Data Group read permissions via ``readable_rows``.
 	"""
-	if not frappe.has_permission("SIRAJ Settings", "read"):
-		# Only readers/upward may see org-wide quality reports. Fall back to
-		# returning counts only for DocTypes the user can already read.
-		pass
+	try:
+		include_samples = bool(frappe.has_permission("SIRAJ Settings", "read"))
+	except Exception:
+		include_samples = False
 
-	doctypes = (doctype,) if doctype else LOCATED_DOCTYPES
+	if doctype:
+		if doctype not in LOCATED_DOCTYPES:
+			return {"totals": {}, "samples": {}}
+		doctypes: tuple[str, ...] = (doctype,)
+	else:
+		doctypes = LOCATED_DOCTYPES
+
 	totals: dict[str, dict] = {}
 	samples: dict[str, list[dict]] = {}
 
@@ -54,19 +74,22 @@ def quality_report(doctype: str | None = None) -> dict:
 		except Exception:
 			continue
 
-		all_records = frappe.get_all(
-			dt,
-			fields=["name", "display_name", "label", "title", "latitude", "longitude", "geo_precision"],
-			limit=5000,
-		)
-		total = len(all_records)
+		fields, title_field = _query_fields_for(dt)
+		visible_records = list(itertools.islice(readable_rows(dt, fields), MAX_QUALITY_ROWS))
+		total = len(visible_records)
 		cats = {k: 0 for k in ("missing", "null_island", "out_of_range", "swapped", "no_precision")}
 		bad: list[dict] = []
 
-		for r in all_records:
+		for r in visible_records:
 			lat = r.get("latitude")
 			lon = r.get("longitude")
-			label = r.get("display_name") or r.get("label") or r.get("title") or r.get("name")
+			label = (
+				r.get(title_field)
+				or r.get("display_name")
+				or r.get("label")
+				or r.get("title")
+				or r.get("name")
+			)
 			reasons = []
 			try:
 				lat_f = float(lat) if lat not in (None, "") else None
@@ -94,7 +117,7 @@ def quality_report(doctype: str | None = None) -> dict:
 			if reasons:
 				for x in set(reasons):
 					cats[x] += 1
-				if len(bad) < 50:
+				if include_samples and len(bad) < 50:
 					bad.append({
 						"name": r["name"], "label": label,
 						"latitude": lat, "longitude": lon,

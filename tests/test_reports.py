@@ -22,15 +22,26 @@ def load(path, name, injected):
 class FrappeStub(types.SimpleNamespace):
 	def __init__(self):
 		self._ = lambda s: s
+		self.whitelist = lambda *a, **kw: (lambda fn: fn)
 		self.rows = {}
 		self.denied = set()
 		self.db = types.SimpleNamespace(
 			exists=lambda dt, name: any(r["name"] == name for r in self.rows.get(dt, []))
 		)
 		self.meta = {}
+		self.title_fields = {}
 		for p in (ROOT / "siraj_research/siraj_research/doctype").glob("*/*.json"):
 			d = json.loads(p.read_text(encoding="utf-8"))
 			self.meta[d["name"]] = {f["fieldname"] for f in d.get("fields", [])} | {"name"}
+			self.title_fields[d["name"]] = d.get("title_field") or "name"
+
+	def get_meta(self, doctype):
+		fields = self.meta[doctype]
+		title_field = self.title_fields.get(doctype, "name")
+		return types.SimpleNamespace(
+			get_title_field=lambda: title_field,
+			has_field=lambda fn: fn in fields,
+		)
 
 	def has_permission(
 		self,
@@ -133,6 +144,34 @@ class ReportTest(unittest.TestCase):
 		self.frappe.rows["Person"] = [{"name": "p" + str(i)} for i in range(5)]
 		self.frappe.denied = {("Person", "p1")}
 		self.assertEqual(len(list(self.access.readable_rows("Person", [], page_size=2))), 4)
+
+	def test_geo_quality_report_isolates_rows_and_falls_back_to_counts_without_settings_read(self):
+		geo_quality = load("siraj_research/geo_quality.py", "test_geo_quality", self.injected)
+		self.frappe.rows["Person"] = [
+			{"name": "p-gd", "display_name": "GD Analyst", "latitude": None, "longitude": None},
+			{"name": "p-gc", "display_name": "GC Secret", "latitude": None, "longitude": None},
+		]
+		self.frappe.rows["Military Unit"] = [
+			{"name": "u-gd", "unit_name": "GD Brigade", "latitude": 0.0, "longitude": 0.0},
+		]
+		self.frappe.denied = {("Person", "p-gc")}
+
+		# Caller with SIRAJ Settings read receives readable totals + readable samples only.
+		report = geo_quality.quality_report()
+		self.assertEqual(report["totals"]["Person"]["total"], 1)
+		self.assertEqual([r["name"] for r in report["samples"]["Person"]], ["p-gd"])
+		self.assertEqual(report["samples"]["Military Unit"][0]["label"], "GD Brigade")
+
+		# Unknown doctype is rejected rather than queried arbitrarily.
+		self.assertEqual(geo_quality.quality_report("User"), {"totals": {}, "samples": {}})
+
+		# Caller without SIRAJ Settings read falls back to counts-only (no row samples leaked)
+		# for DocTypes they can read.
+		self.frappe.denied.add("SIRAJ Settings")
+		restricted = geo_quality.quality_report("Person")
+		self.assertEqual(restricted["totals"]["Person"]["total"], 1)
+		self.assertEqual(restricted["totals"]["Person"]["missing"], 1)
+		self.assertEqual(restricted["samples"]["Person"], [])
 
 
 if __name__ == "__main__":

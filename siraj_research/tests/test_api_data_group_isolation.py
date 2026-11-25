@@ -225,21 +225,38 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		frappe.set_user(GC_ADMIN_USER)
 		self.assertIn(gc["child_unit"], frappe.get_doc("Military Unit", gc["unit"]).get_descendants())
 
-	@unittest.expectedFailure
 	def test_05_geo_quality_report_isolates_gc_rows_c01(self):
 		"""C-01: geo_quality.quality_report must not leak GC names/coordinates via frappe.get_all."""
 		gc_person = self.world["gc"]["person"]
-		# Make GC person have a missing coordinate so it appears in quality_report samples.
+		gd_person = self.world["gd"]["person"]
+		# Set both GD and GC persons to Null Island (0.0, 0.0) so readable rows appear in samples
+		# (Frappe MariaDB Float columns are NOT NULL DEFAULT 0).
 		frappe.set_user("Administrator")
-		frappe.db.set_value("Person", gc_person, "latitude", None, update_modified=False)
+		frappe.db.set_value("Person", gc_person, {"latitude": 0.0, "longitude": 0.0}, update_modified=False)
+		frappe.db.set_value("Person", gd_person, {"latitude": 0.0, "longitude": 0.0}, update_modified=False)
 		try:
 			frappe.set_user(GD_ADMIN_USER)
 			report = geo_quality.quality_report("Person")
-			leaked = [row["name"] for row in report["samples"].get("Person", [])]
-			self.assertNotIn(gc_person, leaked)
+			sample_names = [row["name"] for row in report["samples"].get("Person", [])]
+			self.assertIn(gd_person, sample_names)
+			self.assertNotIn(gc_person, sample_names)
+
+			# Unassigned user sees 0 rows; user with no SIRAJ roles sees empty report.
+			frappe.set_user(UNASSIGNED_USER)
+			unassigned_report = geo_quality.quality_report("Person")
+			self.assertEqual(unassigned_report["totals"]["Person"]["total"], 0)
+			self.assertEqual(unassigned_report["samples"]["Person"], [])
+
+			frappe.set_user(NO_SIRAJ_USER)
+			self.assertEqual(geo_quality.quality_report(), {"totals": {}, "samples": {}})
 		finally:
 			frappe.set_user("Administrator")
-			frappe.db.set_value("Person", gc_person, "latitude", 31.5130, update_modified=False)
+			frappe.db.set_value(
+				"Person", gc_person, {"latitude": 31.5130, "longitude": 34.4570}, update_modified=False
+			)
+			frappe.db.set_value(
+				"Person", gd_person, {"latitude": 31.5230, "longitude": 34.4670}, update_modified=False
+			)
 
 	@unittest.expectedFailure
 	def test_06_profile_endpoints_redact_unreadable_foreign_link_titles_c02(self):
