@@ -675,3 +675,32 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		frappe.set_user(VIEWER_GD_USER)
 		self.assertEqual(geo_quality.quality_report("Source"), {"totals": {}, "samples": {}})
 		self.assertEqual(geo_quality.quality_report("Shared Record"), {"totals": {}, "samples": {}})
+
+	def test_22_inbound_links_skips_unpermitted_target_doctype_with_zero_error_logs(self):
+		"""F1: Viewer without read on a target DocType skips it silently and creates zero Error Log rows."""
+		gd = self.world["gd"]
+		frappe.set_user("Administrator")
+		before_errors = frappe.db.count("Error Log")
+		# Temporarily revoke SIRAJ Viewer read on Military Unit via Custom DocPerm / DocPerm or mock:
+		viewer_perms = frappe.get_all(
+			"DocPerm",
+			filters={"parent": "Military Unit", "role": "SIRAJ Viewer", "permlevel": 0},
+			fields=["name", "read"],
+		)
+		try:
+			for p in viewer_perms:
+				frappe.db.set_value("DocPerm", p["name"], "read", 0, update_modified=False)
+			frappe.clear_cache(doctype="Military Unit")
+			frappe.set_user(ROLE_ONLY_VIEWER_GD_USER)
+			self.assertFalse(frappe.has_permission("Military Unit", "read"))
+			prof = entity_profile.get_entity_profile("Person", gd["person"])
+			inbound_dts = [item["doctype"] for item in prof["connections"]["inbound_links"]]
+			self.assertNotIn("Military Unit", inbound_dts)
+			frappe.set_user("Administrator")
+			after_errors = frappe.db.count("Error Log")
+			self.assertEqual(after_errors, before_errors)
+		finally:
+			frappe.set_user("Administrator")
+			for p in viewer_perms:
+				frappe.db.set_value("DocPerm", p["name"], "read", p["read"], update_modified=False)
+			frappe.clear_cache(doctype="Military Unit")

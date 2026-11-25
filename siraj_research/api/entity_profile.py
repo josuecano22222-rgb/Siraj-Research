@@ -484,7 +484,6 @@ def _inbound_links(doctype, name):
             continue
         seen.add(target_dt)
         if not frappe.has_permission(target_dt, "read"):
-            out.append({"doctype": target_dt, "count": None, "sample": [], "restricted": True})
             continue
         or_filters = []
         for f in linking_fields:
@@ -510,6 +509,8 @@ def _inbound_links(doctype, name):
             else:
                 count = len(rows)
                 sample = rows[:5]
+        except frappe.PermissionError:
+            continue
         except Exception:
             frappe.log_error(
                 title=f"SIRAJ entity_profile inbound_links failed for {target_dt}",

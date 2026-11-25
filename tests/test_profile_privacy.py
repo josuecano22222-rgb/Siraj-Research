@@ -470,6 +470,35 @@ class ProfilePrivacyTest(unittest.TestCase):
 		):
 			self.assertNotIn(excluded, outbound_fields)
 
+	def test_inbound_links_skips_unpermitted_target_doctype_silently_with_zero_error_logs(self):
+		env = self._build_env()
+		frappe_stub = env["frappe"]
+		orig_hp = frappe_stub.has_permission
+		orig_gl = frappe_stub.get_list
+
+		def deny_military_unit_type(doctype=None, ptype="read", doc=None, **kw):
+			if doctype == "Military Unit" and doc is None:
+				return False
+			return orig_hp(doctype=doctype, ptype=ptype, doc=doc, **kw)
+
+		def guard_gl(doctype, *a, **kw):
+			if doctype == "Military Unit":
+				raise AssertionError("get_list must not be called when target_dt read is denied")
+			if doctype == "Command Appointment":
+				raise frappe_stub.PermissionError("not permitted")
+			return orig_gl(doctype, *a, **kw)
+
+		frappe_stub.has_permission = deny_military_unit_type
+		frappe_stub.get_list = guard_gl
+		ep = self._load("siraj_research/api/entity_profile.py", "ep_f1", env)
+		with patch.dict(sys.modules, env):
+			profile = ep.get_entity_profile("Person", "PER-GD")
+
+		inbound_dts = [item["doctype"] for item in profile["connections"]["inbound_links"]]
+		self.assertNotIn("Military Unit", inbound_dts)
+		self.assertNotIn("Command Appointment", inbound_dts)
+		self.assertEqual(frappe_stub._logged_errors, [])
+
 
 if __name__ == "__main__":
 	unittest.main()
