@@ -768,9 +768,8 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			boundary_import.start_import("ISO-TEST-BND", str(missing_inside))
 
-	@unittest.expectedFailure
 	def test_12_geo_resolve_sweep_points_enforces_place_read_and_string_json_c07(self):
-		"""C-07: sweep_points must enforce Place read permission and parse JSON string inputs."""
+		"""C-07: sweep_points must enforce Place read permission, parse JSON string inputs, and cap at 500."""
 		frappe.set_user(NO_SIRAJ_USER)
 		with self.assertRaises(frappe.PermissionError):
 			geo_resolve.sweep_points([["Probe", 31.5, 34.45]])
@@ -778,6 +777,10 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		frappe.set_user(VIEWER_GD_USER)
 		rows = geo_resolve.sweep_points(json.dumps([["Probe", 31.5, 34.45]]))
 		self.assertEqual(len(rows), 1)
+		self.assertEqual(rows[0]["point"], "Probe")
+
+		capped = geo_resolve.sweep_points([[f"P{i}", 31.5, 34.45] for i in range(510)])
+		self.assertEqual(len(capped), 500)
 
 	def test_13_remaining_geo_tiles_cascade_and_diagnostics_gates(self):
 		"""Exercise remaining geo_resolve, geo_package, cascade, hierarchy, local_maps, tile_cache, diagnostics."""

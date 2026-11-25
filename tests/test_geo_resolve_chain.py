@@ -19,11 +19,28 @@ def geo_resolve(monkeypatch):
     # geo_resolve imports frappe (and geo_import, which imports frappe)
     # unconditionally at module level and decorates endpoints with
     # @frappe.whitelist() at import time.
+    class _PermissionError(Exception):
+        pass
+
+    class _ValidationError(Exception):
+        pass
+
     stub = types.ModuleType("frappe")
+    stub.PermissionError = _PermissionError
+    stub.ValidationError = _ValidationError
     stub.whitelist = lambda *a, **k: (lambda fn: fn)
+    stub.has_permission = lambda doctype, ptype="read": True
+
+    def _throw(msg, exc=_ValidationError):
+        raise exc(msg)
+
+    stub.throw = _throw
     monkeypatch.setitem(sys.modules, "frappe", stub)
+    import importlib
+
     from siraj_research.api import geo_resolve as mod
 
+    importlib.reload(mod)
     return mod
 
 
@@ -189,3 +206,40 @@ def test_nearest_record_community_wins_over_settlement_fallback(geo_resolve, mon
                                  {"reverse_max_m": 5000})
     assert chain["community"]["name_en"] == "Al Nasser"
     assert chain["community"]["source"] == "nearest_record"
+
+
+def test_sweep_points_enforces_place_read_permission(geo_resolve, monkeypatch):
+    monkeypatch.setattr(geo_resolve.frappe, "has_permission", lambda dt, ptype="read": False)
+    with pytest.raises(geo_resolve.frappe.PermissionError):
+        geo_resolve.sweep_points([["Jabalia", 31.55, 34.47]])
+
+
+def test_sweep_points_parses_json_string_and_caps_at_500(geo_resolve, monkeypatch):
+    import json
+
+    monkeypatch.setattr(geo_resolve, "_resolve_one", lambda lat, lon: {
+        "on_land": True,
+        "admin_chain": {"country": {"name_en": "Palestine"}},
+        "provenance": ["polygon_containment"],
+        "nearest_place": None,
+    })
+
+    # JSON string payload (as delivered by HTTP /api/method form/JSON calls)
+    parsed_rows = geo_resolve.sweep_points(json.dumps([["Jabalia", 31.55, 34.47]]))
+    assert len(parsed_rows) == 1
+    assert parsed_rows[0]["point"] == "Jabalia"
+
+    # Invalid JSON string rejected cleanly
+    with pytest.raises(geo_resolve.frappe.ValidationError):
+        geo_resolve.sweep_points("{not-json")
+
+    # Non-list JSON payload rejected cleanly
+    with pytest.raises(geo_resolve.frappe.ValidationError):
+        geo_resolve.sweep_points(json.dumps({"points": []}))
+
+    # Hard cap of 500 points enforced
+    oversized = [[f"P-{idx}", 31.5, 34.45] for idx in range(525)]
+    capped_rows = geo_resolve.sweep_points(oversized)
+    assert len(capped_rows) == 500
+    assert capped_rows[0]["point"] == "P-0"
+    assert capped_rows[-1]["point"] == "P-499"

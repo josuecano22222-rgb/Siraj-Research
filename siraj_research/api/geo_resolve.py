@@ -567,8 +567,20 @@ def sweep_points(points):
     provenance tags and the nearest place — so coverage holes are visible
     at a glance instead of one verbose payload at a time.
     """
+    if not frappe.has_permission("Place", "read"):
+        frappe.throw("Not permitted to resolve coordinates.", frappe.PermissionError)
+    import json as _json
+    if isinstance(points, str):
+        try:
+            pts = _json.loads(points)
+        except Exception as e:
+            frappe.throw("Invalid points JSON: " + str(e), frappe.ValidationError)
+    else:
+        pts = points or []
+    if not isinstance(pts, list | tuple):
+        frappe.throw("points must be a list of [name, lat, lon] triples.", frappe.ValidationError)
     rows = []
-    for item in points or []:
+    for item in pts[:500]:
         name, lat, lon = str(item[0]), float(item[1]), float(item[2])
         result = _resolve_one(lat, lon)
         chain = result.get("admin_chain") or {}
