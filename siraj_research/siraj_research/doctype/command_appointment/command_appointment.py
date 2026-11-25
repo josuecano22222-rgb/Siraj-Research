@@ -37,10 +37,11 @@ class CommandAppointment(Document):
 			"name": ("!=", self.name),
 			"docstatus": ("<", 2),
 		}
-		for other in frappe.get_all(
+		for other in frappe.get_list(
 			self.doctype,
 			filters=filters,
-			fields=["name", "commander", "assigned_date", "relieved_date"],
+			fields=["name", "commander", "role", "assigned_date", "relieved_date"],
+			limit_page_length=0,
 		):
 			if self.assigned_date and other.relieved_date and other.relieved_date < self.assigned_date:
 				continue

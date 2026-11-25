@@ -161,10 +161,13 @@ class Person(Document):
 					title=_("Family data"),
 				)
 			if not row.sibling_name and row.person:
-				# Convenience only: fill the visible name from the linked Person.
-				row.sibling_name = frappe.db.get_value(
-					"Person", row.person, "display_name"
-				) or frappe.db.get_value("Person", row.person, "name_en") or row.person
+				# Convenience only: fill the visible name from the linked Person when readable.
+				if frappe.has_permission("Person", "read", doc=row.person):
+					row.sibling_name = (
+						frappe.db.get_value("Person", row.person, "display_name")
+						or frappe.db.get_value("Person", row.person, "name_en")
+						or row.person
+					)
 
 		# Derived, recomputed on every save so every surface agrees.
 		self.is_grandparent = derive_is_grandparent(

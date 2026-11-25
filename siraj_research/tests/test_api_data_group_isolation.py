@@ -530,13 +530,14 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 			frappe.set_user("Administrator")
 			frappe.delete_doc("Person", allowed_person.name, force=True, ignore_permissions=True)
 
-	@unittest.expectedFailure
 	def test_08_military_controllers_do_not_leak_or_crash_across_groups_c03b(self):
-		"""C-03b: CommandAppointment.validate_overlap must select role cleanly; Person.siblings must not leak GC."""
+		"""C-03b: OperationalDeployment lifecycle, CommandAppointment overlap role/scoping, and Person.siblings guard."""
 		gc = self.world["gc"]
+		gd = self.world["gd"]
+		vocab = self.world["vocab"]
+
+		# 1) CommandAppointment.validate_overlap selects 'role' via permission-scoped get_list and formats it cleanly.
 		frappe.set_user(GC_ADMIN_USER)
-		# Currently CommandAppointment.validate_overlap omits 'role' from get_all fields, so
-		# other.role evaluates to None ('... is already None of ...') instead of 'Commanding Officer'.
 		with self.assertRaisesRegex(frappe.ValidationError, "Commanding Officer"):
 			frappe.get_doc(
 				{
@@ -548,8 +549,7 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 				}
 			).insert()
 
-		# Also: Person.validate_family currently auto-fills sibling_name via frappe.db.get_value
-		# without checking read permission / group match on row.person.
+		# 2) Person.validate_family permission-checks row.person before auto-filling sibling_name.
 		frappe.set_user(VIEWER_GD_USER)
 		probe = frappe.get_doc(
 			{
@@ -562,6 +562,49 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		)
 		probe.validate_family()
 		self.assertNotEqual(probe.siblings[0].sibling_name, "GC Classified Commander")
+		self.assertFalse(probe.siblings[0].sibling_name)
+
+		# 3) OperationalDeployment: validate() does NOT mutate Military Unit.current_deployment prematurely;
+		#    on_update sets current_deployment (and clears when is_current=0); on_trash clears current_deployment.
+		frappe.set_user(GD_ADMIN_USER)
+		unsaved_dep = frappe.get_doc(
+			{
+				"doctype": "Operational Deployment",
+				"deployment_name": "GD Unsaved Validation Probe",
+				"unit": gd["unit"],
+				"deployment_type": vocab["dep_type"],
+				"status": "Active",
+				"is_current": 1,
+				"start_date": "2026-03-01",
+				"data_group": "GD",
+			}
+		)
+		unsaved_dep.validate()
+		self.assertIsNone(frappe.db.get_value("Military Unit", gd["unit"], "current_deployment"))
+
+		saved_dep = unsaved_dep.insert()
+		try:
+			self.assertEqual(
+				frappe.db.get_value("Military Unit", gd["unit"], "current_deployment"),
+				saved_dep.name,
+			)
+			# Unsetting is_current on save clears current_deployment on the unit.
+			saved_dep.is_current = 0
+			saved_dep.save()
+			self.assertIsNone(frappe.db.get_value("Military Unit", gd["unit"], "current_deployment"))
+
+			# Re-marking is_current=1 sets it again, and deleting the deployment clears it via on_trash.
+			saved_dep.is_current = 1
+			saved_dep.save()
+			self.assertEqual(
+				frappe.db.get_value("Military Unit", gd["unit"], "current_deployment"),
+				saved_dep.name,
+			)
+		finally:
+			frappe.set_user("Administrator")
+			if frappe.db.exists("Operational Deployment", saved_dep.name):
+				frappe.delete_doc("Operational Deployment", saved_dep.name, force=True, ignore_permissions=True)
+		self.assertIsNone(frappe.db.get_value("Military Unit", gd["unit"], "current_deployment"))
 
 	@unittest.expectedFailure
 	def test_09_non_admin_blocked_from_offline_bootstrap_mutations_c04(self):

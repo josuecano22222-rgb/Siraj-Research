@@ -47,4 +47,27 @@ class OperationalDeployment(Document):
 				_("{0} already has a current deployment ({1}). Clear it first.").format(self.unit, other),
 				title=_("Duplicate current deployment"),
 			)
-		frappe.db.set_value("Military Unit", self.unit, "current_deployment", self.name)
+
+	def _clear_unit_current_deployment(self, unit_name: str | None) -> None:
+		if not unit_name:
+			return
+		if frappe.db.get_value("Military Unit", unit_name, "current_deployment") == self.name:
+			frappe.db.set_value(
+				"Military Unit", unit_name, "current_deployment", None, update_modified=False
+			)
+
+	def on_update(self):
+		before = self.get_doc_before_save()
+		old_unit = before.get("unit") if before else None
+		if old_unit and old_unit != self.unit:
+			self._clear_unit_current_deployment(old_unit)
+		if self.unit:
+			if self.is_current:
+				frappe.db.set_value(
+					"Military Unit", self.unit, "current_deployment", self.name, update_modified=False
+				)
+			else:
+				self._clear_unit_current_deployment(self.unit)
+
+	def on_trash(self):
+		self._clear_unit_current_deployment(self.unit)
