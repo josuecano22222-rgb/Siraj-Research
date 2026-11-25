@@ -445,6 +445,7 @@ def build_isolation_world() -> dict:
 			"object_type": "Institution",
 			"object": gd_inst.name,
 			"description": "GD public liaison link",
+			"researcher_notes": "GD-REL-REVIEWER-ONLY-NOTE",
 			"data_group": "GD",
 		}
 	).insert(ignore_permissions=True)

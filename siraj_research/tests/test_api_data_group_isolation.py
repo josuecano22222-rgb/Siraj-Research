@@ -624,6 +624,7 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		"""C-02: _authored_relationships uses permission-scoped get_list and excludes foreign-group Relationship rows."""
 		gc = self.world["gc"]
 		gd = self.world["gd"]
+		rel_type = self.world["vocab"]["rel_type"]
 		frappe.set_user("Administrator")
 		# Create a GC-scoped Relationship (data_group = GC) whose object is GD Person.
 		gc_to_gd_rel = frappe.get_doc(
@@ -631,7 +632,7 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 				"doctype": "Relationship",
 				"subject_type": "Person",
 				"subject": gc["person"],
-				"relationship_type": "ISO_AFFILIATED",
+				"relationship_type": rel_type,
 				"object_type": "Person",
 				"object": gd["person"],
 				"primary_source": gc["source"],
