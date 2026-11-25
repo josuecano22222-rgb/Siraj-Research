@@ -436,6 +436,9 @@ def _inbound_links(doctype, name):
     # options field holds the doctype at row time), so skip them here.
     # Walk all DocTypes registered in the app — cheap because we only inspect meta.
     import os
+
+    from frappe.model.meta import get_meta as _m
+    from frappe.modules import scrub
     doctype_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "siraj_research", "doctype")
     if not os.path.isdir(doctype_dir):
         return out
@@ -445,8 +448,7 @@ def _inbound_links(doctype, name):
         if not os.path.isfile(jf):
             continue
         try:
-            with open(jf, encoding="utf-8") as fh:
-                data = json.load(fh)
+            data = json.load(open(jf))
         except Exception:
             continue
         if data.get("istable") or data.get("issingle"):
