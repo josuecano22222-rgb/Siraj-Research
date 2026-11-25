@@ -388,6 +388,51 @@ class ProfilePrivacyTest(unittest.TestCase):
 		# Simulated Command Appointment failure was logged via frappe.log_error, not swallowed silently.
 		self.assertTrue(len(frappe_stub._logged_errors) >= 1)
 
+	def test_authored_relationships_checks_type_level_perm_excludes_cancelled_and_logs_errors(self):
+		# 1) Type-level Relationship read denied -> skips query without calling get_list("Relationship").
+		env_no_rel = self._build_env()
+		orig_hp = env_no_rel["frappe"].has_permission
+		rel_list_calls = []
+		orig_gl = env_no_rel["frappe"].get_list
+
+		def deny_rel_type(doctype=None, ptype="read", doc=None, **kw):
+			if doctype == "Relationship" and doc is None:
+				return False
+			return orig_hp(doctype=doctype, ptype=ptype, doc=doc, **kw)
+
+		def track_gl(doctype, *a, **kw):
+			if doctype == "Relationship":
+				rel_list_calls.append(kw)
+			return orig_gl(doctype, *a, **kw)
+
+		env_no_rel["frappe"].has_permission = deny_rel_type
+		env_no_rel["frappe"].get_list = track_gl
+		ep_no_rel = self._load("siraj_research/api/entity_profile.py", "ep_no_rel", env_no_rel)
+		with patch.dict(sys.modules, env_no_rel):
+			prof_no_rel = ep_no_rel.get_entity_profile("Person", "PER-GD")
+		self.assertEqual(prof_no_rel["connections"]["relationships"], [])
+		self.assertEqual(rel_list_calls, [])
+
+		# 2) Query filters include docstatus < 2 and fields include 'name'; query errors are logged.
+		env_err = self._build_env()
+		seen_filters = []
+
+		def fail_rel_gl(doctype, filters=None, fields=None, **kw):
+			if doctype == "Relationship":
+				seen_filters.append((filters, fields))
+				raise RuntimeError("simulated Relationship query error")
+			return []
+
+		env_err["frappe"].get_list = fail_rel_gl
+		ep_err = self._load("siraj_research/api/entity_profile.py", "ep_rel_err", env_err)
+		with patch.dict(sys.modules, env_err):
+			prof_err = ep_err.get_entity_profile("Person", "PER-GD")
+		self.assertEqual(prof_err["connections"]["relationships"], [])
+		self.assertTrue(len(seen_filters) >= 1)
+		self.assertEqual(seen_filters[0][0].get("docstatus"), ("<", 2))
+		self.assertIn("name", seen_filters[0][1])
+		self.assertTrue(len(env_err["frappe"]._logged_errors) >= 1)
+
 
 if __name__ == "__main__":
 	unittest.main()

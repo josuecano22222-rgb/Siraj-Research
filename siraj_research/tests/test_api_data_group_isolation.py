@@ -619,3 +619,34 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 			frappe.set_user("Administrator")
 			frappe.db.set_value("Military Unit", gc["unit"], "commander", gc["person"], update_modified=False)
 			frappe.delete_doc("Military Unit", extra_unit.name, force=True, ignore_permissions=True)
+
+	def test_19_entity_profile_authored_relationships_excludes_foreign_group_and_cancelled(self):
+		"""C-02: _authored_relationships uses permission-scoped get_list and excludes foreign-group Relationship rows."""
+		gc = self.world["gc"]
+		gd = self.world["gd"]
+		frappe.set_user("Administrator")
+		# Create a GC-scoped Relationship (data_group = GC) whose object is GD Person.
+		gc_to_gd_rel = frappe.get_doc(
+			{
+				"doctype": "Relationship",
+				"subject_type": "Person",
+				"subject": gc["person"],
+				"relationship_type": "ISO_AFFILIATED",
+				"object_type": "Person",
+				"object": gd["person"],
+				"primary_source": gc["source"],
+				"data_group": "GC",
+				"researcher_notes": "GC-SECRET-REL-NOTE",
+			}
+		).insert(ignore_permissions=True)
+		try:
+			# Primary Data Group on Relationship comes from primary_source -> GC.
+			# VIEWER_GD_USER (restricted to Data Group = GD) must NOT see gc_to_gd_rel in gd_person's authored relationships.
+			frappe.set_user(VIEWER_GD_USER)
+			prof = entity_profile.get_entity_profile("Person", gd["person"])
+			rel_names = [r["name"] for r in prof["connections"]["relationships"]]
+			self.assertIn(gd["rel"], rel_names)
+			self.assertNotIn(gc_to_gd_rel.name, rel_names)
+		finally:
+			frappe.set_user("Administrator")
+			frappe.delete_doc("Relationship", gc_to_gd_rel.name, force=True, ignore_permissions=True)

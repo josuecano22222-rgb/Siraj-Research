@@ -360,6 +360,8 @@ def get_entity_profile(doctype, name, **kwargs):
 
 def _authored_relationships(doctype, name):
     out = []
+    if not frappe.has_permission("Relationship", "read"):
+        return out
     for side, other_type_field, other_field, dir_label in [
         ("subject", "object_type", "object", "outbound"),
         ("object", "subject_type", "subject", "inbound"),
@@ -367,13 +369,16 @@ def _authored_relationships(doctype, name):
         try:
             rows = frappe.get_list(
                 "Relationship",
-                filters={side: name, side + "_type": doctype},
+                filters={side: name, side + "_type": doctype, "docstatus": ("<", 2)},
                 fields=["name", "subject", "subject_type", "object", "object_type",
                         "relationship_type", "direction", "start_date", "end_date",
                         "description", "workflow_state", "docstatus"],
                 limit=100,
             )
         except Exception:
+            frappe.log_error(
+                title=f"SIRAJ entity_profile authored_relationships failed ({side})",
+            )
             continue
         for r in rows:
             if not frappe.has_permission("Relationship", "read", doc=r["name"]):
