@@ -356,16 +356,29 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 			)
 			frappe.db.set_value("Military Unit", gc["unit"], "commander", gc["person"], update_modified=False)
 
-	@unittest.expectedFailure
 	def test_07_cross_group_links_rejected_even_for_official_and_dynamic_links_c03a(self):
-		"""C-03a (HD-4): Cross-group Link and Dynamic Link saves must raise PermissionError for every role."""
+		"""C-03a (HD-4): Cross-group Link, Dynamic Link, child-row, and blank-group links raise PermissionError."""
 		gc = self.world["gc"]
 		gd = self.world["gd"]
 		vocab = self.world["vocab"]
 
-		# 1) GD user creating a Relationship (Dynamic Link) pointing to a GC Person.
+		# 1) GD user creating a Link (Person.birthplace -> GC Place) and Dynamic Link (Relationship -> GC Person),
+		#    verifying the error message contains NO target name or title.
 		frappe.set_user(GD_ADMIN_USER)
-		with self.assertRaises(frappe.PermissionError):
+		with self.assertRaises(frappe.PermissionError) as link_ctx:
+			frappe.get_doc(
+				{
+					"doctype": "Person",
+					"name_ar": "اختراق موقع",
+					"name_en": "GD Cross Link Probe",
+					"birthplace": gc["place"],
+				}
+			).insert()
+		link_err = str(link_ctx.exception)
+		self.assertNotIn(gc["place"], link_err)
+		self.assertNotIn("GC Secret Citadel", link_err)
+
+		with self.assertRaises(frappe.PermissionError) as dyn_ctx:
 			frappe.get_doc(
 				{
 					"doctype": "Relationship",
@@ -376,8 +389,31 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 					"object": gc["person"],
 				}
 			).insert()
+		dyn_err = str(dyn_ctx.exception)
+		self.assertNotIn(gc["person"], dyn_err)
+		self.assertNotIn("GC Classified Commander", dyn_err)
 
-		# 2) SIRAJ Official creating cross-group links across Person, Military Unit,
+		# 2) Child-table row link: GD Person linking evidence.source -> GC Source or siblings.person -> GC Person.
+		with self.assertRaises(frappe.PermissionError) as child_ctx:
+			frappe.get_doc(
+				{
+					"doctype": "Person",
+					"name_ar": "اختراق جدول فرعي",
+					"name_en": "GD Child Row Probe",
+					"evidence": [
+						{
+							"source": gc["source"],
+							"support_type": "supports",
+							"supported_claim": "Cross-group child evidence probe",
+						}
+					],
+				}
+			).insert()
+		child_err = str(child_ctx.exception)
+		self.assertNotIn(gc["source"], child_err)
+		self.assertNotIn("GC Confidential Dispatch", child_err)
+
+		# 3) SIRAJ Official creating cross-group links across Person, Military Unit,
 		#    Operational Deployment, Command Appointment, and Siraj Event Person.
 		frappe.set_user(OFFICIAL_USER)
 		for payload in (
@@ -422,6 +458,77 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		):
 			with self.assertRaises(frappe.PermissionError):
 				frappe.get_doc(payload).insert()
+
+		# 4) Administrator is ALSO blocked from creating cross-group links (HD-4: every role).
+		frappe.set_user("Administrator")
+		with self.assertRaises(frappe.PermissionError) as admin_ctx:
+			frappe.get_doc(
+				{
+					"doctype": "Person",
+					"name_ar": "اختراق مسؤول",
+					"name_en": "Admin Cross Group Person",
+					"birthplace": gc["place"],
+					"data_group": "GD",
+				}
+			).insert()
+		self.assertNotIn(gc["place"], str(admin_ctx.exception))
+		self.assertNotIn("GC Secret Citadel", str(admin_ctx.exception))
+
+		# 5) Blank-group target from a grouped source is rejected (fail-closed).
+		orphan_place = frappe.get_doc(
+			{
+				"doctype": "Place",
+				"name_ar": "موقع بلا مجموعة",
+				"name_en": "Orphan Legacy Place",
+				"place_type": vocab["place_type"],
+				"data_group": "GD",
+			}
+		).insert(ignore_permissions=True)
+		frappe.db.set_value("Place", orphan_place.name, "data_group", None, update_modified=False)
+		try:
+			for actor in (GD_ADMIN_USER, OFFICIAL_USER, "Administrator"):
+				frappe.set_user(actor)
+				with self.assertRaises(frappe.PermissionError) as blank_ctx:
+					frappe.get_doc(
+						{
+							"doctype": "Person",
+							"name_ar": "ربط بموقع يتيم",
+							"name_en": f"Link To Orphan ({actor})",
+							"birthplace": orphan_place.name,
+							"data_group": "GD",
+						}
+					).insert()
+				self.assertNotIn(orphan_place.name, str(blank_ctx.exception))
+				self.assertNotIn("Orphan Legacy Place", str(blank_ctx.exception))
+		finally:
+			frappe.set_user("Administrator")
+			frappe.delete_doc("Place", orphan_place.name, force=True, ignore_permissions=True)
+
+		# 6) Unscoped targets (User, Data Group, Country, Place Type) remain allowed alongside same-group targets.
+		frappe.set_user(GD_ADMIN_USER)
+		allowed_person = frappe.get_doc(
+			{
+				"doctype": "Person",
+				"name_ar": "مسموح",
+				"name_en": "GD Same Group And Unscoped Allowed",
+				"birthplace": gd["place"],
+				"data_group": "GD",
+				"evidence": [
+					{
+						"source": gd["source"],
+						"reviewer": GD_ADMIN_USER,
+						"support_type": "supports",
+						"supported_claim": "Same-group source + unscoped User reviewer",
+					}
+				],
+			}
+		).insert()
+		try:
+			self.assertEqual(allowed_person.data_group, "GD")
+			self.assertEqual(allowed_person.evidence[0].reviewer, GD_ADMIN_USER)
+		finally:
+			frappe.set_user("Administrator")
+			frappe.delete_doc("Person", allowed_person.name, force=True, ignore_permissions=True)
 
 	@unittest.expectedFailure
 	def test_08_military_controllers_do_not_leak_or_crash_across_groups_c03b(self):
@@ -662,7 +769,9 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		gd = self.world["gd"]
 		rel_type = self.world["vocab"]["rel_type"]
 		frappe.set_user("Administrator")
-		# Create a GC-scoped Relationship (data_group = GC) whose object is GD Person.
+		# Simulate a legacy/corrupt cross-group Relationship (data_group = GC) whose object is GD Person;
+		# normal save is now blocked by validate_same_data_group_links (C-03a), so insert within GC then
+		# point object to gd['person'] via db.set_value to test _authored_relationships read-time defense-in-depth.
 		gc_to_gd_rel = frappe.get_doc(
 			{
 				"doctype": "Relationship",
@@ -670,12 +779,13 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 				"subject": gc["person"],
 				"relationship_type": rel_type,
 				"object_type": "Person",
-				"object": gd["person"],
+				"object": gc["person"],
 				"primary_source": gc["source"],
 				"data_group": "GC",
 				"researcher_notes": "GC-SECRET-REL-NOTE",
 			}
 		).insert(ignore_permissions=True)
+		frappe.db.set_value("Relationship", gc_to_gd_rel.name, "object", gd["person"], update_modified=False)
 		try:
 			# Primary Data Group on Relationship comes from primary_source -> GC.
 			# VIEWER_GD_USER (restricted to Data Group = GD) must NOT see gc_to_gd_rel in gd_person's authored relationships.
@@ -758,3 +868,73 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 			for p in viewer_perms:
 				frappe.db.set_value("DocPerm", p["name"], "read", p["read"], update_modified=False)
 			frappe.clear_cache(doctype="Military Unit")
+
+	def test_23_same_data_group_link_bypass_behaviors_and_test_data_seeding_c03a(self):
+		"""C-03a: Documented validation bypasses (ignore_validate, db_set, db.set_value) and test_data single-group seeding."""
+		from unittest.mock import patch
+
+		from siraj_research.setup import test_data
+
+		gc = self.world["gc"]
+		frappe.set_user("Administrator")
+
+		# 1) flags.ignore_validate = True skips run_before_save_methods() validate hooks (documented bypass),
+		#    but a subsequent normal .save() runs validate_same_data_group_links and rejects the row.
+		bypassed = frappe.get_doc(
+			{
+				"doctype": "Person",
+				"name_ar": "تجاوز التحقق",
+				"name_en": "Bypassed Ignore Validate Probe",
+				"birthplace": gc["place"],
+				"data_group": "GD",
+			}
+		)
+		bypassed.flags.ignore_validate = True
+		bypassed.insert(ignore_permissions=True)
+		try:
+			bypassed.flags.ignore_validate = False
+			bypassed.name_variants = "Attempt normal save"
+			with self.assertRaises(frappe.PermissionError):
+				bypassed.save(ignore_permissions=True)
+		finally:
+			frappe.delete_doc("Person", bypassed.name, force=True, ignore_permissions=True)
+
+		# 2) db_set and db.set_value write directly without validate hooks (documented bypass),
+		#    and a subsequent normal .save() catches the resulting cross-group link.
+		clean_probe = frappe.get_doc(
+			{
+				"doctype": "Person",
+				"name_ar": "نظيف",
+				"name_en": "Clean Probe Before db_set",
+				"data_group": "GD",
+			}
+		).insert(ignore_permissions=True)
+		try:
+			clean_probe.db_set("birthplace", gc["place"], update_modified=False)
+			reloaded = frappe.get_doc("Person", clean_probe.name)
+			with self.assertRaises(frappe.PermissionError):
+				reloaded.save(ignore_permissions=True)
+			frappe.db.set_value("Person", clean_probe.name, "birthplace", None, update_modified=False)
+			frappe.db.set_value("Person", clean_probe.name, "marriage_place", gc["place"], update_modified=False)
+			reloaded2 = frappe.get_doc("Person", clean_probe.name)
+			with self.assertRaises(frappe.PermissionError):
+				reloaded2.save(ignore_permissions=True)
+		finally:
+			frappe.delete_doc("Person", clean_probe.name, force=True, ignore_permissions=True)
+
+		# 3) Verify setup/test_data.py links every scoped sample record within TEST_DATA_GROUP ('GD')
+		#    under live validate_same_data_group_links enforcement, then roll back via savepoint.
+		frappe.db.savepoint("c03a_test_data_seed")
+		try:
+			with patch.object(test_data, "_assert_event_safe", lambda: None):
+				seeded = test_data.seed_test_data()
+			self.assertGreater(seeded["created"]["Person"], 0)
+			for dt, names in seeded["created_names"].items():
+				if dt in ("Person", "Institution", "Place", "Source", "Military Unit", "Relationship"):
+					for n in names:
+						self.assertEqual(
+							frappe.db.get_value(dt, n, "data_group"),
+							test_data.TEST_DATA_GROUP,
+						)
+		finally:
+			frappe.db.rollback(save_point="c03a_test_data_seed")

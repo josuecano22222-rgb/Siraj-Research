@@ -253,16 +253,25 @@ doctype_js.update({dt: "public/js/data_group_scope.js" for dt in SCOPED_DOCTYPES
 # Hook on document methods and events
 
 doc_events = {
-	dt: {"validate": "siraj_research.geo_doc_events.auto_fill_hierarchy"}
+	dt: {"validate": ["siraj_research.geo_doc_events.auto_fill_hierarchy"]}
 	for dt in (
 		"Person", "Institution", "Place", "Research Event", "Siraj Event",
 		"Military Unit", "Operational Deployment",
 	)
 }
 for _scoped_doctype in SCOPED_DOCTYPES:
-	doc_events.setdefault(_scoped_doctype, {})["before_validate"] = (
-		"siraj_research.permissions.stamp_and_lock_data_group"
-	)
+	_events = doc_events.setdefault(_scoped_doctype, {})
+	_events["before_validate"] = "siraj_research.permissions.stamp_and_lock_data_group"
+	_validate_hooks = _events.get("validate")
+	if _validate_hooks is None:
+		_events["validate"] = "siraj_research.permissions.validate_same_data_group_links"
+	elif isinstance(_validate_hooks, list):
+		_validate_hooks.append("siraj_research.permissions.validate_same_data_group_links")
+	else:
+		_events["validate"] = [
+			_validate_hooks,
+			"siraj_research.permissions.validate_same_data_group_links",
+		]
 
 # Scheduled Tasks
 # ---------------

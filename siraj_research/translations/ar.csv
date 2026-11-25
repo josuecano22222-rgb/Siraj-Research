@@ -1864,6 +1864,7 @@ Group Name,اسم المجموعة
 Shared Record,سجل مشترك
 A Data Group membership is required.,يلزم الانضمام إلى مجموعة بيانات.
 Data Group cannot be changed after creation.,لا يمكن تغيير مجموعة البيانات بعد الإنشاء.
+Linked records must belong to the same Data Group.,يجب أن تنتمي السجلات المرتبطة إلى مجموعة البيانات نفسها.
 Data Isolation,عزل البيانات
 (all countries — pick a parent to narrow),(كل الدول — اختر أصلاً لتضييق النتائج)
 Administrative auto-fill,الملء التلقائي للتقسيمات الإدارية

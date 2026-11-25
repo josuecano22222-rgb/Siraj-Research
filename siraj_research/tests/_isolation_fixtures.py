@@ -315,6 +315,14 @@ def build_isolation_world() -> dict:
 			"data_group": "GC",
 		}
 	).insert(ignore_permissions=True)
+	gd_source = frappe.get_doc(
+		{
+			"doctype": "Source",
+			"title": "GD Public Archive Bulletin",
+			"source_type": source_type,
+			"data_group": "GD",
+		}
+	).insert(ignore_permissions=True)
 
 	gc_unit = frappe.get_doc(
 		{
@@ -486,6 +494,7 @@ def build_isolation_world() -> dict:
 			"place": gd_place.name,
 			"person": gd_person.name,
 			"inst": gd_inst.name,
+			"source": gd_source.name,
 			"unit": gd_unit.name,
 			"siraj_event": gd_siraj_event.name,
 			"rel": gd_rel.name,

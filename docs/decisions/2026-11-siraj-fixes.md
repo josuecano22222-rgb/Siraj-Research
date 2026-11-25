@@ -55,6 +55,32 @@ Inspected directly in `frappe 15.128.0` (`version-15` @ `fd94443`):
 
 **Consequences:** Cross-group link isolation is enforced centrally in `siraj_research/permissions.py` across all `SCOPED_DOCTYPES` (and their child tables) on every document save for every role including `SIRAJ Official`, with zero per-controller copies, and `setup/demo_data.py` + `setup/test_data.py` stamp consistent `data_group` values in the same commit (`C-03a`) so seeding never creates cross-group links.
 
+### Frappe v15.128.0 Hook Order & Bypass Matrix (`C-03a`)
+
+Verified directly against `frappe 15.128.0` (`version-15` @ `fd94443`):
+1. **Why `validate` (not `before_save`), and exact execution order relative to `_validate_links` and `stamp_and_lock_data_group`:**
+   - **On `Document.insert()` (`frappe/model/document.py:420–434`):**
+     1. `self.check_permission("create")` (`document.py:421`) — calls `siraj_research.permissions.has_permission` (`permissions.py:57`), rewriting `doc.data_group` for group members before native `User Permission` link checks.
+     2. `self._validate_links()` (`document.py:423`, defined at `document.py:1114–1130`) — validates parent and child-table `Link` / `Dynamic Link` target existence (`get_invalid_links()`) before hooks run.
+     3. `self.run_method("before_insert")` (`document.py:424`).
+     4. `self.run_before_save_methods()` (`document.py:430`, defined at `document.py:1280–1311`):
+        - `self.run_method("before_validate")` (`document.py:1294`) -> runs `stamp_and_lock_data_group` (`permissions.py:92`), guaranteeing `doc.data_group` is authoritatively stamped on new records and locked against mutation on existing records.
+        - `if self.flags.ignore_validate: return` (`document.py:1296–1297`).
+        - `self.run_method("validate")` (`document.py:1300` on `"save"`, and `document.py:1303` on `"submit"`) -> runs controller `validate()` first (`Document.hook` at `document.py:1512–1533`), then `doc_events[doctype]["validate"]` (`validate_same_data_group_links`).
+        - `self.run_method("before_save")` (`document.py:1301` — **only** when `self._action == "save"`, skipped on `"submit"` where `before_submit` runs at `1304`).
+     5. `self._validate()` (`document.py:431`, defined at `document.py:748–778`) — runs `_validate_mandatory()`, etc.
+   - **On `Document.save()` for existing docs (`frappe/model/document.py:527–545`):**
+     1. `self.check_permission("write", "save")` (`document.py:527`).
+     2. `self._validate_links()` (`document.py:536`, defined at `document.py:1114–1130`).
+     3. `self.run_before_save_methods()` (`document.py:537`) -> `before_validate` (`stamp_and_lock_data_group` at `1294`) -> `validate` (`validate_same_data_group_links` at `1300` / `1303`).
+   - **Choice of `validate` over `before_save`:** `validate` runs on **both** `"save"` and `"submit"` (`document.py:1300, 1303`), always executes strictly **after** `before_validate` (`stamp_and_lock_data_group`, `document.py:1294`) and **after** `_validate_links` (`document.py:423, 536`), and runs **before** any `before_save` / `on_update` side-effects.
+2. **Single justified exception to Invariant 1:** `validate_same_data_group_links` (`siraj_research/permissions.py`) executes **one** batched `frappe.get_all(target_dt, filters={"name": ["in", ...]}, fields=["name", "data_group"])` per referenced scoped target DocType. Permission-scoped `get_list` cannot be used here because `SIRAJ Official` and `Administrator` legitimately have read access across groups (`get_list` would return the foreign row without distinguishing groups), whereas reading `(name, data_group)` in one batch per target DocType rejects both cross-group and blank-group targets for every role while keeping error text strictly generic (`"Linked records must belong to the same Data Group."`, containing zero target names or titles).
+3. **Documented validation bypasses (verified & tested in `test_23`):**
+   - **`doc.db_set(...)` (`frappe/model/document.py:1394–1453`):** Updates column(s) via `frappe.db.set_value` and runs only `before_change` / `notify_update` — **bypasses `validate`**. Repo audit (`grep -rn '\.db_set(' siraj_research/`): used only on unscoped `Boundary Dataset` progress fields (`boundary_import.py:60–62`, `geo_import.py:664–670`); zero scoped link fields use `db_set`. Tested in `test_23` (subsequent normal `.save()` catches any cross-group link written via `db_set`).
+   - **`frappe.db.set_value(...)` (`frappe/database/database.py:945–995`):** Direct SQL `UPDATE` without ORM events — **bypasses `validate`**. Repo audit: production code uses `db.set_value` only on `Geo Settings`, `Boundary Dataset`, `Admin Boundary`/hierarchy `country` repair (`geo_import.py`), `Person` derived scalar columns (`patches/v2_0/backfill_family_derived.py:45`), `Military Unit.subtree_personnel` (`military_unit.py:88`), and `Operational Deployment` -> `Military Unit.current_deployment` (`operational_deployment.py`, where `OperationalDeployment.unit` is already validated in the same `data_group` during `validate` before `on_update` runs in `C-03b`). Tested in `test_23`.
+   - **`doc.flags.ignore_validate = True` (`frappe/model/document.py:1296–1297`):** Returns early from `run_before_save_methods()` after `before_validate`, so `stamp_and_lock_data_group` still runs (`1294`) while `validate` hooks are skipped. Repo audit: zero occurrences of `ignore_validate` in `siraj_research/`. Tested in `test_23`.
+   - **Data Import (`frappe/core/doctype/data_import/importer.py:256–296`) vs fixture file import (`frappe/modules/import_file.py:234–238`):** Standard Desk `Data Import` calls `new_doc.insert()` / `updated_doc.save()` **with validation ON** (so `validate_same_data_group_links` is enforced on every CSV/XLSX user import). Only internal schema/fixture sync `import_file_by_path(..., data_import=False)` sets `doc.flags.ignore_validate = True` and `doc.flags.ignore_links = True` when syncing app JSON metadata.
+
 ---
 
 ## HD-5 — `structure_data`
