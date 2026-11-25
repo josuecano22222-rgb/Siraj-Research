@@ -50,7 +50,7 @@ def _fmt_value(doc, f):
     if ft == "Link":
         # Resolve title of the linked doc if permitted.
         try:
-            if frappe.has_permission(f.options, "read"):
+            if frappe.has_permission(f.options, "read", val):
                 title = frappe.db.get_value(f.options, val, frappe.get_meta(f.options).get_title_field() or "name") or val
                 return {"type": "link", "doctype": f.options, "name": val, "title": title}
         except Exception:
@@ -61,7 +61,7 @@ def _fmt_value(doc, f):
         if not target_doctype:
             return val
         try:
-            if frappe.has_permission(target_doctype, "read"):
+            if frappe.has_permission(target_doctype, "read", val):
                 title = frappe.db.get_value(target_doctype, val, frappe.get_meta(target_doctype).get_title_field() or "name") or val
                 return {"type": "link", "doctype": target_doctype, "name": val, "title": title}
         except Exception:
@@ -185,11 +185,14 @@ def get_entity_profile(doctype, name, **kwargs):
     # ---- Connections: structural outbound (Link / Dynamic Link fields on this doc) ----
     outbound = []
     for f in meta.fields:
-        if f.fieldtype == "Link" and f.options and f.get(f.fieldname, None):
+        if f.fieldtype == "Link" and f.options and doc.get(f.fieldname):
             val = doc.get(f.fieldname)
             if val:
                 target_dt = f.options
-                can_read = frappe.has_permission(target_dt, "read")
+                try:
+                    can_read = bool(frappe.has_permission(target_dt, "read", val))
+                except Exception:
+                    can_read = False
                 title = val
                 if can_read:
                     try:
@@ -205,7 +208,10 @@ def get_entity_profile(doctype, name, **kwargs):
             target_dt = doc.get(f.options)
             val = doc.get(f.fieldname)
             if val and target_dt:
-                can_read = frappe.has_permission(target_dt, "read")
+                try:
+                    can_read = bool(frappe.has_permission(target_dt, "read", val))
+                except Exception:
+                    can_read = False
                 title = val
                 if can_read:
                     try:
@@ -263,11 +269,17 @@ def get_entity_profile(doctype, name, **kwargs):
     except Exception:
         pass
     try:
-        activity["attachments"] = frappe.get_all(
-            "File", filters={"attached_to_doctype": doctype, "attached_to_name": name},
-            fields=["name", "file_name", "file_url", "file_type", "creation"],
-            order_by="creation desc", limit=10,
-        )
+        if frappe.has_permission("File", "read"):
+            raw_files = frappe.get_list(
+                "File",
+                filters={"attached_to_doctype": doctype, "attached_to_name": name},
+                fields=["name", "file_name", "file_url", "file_type", "creation"],
+                order_by="creation desc",
+                limit=10,
+            )
+            activity["attachments"] = [
+                row for row in raw_files if frappe.has_permission("File", "read", row["name"])
+            ]
     except Exception:
         pass
 
@@ -355,9 +367,14 @@ def _authored_relationships(doctype, name):
         except Exception:
             continue
         for r in rows:
+            if not frappe.has_permission("Relationship", "read", r["name"]):
+                continue
             other_dt = r.get(other_type_field)
             other_name = r.get(other_field)
-            can_read = bool(other_dt) and frappe.has_permission(other_dt, "read")
+            try:
+                can_read = bool(other_dt and other_name and frappe.has_permission(other_dt, "read", other_name))
+            except Exception:
+                can_read = False
             title = other_name
             if can_read and other_dt:
                 try:
@@ -390,9 +407,6 @@ def _inbound_links(doctype, name):
     # options field holds the doctype at row time), so skip them here.
     # Walk all DocTypes registered in the app — cheap because we only inspect meta.
     import os
-
-    from frappe.model.meta import get_meta as _m
-    from frappe.modules import scrub
     doctype_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "siraj_research", "doctype")
     if not os.path.isdir(doctype_dir):
         return out
@@ -402,7 +416,8 @@ def _inbound_links(doctype, name):
         if not os.path.isfile(jf):
             continue
         try:
-            data = json.load(open(jf))
+            with open(jf, encoding="utf-8") as fh:
+                data = json.load(fh)
         except Exception:
             continue
         if data.get("istable") or data.get("issingle"):
@@ -421,9 +436,22 @@ def _inbound_links(doctype, name):
         for f in linking_fields:
             or_filters.append([f["fieldname"], "=", name])
         try:
-            count = frappe.db.count(target_dt, filters={"docstatus": ("<", 2)}, or_filters=or_filters) if or_filters else 0
-            sample = frappe.get_list(target_dt, or_filters=or_filters,
-                                     fields=["name"], limit=5) if count else []
+            rows = (
+                frappe.get_list(
+                    target_dt,
+                    filters={"docstatus": ("<", 2)},
+                    or_filters=or_filters,
+                    fields=["name"],
+                    limit=5000,
+                )
+                if or_filters
+                else []
+            )
+            readable = [
+                r for r in rows if frappe.has_permission(target_dt, "read", r["name"])
+            ]
+            count = len(readable)
+            sample = readable[:5]
         except Exception:
             count = 0
             sample = []

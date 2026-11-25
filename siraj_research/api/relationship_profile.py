@@ -12,7 +12,6 @@ from frappe.model.meta import get_meta
 
 from siraj_research.profile_presentation import organise_profile
 
-
 # Fieldtypes we render directly (everything structural/break/button is skipped).
 SKIP_FIELDTYPES = {
 	"Section Break", "Column Break", "Tab Break", "HTML", "Button",
@@ -54,7 +53,7 @@ def _fmt_value(doc, f):
 		return {"type": "attach", "url": val}
 	if ft == "Link":
 		try:
-			if frappe.has_permission(f.options, "read"):
+			if frappe.has_permission(f.options, "read", val):
 				title_field = frappe.get_meta(f.options).get_title_field() or "name"
 				title = frappe.db.get_value(f.options, val, title_field) or val
 				return {"type": "link", "doctype": f.options, "name": val, "title": title}
@@ -66,7 +65,7 @@ def _fmt_value(doc, f):
 		if not target_doctype:
 			return val
 		try:
-			if frappe.has_permission(target_doctype, "read"):
+			if frappe.has_permission(target_doctype, "read", val):
 				title_field = frappe.get_meta(target_doctype).get_title_field() or "name"
 				title = frappe.db.get_value(target_doctype, val, title_field) or val
 				return {"type": "link", "doctype": target_doctype, "name": val, "title": title}
@@ -156,6 +155,12 @@ def get_relationship_profile(name, **kwargs):
 		):
 			# Endpoints are rendered separately in the endpoints tab.
 			continue
+		try:
+			if f.permlevel and f.permlevel > 0:
+				if not frappe.has_permission("Relationship", "read", doc=name, permlevel=f.permlevel):
+					continue
+		except TypeError:
+			pass
 		val = _fmt_value(doc, f)
 		if val is None:
 			continue

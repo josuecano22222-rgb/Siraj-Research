@@ -258,26 +258,65 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 				"Person", gd_person, {"latitude": 31.5230, "longitude": 34.4670}, update_modified=False
 			)
 
-	@unittest.expectedFailure
 	def test_06_profile_endpoints_redact_unreadable_foreign_link_titles_c02(self):
-		"""C-02: entity_profile and relationship_profile must pass doc=name before reading Link titles."""
+		"""C-02: entity_profile and relationship_profile must pass doc=name, scope inbound counts, and fix outbound."""
 		gc = self.world["gc"]
 		gd = self.world["gd"]
 		frappe.set_user("Administrator")
-		# Simulate a GD Relationship (Dynamic Link) pointing at a GC Institution, and inspect both
-		# relationship_profile AND entity_profile (via _authored_relationships on GD Person).
-		# Dynamic Links bypass native Link User Permissions for VIEWER_GD_USER, exposing the exact
-		# doc=name missing-argument leak in entity_profile._authored_relationships and relationship_profile!
-		frappe.db.set_value("Relationship", gd["rel"], "object", gc["inst"], update_modified=False)
+		# Simulate:
+		# 1) GD Relationship with Dynamic Link to GC Institution + Link primary_source to GC Source
+		# 2) GC Military Unit pointing its commander Link at GD Person (inbound count must stay 1, not 2)
+		frappe.db.set_value(
+			"Relationship",
+			gd["rel"],
+			{"object": gc["inst"], "primary_source": gc["source"]},
+			update_modified=False,
+		)
+		frappe.db.set_value("Military Unit", gc["unit"], "commander", gd["person"], update_modified=False)
 		try:
 			frappe.set_user(VIEWER_GD_USER)
 			prof = entity_profile.get_entity_profile("Person", gd["person"])
-			rel_prof = relationship_profile.get_relationship_profile(gd["rel"])
-			self.assertNotIn("GC Shadow Directorate", json.dumps(prof))
-			self.assertNotIn("GC Shadow Directorate", json.dumps(rel_prof))
+			dumped_prof = json.dumps(prof, default=str)
+			self.assertNotIn("GC Shadow Directorate", dumped_prof)
+
+			# Outbound Link block on Person (fixing f.get(f.fieldname) -> doc.get(f.fieldname)) populates birthplace.
+			outbound_fields = {o["field"] for o in prof["connections"]["outbound_links"]}
+			self.assertIn("birthplace", outbound_fields)
+
+			# Inbound Military Unit count on GD Person must count ONLY the readable GD unit (1), not the GC unit!
+			inbound_mu = next(
+				i for i in prof["connections"]["inbound_links"] if i["doctype"] == "Military Unit"
+			)
+			self.assertEqual(inbound_mu["count"], 1)
+			self.assertNotIn("GC 99th Special Brigade", json.dumps(inbound_mu, default=str))
+
+			# Relationship profile: test Dynamic Link redaction for VIEWER_GD_USER (who has Link User Perm on GD)
+			# by clearing the direct Link primary_source first, and test Link primary_source redaction for GD_ADMIN_USER
+			# (whose custom has_permission hook blocks GC Source without Frappe Link User Permission blocking Relationship read).
+			frappe.set_user("Administrator")
+			frappe.db.set_value("Relationship", gd["rel"], "primary_source", None, update_modified=False)
+
+			frappe.set_user(VIEWER_GD_USER)
+			rel_prof_viewer = relationship_profile.get_relationship_profile(gd["rel"])
+			self.assertNotIn("GC Shadow Directorate", json.dumps(rel_prof_viewer, default=str))
+
+			frappe.set_user("Administrator")
+			frappe.db.set_value("Relationship", gd["rel"], "primary_source", gc["source"], update_modified=False)
+
+			frappe.set_user(GD_ADMIN_USER)
+			rel_prof_admin = relationship_profile.get_relationship_profile(gd["rel"])
+			dumped_rel_admin = json.dumps(rel_prof_admin, default=str)
+			self.assertNotIn("GC Shadow Directorate", dumped_rel_admin)
+			self.assertNotIn("GC Eyes-Only Dossier", dumped_rel_admin)
 		finally:
 			frappe.set_user("Administrator")
-			frappe.db.set_value("Relationship", gd["rel"], "object", gd["inst"], update_modified=False)
+			frappe.db.set_value(
+				"Relationship",
+				gd["rel"],
+				{"object": gd["inst"], "primary_source": None},
+				update_modified=False,
+			)
+			frappe.db.set_value("Military Unit", gc["unit"], "commander", gc["person"], update_modified=False)
 
 	@unittest.expectedFailure
 	def test_07_cross_group_links_rejected_even_for_official_and_dynamic_links_c03a(self):
