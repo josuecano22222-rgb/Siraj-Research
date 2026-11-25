@@ -26,7 +26,7 @@ Every item carries an honest verification tag:
 | **2** | `C-07` | pending | Todo | — | `sweep_points` permission check, JSON parsing when `points` is `str`, 500 cap. |
 | **2** | `C-08` | pending | Todo | — | `map_relations.py:165` i18n `.format`, `diagnostics.py:59` path, `visualization.py` `PermissionError` + `valid_dimensions` (HD-5). |
 | **2** | `C-12` | pending | Todo | — | `shared_record.json` add 4 `SIRAJ` roles + `SIRAJ Official`, `share: 0` on non-admins (HD-3). **GATE 2** |
-| **3** | `L1` | pending | Todo | — | Unified `Siraj Event` schema/controller/list/test, delete `doctype/research_event`, `[post_model_sync]` deletion patch, `hooks.py`, `relationship.json`, workspace, number cards (HD-1). |
+| **3** | `L1` | pending | Todo | — | Unified `Siraj Event` schema/controller/list/test, delete `doctype/research_event`, `[post_model_sync]` deletion patch, `hooks.py`, `relationship.json`, workspace, number cards (HD-1). **Acceptance check:** `entity_profile` and `relationship_profile` must hide `Siraj Event.researcher_notes` (`permlevel: 1`) from `SIRAJ Viewer` and `SIRAJ Researcher` while showing it to `SIRAJ Reviewer`. |
 | **3** | `L1b` | pending | Todo | — | Delete obsolete `setup/event_*.py` + `tests/test_event_*.py` after moving `_index`/`_same`/`PlanError` into `coordinate_transition.py` (see Open Risks #1). |
 | **3** | `L2` | pending | Todo | — | Switch backend registries, `visualization.py`, `geo_quality.py`, `map_relations.py`, `relationship_profile.py`, reports, `setup/*.py` to `Siraj Event`. |
 | **3** | `L3` | pending | Todo | — | Switch frontend/offline JS (`siraj-map-search.js`, `geography-action-i18n.js`, `siraj-audit.js`, `snapshot_verify.js`) + lockstep `SIRAJ_BUILD` / `SIRAJ_EXPLORER_BUILD`. |

@@ -73,6 +73,23 @@ class RoleUser:
 			)
 			user.insert(ignore_permissions=True)
 			user.add_roles(self.role)
+			if not frappe.db.exists("Data Group", "GD"):
+				frappe.get_doc({"doctype": "Data Group", "group_name": "GD"}).insert(
+					ignore_permissions=True
+				)
+			if not frappe.db.exists(
+				"User Permission",
+				{"user": email, "allow": "Data Group", "for_value": "GD"},
+			):
+				frappe.get_doc(
+					{
+						"doctype": "User Permission",
+						"user": email,
+						"allow": "Data Group",
+						"for_value": "GD",
+						"apply_to_all_doctypes": 1,
+					}
+				).insert(ignore_permissions=True)
 			frappe.db.commit()
 			_CREATED_USERS[self.role] = email
 			self.email = email
@@ -84,12 +101,17 @@ class RoleUser:
 
 
 def _probe_person() -> str:
+	if not frappe.db.exists("Data Group", "GD"):
+		frappe.get_doc({"doctype": "Data Group", "group_name": "GD"}).insert(
+			ignore_permissions=True
+		)
 	doc = frappe.get_doc(
 		{
 			"doctype": "Person",
 			"display_name": PROBE_TAG,
 			"name_en": PROBE_TAG,
 			"name_ar": PROBE_TAG,
+			"data_group": "GD",
 		}
 	)
 	doc.insert(ignore_permissions=True)
@@ -128,6 +150,15 @@ class TestRoleVisibility(FrappeTestCase):
 		for email in list(_CREATED_USERS.values()):
 			try:
 				if frappe.db.exists("User", email):
+					for up_name in frappe.get_all(
+						"User Permission", filters={"user": email}, pluck="name"
+					):
+						frappe.delete_doc(
+							"User Permission",
+							up_name,
+							force=True,
+							ignore_permissions=True,
+						)
 					frappe.delete_doc(
 						"User", email, force=True, ignore_permissions=True
 					)

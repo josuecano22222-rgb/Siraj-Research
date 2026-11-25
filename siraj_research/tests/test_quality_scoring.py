@@ -59,12 +59,17 @@ class TestQualityScoring(FrappeTestCase):
             # classmethod — no self; SkipTest in setUpClass skips the class.
             raise unittest.SkipTest("Source Type registry is not seeded")
         first_type = next((t for t in types if t == "report"), types[0])
+        if not frappe.db.exists("Data Group", "GD"):
+            frappe.get_doc({"doctype": "Data Group", "group_name": "GD"}).insert(
+                ignore_permissions=True
+            )
         src = frappe.get_doc(
             {
                 "doctype": "Source",
                 "naming_series": "SRC-.####",
                 "title": PROBE_TAG,
                 "source_type": first_type,
+                "data_group": "GD",
             }
         )
         src.insert(ignore_permissions=True)
@@ -76,6 +81,7 @@ class TestQualityScoring(FrappeTestCase):
                 "display_name": PROBE_TAG,
                 "name_en": PROBE_TAG,
                 "name_ar": PROBE_TAG,
+                "data_group": "GD",
             }
         )
         person.insert(ignore_permissions=True)

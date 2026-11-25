@@ -34,10 +34,12 @@ import os
 
 import frappe
 
+from siraj_research.hooks import SCOPED_DOCTYPES
 from siraj_research.setup import demo_content as C
 
 TAG = C.TAG
 MANIFEST_NAME = "siraj_demo_manifest.json"
+DEMO_DATA_GROUP = "GD"
 
 #: doctype -> field scanned by the [DEMO] fallback sweep.
 TAG_FIELDS = (
@@ -169,7 +171,10 @@ def _add(doctype: str, values: dict, **check) -> str:
     if existing:
         _remember(doctype, existing)
         return existing
-    doc = frappe.get_doc({"doctype": doctype, **values})
+    row_values = dict(values)
+    if doctype in SCOPED_DOCTYPES and not row_values.get("data_group"):
+        row_values["data_group"] = DEMO_DATA_GROUP
+    doc = frappe.get_doc({"doctype": doctype, **row_values})
     doc.insert(ignore_permissions=True)
     _remember(doctype, doc.name)
     return doc.name
@@ -209,6 +214,11 @@ def seed_demo_data() -> dict:
     if not frappe.db.exists("Authentication Level", {"code": "corroborated"}):
         from siraj_research.setup.master_data import seed_master_data
         seed_master_data()
+
+    if not frappe.db.exists("Data Group", DEMO_DATA_GROUP):
+        frappe.get_doc({"doctype": "Data Group", "group_name": DEMO_DATA_GROUP}).insert(
+            ignore_permissions=True
+        )
 
     _manifest_load()
 
@@ -553,6 +563,7 @@ def seed_demo_data() -> dict:
             "documentation_level": DOC["partial"],
             "primary_source": master,
             "workflow_state": _ws("Published"),
+            "data_group": DEMO_DATA_GROUP,
         })
         doc.insert(ignore_permissions=True)
         _remember("Relationship", doc.name)

@@ -694,9 +694,9 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		frappe.set_user("Administrator")
 		cat_name = "ISO-PROBE-CATEGORY"
 		if not frappe.db.exists("Person Category", cat_name):
-			frappe.get_doc({"doctype": "Person Category", "label_en": cat_name, "label_ar": cat_name}).insert(
-				ignore_permissions=True
-			)
+			frappe.get_doc(
+				{"doctype": "Person Category", "code": "iso_probe_category", "label_en": cat_name, "label_ar": cat_name}
+			).insert(ignore_permissions=True)
 		frappe.db.set_value("Person", gd["person"], "category", cat_name, update_modified=False)
 		try:
 			frappe.set_user(VIEWER_GD_USER)

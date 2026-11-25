@@ -31,12 +31,17 @@ class TestAuditApi(FrappeTestCase):
         frappe.db.commit()
 
     def _probe(self) -> str:
+        if not frappe.db.exists("Data Group", "GD"):
+            frappe.get_doc({"doctype": "Data Group", "group_name": "GD"}).insert(
+                ignore_permissions=True
+            )
         doc = frappe.get_doc(
             {
                 "doctype": "Person",
                 "display_name": f"{PROBE_TAG}",
                 "name_en": f"{PROBE_TAG}",
                 "name_ar": f"{PROBE_TAG}",
+                "data_group": "GD",
             }
         )
         doc.insert(ignore_permissions=True)
