@@ -10,8 +10,8 @@ Every item carries an honest verification tag:
 
 | Phase | Item | Commit | Status | Verification | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **0** | `P0-docs` | *(this commit)* | Done | `verified: mock/static` | Finalized `2026-11-siraj-fixes.md`, `baseline.md`, and `progress.md` after Gate 0 approval (items A–F). |
-| **1** | `C-13` | pending | Todo | — | `import frappe` in 48 `doctype/*/test_*.py`; remove `F821` ignore from `pyproject.toml`. |
+| **0** | `P0-docs` | `744bbb9` | Done | `verified: mock/static` | Finalized `2026-11-siraj-fixes.md`, `baseline.md`, and `progress.md` after Gate 0 approval (items A–F). |
+| **1** | `C-13` | *(this commit)* | Done | `verified: mock/static` | Added `import frappe` in all 48 `doctype/*/test_*.py`, removed `F821` from `pyproject.toml`, and added `tests/test_doctype_test_imports.py` (`+1` passed, `+49` subtests vs baseline; `0` `F821` repo-wide). |
 | **1** | `C-17` | pending | Todo | — | Stamp valid `data_group` in `setup/test_data.py`. |
 | **1** | `C-18` | pending | Todo | — | `workflow_state` `"default": "Draft"` on 15 standalone relation DocTypes (`Siraj Event` in Phase 3 L1). |
 | **1** | `C-25` | pending | Todo | — | Real `FrappeTestCase` adversarial isolation suite `siraj_research/tests/test_api_data_group_isolation.py` (+ local smoke runner); trigger `server.yml`. **GATE 1** |

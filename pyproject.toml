@@ -58,7 +58,6 @@ ignore = [
     "F403", # can't detect undefined names from * import
     "F405", # can't detect undefined names from * import
     "F722", # syntax error in forward type annotation
-    "F821", # frappe framework is provided by bench at runtime
     "RUF001", # Unicode characters (Arabic digits, ×) are used intentionally
     "W191", # indentation contains tabs
 ]
