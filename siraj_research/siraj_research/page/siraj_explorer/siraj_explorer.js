@@ -1,6 +1,17 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
 const SIRAJ_EXPLORER_BUILD = '2026-11-18.phase4.graph.a.1';
+
+function formatNetworkTotal(ns) {
+	const relCount = Number((ns && ns.relationship_count) || 0);
+	const outCount = Number((ns && ns.outbound_count) || 0);
+	const rawIn = ns && ns.inbound_count;
+	const capped = typeof rawIn === 'string' && /^\d+\+$/.test(rawIn);
+	const inCount = capped ? parseInt(rawIn.slice(0, -1), 10) : (Number(rawIn) || 0);
+	const total = relCount + outCount + inCount;
+	return capped ? (total + '+') : String(total);
+}
+
 frappe.pages['siraj-explorer'].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({ parent: wrapper, title: __('SIRAJ Explorer'), single_column: true });
 	new SirajExplorer(page);
@@ -1259,7 +1270,7 @@ class SirajExplorer {
 						{ label: __('Outbound'),      n: ns.outbound_count     || 0, color:'#6a7a7e' },
 					{ label: __('Inbound'),       n: ns.inbound_count      || 0, color:'#6a7a7e' },
 				];
-				const nsSec = section('overview','network',__('Network summary'), ()=>String((ns.relationship_count||0)+(ns.outbound_count||0)+(ns.inbound_count||0))).appendTo(pane);
+				const nsSec = section('overview','network',__('Network summary'), ()=>formatNetworkTotal(ns)).appendTo(pane);
 					const chipRow = $('<div class="sx-chip-row"></div>').appendTo(nsSec.find('.sx-section-body'));
 					sumChips.forEach(c => $('<span class="siraj-chip is-on" style="--chip-color:'+c.color+'"></span>')
 						.html('<span class="siraj-chip-label">'+c.label+'</span><span class="siraj-chip-count">'+c.n+'</span>')

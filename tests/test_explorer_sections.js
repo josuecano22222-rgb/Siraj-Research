@@ -213,7 +213,7 @@ w.frappe = {
 				{file_name: 'unsafe.txt', file_url: 'javascript:alert(1)'},
 			], comments: [], versions: []},
 			permissions: {can_write: true, can_create: true},
-			network_summary: {relationship_count: 1, outbound_count: 1, inbound_count: 0},
+			network_summary: {relationship_count: 1, outbound_count: 1, inbound_count: '200+'},
 		}};
 		return {message: {}};
 	},
@@ -275,6 +275,8 @@ const tab = (label) => $('.sx-panel-tabs button').filter((i, node) => $(node).te
 	await wait();
 	assert($('[data-tab-pane]').length, 'entity detail panel opened');
 	assert($('[data-tab-pane="overview"]').text().includes('موثّق'), 'entity status translated');
+	assert($('[data-tab-pane="overview"]').text().includes('202+'), 'network summary sums numeric + N+ inbound_count without concatenation');
+	assert(!$('[data-tab-pane="overview"]').text().includes('2200+'), 'network summary never string-concatenates 2 + "200+"');
 	tab('الصلات').trigger('click');
 	await wait();
 	const connections = $('[data-tab-pane="connections"]');
