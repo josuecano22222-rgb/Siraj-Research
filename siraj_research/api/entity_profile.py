@@ -27,6 +27,16 @@ VALUE_FIELDTYPES = {
     "Phone", "Email", "Geolocation",
 }
 PASSWORD_PLACEHOLDER = "••••••"
+INBOUND_LINKS_CAP = 200
+
+
+def _inbound_numeric_count(item):
+    c = item.get("count")
+    if isinstance(c, int):
+        return c
+    if isinstance(c, str) and c.endswith("+") and c[:-1].isdigit():
+        return int(c[:-1])
+    return 0
 
 
 def _field_label(f):
@@ -284,11 +294,13 @@ def get_entity_profile(doctype, name, **kwargs):
     rel_by_type = {}
     for r in relationships:
         rel_by_type[r.get("relationship_type")] = rel_by_type.get(r.get("relationship_type"), 0) + 1
+    has_capped_inbound = any(x.get("capped") for x in inbound)
+    total_inbound = sum(_inbound_numeric_count(x) for x in inbound)
     network_summary = {
         "relationship_count": len(relationships),
         "by_type": rel_by_type,
         "outbound_count": len(outbound),
-        "inbound_count": sum(x["count"] for x in inbound),
+        "inbound_count": f"{total_inbound}+" if has_capped_inbound else total_inbound,
     }
 
     # ---- Permissions for actions ----
@@ -432,24 +444,31 @@ def _inbound_links(doctype, name):
         or_filters = []
         for f in linking_fields:
             or_filters.append([f["fieldname"], "=", name])
+        capped = False
         try:
+            cap = max(1, int(INBOUND_LINKS_CAP))
             rows = (
                 frappe.get_list(
                     target_dt,
                     filters={"docstatus": ("<", 2)},
                     or_filters=or_filters,
                     fields=["name"],
-                    limit=5000,
+                    limit=cap + 1,
                 )
                 if or_filters
                 else []
             )
-            readable = [
-                r for r in rows if frappe.has_permission(target_dt, "read", r["name"])
-            ]
-            count = len(readable)
-            sample = readable[:5]
+            if len(rows) > cap:
+                capped = True
+                count = f"{cap}+"
+                sample = rows[:5]
+            else:
+                count = len(rows)
+                sample = rows[:5]
         except Exception:
+            frappe.log_error(
+                title=f"SIRAJ entity_profile inbound_links failed for {target_dt}",
+            )
             count = 0
             sample = []
         title_field = frappe.get_meta(target_dt).get_title_field() or "name"
@@ -460,5 +479,11 @@ def _inbound_links(doctype, name):
                 sample_titles.append({"name": s["name"], "title": t})
             except Exception:
                 sample_titles.append({"name": s["name"], "title": s["name"]})
-        out.append({"doctype": target_dt, "count": count, "sample": sample_titles, "restricted": False})
+        out.append({
+            "doctype": target_dt,
+            "count": count,
+            "capped": capped,
+            "sample": sample_titles,
+            "restricted": False,
+        })
     return out[:20]

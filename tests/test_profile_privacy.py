@@ -255,6 +255,9 @@ class ProfilePrivacyTest(unittest.TestCase):
 		frappe_stub.get_list = get_list
 		frappe_stub.get_all = get_all
 		frappe_stub.throw = lambda msg, exc=Exception: (_ for _ in ()).throw(exc(msg))
+		logged_errors = []
+		frappe_stub.log_error = lambda *a, **k: logged_errors.append((a, k))
+		frappe_stub._logged_errors = logged_errors
 		frappe_stub.db = types.SimpleNamespace(
 			get_value=lambda dt, name, field: titles.get((dt, name, field)),
 			count=db_count,
@@ -347,6 +350,43 @@ class ProfilePrivacyTest(unittest.TestCase):
 			ent_pl1 = json.dumps(ep_rev.get_entity_profile("Person", "PER-GD"))
 		self.assertIn("GD-INTERNAL-SENSITIVE-NOTE", ent_pl1)
 		self.assertIn("GD-SIBLING-PERMLEVEL1-ID", ent_pl1)
+
+	def test_inbound_links_avoids_per_row_has_permission_caps_with_n_plus_and_logs_errors(self):
+		env = self._build_env()
+		frappe_stub = env["frappe"]
+		orig_has_perm = frappe_stub.has_permission
+		doc_checks = []
+
+		def tracked_has_perm(doctype=None, ptype="read", doc=None, **kw):
+			if doctype == "Military Unit" and doc is not None:
+				doc_checks.append((doctype, doc))
+			return orig_has_perm(doctype=doctype, ptype=ptype, doc=doc, **kw)
+
+		def capped_get_list(doctype, filters=None, or_filters=None, fields=None, limit=None, **kw):
+			if doctype == "Military Unit":
+				rows = [{"name": f"UNIT-GD-{i:04d}"} for i in range(250)]
+				return rows[:limit] if limit else rows
+			if doctype == "Command Appointment":
+				raise RuntimeError("simulated query failure")
+			return []
+
+		frappe_stub.has_permission = tracked_has_perm
+		frappe_stub.get_list = capped_get_list
+		ep = self._load("siraj_research/api/entity_profile.py", "ep_cap", env)
+		with patch.dict(sys.modules, env):
+			profile = ep.get_entity_profile("Person", "PER-GD")
+
+		# Zero per-row doc= has_permission / get_doc calls on inbound Military Unit rows!
+		self.assertEqual(doc_checks, [])
+		inbound_mu = next(
+			i for i in profile["connections"]["inbound_links"] if i["doctype"] == "Military Unit"
+		)
+		self.assertEqual(inbound_mu["count"], "200+")
+		self.assertEqual(inbound_mu["capped"], True)
+		self.assertEqual(len(inbound_mu["sample"]), 5)
+		self.assertEqual(profile["network_summary"]["inbound_count"], "200+")
+		# Simulated Command Appointment failure was logged via frappe.log_error, not swallowed silently.
+		self.assertTrue(len(frappe_stub._logged_errors) >= 1)
 
 
 if __name__ == "__main__":

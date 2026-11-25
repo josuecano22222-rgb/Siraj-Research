@@ -580,3 +580,42 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		reviewer_payload = json.dumps(entity_profile.get_entity_profile("Person", gd_person), default=str)
 		self.assertIn("GD-INTERNAL-SENSITIVE-NOTE", reviewer_payload)
 		self.assertIn("GD-SIBLING-PERMLEVEL1-ID", reviewer_payload)
+
+	def test_18_entity_profile_inbound_links_excludes_gc_and_formats_cap_as_n_plus(self):
+		"""C-02: _inbound_links uses get_list SQL scoping (no per-row get_doc) and returns 'N+' when capped."""
+		gc = self.world["gc"]
+		gd = self.world["gd"]
+		frappe.set_user("Administrator")
+		frappe.db.set_value("Military Unit", gc["unit"], "commander", gd["person"], update_modified=False)
+		extra_unit = frappe.get_doc(
+			{
+				"doctype": "Military Unit",
+				"unit_name": "GD 11th Reserve Battalion",
+				"echelon": "Battalion",
+				"commander": gd["person"],
+				"data_group": "GD",
+			}
+		).insert(ignore_permissions=True)
+		orig_cap = getattr(entity_profile, "INBOUND_LINKS_CAP", 200)
+		try:
+			# 1) Uncapped: GD user sees exactly the 2 GD units (excluding GC unit -> count == 2, not 3).
+			frappe.set_user(VIEWER_GD_USER)
+			prof = entity_profile.get_entity_profile("Person", gd["person"])
+			inbound_mu = next(
+				i for i in prof["connections"]["inbound_links"] if i["doctype"] == "Military Unit"
+			)
+			self.assertEqual(inbound_mu["count"], 2)
+			self.assertNotIn("GC 99th Special Brigade", json.dumps(inbound_mu, default=str))
+
+			# 2) Capped at 1: 2 readable GD units exceed cap=1 -> count == '1+'.
+			entity_profile.INBOUND_LINKS_CAP = 1
+			capped_prof = entity_profile.get_entity_profile("Person", gd["person"])
+			capped_mu = next(
+				i for i in capped_prof["connections"]["inbound_links"] if i["doctype"] == "Military Unit"
+			)
+			self.assertEqual(capped_mu["count"], "1+")
+		finally:
+			entity_profile.INBOUND_LINKS_CAP = orig_cap
+			frappe.set_user("Administrator")
+			frappe.db.set_value("Military Unit", gc["unit"], "commander", gc["person"], update_modified=False)
+			frappe.delete_doc("Military Unit", extra_unit.name, force=True, ignore_permissions=True)
