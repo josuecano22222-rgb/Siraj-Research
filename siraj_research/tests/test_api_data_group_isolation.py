@@ -653,22 +653,40 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 			frappe.delete_doc("Relationship", gc_to_gd_rel.name, force=True, ignore_permissions=True)
 
 	def test_20_person_entity_profile_outbound_links_excludes_system_and_workflow_fields(self):
-		"""C-02: Person outbound_links excludes system/tenant/workflow/vocabulary Link fields."""
+		"""F2: outbound_links uses relatable entity allowlist (Place/Person/Institution appear; vocabulary/system do not)."""
 		gd = self.world["gd"]
-		frappe.set_user(VIEWER_GD_USER)
-		prof = entity_profile.get_entity_profile("Person", gd["person"])
-		outbound = prof["connections"]["outbound_links"]
-		outbound_fields = {item["field"] for item in outbound}
-		self.assertIn("birthplace", outbound_fields)
-		for excluded in (
-			"data_group",
-			"workflow_state",
-			"documentation_level",
-			"authentication_level",
-			"name_original_lang",
-			"amended_from",
-		):
-			self.assertNotIn(excluded, outbound_fields)
+		frappe.set_user("Administrator")
+		cat_name = "ISO-PROBE-CATEGORY"
+		if not frappe.db.exists("Person Category", cat_name):
+			frappe.get_doc({"doctype": "Person Category", "label_en": cat_name, "label_ar": cat_name}).insert(
+				ignore_permissions=True
+			)
+		frappe.db.set_value("Person", gd["person"], "category", cat_name, update_modified=False)
+		try:
+			frappe.set_user(VIEWER_GD_USER)
+			prof = entity_profile.get_entity_profile("Person", gd["person"])
+			outbound = prof["connections"]["outbound_links"]
+			outbound_fields = {item["field"] for item in outbound}
+			self.assertIn("birthplace", outbound_fields)
+			for excluded in (
+				"category",
+				"data_group",
+				"workflow_state",
+				"documentation_level",
+				"authentication_level",
+				"name_original_lang",
+				"amended_from",
+			):
+				self.assertNotIn(excluded, outbound_fields)
+
+			inst_prof = entity_profile.get_entity_profile("Institution", gd["inst"])
+			inst_outbound = {item["field"] for item in inst_prof["connections"]["outbound_links"]}
+			self.assertIn("place", inst_outbound)
+			self.assertNotIn("institution_type", inst_outbound)
+			self.assertNotIn("data_group", inst_outbound)
+		finally:
+			frappe.set_user("Administrator")
+			frappe.db.set_value("Person", gd["person"], "category", None, update_modified=False)
 
 	def test_21_geo_quality_report_non_located_doctype_returns_empty(self):
 		"""C-01: quality_report('<non-located doctype>') returns empty totals and samples."""

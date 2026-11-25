@@ -76,6 +76,7 @@ class ProfilePrivacyTest(unittest.TestCase):
 		person_meta_fields = [
 			_field_ns(fieldname="display_name", fieldtype="Data", label="Display name"),
 			_field_ns(fieldname="birthplace", fieldtype="Link", label="Place of birth", options="Place"),
+			_field_ns(fieldname="father_person", fieldtype="Link", label="Father", options="Person"),
 			_field_ns(fieldname="data_group", fieldtype="Link", label="Data Group", options="Data Group"),
 			_field_ns(fieldname="workflow_state", fieldtype="Link", label="Record status", options="Workflow State"),
 			_field_ns(
@@ -91,6 +92,16 @@ class ProfilePrivacyTest(unittest.TestCase):
 				options="Authentication Level",
 			),
 			_field_ns(fieldname="name_original_lang", fieldtype="Link", label="Language", options="Language"),
+			_field_ns(
+				fieldname="future_vocab",
+				fieldtype="Link",
+				label="Future vocabulary",
+				options="Brand New Vocabulary",
+			),
+			_field_ns(fieldname="dyn_target_type", fieldtype="Data", label="Dyn target type"),
+			_field_ns(fieldname="dyn_target", fieldtype="Dynamic Link", label="Dyn target", options="dyn_target_type"),
+			_field_ns(fieldname="dyn_entity_type", fieldtype="Data", label="Dyn entity type"),
+			_field_ns(fieldname="dyn_entity", fieldtype="Dynamic Link", label="Dyn entity", options="dyn_entity_type"),
 			_field_ns(
 				fieldname="researcher_notes",
 				fieldtype="Small Text",
@@ -165,11 +176,17 @@ class ProfilePrivacyTest(unittest.TestCase):
 			allowed_permlevels=allowed_permlevels,
 			display_name="GD Field Commander",
 			birthplace="PLC-GC",
+			father_person="PER-GD",
 			data_group="GD",
 			workflow_state="Draft",
 			documentation_level="Fully documented",
 			authentication_level="Corroborated",
 			name_original_lang="ar",
+			future_vocab="VOCAB-001",
+			dyn_target_type="Brand New Vocabulary",
+			dyn_target="VOCAB-001",
+			dyn_entity_type="Institution",
+			dyn_entity="INST-GD",
 			researcher_notes="GD-INTERNAL-SENSITIVE-NOTE",
 			siblings=[
 				{
@@ -453,15 +470,21 @@ class ProfilePrivacyTest(unittest.TestCase):
 		self.assertIn("name", seen_filters[0][1])
 		self.assertTrue(len(env_err["frappe"]._logged_errors) >= 1)
 
-	def test_outbound_links_excludes_system_workflow_tenant_and_taxonomy_links(self):
+	def test_outbound_links_uses_entity_allowlist_for_links_and_dynamic_links(self):
 		env = self._build_env()
 		ep = self._load("siraj_research/api/entity_profile.py", "ep_outbound_sys", env)
 		with patch.dict(sys.modules, env):
 			profile = ep.get_entity_profile("Person", "PER-GD")
 		outbound = profile["connections"]["outbound_links"]
 		outbound_fields = {item["field"] for item in outbound}
+		# Place, Person, and Dynamic Link -> Institution DO appear:
 		self.assertIn("birthplace", outbound_fields)
+		self.assertIn("father_person", outbound_fields)
+		self.assertIn("dyn_entity", outbound_fields)
+		# Brand-new vocabulary Link/Dynamic Link and system/workflow/tenant fields do NOT appear:
 		for excluded in (
+			"future_vocab",
+			"dyn_target",
 			"data_group",
 			"workflow_state",
 			"documentation_level",

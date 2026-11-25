@@ -12,6 +12,7 @@ import frappe
 from frappe import _
 from frappe.model.meta import get_meta
 
+from siraj_research.api.map_relations import _relatable_doctypes
 from siraj_research.profile_presentation import compute_quality_scores, organise_profile
 
 # Layout-only fieldtypes we never render as values. "Table" is deliberately
@@ -28,43 +29,11 @@ VALUE_FIELDTYPES = {
 }
 PASSWORD_PLACEHOLDER = "••••••"
 INBOUND_LINKS_CAP = 200
-# System, tenant-scoping, workflow, and vocabulary/taxonomy Link targets that
-# represent record metadata rather than navigable entity-to-entity connections.
-EXCLUDED_OUTBOUND_FIELDS = frozenset({
-    "data_group",
-    "workflow_state",
+# Non-connection Link fields (system/provenance) excluded even when their target
+# DocType is an entity (e.g. primary_source -> Source belongs to Provenance,
+# amended_from -> self belongs to Frappe amendment history).
+NON_GRAPH_LINK_FIELDS = frozenset({
     "amended_from",
-    "owner",
-    "modified_by",
-    "documentation_level",
-    "authentication_level",
-    "name_original_lang",
-    "linked_hierarchy_doctype",
-    "applies_to_subject",
-    "applies_to_object",
-})
-EXCLUDED_OUTBOUND_DOCTYPES = frozenset({
-    "Data Group",
-    "Workflow State",
-    "DocType",
-    "Language",
-    "Country",
-    "Documentation Level",
-    "Authentication Level",
-    "Person Classification",
-    "Person Status",
-    "Person Category",
-    "Military Branch",
-    "Military Service Status",
-    "Institution Type",
-    "Institution Subcategory",
-    "Governance System",
-    "Place Type",
-    "Event Type",
-    "Source Type",
-    "Source Reliability",
-    "Relationship Type",
-    "Unit Classification",
 })
 
 
@@ -226,13 +195,17 @@ def get_entity_profile(doctype, name, **kwargs):
     relationships = _authored_relationships(doctype, name)
 
     # ---- Connections: structural outbound (Link / Dynamic Link fields on this doc) ----
+    # Reuse the app's relatable/entity allowlist (_relatable_doctypes from map_relations)
+    # for both Link and Dynamic Link edges so vocabulary, workflow, tenant (Data Group),
+    # and Frappe core (Country, Language, DocType) targets never appear as graph nodes.
+    allowed_outbound_doctypes = _relatable_doctypes()
     outbound = []
     for f in meta.fields:
-        if f.fieldname in EXCLUDED_OUTBOUND_FIELDS:
+        if f.fieldname in NON_GRAPH_LINK_FIELDS:
             continue
         if (f.permlevel or 0) > 0 and not doc.has_permlevel_access_to(f.fieldname, f, "read"):
             continue
-        if f.fieldtype == "Link" and f.options and f.options not in EXCLUDED_OUTBOUND_DOCTYPES and doc.get(f.fieldname):
+        if f.fieldtype == "Link" and f.options in allowed_outbound_doctypes and doc.get(f.fieldname):
             val = doc.get(f.fieldname)
             if val:
                 target_dt = f.options
@@ -254,7 +227,7 @@ def get_entity_profile(doctype, name, **kwargs):
         elif f.fieldtype == "Dynamic Link" and doc.get(f.options):
             target_dt = doc.get(f.options)
             val = doc.get(f.fieldname)
-            if val and target_dt:
+            if val and target_dt in allowed_outbound_doctypes:
                 try:
                     can_read = bool(frappe.has_permission(target_dt, "read", doc=val))
                 except Exception:
