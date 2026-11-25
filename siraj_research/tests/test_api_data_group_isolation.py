@@ -79,6 +79,21 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 
 	def test_01_all_39_whitelisted_callables_registered_in_frappe_whitelisted(self):
 		"""Every endpoint in ALL_WHITELISTED_ENDPOINTS is registered in frappe.whitelisted."""
+		geo_meta = frappe.get_meta("Geo Settings")
+		for fn in (
+			"sb_offline_bootstrap",
+			"bootstrap_running",
+			"bootstrap_last_status",
+			"cb_offline_bootstrap",
+			"stop_bootstrap",
+			"bootstrap_stop_requested",
+			"sb_online_setup",
+			"online_setup_enabled",
+			"cb_online_setup",
+			"run_online_setup",
+		):
+			self.assertIsNotNone(geo_meta.get_field(fn), f"Geo Settings missing field {fn}")
+
 		self.assertEqual(len(ALL_WHITELISTED_ENDPOINTS), 39)
 		for mod_name, fn_qualname in ALL_WHITELISTED_ENDPOINTS:
 			mod = frappe.get_module(mod_name)

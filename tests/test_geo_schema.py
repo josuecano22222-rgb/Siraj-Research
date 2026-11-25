@@ -55,7 +55,10 @@ def test_parent_links_are_optional_when_a_level_is_skipped():
 
 
 def test_settings_allow_auto_creation_and_all_providers():
-    fields = {f["fieldname"]: f for f in _load("geo_settings")["fields"]}
+    doc = _load("geo_settings")
+    fields = {f["fieldname"]: f for f in doc["fields"]}
+    assert set(doc["field_order"]) == set(fields)
+    assert len(doc["field_order"]) == len(fields)
     assert {"auto_create_missing", "link_gazetteer_as_village",
             "online_fallback_when", "online_user_agent",
             "online_min_interval_s"} <= set(fields)

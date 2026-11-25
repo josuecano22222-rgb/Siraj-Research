@@ -19,7 +19,7 @@ Every item carries an honest verification tag:
 | **2** | `C-02` | pending | Todo | — | `entity_profile.py` + `relationship_profile.py` (`_fmt_value` only) `doc=` checks + `doc.get(f.fieldname)`. |
 | **2** | `C-03a` | pending | Todo | — | Central cross-group `Link`/`Dynamic Link` rejection in `permissions.py` (HD-4) + consistent `data_group` in `demo_data.py`/`test_data.py`. |
 | **2** | `C-03b` | pending | Todo | — | `operational_deployment.py` lifecycle, `command_appointment.py` `"role"` field, `person.validate_family`, `military_unit.py`/`utils/military.py` scoping. |
-| **2** | `C-04a` | pending | Todo | — | `geo_settings.json` `field_order` alignment (standalone commit before `C-04`). |
+| **2** | `C-04a` | in progress | Done | `verified: live bench` *(pending server.yml)* | Aligned `geo_settings.json` `field_order` with all 59 fields (added 10 offline bootstrap / online setup fields) + `test_geo_schema.py` & `test_api_data_group_isolation.py` meta check. |
 | **2** | `C-04` | pending | Todo | — | `offline_bootstrap.py` (`_require_admin`, `frappe.enqueue`, `max_zoom` `0..14`) + `geo_settings.js` polling (HD-2). |
 | **2** | `C-05` | pending | Todo | — | `boundary_import.py` (`dependencies` gate, `start_import` path confinement, upload cap) + `geo_import._extract_if_zip` symlink/zip-bomb checks. |
 | **2** | `C-06` | pending | Todo | — | `data_group_scope.js` bind per scoped DocType name (eliminate `cur_frm.doctype` crash). |
