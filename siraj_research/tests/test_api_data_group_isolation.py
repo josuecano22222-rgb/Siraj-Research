@@ -668,7 +668,7 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 			)
 			with (
 				patch.object(frappe, "enqueue", side_effect=fake_enqueue),
-				patch("frappe.utils.background_jobs.is_job_enqueued", return_value=False),
+				patch("frappe.utils.background_jobs.get_job_status", return_value=None),
 			):
 				res = offline_bootstrap.run_online_setup(dataset="ISO-TEST-BND", max_zoom=20)
 				self.assertTrue(res["queued"])
@@ -680,26 +680,36 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 				self.assertEqual(eq_kwargs["job_id"], offline_bootstrap.BOOTSTRAP_JOB_ID)
 				self.assertEqual(eq_kwargs["max_zoom"], 14)
 
-				# Second concurrent run while bootstrap_running=1 (set when queued) is refused!
-				with self.assertRaises(frappe.ValidationError):
-					offline_bootstrap.run_online_setup(dataset="ISO-TEST-BND", max_zoom=8)
-
-			# Also refused when bootstrap_running=0 in DB if RQ reports the job_id is still queued/started.
-			frappe.db.set_value("Geo Settings", "Geo Settings", "bootstrap_running", 0, update_modified=False)
+			# Second concurrent run while RQ job status is queued/started is refused!
 			with (
 				patch.object(frappe, "enqueue", side_effect=fake_enqueue),
-				patch("frappe.utils.background_jobs.is_job_enqueued", return_value=True),
+				patch("frappe.utils.background_jobs.get_job_status", return_value="started"),
 			):
 				with self.assertRaises(frappe.ValidationError):
 					offline_bootstrap.run_online_setup(dataset="ISO-TEST-BND", max_zoom=8)
 
-			# Negative zoom clamped to 0.
+			# G1: Stale bootstrap_running=1 in DB with no live RQ job (status None or 'failed')
+			# does NOT block a new run!
+			frappe.db.set_value("Geo Settings", "Geo Settings", "bootstrap_running", 1, update_modified=False)
 			with (
 				patch.object(frappe, "enqueue", side_effect=fake_enqueue),
-				patch("frappe.utils.background_jobs.is_job_enqueued", return_value=False),
+				patch("frappe.utils.background_jobs.get_job_status", return_value="failed"),
 			):
 				res_neg = offline_bootstrap.run_online_setup(dataset="ISO-TEST-BND", max_zoom=-3)
+				self.assertTrue(res_neg["queued"])
 				self.assertEqual(res_neg["max_zoom"], 0)
+
+			# G1: Enqueue failure leaves bootstrap_running=0!
+			with (
+				patch.object(frappe, "enqueue", side_effect=RuntimeError("Queue down")),
+				patch("frappe.utils.background_jobs.get_job_status", return_value=None),
+			):
+				with self.assertRaises(RuntimeError):
+					offline_bootstrap.run_online_setup(dataset="ISO-TEST-BND", max_zoom=5)
+				self.assertEqual(
+					int(frappe.db.get_value("Geo Settings", "Geo Settings", "bootstrap_running") or 0),
+					0,
+				)
 		finally:
 			frappe.set_user("Administrator")
 			frappe.db.set_value(

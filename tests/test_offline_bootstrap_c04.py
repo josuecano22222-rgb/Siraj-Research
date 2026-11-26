@@ -64,6 +64,7 @@ def _install_frappe_stub():
 	utils_mod.cint = lambda v: int(v or 0)
 	bg_mod = types.ModuleType("frappe.utils.background_jobs")
 	bg_mod.is_job_enqueued = lambda job_id: False
+	bg_mod.get_job_status = lambda job_id: None
 	bg_mod.create_job_id = lambda job_id: f"test.site::{job_id}"
 
 	sys.modules["frappe"] = frappe
@@ -100,12 +101,41 @@ def test_c04_offline_bootstrap_admin_gate_zoom_clamp_and_concurrency_refusal():
 		assert enqueued[0][1]["max_zoom"] == 14
 		assert state["bootstrap_running"] == 1
 
-		# Second run while bootstrap_running == 1 is refused.
-		with pytest.raises(_ValidationError):
-			ob.run_online_setup(dataset="ISO-TEST-BND", max_zoom=5)
+	# Second run while RQ job status is 'queued' or 'started' is refused.
+	for live_status in ("queued", "started"):
+		with patch.object(bg_mod, "get_job_status", return_value=live_status):
+			with pytest.raises(_ValidationError):
+				ob.run_online_setup(dataset="ISO-TEST-BND", max_zoom=5)
 
-	# Also refused when RQ says job is still enqueued even if bootstrap_running == 0.
-	state["bootstrap_running"] = 0
-	with patch.object(bg_mod, "is_job_enqueued", return_value=True):
-		with pytest.raises(_ValidationError):
-			ob.run_online_setup(dataset="ISO-TEST-BND", max_zoom=5)
+	# 3) Stale bootstrap_running=1 in DB with no live RQ job (status None / 'failed' / 'finished')
+	#    does NOT block a new run — flag is treated as stale and new run queues cleanly!
+	state["bootstrap_running"] = 1
+	state["bootstrap_last_status"] = "running"
+	enqueued_after_stale = []
+	with (
+		patch.object(bg_mod, "get_job_status", return_value="failed"),
+		patch.object(frappe, "enqueue", side_effect=lambda m, **kw: enqueued_after_stale.append((m, kw))),
+	):
+		recovered = ob.run_online_setup(dataset="ISO-TEST-BND", max_zoom=7)
+		assert recovered["queued"] is True
+		assert len(enqueued_after_stale) == 1
+		assert state["bootstrap_running"] == 1
+		assert state["bootstrap_last_status"] == "queued"
+
+	# 4) If frappe.enqueue raises, bootstrap_running is reset to 0!
+	with (
+		patch.object(bg_mod, "get_job_status", return_value=None),
+		patch.object(frappe, "enqueue", side_effect=RuntimeError("Redis queue unreachable")),
+	):
+		with pytest.raises(RuntimeError, match="Redis queue unreachable"):
+			ob.run_online_setup(dataset="ISO-TEST-BND", max_zoom=6)
+		assert state["bootstrap_running"] == 0
+		assert state["bootstrap_last_status"] == "enqueue failed"
+
+	# 5) prepare_offline_site clears bootstrap_running=0 in finally even on unhandled exception.
+	state["bootstrap_running"] = 1
+	with patch.object(ob, "_step", side_effect=KeyError("unexpected stage crash")):
+		with pytest.raises(KeyError, match="unexpected stage crash"):
+			ob.prepare_offline_site(dataset="ISO-TEST-BND", max_zoom=2)
+	assert state["bootstrap_running"] == 0
+	assert state["bootstrap_last_status"] == "failed"

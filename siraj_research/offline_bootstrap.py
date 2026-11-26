@@ -412,9 +412,25 @@ def prepare_offline_site(dataset: str | None = None, max_zoom: int = 11,
         result["stopped"] = True
         emit("stopped", str(exc), level="warning")
         _set_status(bootstrap_last_status="stopped by user")
+    except Exception as exc:
+        emit("error", f"Offline bootstrap failed: {type(exc).__name__}: {exc}", level="error")
+        _set_status(bootstrap_last_status="failed")
+        raise
     finally:
         _set_status(bootstrap_running=0)
     return result
+
+
+def _is_bootstrap_job_active() -> bool:
+    if frappe is None:
+        return False
+    from frappe.utils.background_jobs import get_job_status
+
+    status = get_job_status(BOOTSTRAP_JOB_ID)
+    if status is None:
+        return False
+    status_str = str(getattr(status, "value", status)).lower()
+    return status_str in ("queued", "started")
 
 
 if frappe is not None:  # pragma: no cover - bench only
@@ -428,7 +444,6 @@ if frappe is not None:  # pragma: no cover - bench only
         """
         _require_admin()
         from frappe.utils import cint
-        from frappe.utils.background_jobs import create_job_id, is_job_enqueued
 
         clamped_zoom = _clamp_max_zoom(max_zoom)
         cfg = frappe.get_single("Geo Settings")
@@ -436,16 +451,14 @@ if frappe is not None:  # pragma: no cover - bench only
         if not resolved_dataset:
             return {"error": "No active boundary dataset"}
 
-        namespaced_job_id = create_job_id(BOOTSTRAP_JOB_ID)
-        try:
-            job_active = bool(is_job_enqueued(namespaced_job_id))
-        except Exception:
-            job_active = False
-        if bool(cint(_settings_value("bootstrap_running"))) or job_active:
+        if _is_bootstrap_job_active():
             frappe.throw(
                 frappe._("Offline bootstrap is already running."),
                 frappe.ValidationError,
             )
+        if bool(cint(_settings_value("bootstrap_running"))):
+            # Stale DB flag from an interrupted/crashed worker with no live RQ job: clear it.
+            _set_status(bootstrap_running=0)
 
         allow_online = online_setup_allowed()
         if not allow_online:
@@ -456,15 +469,19 @@ if frappe is not None:  # pragma: no cover - bench only
             bootstrap_running=1,
             bootstrap_last_status="queued",
         )
-        frappe.enqueue(
-            "siraj_research.offline_bootstrap.prepare_offline_site",
-            queue="long",
-            timeout=7200,
-            job_id=BOOTSTRAP_JOB_ID,
-            deduplicate=True,
-            dataset=resolved_dataset,
-            max_zoom=clamped_zoom,
-        )
+        try:
+            frappe.enqueue(
+                "siraj_research.offline_bootstrap.prepare_offline_site",
+                queue="long",
+                timeout=7200,
+                job_id=BOOTSTRAP_JOB_ID,
+                deduplicate=True,
+                dataset=resolved_dataset,
+                max_zoom=clamped_zoom,
+            )
+        except Exception:
+            _set_status(bootstrap_running=0, bootstrap_last_status="enqueue failed")
+            raise
         return {
             "queued": True,
             "job_id": BOOTSTRAP_JOB_ID,
