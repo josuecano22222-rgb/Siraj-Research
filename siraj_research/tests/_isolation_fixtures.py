@@ -50,13 +50,36 @@ FIXTURE_ROW_SIGNATURES: tuple[tuple[str, dict], ...] = (
 	(
 		"Siraj Event",
 		{
-			"title_en": [
-				"in",
+			"or_filters": [
 				[
-					"GC Classified Briefing",
-					"GD Public Convoy",
-					"GC Classified Operation",
-					"GD Public Ceremony",
+					"name",
+					"in",
+					[
+						"GC Classified Briefing",
+						"GD Public Convoy",
+						"GC Classified Operation",
+						"GD Public Ceremony",
+					],
+				],
+				[
+					"title_en",
+					"in",
+					[
+						"GC Classified Briefing",
+						"GD Public Convoy",
+						"GC Classified Operation",
+						"GD Public Ceremony",
+					],
+				],
+				[
+					"display_name",
+					"in",
+					[
+						"GC Classified Briefing",
+						"GD Public Convoy",
+						"GC Classified Operation",
+						"GD Public Ceremony",
+					],
 				],
 			]
 		},
@@ -244,7 +267,17 @@ def find_isolation_fixture_rows() -> dict[str, list[str]]:
 	for doctype, filters in FIXTURE_ROW_SIGNATURES:
 		if not frappe.db.exists("DocType", doctype):
 			continue
-		names = sorted(frappe.get_all(doctype, filters=filters, pluck="name", limit_page_length=0))
+		if "or_filters" in filters:
+			names = sorted(
+				frappe.get_all(
+					doctype,
+					or_filters=filters["or_filters"],
+					pluck="name",
+					limit_page_length=0,
+				)
+			)
+		else:
+			names = sorted(frappe.get_all(doctype, filters=filters, pluck="name", limit_page_length=0))
 		if names:
 			found[doctype] = names
 	return found
