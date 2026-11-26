@@ -310,15 +310,13 @@ class TestSirajEvent(FrappeTestCase):
 			frappe.clear_cache()
 
 	def test_get_entity_network_nonexistent_and_unreadable_return_identical_response(self):
-		"""L2: get_entity_network must return the exact same response for a non-existent ID and an unreadable ID."""
+		"""L2: get_entity_network must return the exact same response shape & payload for a non-existent ID and an unreadable ID."""
 		frappe.set_user("Administrator")
 		if not frappe.db.exists("Data Group", "GC"):
 			frappe.get_doc({"doctype": "Data Group", "group_name": "GC"}).insert(
 				ignore_permissions=True
 			)
-		viewer_gd = self._ensure_scoped_user(
-			"siraj-evt-net-viewer@example.com", ("Group Member", "SIRAJ Viewer")
-		)
+		viewer_gd = self._ensure_role_user("siraj-evt-net-viewer@example.com", "SIRAJ Viewer")
 		gc_evt = frappe.get_doc(
 			{
 				"doctype": "Siraj Event",
@@ -333,8 +331,24 @@ class TestSirajEvent(FrappeTestCase):
 			frappe.set_user(viewer_gd)
 			unreadable_resp = map_relations.get_entity_network("Siraj Event", gc_evt.name)
 			nonexistent_resp = map_relations.get_entity_network("Siraj Event", "EVT-DOES-NOT-EXIST-999999")
-			self.assertEqual(unreadable_resp, nonexistent_resp)
-			self.assertEqual(unreadable_resp, {"nodes": [], "edges": [], "truncated": False})
+			self.assertEqual(unreadable_resp["center"], ["Siraj Event", gc_evt.name])
+			self.assertEqual(nonexistent_resp["center"], ["Siraj Event", "EVT-DOES-NOT-EXIST-999999"])
+			self.assertEqual(
+				{k: v for k, v in unreadable_resp.items() if k != "center"},
+				{k: v for k, v in nonexistent_resp.items() if k != "center"},
+			)
+			self.assertEqual(
+				{k: v for k, v in unreadable_resp.items() if k != "center"},
+				{
+					"nodes": [],
+					"edges": [],
+					"unmapped": [],
+					"truncated": False,
+					"total": 0,
+					"types": {},
+					"notice": None,
+				},
+			)
 		finally:
 			frappe.set_user("Administrator")
 			if frappe.db.exists("Siraj Event", gc_evt.name):

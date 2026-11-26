@@ -152,7 +152,8 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 				self.assertEqual(net["edges"], [])
 
 			# Indistinguishability (L2): get_entity_network must return the exact same
-			# response structure & values for an unreadable foreign ID as for a non-existent ID.
+			# response shape & payload (modulo echoed `center` query arg) for an
+			# unreadable foreign ID as for a non-existent ID.
 			for dt, foreign_id, missing_id in (
 				("Person", gc["person"], "PER-99999999"),
 				("Place", gc["place"], "PLC-99999999"),
@@ -160,8 +161,24 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 			):
 				unreadable_resp = map_relations.get_entity_network(dt, foreign_id)
 				nonexistent_resp = map_relations.get_entity_network(dt, missing_id)
-				self.assertEqual(unreadable_resp, nonexistent_resp)
-				self.assertEqual(unreadable_resp, {"nodes": [], "edges": [], "truncated": False})
+				self.assertEqual(unreadable_resp["center"], [dt, foreign_id])
+				self.assertEqual(nonexistent_resp["center"], [dt, missing_id])
+				self.assertEqual(
+					{k: v for k, v in unreadable_resp.items() if k != "center"},
+					{k: v for k, v in nonexistent_resp.items() if k != "center"},
+				)
+				self.assertEqual(
+					{k: v for k, v in unreadable_resp.items() if k != "center"},
+					{
+						"nodes": [],
+						"edges": [],
+						"unmapped": [],
+						"truncated": False,
+						"total": 0,
+						"types": {},
+						"notice": None,
+					},
+				)
 
 			with self.assertRaises(frappe.PermissionError):
 				relationship_profile.get_relationship_profile(gc["rel"])
