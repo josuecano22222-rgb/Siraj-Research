@@ -1285,6 +1285,67 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 			)
 
 
+	def test_21_relationship_cross_group_rejected_on_both_endpoints_hd4(self):
+		"""HD-4: a Relationship crosses groups on either endpoint and is rejected on both.
+
+		Consolidation moves the 14 association DocTypes' edges onto `Relationship`;
+		HD-4 (`validate_same_data_group_links`) must reject a cross-group link when
+		the *subject* is in a foreign group AND when the *object* is in a foreign
+		group — each endpoint checked against the row's own data_group.
+		"""
+		gc = self.world["gc"]
+		gd = self.world["gd"]
+		rel_type = self.world["vocab"]["rel_type"]
+
+		# 1) Object-side cross-group: GD subject -> GC object.
+		with self.assertRaises(frappe.PermissionError) as obj_ctx:
+			frappe.get_doc(
+				{
+					"doctype": "Relationship",
+					"relationship_type": rel_type,
+					"subject_type": "Person",
+					"subject": gd["person"],
+					"object_type": "Person",
+					"object": gc["person"],
+					"data_group": "GD",
+				}
+			).insert()
+		self.assertNotIn(gc["person"], str(obj_ctx.exception))
+
+		# 2) Subject-side cross-group: GC subject -> GD object.
+		with self.assertRaises(frappe.PermissionError) as subj_ctx:
+			frappe.get_doc(
+				{
+					"doctype": "Relationship",
+					"relationship_type": rel_type,
+					"subject_type": "Person",
+					"subject": gc["person"],
+					"object_type": "Person",
+					"object": gd["person"],
+					"data_group": "GD",
+				}
+			).insert()
+		self.assertNotIn(gc["person"], str(subj_ctx.exception))
+
+		# 3) Same-group on both endpoints still saves (the positive control).
+		same_group = frappe.get_doc(
+			{
+				"doctype": "Relationship",
+				"relationship_type": rel_type,
+				"subject_type": "Person",
+				"subject": gd["person"],
+				"object_type": "Person",
+				"object": gd["person"],
+				"data_group": "GD",
+			}
+		).insert()
+		try:
+			self.assertEqual(same_group.data_group, "GD")
+		finally:
+			frappe.set_user("Administrator")
+			frappe.delete_doc("Relationship", same_group.name, force=True, ignore_permissions=True)
+
+
 class TestZIsolationFixtureCleanup(FrappeTestCase):
 	"""End-of-module verification (J2): zero isolation fixture rows or users remain after tearDownClass."""
 
