@@ -145,3 +145,19 @@ def test_bench_suite_structure_principals_and_teardown():
 		"Relationship",
 	):
 		assert doctype in suite_src or doctype in fixtures_src, f"Missing cross-group Link coverage for {doctype}"
+
+
+def test_no_frappe_only_for_in_production_code_g4():
+	"""G4: frappe.only_for bypasses checks when frappe.local.flags.in_test is truthy in Frappe v15;
+	production modules under siraj_research/ must never call frappe.only_for."""
+	offenders: list[str] = []
+	for py_path in sorted(APP_DIR.rglob("*.py")):
+		tree = ast.parse(py_path.read_text(encoding="utf-8"), filename=str(py_path))
+		for node in ast.walk(tree):
+			if isinstance(node, ast.Call):
+				func = node.func
+				if (isinstance(func, ast.Attribute) and func.attr == "only_for") or (
+					isinstance(func, ast.Name) and func.id == "only_for"
+				):
+					offenders.append(f"{py_path.relative_to(ROOT)}:{node.lineno}")
+	assert not offenders, f"Forbidden frappe.only_for call(s) found: {offenders}"

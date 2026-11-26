@@ -35,9 +35,9 @@ Inspected directly in `frappe 15.128.0` (`version-15` @ `fd94443`):
 
 ## HD-2 — `run_online_setup`
 
-**DECIDED.** `frappe.enqueue`, admin-gated via a module-local `_require_admin()` helper in `siraj_research/offline_bootstrap.py` calling `frappe.only_for(("System Manager", "SIRAJ Administrator"))` (verified after opening `offline_bootstrap.py:92–105, 389–401`; does not import private `_assert_admin` from `boundary_import.py`), `max_zoom` clamped `0..14`, `request_stop` and `clear_stop` gated identically, and `geo_settings.js` updated to poll `bootstrap_running` / `bootstrap_last_status` in the same commit.
+**DECIDED.** `frappe.enqueue`, admin-gated via a module-local `_require_admin()` helper in `siraj_research/offline_bootstrap.py` checking `frappe.get_roles(user)` against `("System Manager", "SIRAJ Administrator")` (note: `frappe.only_for` is avoided because Frappe v15 `frappe/__init__.py:959` short-circuits when `local.flags.in_test` is truthy; does not import private `_assert_admin` from `boundary_import.py`), `max_zoom` clamped `0..14`, `request_stop` and `clear_stop` gated identically, and `geo_settings.js` updated to poll `bootstrap_running` / `bootstrap_last_status` in the same commit.
 
-**Consequences:** `siraj_research/offline_bootstrap.py` enforces `_require_admin()` (`frappe.only_for(("System Manager", "SIRAJ Administrator"))`) on `run_online_setup`, `request_stop`, and `clear_stop`, clamps `max_zoom` to `[0, 14]`, and dispatches `prepare_offline_site` onto Frappe's `"long"` background queue via `frappe.enqueue`, while `siraj_research/public/js/geo_settings.js` polls `Geo Settings` (`bootstrap_running` / `bootstrap_last_status`) in the same commit (`C-04`, preceded by `C-04a` fixing `geo_settings.json` `field_order`).
+**Consequences:** `siraj_research/offline_bootstrap.py` enforces `_require_admin()` (explicit `frappe.get_roles` check for `("System Manager", "SIRAJ Administrator")`) on `run_online_setup`, `request_stop`, and `clear_stop`, clamps `max_zoom` to `[0, 14]`, and dispatches `prepare_offline_site` onto Frappe's `"long"` background queue via `frappe.enqueue`, while `siraj_research/public/js/geo_settings.js` polls `Geo Settings` (`bootstrap_running` / `bootstrap_last_status`) in the same commit (`C-04`, preceded by `C-04a` fixing `geo_settings.json` `field_order`).
 
 ---
 
