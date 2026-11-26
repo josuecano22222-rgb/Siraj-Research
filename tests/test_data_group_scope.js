@@ -24,7 +24,9 @@ const context = {
 		ui: {
 			form: {
 				on(doctype, handlers) {
-					registered.set(doctype, handlers);
+					const list = registered.get(doctype) || [];
+					list.push(handlers);
+					registered.set(doctype, list);
 				},
 			},
 		},
@@ -40,6 +42,8 @@ Object.defineProperty(context, 'cur_frm', {
 
 vm.createContext(context);
 vm.runInContext(scriptSource, context);
+// Second load (e.g. opening another scoped DocType form in the same Desk tab) must be a no-op (H2).
+vm.runInContext(scriptSource, context);
 
 assert.equal(curFrmAccessed, false, 'data_group_scope.js must not access cur_frm at load time');
 assert.deepEqual(
@@ -49,15 +53,16 @@ assert.deepEqual(
 );
 
 for (const dt of expectedDoctypes) {
-	const handlers = registered.get(dt);
-	assert.equal(typeof handlers.refresh, 'function', `${dt} must register refresh handler`);
+	const handlerList = registered.get(dt);
+	assert.equal(handlerList.length, 1, `${dt} must register exactly one handler across repeated loads`);
+	assert.equal(typeof handlerList[0].refresh, 'function', `${dt} must register refresh handler`);
 }
 
 // Verify read_only toggling semantics across member vs official and new vs saved docs.
 function runRefresh(doctype, roles, isNew) {
 	context.frappe.user_roles = roles;
 	const calls = [];
-	registered.get(doctype).refresh({
+	registered.get(doctype)[0].refresh({
 		doctype,
 		is_new: () => isNew,
 		set_df_property(fieldname, prop, value) {

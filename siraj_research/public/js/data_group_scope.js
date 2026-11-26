@@ -1,6 +1,13 @@
 // Keep section membership server-controlled for members while allowing an
 // official to choose a section on a brand-new record.
 (function () {
+	if (typeof frappe !== "undefined" && frappe._sirajDataGroupScopeBound) {
+		return;
+	}
+	if (typeof frappe !== "undefined") {
+		frappe._sirajDataGroupScopeBound = true;
+	}
+
 	const SCOPED_DOCTYPES = [
 		"Command Appointment",
 		"Institution",
