@@ -96,7 +96,7 @@ def _entity_rows(types, extra_fields=(), include_details=False):
 		title = ENTITIES[doctype]
 		details = DETAIL_FIELDS.get(doctype, ()) if include_details else ()
 		rows, cut = _records(doctype, [title, *extra_fields, *details])
-		meta = frappe.get_meta(doctype) if details else None
+		meta = frappe.get_meta(doctype) if (details and rows) else None
 		if cut:
 			truncated.append(doctype)
 		for row in rows:
