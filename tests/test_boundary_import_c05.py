@@ -27,6 +27,8 @@ def _make_fake_frappe(site_private: Path, is_admin: bool = True):
 	fake.PermissionError = _PermissionError
 	fake.ValidationError = _ValidationError
 	fake._ = lambda msg: msg
+	fake.session = types.SimpleNamespace(user="siraj.admin@example.com")
+	fake.get_roles = lambda user=None: ["SIRAJ Administrator"] if is_admin else ["SIRAJ Viewer"]
 
 	def _whitelist(*args, **kwargs):
 		if args and callable(args[0]) and len(args) == 1 and not kwargs:
@@ -67,9 +69,15 @@ def _make_fake_frappe(site_private: Path, is_admin: bool = True):
 def boundary_env(monkeypatch, tmp_path):
 	site_private = tmp_path / "site" / "private"
 	site_private.mkdir(parents=True, exist_ok=True)
-	state = {"is_admin": True}
+	state = {"is_admin": True, "roles": ["SIRAJ Administrator"], "user": "siraj.admin@example.com"}
 	fake, utils_pkg, fm_mod = _make_fake_frappe(site_private, is_admin=True)
 	fake.has_permission = lambda doctype, ptype="read": bool(state["is_admin"])
+	fake.get_roles = lambda user=None: (
+		list(state["roles"])
+		if state["is_admin"]
+		else [r for r in state["roles"] if r not in ("System Manager", "SIRAJ Administrator")]
+	)
+	fake.session = types.SimpleNamespace(user=state["user"])
 
 	monkeypatch.setitem(sys.modules, "frappe", fake)
 	monkeypatch.setitem(sys.modules, "frappe.utils", utils_pkg)
@@ -236,3 +244,33 @@ def test_same_name_uploads_do_not_overwrite_g5(boundary_env):
 	assert p2.name.endswith("_boundaries.geojson")
 	assert p1.read_bytes() == b'{"id": 1}'
 	assert p2.read_bytes() == b'{"id": 2}'
+
+
+def test_boundary_import_aligns_admin_roles_and_rejects_siraj_reviewer_g6(boundary_env):
+	bi, _gi, fake, state, _site_private = boundary_env
+	import siraj_research.offline_bootstrap as ob
+
+	assert set(bi.BOUNDARY_IMPORT_ADMIN_ROLES) == set(ob.BOOTSTRAP_ADMIN_ROLES) == {
+		"System Manager",
+		"SIRAJ Administrator",
+	}
+
+	# Even if Boundary Dataset DocPerm grants write=1 to SIRAJ Reviewer, _assert_admin must reject Reviewer.
+	state["is_admin"] = True
+	fake.has_permission = lambda doctype, ptype="read": True
+	fake.get_roles = lambda user=None: ["SIRAJ Reviewer"]
+	fake.session.user = "reviewer@example.com"
+	for call in (
+		lambda: bi.dependencies(),
+		lambda: bi.upload_file("probe.geojson", base64.b64encode(b"{}").decode("ascii")),
+		lambda: bi.start_import("ISO-TEST-BND", "/tmp/probe.geojson"),
+		lambda: bi.status("ISO-TEST-BND"),
+	):
+		with pytest.raises(fake.PermissionError):
+			call()
+
+	# System Manager and SIRAJ Administrator both pass _assert_admin.
+	for admin_role in ("System Manager", "SIRAJ Administrator"):
+		fake.get_roles = lambda user=None, r=admin_role: [r]
+		res = bi.dependencies()
+		assert "ok" in res

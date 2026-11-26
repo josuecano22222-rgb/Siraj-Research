@@ -19,9 +19,15 @@ from siraj_research.geo_import import (
 	import_boundary_job,
 )
 
+BOUNDARY_IMPORT_ADMIN_ROLES = ("System Manager", "SIRAJ Administrator")
+
 
 def _assert_admin():
-	if not (frappe.has_permission("Boundary Dataset", "write") or frappe.has_permission("Geo Settings", "write")):
+	user = getattr(getattr(frappe, "session", None), "user", None) or "Guest"
+	if user == "Administrator":
+		return
+	roles = set(frappe.get_roles(user))
+	if user == "Guest" or roles.isdisjoint(BOUNDARY_IMPORT_ADMIN_ROLES):
 		frappe.throw("Administrator role required to import boundary data.", frappe.PermissionError)
 
 

@@ -756,14 +756,17 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 				)
 
 	def test_11_boundary_import_upload_and_status_admin_gated(self):
-		"""upload_file, start_import, and status already block non-admin viewers; admins can check status."""
-		frappe.set_user(VIEWER_GD_USER)
-		with self.assertRaises(frappe.PermissionError):
-			boundary_import.upload_file("probe.geojson", base64.b64encode(b"{}").decode("ascii"))
-		with self.assertRaises(frappe.PermissionError):
-			boundary_import.start_import("ISO-TEST-BND", "/tmp/nonexistent.geojson")
-		with self.assertRaises(frappe.PermissionError):
-			boundary_import.status("ISO-TEST-BND")
+		"""upload_file, start_import, and status block non-admin roles (including SIRAJ Reviewer, G6); admins succeed."""
+		for non_admin_user in (VIEWER_GD_USER, REVIEWER_GD_USER):
+			frappe.set_user(non_admin_user)
+			with self.assertRaises(frappe.PermissionError):
+				boundary_import.dependencies()
+			with self.assertRaises(frappe.PermissionError):
+				boundary_import.upload_file("probe.geojson", base64.b64encode(b"{}").decode("ascii"))
+			with self.assertRaises(frappe.PermissionError):
+				boundary_import.start_import("ISO-TEST-BND", "/tmp/nonexistent.geojson")
+			with self.assertRaises(frappe.PermissionError):
+				boundary_import.status("ISO-TEST-BND")
 
 		frappe.set_user(GD_ADMIN_USER)
 		st = boundary_import.status("ISO-TEST-BND")
