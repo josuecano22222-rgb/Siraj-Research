@@ -476,9 +476,9 @@ def seed_demo_data() -> dict:
         _tally("Military Unit")
         seeded.append(("Military Unit", units[row["key"]]))
 
-    # -- Siraj Events: date precision showcase (RESEARCH_EVENTS) ----------
-    research_events: dict[str, str] = {}
-    for row in C.RESEARCH_EVENTS:
+    # -- Siraj Events: date precision showcase (SIRAJ_EVENT_DATE_PRECISION) ----------
+    siraj_event_date_precision: dict[str, str] = {}
+    for row in C.SIRAJ_EVENT_DATE_PRECISION:
         vals = {
             "naming_series": "EVT-.####",
             "title_en": f"{row['en']} {TAG}",
@@ -496,10 +496,10 @@ def seed_demo_data() -> dict:
             vals["place"] = places[row["place"]]
             vals["place_as_stated"] = C.PLACES[
                 [p["key"] for p in C.PLACES].index(row["place"])]["en"]
-        research_events[row["key"]] = _add(
+        siraj_event_date_precision[row["key"]] = _add(
             "Siraj Event", vals, title_en=f"{row['en']} {TAG}")
         _tally("Siraj Event")
-        seeded.append(("Siraj Event", research_events[row["key"]]))
+        seeded.append(("Siraj Event", siraj_event_date_precision[row["key"]]))
 
     # -- Siraj Events: desk flagship rows (SIRAJ_EVENTS) ------------------
     siraj_events: dict[str, str] = {}
@@ -525,7 +525,7 @@ def seed_demo_data() -> dict:
         seeded.append(("Siraj Event", siraj_events[row["key"]]))
 
     refs = {"P": persons, "I": institutions, "Pl": places, "U": units,
-            "E": research_events, "S": siraj_events, "Src": sources}
+            "E": siraj_event_date_precision, "S": siraj_events, "Src": sources}
 
     # -- Relationships (varied confidence) -------------------------------
     for row in C.RELATIONSHIPS:
