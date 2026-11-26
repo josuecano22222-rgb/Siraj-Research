@@ -482,7 +482,7 @@ def seed_test_data():
 			object_type="Person",
 			object=mixed,
 		)
-		add("Research Event", title_ar="اختبار حدث ناقص البيانات", event_type=lookup["Event Type"])
+		add("Siraj Event", title_ar="اختبار حدث ناقص البيانات", event_type=lookup["Event Type"])
 		region = add(
 			"Place",
 			name_ar="اختبار منطقة قيادة",
