@@ -28,7 +28,6 @@
 		"Person Position",
 		"Place",
 		"Relationship",
-		"Research Event",
 		"Shared Record",
 		"Siraj Event",
 		"Siraj Event Institution",

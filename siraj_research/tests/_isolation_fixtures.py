@@ -389,47 +389,33 @@ def build_isolation_world() -> dict:
 		}
 	).insert(ignore_permissions=True)
 
-	gc_siraj_event_title = "GC Classified Briefing"
-	if frappe.db.exists("Siraj Event", gc_siraj_event_title):
-		frappe.delete_doc("Siraj Event", gc_siraj_event_title, force=True, ignore_permissions=True)
-	gc_siraj_event = frappe.get_doc(
+	gc_siraj_event = _insert_predictable_or_regular(
 		{
 			"doctype": "Siraj Event",
-			"title": gc_siraj_event_title,
+			"title_ar": "حدث سري جيم",
+			"title_en": "GC Classified Briefing",
 			"event_type": event_type,
+			"place": gc_place.name,
+			"latitude": 31.5150,
+			"longitude": 34.4590,
+			"geocoding_method": "manual",
 			"workflow_state": "Draft",
 			"data_group": "GC",
-		}
-	).insert(ignore_permissions=True)
-	gd_siraj_event_title = "GD Public Convoy"
-	if frappe.db.exists("Siraj Event", gd_siraj_event_title):
-		frappe.delete_doc("Siraj Event", gd_siraj_event_title, force=True, ignore_permissions=True)
+		},
+		predictable_name="EVT-0001",
+	)
 	gd_siraj_event = frappe.get_doc(
 		{
 			"doctype": "Siraj Event",
-			"title": gd_siraj_event_title,
+			"title_ar": "قافلة عامة دال",
+			"title_en": "GD Public Convoy",
 			"event_type": event_type,
+			"place": gd_place.name,
+			"researcher_notes": "GD-EVT-REVIEWER-ONLY-NOTE",
 			"workflow_state": "Draft",
 			"data_group": "GD",
 		}
 	).insert(ignore_permissions=True)
-
-	gc_research_event = None
-	if frappe.db.exists("DocType", "Research Event"):
-		gc_research_event = _insert_predictable_or_regular(
-			{
-				"doctype": "Research Event",
-				"title_ar": "حدث سري جيم",
-				"title_en": "GC Classified Operation",
-				"event_type": event_type,
-				"place": gc_place.name,
-				"latitude": 31.5150,
-				"longitude": 34.4590,
-				"geocoding_method": "manual",
-				"data_group": "GC",
-			},
-			predictable_name="EVT-0001",
-		)
 
 	gc_rel = frappe.get_doc(
 		{
@@ -486,7 +472,6 @@ def build_isolation_world() -> dict:
 			"deployment": gc_deployment.name,
 			"appointment": gc_appointment.name,
 			"siraj_event": gc_siraj_event.name,
-			"research_event": gc_research_event.name if gc_research_event else None,
 			"rel": gc_rel.name,
 			"shared": gc_shared.name,
 		},

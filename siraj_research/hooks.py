@@ -223,7 +223,6 @@ SCOPED_DOCTYPES = [
 	"Person Position",
 	"Place",
 	"Relationship",
-	"Research Event",
 	"Shared Record",
 	"Siraj Event",
 	"Siraj Event Institution",
@@ -255,7 +254,7 @@ doctype_js.update({dt: "public/js/data_group_scope.js" for dt in SCOPED_DOCTYPES
 doc_events = {
 	dt: {"validate": ["siraj_research.geo_doc_events.auto_fill_hierarchy"]}
 	for dt in (
-		"Person", "Institution", "Place", "Research Event", "Siraj Event",
+		"Person", "Institution", "Place", "Siraj Event",
 		"Military Unit", "Operational Deployment",
 	)
 }

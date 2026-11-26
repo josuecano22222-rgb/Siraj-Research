@@ -92,7 +92,7 @@ def test_field_values_and_apply_to_doc_fill_only_empty_fields(monkeypatch, linke
 
 @pytest.mark.parametrize("doctype, expected", [
     ("institution", ["country", "governorate", "district", "municipality", "village", "community"]),
-    ("research_event", ["country", "governorate", "district", "municipality", "village", "community"]),
+    ("siraj_event", ["country", "governorate", "district", "municipality", "village", "community"]),
     ("operational_deployment", ["country", "governorate", "district", "municipality", "village", "community"]),
 ])
 def test_additive_hierarchy_fields_exist_on_all_geo_doctypes(doctype, expected):

@@ -75,7 +75,7 @@ def test_all_shipped_doctypes_with_location_fields_are_normalized():
 		assert meta.get("field_order") == [field["fieldname"] for field in meta["fields"]], meta["name"]
 		labels = {field["label"] for field in meta["fields"] if field.get("fieldname") == "geo_point"}
 		assert labels in ({CANONICAL_LABELS["geo_point"]}, set()), meta["name"]
-	assert checked >= 17
+	assert checked >= 16
 
 
 def test_bundle_loads_location_guard_before_map_modules():

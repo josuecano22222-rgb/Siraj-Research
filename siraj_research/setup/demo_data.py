@@ -629,7 +629,7 @@ def seed_demo_data() -> dict:
 
 
 _KIND_MAP = {"P": "Person", "I": "Institution", "Pl": "Place",
-             "U": "Military Unit", "E": "Research Event",
+             "U": "Military Unit", "E": "Siraj Event",
              "S": "Siraj Event", "Src": "Source"}
 
 

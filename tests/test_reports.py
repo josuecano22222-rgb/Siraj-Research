@@ -154,7 +154,9 @@ class ReportTest(unittest.TestCase):
 		self.frappe.rows["Military Unit"] = [
 			{"name": "u-gd", "unit_name": "GD Brigade", "latitude": 0.0, "longitude": 0.0},
 		]
-		self.frappe.denied = {("Person", "p-gc"), "SIRAJ Settings"}
+		self.frappe.denied = {("Person", "p-gc"), "SIRAJ Settings"} | {
+			dt for dt in getattr(geo_quality, "LOCATED_DOCTYPES", ()) if dt not in self.frappe.meta
+		}
 
 		# Every row approved by readable_rows(dt, ...) returns its sample regardless of SIRAJ Settings.
 		report = geo_quality.quality_report()

@@ -159,8 +159,7 @@ class TestDemoData(FrappeTestCase):
                                ("Institution", "name_en"),
                                ("Place", "name_en"),
                                ("Source", "title"),
-                               ("Research Event", "title_en"),
-                               ("Siraj Event", "title"),
+                               ("Siraj Event", "title_en"),
                                ("Military Unit", "unit_name")):
             self.assertEqual(_tagged_names(doctype, field), [],
                              f"{doctype} demo records survived teardown")

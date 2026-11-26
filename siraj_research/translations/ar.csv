@@ -1187,7 +1187,6 @@ Reports & Analytics,التقارير والتحليلات
 Require a source before publishing,اشتراط مصدر قبل النشر
 Required by Nominatim. Include a contact address; a generic browser agent may be blocked.,مطلوب في Nominatim. أدرج عنوان اتصال؛ قد يُحظر وكيل المتصفح العام.
 Research,الأبحاث
-Research Event,حدث بحثي
 Research events,الأحداث البحثية
 Research significance,الأهمية البحثية
 "Research-documented historical events that connect persons, places and institutions. Distinct from the Frappe calendar Event.",أحداث تاريخية موثّقة بحثيًا تربط الأشخاص والأماكن والمؤسسات. تختلف عن حدث التقويم في Frappe.
@@ -1244,6 +1243,7 @@ Seat,المقر
 Secondary,ثانوي
 Section,القسم
 Seeded by the application; cannot be renamed or deleted.,مبذور بواسطة التطبيق؛ لا يمكن إعادة تسميته أو حذفه.
+At least one of Title (Arabic) or Title (English) is required.,مطلوب إدخال العنوان (بالعربية) أو العنوان (بالإنجليزية) على الأقل.
 Select a local pack and enter valid bounds and zooms.,اختر حزمة محلية وأدخل نطاقات وتكبيرات صالحة.
 Select a mapped record first.,اختر سجلًا موضّعًا أولًا.
 Select a marker to inspect its record. Clusters show the number of nearby points. Online tiles are optional.,اختر علامة لفحص سجلها. التجميعات تُظهر عدد النقاط القريبة.
@@ -1526,7 +1526,6 @@ Total Persons,إجمالي الأشخاص
 Total Places,إجمالي الأماكن
 Total Records,إجمالي السجلات
 Total Relationships,إجمالي العلاقات
-Total Research Events,إجمالي الأحداث البحثية
 Total Sources,إجمالي المصادر
 Total: {0},المجموع: {0}
 Training,تدريب

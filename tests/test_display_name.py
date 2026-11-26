@@ -33,7 +33,7 @@ class DisplayNameTest(unittest.TestCase):
 			("person", "Person", "name_en", "name_ar"),
 			("institution", "Institution", "name_en", "name_ar"),
 			("place", "Place", "name_en", "name_ar"),
-			("research_event", "ResearchEvent", "title_en", "title_ar"),
+			("siraj_event", "SirajEvent", "title_en", "title_ar"),
 			("source", "Source", "title", "title_ar"),
 		]
 		with patch.dict(sys.modules, modules):
