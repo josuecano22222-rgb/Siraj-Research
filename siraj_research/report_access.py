@@ -5,13 +5,21 @@ from __future__ import annotations
 import frappe
 
 
+def _can_read_doctype(doctype: str) -> bool:
+	does_not_exist = getattr(getattr(frappe, "exceptions", None), "DoesNotExistError", ())
+	try:
+		return bool(frappe.has_permission(doctype, "read"))
+	except does_not_exist:
+		return False
+
+
 def readable_rows(doctype, fields, filters=None, page_size=200):
 	"""Iterate permitted documents without an implicit 20-row limit.
 
 	Frappe's list query enforces role, owner, user and query permissions. The
 	additional document check enforces custom has_permission hooks as well.
 	"""
-	if not frappe.has_permission(doctype, "read"):
+	if not _can_read_doctype(doctype):
 		return
 	start = 0
 	fields = list(dict.fromkeys(["name", *fields]))

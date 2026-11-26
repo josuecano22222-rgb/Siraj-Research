@@ -64,9 +64,8 @@ class TestDemoData(FrappeTestCase):
         self.assertEqual(result["Place"], C.SPEC["places"])
         self.assertEqual(result["Source"], C.SPEC["sources"])
         self.assertEqual(result["Military Unit"], C.SPEC["military_units"])
-        self.assertEqual(result["Research Event"],
-                         C.SPEC["research_events"])
-        self.assertEqual(result["Siraj Event"], C.SPEC["siraj_events"])
+        self.assertNotIn("Research Event", result)
+        self.assertEqual(result["Siraj Event"], C.SPEC["events_total"])
         self.assertEqual(result["Relationship"], len(C.RELATIONSHIPS))
         self.assertTrue(_tagged_names("Person", "name_en"))
 
@@ -138,8 +137,7 @@ class TestDemoData(FrappeTestCase):
 
         # every record with an evidence table carries ≥1 sourced row
         for doctype, field in (("Person", "name_en"),
-                               ("Research Event", "title_en"),
-                               ("Siraj Event", "title")):
+                               ("Siraj Event", "title_en")):
             names = _tagged_names(doctype, field)
             self.assertTrue(names)
             # Evidence rows are child rows — read them off the parent doc

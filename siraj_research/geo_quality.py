@@ -63,7 +63,12 @@ def quality_report(doctype: str | None = None) -> dict:
 	samples: dict[str, list[dict]] = {}
 
 	for dt in doctypes:
-		if not frappe.has_permission(dt, "read"):
+		does_not_exist = getattr(getattr(frappe, "exceptions", None), "DoesNotExistError", ())
+		try:
+			can_read = bool(frappe.has_permission(dt, "read"))
+		except does_not_exist:
+			continue
+		if not can_read:
 			continue
 
 		fields, title_field = _query_fields_for(dt)

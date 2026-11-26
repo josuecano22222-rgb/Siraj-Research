@@ -47,8 +47,7 @@ TAG_FIELDS = (
     ("Institution", "name_en"),
     ("Place", "name_en"),
     ("Source", "title"),
-    ("Research Event", "title_en"),
-    ("Siraj Event", "title"),
+    ("Siraj Event", "title_en"),
     ("Military Unit", "unit_name"),
     ("Relationship", "display_name"),
     ("Person Institution", "title_en"),
@@ -84,8 +83,7 @@ TEARDOWN_ORDER = [
     ("Siraj Event Military Unit", "title_en"),
     ("Person Military Unit", "title_en"),
     ("Person Location", "title_en"),
-    ("Siraj Event", "title"),
-    ("Research Event", "title_en"),
+    ("Siraj Event", "title_en"),
     ("Military Unit", "unit_name"),
     ("Person", "name_en"),
     ("Institution", "name_en"),
@@ -478,7 +476,7 @@ def seed_demo_data() -> dict:
         _tally("Military Unit")
         seeded.append(("Military Unit", units[row["key"]]))
 
-    # -- Research Events (date precision showcase) -----------------------
+    # -- Siraj Events: date precision showcase (RESEARCH_EVENTS) ----------
     research_events: dict[str, str] = {}
     for row in C.RESEARCH_EVENTS:
         vals = {
@@ -499,15 +497,16 @@ def seed_demo_data() -> dict:
             vals["place_as_stated"] = C.PLACES[
                 [p["key"] for p in C.PLACES].index(row["place"])]["en"]
         research_events[row["key"]] = _add(
-            "Research Event", vals, title_en=f"{row['en']} {TAG}")
-        _tally("Research Event")
-        seeded.append(("Research Event", research_events[row["key"]]))
+            "Siraj Event", vals, title_en=f"{row['en']} {TAG}")
+        _tally("Siraj Event")
+        seeded.append(("Siraj Event", research_events[row["key"]]))
 
-    # -- Siraj Events (desk flagship) ------------------------------------
+    # -- Siraj Events: desk flagship rows (SIRAJ_EVENTS) ------------------
     siraj_events: dict[str, str] = {}
     for row in C.SIRAJ_EVENTS:
         vals = {
-            "title": f"{row['title']} {TAG}",
+            "naming_series": "EVT-.####",
+            "title_en": f"{row['title']} {TAG}",
             "event_type": ETYPE[row["etype"]],
             "status": row["status"],
             "start_date": row["start"],
@@ -519,9 +518,9 @@ def seed_demo_data() -> dict:
             "primary_source": sources[row["src"]],
         }
         if row.get("place"):
-            vals["linked_place"] = places[row["place"]]
+            vals["place"] = places[row["place"]]
         siraj_events[row["key"]] = _add(
-            "Siraj Event", vals, title=f"{row['title']} {TAG}")
+            "Siraj Event", vals, title_en=f"{row['title']} {TAG}")
         _tally("Siraj Event")
         seeded.append(("Siraj Event", siraj_events[row["key"]]))
 

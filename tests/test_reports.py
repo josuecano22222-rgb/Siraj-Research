@@ -19,8 +19,13 @@ def load(path, name, injected):
 	return module
 
 
+class _StubDoesNotExistError(Exception):
+	pass
+
+
 class FrappeStub(types.SimpleNamespace):
 	def __init__(self):
+		self.exceptions = types.SimpleNamespace(DoesNotExistError=_StubDoesNotExistError)
 		self._ = lambda s: s
 		self.whitelist = lambda *a, **kw: (lambda fn: fn)
 		self.rows = {}
@@ -36,6 +41,8 @@ class FrappeStub(types.SimpleNamespace):
 			self.title_fields[d["name"]] = d.get("title_field") or "name"
 
 	def get_meta(self, doctype):
+		if doctype not in self.meta:
+			raise _StubDoesNotExistError(f"DocType {doctype} not found")
 		fields = self.meta[doctype]
 		title_field = self.title_fields.get(doctype, "name")
 		return types.SimpleNamespace(
@@ -55,6 +62,8 @@ class FrappeStub(types.SimpleNamespace):
 		debug=False,
 		ignore_share_permissions=False,
 	):
+		if doctype not in self.meta and doctype not in self.denied:
+			raise _StubDoesNotExistError(f"DocType {doctype} not found")
 		return doctype not in self.denied and (doctype, doc) not in self.denied
 
 	def get_list(self, doctype, fields, filters, order_by, limit_start, limit_page_length):
@@ -154,9 +163,7 @@ class ReportTest(unittest.TestCase):
 		self.frappe.rows["Military Unit"] = [
 			{"name": "u-gd", "unit_name": "GD Brigade", "latitude": 0.0, "longitude": 0.0},
 		]
-		self.frappe.denied = {("Person", "p-gc"), "SIRAJ Settings"} | {
-			dt for dt in getattr(geo_quality, "LOCATED_DOCTYPES", ()) if dt not in self.frappe.meta
-		}
+		self.frappe.denied = {("Person", "p-gc"), "SIRAJ Settings"}
 
 		# Every row approved by readable_rows(dt, ...) returns its sample regardless of SIRAJ Settings.
 		report = geo_quality.quality_report()
