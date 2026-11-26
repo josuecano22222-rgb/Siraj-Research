@@ -4,6 +4,8 @@
 *.swp
 tags
 node_modules/
+siraj_research/public/node_modules
+siraj_research/public/data/
 __pycache__/
 package-lock.json
 
