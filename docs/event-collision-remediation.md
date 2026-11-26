@@ -1,6 +1,17 @@
 # Event collision: assessment and proposed remediation
 
-**Status: unresolved.** The fictional-data command deliberately refuses before writing. Do not use this document as an operational migration procedure. Do not run `migrate`, `reinstall`, force a metadata reload, delete records, or disable the calendar hooks to work around this issue. A migration must first be implemented, reviewed and rehearsed against a restore-tested copy appropriate to the site's actual app versions and customizations.
+**Status: superseded.** The collision assessed below was resolved by the
+`Siraj Event` decision recorded in `docs/decisions/2026-11-siraj-fixes.md`:
+`Siraj Event` is now the single SIRAJ event DocType, the former SIRAJ event
+DocType was deleted via a guarded patch, and Frappe's core `Event` calendar
+identity is untouched. The original assessment and the remediation options it
+evaluates are preserved below for history; the proposed remediation was
+superseded by that decision. Do not use this document as an operational
+migration procedure. Do not run `migrate`, `reinstall`, force a metadata
+reload, delete records, or disable the calendar hooks to work around this
+issue. A migration must first be implemented, reviewed and rehearsed against
+a restore-tested copy appropriate to the site's actual app versions and
+customizations.
 
 ## Observed site state
 
@@ -12,7 +23,7 @@ The original failure was in Frappe’s `insert_event_in_google_calendar`: the ho
 
 ## Design direction to evaluate
 
-Separate SIRAJ historical events into a distinct global DocType (for example `SIRAJ Research Event`), restore the standard Frappe `Event` to the correct version of core metadata and controller, and update SIRAJ's links, dynamic-link type values, Explorer, reports, cards, charts, workspace, translations, and form scripts to use the new identity. This is a compatibility change, not merely a display label change; integrations and client code using the old DocType name require explicit review. Avoid globally renaming the existing `Event` DocType without understanding Frappe's rename behavior, because that name is also core's identity and a rename can rewrite references belonging to unrelated apps.
+Separate SIRAJ historical events into a distinct global DocType (a dedicated SIRAJ event DocType; the name proposed at the time is recorded in the historical milestone notes), restore the standard Frappe `Event` to the correct version of core metadata and controller, and update SIRAJ's links, dynamic-link type values, Explorer, reports, cards, charts, workspace, translations, and form scripts to use the new identity. This is a compatibility change, not merely a display label change; integrations and client code using the old DocType name require explicit review. Avoid globally renaming the existing `Event` DocType without understanding Frappe's rename behavior, because that name is also core's identity and a rename can rewrite references belonging to unrelated apps.
 
 Before implementing an automated transition, inventory installed apps and their exact versions, `Event` custom fields, property setters, permissions and workflows, calendar integrations, dynamic and ordinary links, child rows, attachments, comments, assignments, notifications, audit history, custom scripts, reports, APIs and any external references. An empty Event table does not imply these references do not exist. Establish a policy for ambiguous historical references instead of automatically reclassifying all `Event` references as SIRAJ or calendar. Back up the database, files and configuration and prove a restore. Coordinate downtime and stop background jobs/integrations for any eventual change; DDL and external operations may not roll back with an ordinary transaction.
 

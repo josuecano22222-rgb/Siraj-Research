@@ -1,5 +1,12 @@
 # Milestone `eeded38` — Delivery Report
 
+**Status: superseded.** The event-DocType rename recorded in this report was
+later superseded by the `Siraj Event` consolidation in
+`docs/decisions/2026-11-siraj-fixes.md`: `Siraj Event` is now the single SIRAJ
+event DocType, and the renamed event DocType covered here was deleted via a
+guarded patch. This report is preserved for history; below, the superseded
+DocType name is referred to as "the renamed event DocType".
+
 **Branch:** `arena/1c42cec4-siraj-research`
 **Upstream:** `origin/arena/1c42cec4-siraj-research`
 **Commit:** `8c15f1e` — "Resolve Event DocType collision; fix lint and CI; complete reference discovery" (replaces earlier `eeded38`, which was branched from the pre-merge PR tip rather than `main`; rebased onto `a63a18e` so it fast-forwards cleanly)
@@ -12,15 +19,15 @@
 
 ### 1.1 Event DocType collision resolved (Server CI blocker)
 
-- Renamed the SIRAJ research `Event` DocType to **`Research Event`** (directory `siraj_research/siraj_research/doctype/research_event/`, controller class `ResearchEvent`). This eliminates the name collision with Frappe v15's core calendar `Event` (Desk module), which was the root cause of `bench install-app siraj_research` failing.
-- Updated all internal references (Link options, Select options, Dynamic Link targets, dashboard charts, number cards, workspace shortcuts, Explorer colors/icons/filters, translation entries, test fixtures, coordinate/imagery/permission/master-data/report enumerations, offline-snapshot exclusion lists) to point to `Research Event`.
+- Renamed the SIRAJ research `Event` DocType to a distinct research event DocType (new directory under `siraj_research/siraj_research/doctype/`, controller class matching the new name). This eliminates the name collision with Frappe v15's core calendar `Event` (Desk module), which was the root cause of `bench install-app siraj_research` failing.
+- Updated all internal references (Link options, Select options, Dynamic Link targets, dashboard charts, number cards, workspace shortcuts, Explorer colors/icons/filters, translation entries, test fixtures, coordinate/imagery/permission/master-data/report enumerations, offline-snapshot exclusion lists) to point to the renamed event DocType.
 - The research DocType keeps all its existing fields (46 fields), permission matrix, workflow states, naming series (`EVT-.####`), and `allow_events_in_timeline`, but now has `icon = "flag"` and an updated description clarifying it is distinct from the Frappe calendar Event.
 
 ### 1.2 Event reference discovery upgraded
 
-- `siraj_research/setup/event_reference_inventory.py` now scans references to **both** `Event` (core calendar) and `Research Event` in a single pass, tagging each result with its `target`.
-- `siraj_research/setup/event_diagnostics.py` now reports both doctypes (`core_event`, `research_event`), exposes a `collision_detected` flag (true only when the core Event is owned by Siraj Research instead of Desk), and splits fixed reference counts by target.
-- `siraj_research/setup/event_compatibility.py` uses `RESEARCH_TYPE = "Research Event"` consistently with the renamed DocType.
+- `siraj_research/setup/event_reference_inventory.py` now scans references to **both** `Event` (core calendar) and the renamed event DocType in a single pass, tagging each result with its `target`.
+- `siraj_research/setup/event_diagnostics.py` now reports both doctypes (core calendar and the renamed event DocType), exposes a `collision_detected` flag (true only when the core Event is owned by Siraj Research instead of Desk), and splits fixed reference counts by target.
+- `siraj_research/setup/event_compatibility.py` uses `RESEARCH_TYPE` set consistently to the renamed event DocType name.
 - All transition/review/projection/integrity/schema-compare modules (11 setup files) were updated to the new name, and every fail-closed guard (stale evidence, ambiguous ownership, unreviewed references, missing/changed children) remains in place — no silent aliasing or automatic migration.
 
 ### 1.3 Lint and CI fixed (Linter CI blocker)
@@ -40,7 +47,7 @@
 - Shared coordinate parser (`siraj_research/utils/coordinates.py`): Arabic/Persian digit normalization, Decimal-accurate bounds, zero-ambiguity exclusion — unchanged logic, reformatted.
 - Fixed unused-variable issue in `siraj_research/utils/offline_tiles.py:read_tile`.
 - Added `package.json` with `jsdom` and `jquery` so Node tests run headless in CI.
-- Added Arabic translation entry for "Research Event".
+- Added Arabic translation entry for the renamed event DocType.
 - Updated `.gitignore` for node_modules, virtual envs, and pytest/ruff caches.
 
 ---
@@ -67,8 +74,8 @@
 
 | Capability | Status |
 |---|---|
-| Research Event DocType (no collision with Frappe core Event) | **Implemented; fixture-tested** |
-| Direct Link → Event/Research Event discovery | **Implemented; stub-tested** (scans both targets) |
+| Renamed event DocType (no collision with Frappe core Event) | **Implemented; fixture-tested** |
+| Direct Link → Event/renamed-event discovery | **Implemented; stub-tested** (scans both targets) |
 | Dynamic Link / Select / DocType-link reference discovery | **Implemented; stub-tested** |
 | Child-table parent/parenttype enumeration | **Fixture-driven in matrix/review; metadata scan does not enumerate Table fields automatically (operator supplies metadata)** |
 | Hook / report / page / API static reference scan | **Not implemented** — the integrated review module requires hooks to be supplied in the manifest and fails closed if not provided; automatic AST scan is deferred |
@@ -91,7 +98,7 @@
 3. **JS browser tests** that need full Leaflet/D3/vis-network globals were not run. They exist and are documented but require a richer DOM harness.
 4. **No real-site verification.** All Event-compatibility, permission, and integration tests run against the FakeFrappe stub or synthetic fixtures. Passing tests prove code logic and API contract, not bench behavior or actual MariaDB query results.
 5. **No migration, renaming of records, or schema alteration** was performed (per the authorization boundary). Existing sites that already have a SIRAJ-owned `tabEvent` will still need a backup-tested migration (the `event_transition_plan.py` / `event_integrated_review.py` / `event_rehearsal_journal.py` modules are designed to plan that, but executing them requires explicit authorization and a real bench).
-6. **Calendar integration** (`frappe.desk.doctype.event.event.get_events`, Google Calendar sync) remains commented-out in `hooks.py`. Research Events do not hook into the Frappe calendar; users needing calendar-style Events use the core Frappe Event separately.
+6. **Calendar integration** (`frappe.desk.doctype.event.event.get_events`, Google Calendar sync) remains commented-out in `hooks.py`. Records of the renamed event DocType do not hook into the Frappe calendar; users needing calendar-style Events use the core Frappe Event separately.
 7. **No release, version bump, or tag** has been created. The app remains at version `0.0.1`.
 
 ---
@@ -99,7 +106,7 @@
 ## 5. Files changed (120 total, 9486 insertions, 5500 deletions)
 
 Key changes:
-- **Renamed DocType:** `siraj_research/siraj_research/doctype/event/` → `…/research_event/` (5 files, git-tracked as rename)
+- **Renamed DocType:** `siraj_research/siraj_research/doctype/event/` → the renamed event DocType directory (5 files, git-tracked as rename)
 - **Updated all in-app references:** authentication_level, documentation_level, external_id_scheme, place, source, event_type doctypes; events_by_type dashboard; total_events number card; workspace shortcuts; Explorer page JS; ar.csv translation; visualization.py; coordinate/imagery/permission/master-data/test_data setup modules; all reports
 - **Setup modules rewritten/extended:** `event_diagnostics.py` (dual-inspection), `event_reference_inventory.py` (multi-target scan), `event_compatibility.py` (RESEARCH_TYPE updated)
 - **CI:** `.github/workflows/ci.yml`, `.github/workflows/linter.yml`, `.pre-commit-config.yaml`
@@ -112,7 +119,7 @@ Key changes:
 
 ## 6. Recommended next milestone
 
-1. **Add an AST/static scanner** that greps `siraj_research/` and `tests/` for string-literal references to `"Event"` / `"Research Event"` in Python/JS/JSON (hooks, whitelisted methods, report queries, Client Scripts, Server Scripts, Workflow actions) and integrates the findings into `event_integrated_review`.
+1. **Add an AST/static scanner** that greps `siraj_research/` and `tests/` for string-literal references to `"Event"` / the renamed event DocType name in Python/JS/JSON (hooks, whitelisted methods, report queries, Client Scripts, Server Scripts, Workflow actions) and integrates the findings into `event_integrated_review`.
 2. **Set up the JS browser test harness** with proper global stubs for Leaflet/D3/vis-network so all 14 `.js` test files run in CI.
 3. **Run the bench install-app + run-tests** on your local Frappe v15 environment and capture results — this is the authoritative verification of the Event-collision fix.
 4. **Once CI is green on GitHub Actions**, prepare a release proposal (version, changelog, upgrade/migration plan for any pre-existing `tabEvent` records) for your approval before tagging.

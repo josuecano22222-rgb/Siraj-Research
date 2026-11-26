@@ -39,7 +39,7 @@ once first — the tag sweep cleans legacy records too — then load.
 | Persons | 25 | military + civilian, six unit commanders, **family tab** (spouse/children/grandchildren → `is_grandparent`; one explicit Single) |
 | Institutions | 8 | bilingual names, types, honest founding precision |
 | Places | 12 | real geography, exact coordinates |
-| Events | 15 | 9 Research Events (date precision) + 6 Siraj Events (status + linked place) |
+| Events | 15 | 15 Siraj Event rows: 9 date-precision showcase + 6 desk flagship (status + linked place) |
 | Sources | 10 | k01 = **master demo source cited by every record** |
 | Military units | 6 | Division → Brigade → Battalion (3 levels), commanders linked, subtree personnel derived |
 | Relationships | 24 | all six confidence codes, directed + symmetric, person↔org, person↔event, unit↔place, cites |

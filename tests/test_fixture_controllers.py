@@ -115,6 +115,7 @@ class ControllerFixtureTest(unittest.TestCase):
 		f.db.get_value = get_value
 		f.db.set_value = set_value
 		f.get_all = get_all
+		f.get_list = get_all
 		modules = {
 			"frappe": f,
 			"frappe.model": types.ModuleType("frappe.model"),
@@ -132,7 +133,7 @@ class ControllerFixtureTest(unittest.TestCase):
 					("institution", "Institution"),
 					("place", "Place"),
 					("source", "Source"),
-					("research_event", "ResearchEvent"),
+					("siraj_event", "SirajEvent"),
 					("relationship", "Relationship"),
 					("military_unit", "MilitaryUnit"),
 					("operational_deployment", "OperationalDeployment"),

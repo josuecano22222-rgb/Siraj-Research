@@ -1,7 +1,7 @@
 # Country → Community cascading in Desk forms
 
 Every form that exposes the location hierarchy (Person, Institution, Place,
-Research Event, Siraj Event, Military Unit, Operational Deployment, Explorer,
+Siraj Event, Military Unit, Operational Deployment, Explorer,
 and the hierarchy DocTypes themselves) now supports two directions of
 selection:
 
