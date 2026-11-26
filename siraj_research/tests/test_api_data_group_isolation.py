@@ -801,6 +801,10 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		capped = geo_resolve.sweep_points([[f"P{i}", 31.5, 34.45] for i in range(510)])
 		self.assertEqual(len(capped), 500)
 
+		for malformed in ([None], [123], [["only_name"]], [["x", "bad", 34.4]]):
+			with self.assertRaises(frappe.ValidationError):
+				geo_resolve.sweep_points(malformed)
+
 	def test_13_remaining_geo_tiles_cascade_and_diagnostics_gates(self):
 		"""Exercise remaining geo_resolve, geo_package, cascade, hierarchy, local_maps, tile_cache, diagnostics."""
 		# Plain Desk user with no Place read permission is denied on Place/admin-gated geo endpoints.

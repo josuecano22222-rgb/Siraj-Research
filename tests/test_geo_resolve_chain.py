@@ -243,3 +243,22 @@ def test_sweep_points_parses_json_string_and_caps_at_500(geo_resolve, monkeypatc
     assert len(capped_rows) == 500
     assert capped_rows[0]["point"] == "P-0"
     assert capped_rows[-1]["point"] == "P-499"
+
+
+def test_sweep_points_rejects_malformed_items_h1(geo_resolve, monkeypatch):
+    monkeypatch.setattr(geo_resolve, "_resolve_one", lambda lat, lon: {
+        "on_land": True,
+        "admin_chain": {},
+        "provenance": [],
+        "nearest_place": None,
+    })
+    for malformed in (
+        [None],
+        [123],
+        [["only_name"]],
+        [["x", "bad", 34.4]],
+        [["x", 31.5, float("nan")]],
+        [["x", float("inf"), 34.4]],
+    ):
+        with pytest.raises(geo_resolve.frappe.ValidationError):
+            geo_resolve.sweep_points(malformed)

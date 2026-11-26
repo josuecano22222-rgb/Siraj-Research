@@ -581,7 +581,25 @@ def sweep_points(points):
         frappe.throw("points must be a list of [name, lat, lon] triples.", frappe.ValidationError)
     rows = []
     for item in pts[:500]:
-        name, lat, lon = str(item[0]), float(item[1]), float(item[2])
+        if not isinstance(item, list | tuple) or len(item) != 3:
+            frappe.throw(
+                "Each entry in points must be a [name, lat, lon] triple.",
+                frappe.ValidationError,
+            )
+        try:
+            name = str(item[0])
+            lat = float(item[1])
+            lon = float(item[2])
+        except (TypeError, ValueError) as e:
+            frappe.throw(
+                "Invalid point coordinates in sweep_points: " + str(e),
+                frappe.ValidationError,
+            )
+        if not (math.isfinite(lat) and math.isfinite(lon)):
+            frappe.throw(
+                "Point latitude and longitude must be finite numbers.",
+                frappe.ValidationError,
+            )
         result = _resolve_one(lat, lon)
         chain = result.get("admin_chain") or {}
         row = {"point": name, "lat": lat, "lon": lon,
