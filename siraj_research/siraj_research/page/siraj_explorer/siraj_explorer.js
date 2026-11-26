@@ -1,6 +1,6 @@
 // Keep aligned with record_icons.py SIRAJ_BUILD; appended to ?v= on CSS so
 // new CSS ships without requiring a hard refresh.
-const SIRAJ_EXPLORER_BUILD = '2026-11-18.phase4.graph.a.1';
+const SIRAJ_EXPLORER_BUILD = '2026-11-24.phase4.graph.hd1.1';
 
 function formatNetworkTotal(ns) {
 	const relCount = Number((ns && ns.relationship_count) || 0);

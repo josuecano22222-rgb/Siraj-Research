@@ -6,7 +6,7 @@
 	'use strict';
 
 	const ENTITY_DOCTYPES = [
-		'Person', 'Institution', 'Place', 'Research Event', 'Siraj Event',
+		'Person', 'Institution', 'Place', 'Siraj Event',
 		'Military Unit', 'Source', 'Relationship', 'Operational Deployment'
 	];
 

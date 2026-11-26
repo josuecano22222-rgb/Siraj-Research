@@ -137,7 +137,7 @@ console.log('Map search widget helpers: params, exact coordinate display, groupi
 // ---------- GEO_TYPES contract (server: visualization.py) ----------
 assert.deepStrictEqual(
   search.RECORD_TYPES.map((pair) => pair[0]),
-  ['', 'Person', 'Institution', 'Place', 'Research Event', 'Military Unit', 'Operational Deployment'],
+  ['', 'Person', 'Institution', 'Place', 'Siraj Event', 'Military Unit', 'Operational Deployment'],
 );
 
 // ---------- mount() ordering: creation must precede append (TDZ guard) ----------

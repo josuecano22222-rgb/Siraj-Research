@@ -10,7 +10,7 @@ assert(source.includes("const GROUP = 'Geography'"));
 assert(source.includes("const ACTION = 'Open geographic explorer'"));
 assert(source.includes('action.textContent = __(ACTION)'));
 assert(source.includes('replaceButtonText('));
-for (const doctype of ['Person', 'Institution', 'Place', 'Research Event']) {
+for (const doctype of ['Person', 'Institution', 'Place', 'Siraj Event']) {
   assert(source.includes(`'${doctype}'`), `${doctype} action menu must be localized`);
 }
 assert(bundle.includes("import './geography-action-i18n.js'"));

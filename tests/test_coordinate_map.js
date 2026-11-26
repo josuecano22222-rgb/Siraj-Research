@@ -290,7 +290,7 @@ const wait = (ms=60) => new Promise(r => setTimeout(r, ms));
     'Person':                { field: 'birthplace',   value: 'Baghdad' },
     'Institution':           { field: 'place',        value: 'Mosul University' },
     'Place':                 { field: 'parent_place', value: 'Baghdad Governorate' },
-    'Research Event':        { field: 'place',        value: 'Taji' },
+    'Siraj Event':           { field: 'place',        value: 'Taji' },
     'Military Unit':         { field: 'linked_place', value: 'Camp Victory' },
   };
   for (const [dt, info] of Object.entries(doctypeLinkField)) {
