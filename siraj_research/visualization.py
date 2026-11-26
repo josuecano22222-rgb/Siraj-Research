@@ -18,7 +18,7 @@ ENTITIES = {
 	"Person": "display_name",
 	"Institution": "display_name",
 	"Place": "display_name",
-	"Research Event": "display_name",
+	"Siraj Event": "display_name",
 	"Source": "display_name",
 	"Military Unit": "unit_name",
 	"Operational Deployment": "deployment_name",
@@ -45,8 +45,10 @@ DETAIL_FIELDS = {
 		"authentication_level",
 	),
 	"Place": ("place_type", "country", "governorate", "workflow_state", "authentication_level"),
-	"Research Event": (
+	"Siraj Event": (
+		"display_name",
 		"event_type",
+		"start_date",
 		"start_date_as_stated",
 		"place",
 		"documentation_level",
@@ -67,13 +69,13 @@ DETAIL_FIELDS = {
 	"Mission": ("mission_type", "status", "area", "workflow_state"),
 	"Training Exercise": ("training_type", "assessment", "location", "workflow_state"),
 }
-GEO_TYPES = ("Person", "Institution", "Place", "Research Event", "Military Unit", "Operational Deployment")
-GRAPH_TYPES = ("Person", "Institution", "Place", "Research Event", "Source", "Military Unit", "Operational Deployment")
+GEO_TYPES = ("Person", "Institution", "Place", "Siraj Event", "Military Unit", "Operational Deployment")
+GRAPH_TYPES = ("Person", "Institution", "Place", "Siraj Event", "Source", "Military Unit", "Operational Deployment")
 STRUCTURES = {
 	"people": ("Person", ("nationality", "classification", "workflow_state")),
 	"institutions": ("Institution", ("institution_type", "place", "governance_system")),
 	"places": ("Place", ("country", "place_type", "geo_precision")),
-	"events": ("Research Event", ("event_type", "place", "documentation_level")),
+	"events": ("Siraj Event", ("event_type", "place", "documentation_level")),
 	"relationships": ("Relationship", ("relationship_type", "direction", "authentication_level")),
 	"sources": ("Source", ("source_type", "source_reliability", "workflow_state")),
 	"forces": ("Military Unit", ("echelon", "status", "classification")),
@@ -95,7 +97,8 @@ def _entity_rows(types, extra_fields=(), include_details=False):
 	for doctype in types:
 		title = ENTITIES[doctype]
 		details = DETAIL_FIELDS.get(doctype, ()) if include_details else ()
-		rows, cut = _records(doctype, [title, *extra_fields, *details])
+		query_fields = list(dict.fromkeys([title, *extra_fields, *details]))
+		rows, cut = _records(doctype, query_fields)
 		meta = frappe.get_meta(doctype) if (details and rows) else None
 		if cut:
 			truncated.append(doctype)
@@ -236,7 +239,8 @@ def record_detail(doctype, name):
 	if not frappe.has_permission(doctype, "read"):
 		frappe.throw(_("Not permitted to read {0}").format(_(doctype)), frappe.PermissionError)
 	title = ENTITIES.get(doctype, "display_name")
-	rows = readable_rows(doctype, (title, *DETAIL_FIELDS[doctype]), filters={"name": name})
+	query_fields = tuple(dict.fromkeys((title, *DETAIL_FIELDS[doctype])))
+	rows = readable_rows(doctype, query_fields, filters={"name": name})
 	row = next(rows, None)
 	if row is None:
 		frappe.throw(_("Record not found or not permitted"), frappe.PermissionError)

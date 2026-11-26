@@ -217,7 +217,7 @@ class FixtureTest(unittest.TestCase):
 		)
 		event = next(
 			d
-			for d in records("Research Event")
+			for d in records("Siraj Event")
 			if d.values.get("title_en") == "TEST Al-Nur Community Outreach Day"
 		)
 		self.assertEqual(person.values["primary_source"], source.name)
@@ -278,7 +278,7 @@ class FixtureTest(unittest.TestCase):
 			"Person",
 			"Institution",
 			"Place",
-			"Research Event",
+			"Siraj Event",
 			"Source",
 			"Military Unit",
 			"Operational Deployment",
@@ -293,7 +293,7 @@ class FixtureTest(unittest.TestCase):
 		self.assertEqual(
 			len(graph["nodes"]),
 			sum(
-				result["created"][dt] for dt in ("Person", "Institution", "Place", "Research Event", "Source")
+				result["created"][dt] for dt in ("Person", "Institution", "Place", "Siraj Event", "Source")
 			),
 		)
 		self.assertEqual(len(graph["edges"]), result["created"]["Relationship"])

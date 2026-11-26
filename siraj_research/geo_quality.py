@@ -18,7 +18,7 @@ LOCATED_DOCTYPES: tuple[str, ...] = (
 	"Person",
 	"Institution",
 	"Place",
-	"Research Event",
+	"Siraj Event",
 	"Military Unit",
 	"Operational Deployment",
 )

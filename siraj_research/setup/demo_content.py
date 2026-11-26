@@ -416,7 +416,7 @@ UNITS = [
 ]
 
 # --------------------------------------------------------------------------
-# Research Events (9) — date-precision showcase: day/year + the two
+# Siraj Events — archival batch (9) — date-precision showcase: day/year + the two
 # uncertain-date edges (e05 approximate "circa", e06 decade "1960s").
 # --------------------------------------------------------------------------
 RESEARCH_EVENTS = [
@@ -507,7 +507,7 @@ SIRAJ_EVENTS = [
 
 # --------------------------------------------------------------------------
 # Relationships (24) — every confidence code exercised; endpoint kinds:
-# P=Person I=Institution Pl=Place E=Research Event S=Siraj Event
+# P=Person I=Institution Pl=Place E=Siraj Event (archival) S=Siraj Event
 # U=Military Unit Src=Source. subject/object are "kind:key" references.
 # --------------------------------------------------------------------------
 RELATIONSHIPS = [

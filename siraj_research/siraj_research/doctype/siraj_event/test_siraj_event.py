@@ -8,7 +8,7 @@ import json
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from siraj_research.api import entity_profile, relationship_profile
+from siraj_research.api import entity_profile, map_relations, relationship_profile
 
 
 class TestSirajEvent(FrappeTestCase):
@@ -277,19 +277,25 @@ class TestSirajEvent(FrappeTestCase):
 			frappe.db.set_value("DocType", custom_dt.name, "custom", 0, update_modified=False)
 			self.assertTrue(frappe.db.table_exists("Research Event", cached=False))
 
-			# Non-empty table must fail loudly and leave both row and DocType intact!
+			# Non-empty table must fail loudly, include the exact bench console
+			# frappe.db.delete cleanup snippet, and leave both row and DocType intact!
 			frappe.db.sql(
 				"INSERT INTO `tabResearch Event` (`name`, `docstatus`, `idx`) VALUES (%s, 0, 0)",
 				("EVT-LEGACY-0001",),
 			)
-			with self.assertRaises(RuntimeError):
+			with self.assertRaises(RuntimeError) as err_ctx:
 				delete_research_event.execute()
+			err_msg = str(err_ctx.exception)
+			self.assertIn("contains 1 row(s)", err_msg)
+			self.assertIn('frappe.db.delete("Evidence", {"parenttype": "Research Event"})', err_msg)
+			self.assertIn('frappe.db.delete("Research Event", {})', err_msg)
+			self.assertIn("frappe.db.commit()", err_msg)
 			self.assertTrue(frappe.db.exists("DocType", "Research Event"))
 			self.assertTrue(frappe.db.table_exists("Research Event", cached=False))
 
-			# Empty table -> deletes DocType metadata AND drops tabResearch Event cleanly
-			# even with developer_mode=1 and in_migrate=False.
-			frappe.db.sql("DELETE FROM `tabResearch Event`")
+			# Verify executing the exact frappe.db.delete snippet empties the table so the patch succeeds.
+			frappe.db.delete("Evidence", {"parenttype": "Research Event"})
+			frappe.db.delete("Research Event", {})
 			delete_research_event.execute()
 			self.assertFalse(frappe.db.exists("DocType", "Research Event"))
 			self.assertFalse(frappe.db.table_exists("Research Event", cached=False))
@@ -302,3 +308,38 @@ class TestSirajEvent(FrappeTestCase):
 				frappe.db.transaction_writes = 0
 				frappe.db.sql("DROP TABLE IF EXISTS `tabResearch Event`")
 			frappe.clear_cache()
+
+	def test_get_entity_network_nonexistent_and_unreadable_return_identical_response(self):
+		"""L2: get_entity_network must return the exact same response for a non-existent ID and an unreadable ID."""
+		frappe.set_user("Administrator")
+		if not frappe.db.exists("Data Group", "GC"):
+			frappe.get_doc({"doctype": "Data Group", "group_name": "GC"}).insert(
+				ignore_permissions=True
+			)
+		viewer_gd = self._ensure_scoped_user(
+			"siraj-evt-net-viewer@example.com", ("Group Member", "SIRAJ Viewer")
+		)
+		gc_evt = frappe.get_doc(
+			{
+				"doctype": "Siraj Event",
+				"title_ar": "حدث جيم غير مقروء",
+				"title_en": "GC Unreadable Network Event",
+				"event_type": self._event_type(),
+				"workflow_state": "Draft",
+				"data_group": "GC",
+			}
+		).insert(ignore_permissions=True)
+		try:
+			frappe.set_user(viewer_gd)
+			unreadable_resp = map_relations.get_entity_network("Siraj Event", gc_evt.name)
+			nonexistent_resp = map_relations.get_entity_network("Siraj Event", "EVT-DOES-NOT-EXIST-999999")
+			self.assertEqual(unreadable_resp, nonexistent_resp)
+			self.assertEqual(unreadable_resp, {"nodes": [], "edges": [], "truncated": False})
+		finally:
+			frappe.set_user("Administrator")
+			if frappe.db.exists("Siraj Event", gc_evt.name):
+				frappe.delete_doc("Siraj Event", gc_evt.name, force=True, ignore_permissions=True)
+			for up in frappe.get_all("User Permission", filters={"user": viewer_gd}, pluck="name"):
+				frappe.delete_doc("User Permission", up, force=True, ignore_permissions=True)
+			if frappe.db.exists("User", viewer_gd):
+				frappe.delete_doc("User", viewer_gd, force=True, ignore_permissions=True)

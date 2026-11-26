@@ -135,7 +135,7 @@ class ReportTest(unittest.TestCase):
 			{"name": "p2", "workflow_state": "Verified"},
 			{"name": "p3", "workflow_state": "In Review"},
 		]
-		self.frappe.denied = {("Person", "p2"), "Research Event"}
+		self.frappe.denied = {("Person", "p2"), "Siraj Event"}
 		_, rows = self.report("data_quality_&_verification_summary").execute()
 		person = next(row for row in rows if row["doctype_name"] == "Person")
 		self.assertEqual(
@@ -147,7 +147,7 @@ class ReportTest(unittest.TestCase):
 			),
 			(2, 1, 1, 0),
 		)
-		self.assertNotIn("Research Event", [row["doctype_name"] for row in rows])
+		self.assertNotIn("Siraj Event", [row["doctype_name"] for row in rows])
 
 	def test_batches_do_not_drop_visible_rows(self):
 		self.frappe.rows["Person"] = [{"name": "p" + str(i)} for i in range(5)]

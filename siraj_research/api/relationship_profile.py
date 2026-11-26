@@ -31,7 +31,7 @@ _ENDPOINT_TITLES = {
 	"Person": "display_name",
 	"Institution": "display_name",
 	"Place": "display_name",
-	"Research Event": "display_name",
+	"Siraj Event": "display_name",
 	"Source": "display_name",
 	"Military Unit": "unit_name",
 	"Operational Deployment": "deployment_name",

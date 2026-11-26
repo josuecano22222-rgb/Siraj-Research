@@ -90,7 +90,7 @@ class SnapshotTests(unittest.TestCase):
 		self.assertNotIn("private", str(payload))
 		self.assertNotIn("list-hidden", str(payload))
 		self.assertTrue(self.m.verify(envelope, site="site", user="reader", secret=self.key, now=self.now))
-		self.assertTrue(all(dt not in ("Event", "Research Event") for dt, _ in self.f.calls))
+		self.assertTrue(all(dt not in ("Event", "Siraj Event") for dt, _ in self.f.calls))
 		self.assertEqual(payload["edges"][0]["type"], "")
 
 	def test_doctype_export_denial_and_relationship_denial(self):

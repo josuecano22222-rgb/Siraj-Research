@@ -121,6 +121,8 @@ def test_bench_suite_structure_principals_and_teardown():
 	}
 	assert "setUpClass" in method_names
 	assert "tearDownClass" in method_names
+	assert "addClassCleanup" in suite_src
+	assert "teardown_isolation_world" in suite_src
 	assert "cleanup_isolation_caches" in suite_src
 
 	# Principals required by Invariant #7 + C-25 acceptance criteria

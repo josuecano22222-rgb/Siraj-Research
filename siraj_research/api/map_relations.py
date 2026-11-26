@@ -20,7 +20,7 @@ from frappe import _
 # user are used — unknown/permission-denied endpoints are returned as
 # restricted nodes instead of crashing with "Relationships are not defined
 # for {doctype}".
-_BASE_RELATABLE: tuple[str, ...] = ("Person", "Institution", "Place", "Research Event", "Source",
+_BASE_RELATABLE: tuple[str, ...] = ("Person", "Institution", "Place", "Siraj Event", "Source",
 									"Military Unit", "Operational Deployment")
 
 def _relatable_doctypes() -> set[str]:
@@ -52,6 +52,7 @@ def _relatable_doctypes() -> set[str]:
 INFERENCE_CHAINS: dict[str, tuple[tuple[str, str], ...]] = {
 	"Person":                 (("birthplace",   "Place"),),  # Place of birth is the only Place link on Person; used as a coarse fallback when no direct coords.
 	"Institution":            (("place",        "Place"),),  # Institution.place Link → Place.
+	"Siraj Event":            (("place",        "Place"),),  # Siraj Event.place Link → Place.
 	"Military Unit":          (("linked_place", "Place"),),  # HQ Place (garrison / command area / base).
 	"Operational Deployment": (),                              # Deployments carry their own lat/lon; no fallback link.
 	"Mission":                (("unit", "Military Unit"),),  # Missions inherit via unit → linked_place.

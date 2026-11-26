@@ -29,6 +29,76 @@ NO_SIRAJ_USER = "desk-only-no-siraj@example.com"
 GD_ADMIN_USER = "gd1@example.com"
 GC_ADMIN_USER = "gc1@example.com"
 
+ISOLATION_TEST_USERS: tuple[str, ...] = (
+	UNASSIGNED_USER,
+	VIEWER_GD_USER,
+	RESEARCHER_GD_USER,
+	REVIEWER_GD_USER,
+	ROLE_ONLY_VIEWER_GD_USER,
+	ROLE_ONLY_RESEARCHER_GD_USER,
+	OFFICIAL_USER,
+	NO_SIRAJ_USER,
+)
+
+# Signature filters identifying isolation-fixture operational rows across runs
+# (both newly created rows in the current run and any stale rows committed by
+# earlier runs when offline_bootstrap.prepare_offline_site committed mid-suite).
+FIXTURE_ROW_SIGNATURES: tuple[tuple[str, dict], ...] = (
+	("Command Appointment", {"role": "Commanding Officer", "assigned_date": "2026-01-01"}),
+	("Operational Deployment", {"deployment_name": ["in", ["GC Forward Screen", "GD Active Reassignable Probe"]]}),
+	("Relationship", {"description": ["in", ["GC covert command link", "GD public liaison link"]]}),
+	(
+		"Siraj Event",
+		{
+			"title_en": [
+				"in",
+				[
+					"GC Classified Briefing",
+					"GD Public Convoy",
+					"GC Classified Operation",
+					"GD Public Ceremony",
+				],
+			]
+		},
+	),
+	("Shared Record", {"title": ["in", ["GC Secret Memo", "GD Shared Brief", "GD Researcher Note"]]}),
+	(
+		"Military Unit",
+		{
+			"unit_name": [
+				"in",
+				[
+					"GC 991st Recon Battalion",
+					"GC 99th Special Brigade",
+					"GD 10th Coastal Brigade",
+					"GD 11th Reserve Battalion",
+					"GD 12th Coastal Battalion",
+				],
+			]
+		},
+	),
+	("Institution", {"name_en": ["in", ["GC Shadow Directorate", "GD Civic Bureau"]]}),
+	("Person", {"name_en": ["in", ["GC Classified Commander", "GD Field Commander"]]}),
+	("Place", {"name_en": ["in", ["GC Secret Citadel", "GD Harbor Base", "Orphan Legacy Place"]]}),
+	("Source", {"title": ["in", ["GC Eyes-Only Dossier", "GD Public Archive Bulletin"]]}),
+	("Boundary Dataset", {"code": "ISO-TEST-BND"}),
+)
+
+# Deletion order (children / dependents before parents; Battalion before Brigade).
+_TEARDOWN_SEQUENCE: tuple[str, ...] = (
+	"Command Appointment",
+	"Operational Deployment",
+	"Relationship",
+	"Siraj Event",
+	"Shared Record",
+	"Military Unit",
+	"Institution",
+	"Person",
+	"Place",
+	"Source",
+	"Boundary Dataset",
+)
+
 # Canonical registry of every @frappe.whitelist endpoint in siraj_research/.
 # Verified against AST discovery by tests/test_whitelist_coverage.py.
 ALL_WHITELISTED_ENDPOINTS: tuple[tuple[str, str], ...] = (
@@ -168,9 +238,114 @@ def _insert_predictable_or_regular(payload: dict, predictable_name: str | None =
 	return frappe.get_doc(payload).insert(ignore_permissions=True)
 
 
-def build_isolation_world() -> dict:
-	"""Create users + GC/GD records inside the active test transaction."""
+def find_isolation_fixture_rows() -> dict[str, list[str]]:
+	"""Return any isolation-fixture rows currently present in the database."""
+	found: dict[str, list[str]] = {}
+	for doctype, filters in FIXTURE_ROW_SIGNATURES:
+		if not frappe.db.exists("DocType", doctype):
+			continue
+		names = sorted(frappe.get_all(doctype, filters=filters, pluck="name", limit_page_length=0))
+		if names:
+			found[doctype] = names
+	return found
+
+
+def teardown_isolation_world(
+	world: dict | None = None,
+	upload_paths: list[str] | None = None,
+	*,
+	commit: bool = False,
+) -> dict[str, list[str]]:
+	"""Delete every fixture row and test user created by build_isolation_world (or earlier runs).
+
+	Safe to register via ``cls.addClassCleanup(...)`` BEFORE ``build_isolation_world()``
+	so even a partial failure mid-``setUpClass`` or an inner ``frappe.db.commit()``
+	inside ``prepare_offline_site`` leaves zero stale rows on the site.
+	"""
 	frappe.set_user("Administrator")
+	cleanup_isolation_caches(upload_paths)
+
+	by_doctype: dict[str, set[str]] = {dt: set() for dt in _TEARDOWN_SEQUENCE}
+	for doctype, names in find_isolation_fixture_rows().items():
+		by_doctype.setdefault(doctype, set()).update(names)
+
+	if isinstance(world, dict):
+		key_to_doctype = {
+			"appointment": "Command Appointment",
+			"deployment": "Operational Deployment",
+			"rel": "Relationship",
+			"siraj_event": "Siraj Event",
+			"shared": "Shared Record",
+			"child_unit": "Military Unit",
+			"unit": "Military Unit",
+			"inst": "Institution",
+			"person": "Person",
+			"place": "Place",
+			"source": "Source",
+		}
+		for side in ("gc", "gd"):
+			group_map = world.get(side) or {}
+			for key, dt in key_to_doctype.items():
+				val = group_map.get(key)
+				if val:
+					by_doctype.setdefault(dt, set()).add(val)
+
+		# Also catch any Command Appointment / Operational Deployment / Relationship rows pointing to fixture records.
+		unit_names = sorted(by_doctype.get("Military Unit") or ())
+		if unit_names:
+			by_doctype["Command Appointment"].update(
+				frappe.get_all("Command Appointment", filters={"unit": ["in", unit_names]}, pluck="name", limit_page_length=0)
+			)
+			by_doctype["Operational Deployment"].update(
+				frappe.get_all("Operational Deployment", filters={"unit": ["in", unit_names]}, pluck="name", limit_page_length=0)
+			)
+		person_names = sorted(by_doctype.get("Person") or ())
+		if person_names:
+			by_doctype["Relationship"].update(
+				frappe.get_all("Relationship", filters={"subject": ["in", person_names]}, pluck="name", limit_page_length=0)
+			)
+			by_doctype["Relationship"].update(
+				frappe.get_all("Relationship", filters={"object": ["in", person_names]}, pluck="name", limit_page_length=0)
+			)
+
+	removed: dict[str, list[str]] = {}
+	for doctype in _TEARDOWN_SEQUENCE:
+		names = sorted(by_doctype.get(doctype) or ())
+		if not names or not frappe.db.exists("DocType", doctype):
+			continue
+		if doctype == "Military Unit":
+			# Delete child units (those with parent_unit set) before parent brigades,
+			# and clear current_deployment pointers first so MilitaryUnit.on_trash never blocks.
+			for n in names:
+				if frappe.db.exists("Military Unit", n):
+					frappe.db.set_value("Military Unit", n, "current_deployment", None, update_modified=False)
+			names.sort(
+				key=lambda n: 0 if frappe.db.get_value("Military Unit", n, "parent_unit") else 1
+			)
+		for name in names:
+			if frappe.db.exists(doctype, name):
+				frappe.delete_doc(doctype, name, force=True, ignore_permissions=True)
+				removed.setdefault(doctype, []).append(name)
+
+	# Clean temporary probe lookups / users created by tests.
+	if frappe.db.exists("Person Category", "ISO-PROBE-CATEGORY"):
+		frappe.delete_doc("Person Category", "ISO-PROBE-CATEGORY", force=True, ignore_permissions=True)
+	for email in ISOLATION_TEST_USERS:
+		for up_name in frappe.get_all("User Permission", filters={"user": email}, pluck="name", limit_page_length=0):
+			frappe.delete_doc("User Permission", up_name, force=True, ignore_permissions=True)
+		if frappe.db.exists("User", email):
+			frappe.delete_doc("User", email, force=True, ignore_permissions=True)
+
+	frappe.clear_cache()
+	if commit:
+		frappe.db.commit()
+	return removed
+
+
+def build_isolation_world(state: dict | None = None) -> dict:
+	"""Create users + GC/GD records cleanly, sweeping any stale fixture rows first."""
+	frappe.set_user("Administrator")
+	preexisting_stale = teardown_isolation_world(commit=False)
 	for role in ROLES:
 		_ensure_role(role)
 	if not frappe.db.exists("Workflow State", "Draft"):
@@ -452,7 +627,8 @@ def build_isolation_world() -> dict:
 	).insert(ignore_permissions=True)
 
 	frappe.clear_cache()
-	return {
+	result = {
+		"preexisting_stale": preexisting_stale,
 		"vocab": {
 			"place_type": place_type,
 			"inst_type": inst_type,
@@ -486,6 +662,9 @@ def build_isolation_world() -> dict:
 			"shared": gd_shared.name,
 		},
 	}
+	if isinstance(state, dict):
+		state.update(result)
+	return result
 
 
 def cleanup_isolation_caches(upload_paths: list[str] | None = None) -> None:

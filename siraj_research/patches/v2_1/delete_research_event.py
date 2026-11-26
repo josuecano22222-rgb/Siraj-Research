@@ -38,7 +38,12 @@ def execute():
 		if row_count > 0:
 			raise RuntimeError(
 				f"Cannot delete Research Event: tabResearch Event contains {row_count} row(s). "
-				"Migrate or clear those rows before running bench migrate."
+				"Inspect and migrate those rows first, or clear them explicitly in "
+				"`bench --site <site> console` with:\n"
+				'  frappe.db.delete("Evidence", {"parenttype": "Research Event"})\n'
+				'  frappe.db.delete("Research Event", {})\n'
+				"  frappe.db.commit()\n"
+				"before re-running `bench --site <site> migrate`."
 			)
 
 	if frappe.db.exists("DocType", "Research Event"):

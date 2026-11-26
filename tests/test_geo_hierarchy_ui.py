@@ -106,7 +106,7 @@ def test_additive_hierarchy_fields_exist_on_all_geo_doctypes(doctype, expected):
 def test_coordinate_registry_covers_every_geo_doctype():
     from siraj_research.record_icons import COORDINATE_DOCS
 
-    for doctype in ("Person", "Institution", "Place", "Research Event", "Siraj Event",
+    for doctype in ("Person", "Institution", "Place", "Siraj Event",
                     "Military Unit", "Operational Deployment"):
         assert doctype in COORDINATE_DOCS
         assert COORDINATE_DOCS[doctype]["admin_fields"]["community"] == "community"

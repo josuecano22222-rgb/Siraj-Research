@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 
 import frappe
 
-DOCTYPES = ("Person", "Institution", "Place", "Research Event", "Military Unit")
+DOCTYPES = ("Person", "Institution", "Place", "Siraj Event", "Military Unit")
 PAGE_SIZE = 200
 LIMIT = 5000
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".avif", ".tif", ".tiff"}

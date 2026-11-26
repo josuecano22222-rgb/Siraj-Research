@@ -44,6 +44,7 @@ from siraj_research.tests._isolation_fixtures import (
 	ALL_WHITELISTED_ENDPOINTS,
 	GC_ADMIN_USER,
 	GD_ADMIN_USER,
+	ISOLATION_TEST_USERS,
 	NO_SIRAJ_USER,
 	OFFICIAL_USER,
 	RESEARCHER_GD_USER,
@@ -55,6 +56,8 @@ from siraj_research.tests._isolation_fixtures import (
 	VIEWER_GD_USER,
 	build_isolation_world,
 	cleanup_isolation_caches,
+	find_isolation_fixture_rows,
+	teardown_isolation_world,
 )
 
 
@@ -62,12 +65,18 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 	"""Real FrappeTestCase adversarial isolation suite for GD / GC / unassigned / SIRAJ Official."""
 
 	_upload_paths: ClassVar[list[str]] = []
+	world: ClassVar[dict] = {}
 
 	@classmethod
 	def setUpClass(cls):
 		super().setUpClass()
 		cls._upload_paths = []
-		cls.world = build_isolation_world()
+		cls.world = {}
+		# Register cleanup BEFORE build_isolation_world() so even a partial failure in
+		# setUpClass or an inner frappe.db.commit() inside prepare_offline_site (test_24)
+		# deterministically removes every fixture row, user, and User Permission.
+		cls.addClassCleanup(teardown_isolation_world, cls.world, cls._upload_paths, commit=True)
+		build_isolation_world(cls.world)
 
 	@classmethod
 	def tearDownClass(cls):
@@ -141,6 +150,18 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 				net = map_relations.get_entity_network(dt, docname)
 				self.assertEqual(net["nodes"], [])
 				self.assertEqual(net["edges"], [])
+
+			# Indistinguishability (L2): get_entity_network must return the exact same
+			# response structure & values for an unreadable foreign ID as for a non-existent ID.
+			for dt, foreign_id, missing_id in (
+				("Person", gc["person"], "PER-99999999"),
+				("Place", gc["place"], "PLC-99999999"),
+				("Siraj Event", gc["siraj_event"], "EVT-99999999"),
+			):
+				unreadable_resp = map_relations.get_entity_network(dt, foreign_id)
+				nonexistent_resp = map_relations.get_entity_network(dt, missing_id)
+				self.assertEqual(unreadable_resp, nonexistent_resp)
+				self.assertEqual(unreadable_resp, {"nodes": [], "edges": [], "truncated": False})
 
 			with self.assertRaises(frappe.PermissionError):
 				relationship_profile.get_relationship_profile(gc["rel"])
@@ -894,9 +915,14 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		created = frappe.get_doc(
 			{"doctype": "Shared Record", "title": "GD Researcher Note", "details": "Scoped"}
 		).insert()
-		self.assertEqual(created.data_group, "GD")
-		with self.assertRaises(frappe.PermissionError):
-			created.delete()
+		try:
+			self.assertEqual(created.data_group, "GD")
+			with self.assertRaises(frappe.PermissionError):
+				created.delete()
+		finally:
+			frappe.set_user("Administrator")
+			if frappe.db.exists("Shared Record", created.name):
+				frappe.delete_doc("Shared Record", created.name, force=True, ignore_permissions=True)
 
 	def test_16_relationship_profile_strips_permlevel_1_for_viewer_and_researcher(self):
 		"""C-02: relationship_profile strips permlevel-1 researcher_notes for Viewer/Researcher, shows Reviewer."""
@@ -1240,3 +1266,38 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 				},
 				update_modified=False,
 			)
+
+
+class TestZIsolationFixtureCleanup(FrappeTestCase):
+	"""End-of-module verification (J2): zero isolation fixture rows or users remain after tearDownClass."""
+
+	def test_z_no_isolation_fixture_rows_or_users_remain(self):
+		frappe.set_user("Administrator")
+		remaining_rows = find_isolation_fixture_rows()
+		self.assertEqual(
+			remaining_rows,
+			{},
+			f"Isolation suite leaked fixture rows after tearDownClass: {remaining_rows}",
+		)
+		remaining_users = frappe.get_all(
+			"User",
+			filters={"name": ["in", list(ISOLATION_TEST_USERS)]},
+			pluck="name",
+			limit_page_length=0,
+		)
+		self.assertEqual(
+			remaining_users,
+			[],
+			f"Isolation suite leaked test users after tearDownClass: {remaining_users}",
+		)
+		remaining_perms = frappe.get_all(
+			"User Permission",
+			filters={"user": ["in", list(ISOLATION_TEST_USERS)]},
+			pluck="name",
+			limit_page_length=0,
+		)
+		self.assertEqual(
+			remaining_perms,
+			[],
+			f"Isolation suite leaked User Permission rows after tearDownClass: {remaining_perms}",
+		)

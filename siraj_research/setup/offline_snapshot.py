@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 
 import frappe
 
-TYPES = ("Person", "Institution", "Place", "Source")  # Event collision is unresolved.
+TYPES = ("Person", "Institution", "Place", "Source")  # Event / Siraj Event excluded from minimal offline snapshot.
 MAX_NODES = 2000
 MAX_RELATIONSHIPS_SCANNED = 4000
 MAX_TOKEN_BYTES = 2 * 1024 * 1024
@@ -114,7 +114,7 @@ def collect_current_user():
 			"included_types": included,
 			"omitted_types": omitted,
 			"relationships": "filtered" if relationship_access else "not_authorized",
-			"excluded_types": ["Event", "Research Event"],
+			"excluded_types": ["Event", "Siraj Event"],
 			"consistency": "non_atomic",
 		},
 		"nodes": nodes,

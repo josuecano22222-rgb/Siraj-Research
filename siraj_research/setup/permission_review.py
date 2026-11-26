@@ -11,7 +11,7 @@ DOCTYPES = (
 	"Person",
 	"Institution",
 	"Place",
-	"Research Event",
+	"Siraj Event",
 	"Relationship",
 	"Source",
 	"Military Unit",

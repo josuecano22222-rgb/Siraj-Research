@@ -433,11 +433,11 @@ class VisualizationTest(unittest.TestCase):
 			load_visualization(f).structure_data("people")
 
 	def test_full_scan_and_denied_doctype(self):
-		f = FakeFrappe({"Person": [{"name": str(i)} for i in range(1600)]}, denied={"Research Event"})
+		f = FakeFrappe({"Person": [{"name": str(i)} for i in range(1600)]}, denied={"Siraj Event"})
 		v = load_visualization(f)
 		self.assertEqual(len(v._records("Person", [])[0]), 1600)
 		self.assertFalse(v._records("Person", [])[1])
-		self.assertEqual(v._records("Research Event", []), ([], False))
+		self.assertEqual(v._records("Siraj Event", []), ([], False))
 		with self.assertRaises(PermissionError):
 			v.structure_data("events")
 		with self.assertRaises(ValueError):

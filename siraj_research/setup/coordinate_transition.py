@@ -12,7 +12,7 @@ from collections import Counter
 
 from siraj_research.utils.coordinates import parse_coordinate
 
-TYPES = ("Person", "Institution", "Place", "Research Event", "Military Unit", "Operational Deployment")
+TYPES = ("Person", "Institution", "Place", "Siraj Event", "Military Unit", "Operational Deployment")
 MAX_LENGTH = 140
 
 
