@@ -1160,3 +1160,54 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		finally:
 			frappe.delete_doc("Data Import", data_import.name, force=True, ignore_permissions=True)
 			frappe.delete_doc("File", csv_file.name, force=True, ignore_permissions=True)
+
+	def test_24_prepare_offline_site_runs_as_non_superuser_siraj_administrator_g2(self):
+		"""G2: Execute prepare_offline_site body as SIRAJ Administrator (not Administrator) on live bench."""
+		prev_online = frappe.db.get_value("Geo Settings", "Geo Settings", "online_setup_enabled")
+		prev_tile = frappe.db.get_value("Geo Settings", "Geo Settings", "allow_tile_fetch")
+		prev_geocoder = frappe.db.get_value("Geo Settings", "Geo Settings", "online_geocoder_enabled")
+		try:
+			# Disable external downloads so the test exercises local hierarchy + package + offline-lock stages
+			# without attempting outbound pip/tile network calls inside CI.
+			frappe.db.set_value("Geo Settings", "Geo Settings", "online_setup_enabled", 0, update_modified=False)
+			frappe.set_user(GD_ADMIN_USER)
+			self.assertNotEqual(frappe.session.user, "Administrator")
+			self.assertIn("SIRAJ Administrator", frappe.get_roles(GD_ADMIN_USER))
+			self.assertNotIn("System Manager", frappe.get_roles(GD_ADMIN_USER))
+
+			out = offline_bootstrap.prepare_offline_site(dataset="ISO-TEST-BND", max_zoom=2)
+			self.assertEqual(out.get("dataset"), "ISO-TEST-BND")
+			self.assertFalse(out.get("stopped"))
+			self.assertEqual(out.get("wheels", {}).get("skipped"), "online_setup_disabled")
+			self.assertEqual(out.get("tiles", {}).get("skipped"), "online_setup_disabled")
+			# Neither hierarchy nor package nor lock may fail with PermissionError!
+			for stage_name in ("hierarchy", "package", "locked"):
+				stage_res = out.get(stage_name) or {}
+				self.assertNotIn(
+					"PermissionError",
+					str(stage_res.get("error") or ""),
+					f"Stage {stage_name} failed with PermissionError under SIRAJ Administrator: {stage_res}",
+				)
+			self.assertEqual(
+				frappe.db.get_value("Geo Settings", "Geo Settings", "bootstrap_last_status"),
+				"complete",
+			)
+			self.assertEqual(
+				int(frappe.db.get_value("Geo Settings", "Geo Settings", "bootstrap_running") or 0),
+				0,
+			)
+		finally:
+			frappe.set_user("Administrator")
+			frappe.db.set_value(
+				"Geo Settings",
+				"Geo Settings",
+				{
+					"online_setup_enabled": prev_online if prev_online is not None else 1,
+					"allow_tile_fetch": prev_tile if prev_tile is not None else 0,
+					"online_geocoder_enabled": prev_geocoder if prev_geocoder is not None else 0,
+					"bootstrap_running": 0,
+					"bootstrap_stop_requested": 0,
+					"bootstrap_last_status": "",
+				},
+				update_modified=False,
+			)
