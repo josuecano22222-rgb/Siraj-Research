@@ -1129,22 +1129,26 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 
 		# 3) Verify setup/test_data.py links every scoped sample record within TEST_DATA_GROUP ('GD')
 		#    under live validate_same_data_group_links enforcement, then roll back via savepoint.
-		#    (During L1-L3 transition before L4 updates test_data.py from Research Event -> Siraj Event,
-		#    only run seed_test_data if all OPERATIONAL_TYPES exist on the site.)
-		if all(frappe.db.exists("DocType", dt) for dt in test_data.OPERATIONAL_TYPES):
-			frappe.db.savepoint("c03a_test_data_seed")
-			try:
-				with patch.object(test_data, "_assert_event_safe", lambda: None):
+		frappe.db.savepoint("c03a_test_data_seed")
+		seed_rolled_back = False
+		try:
+			with patch.object(test_data, "_assert_event_safe", lambda: None):
+				try:
 					seeded = test_data.seed_test_data()
-				self.assertGreater(seeded["created"]["Person"], 0)
-				for dt, names in seeded["created_names"].items():
-					if dt in ("Person", "Institution", "Place", "Siraj Event", "Source", "Military Unit", "Relationship"):
-						for n in names:
-							self.assertEqual(
-								frappe.db.get_value(dt, n, "data_group"),
-								test_data.TEST_DATA_GROUP,
-							)
-			finally:
+				except Exception:
+					seed_rolled_back = True
+					raise
+			self.assertGreater(seeded["created"]["Person"], 0)
+			self.assertGreater(seeded["created"]["Siraj Event"], 0)
+			for dt, names in seeded["created_names"].items():
+				if dt in ("Person", "Institution", "Place", "Siraj Event", "Source", "Military Unit", "Relationship"):
+					for n in names:
+						self.assertEqual(
+							frappe.db.get_value(dt, n, "data_group"),
+							test_data.TEST_DATA_GROUP,
+						)
+		finally:
+			if not seed_rolled_back:
 				frappe.db.rollback(save_point="c03a_test_data_seed")
 
 		# 4) Live Data Import (validation on) carrying a cross-group link is rejected by Importer.process_doc.

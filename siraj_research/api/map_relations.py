@@ -92,10 +92,15 @@ def get_entity_network(doctype: str, name: str, depth: int = 1, types: str | Non
 	limit_nodes = max(1, min(limit_nodes, MAX_NODES_HARD))
 	limit_edges = max(1, min(limit_edges, MAX_EDGES_HARD))
 	RELATABLE_DOCTYPES = _relatable_doctypes()
-	# If the seed DocType isn't relatable OR the user can't read it, return an
-	# empty network instead of throwing — Explorer handles an empty result
-	# gracefully and a throw surfaces as an error banner on every click.
-	if doctype not in RELATABLE_DOCTYPES or not frappe.has_permission(doctype, "read", name):
+	# If the seed DocType isn't relatable, the target record does not exist, OR
+	# the user can't read it, return an empty network instead of throwing —
+	# Explorer handles an empty result gracefully and throwing DoesNotExistError
+	# vs PermissionError would leak record existence on predictable IDs.
+	if (
+		doctype not in RELATABLE_DOCTYPES
+		or not frappe.db.exists(doctype, name)
+		or not frappe.has_permission(doctype, "read", name)
+	):
 		return {
 			"center": [doctype, name],
 			"nodes": [],

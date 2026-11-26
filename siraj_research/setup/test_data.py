@@ -64,7 +64,7 @@ FOLD_RECORDS = 52
 OPERATIONAL_TYPES = (
 	"Armament",
 	"Command Appointment",
-	"Research Event",
+	"Siraj Event",
 	"Institution",
 	"Military Unit",
 	"Mission",
@@ -417,7 +417,7 @@ def seed_test_data():
 				classification=lookup["Person Classification"],
 			)
 		event = add(
-			"Research Event",
+			"Siraj Event",
 			title_ar="اختبار يوم النور للتواصل المجتمعي",
 			title_en="TEST Al-Nur Community Outreach Day",
 			event_type=lookup["Event Type"],
@@ -436,8 +436,8 @@ def seed_test_data():
 			(
 				("Person", person, "Institution", institution),
 				("Institution", institution, "Place", place),
-				("Place", place, "Research Event", event),
-				("Research Event", event, "Source", source),
+				("Place", place, "Siraj Event", event),
+				("Siraj Event", event, "Source", source),
 				("Person", other_person, "Person", person),
 			)
 		):
