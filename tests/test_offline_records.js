@@ -45,7 +45,8 @@ async function load(obj, size=100) {
   elements['record-search'].value=''; elements['record-type'].value='Person'; elements['record-type'].dispatch('change');
   assert.match(state(), /1 matching records/);
   const invalid = [ {...data, edges:[{source:node('Person','missing'),target:node('Place','b'),type:''}]},
-    {...data, nodes:[data.nodes[0],data.nodes[0]]}, {...data, nodes:[node('Event','c')]}, {...data, extra:'bad'} ];
+    {...data, nodes:[data.nodes[0],data.nodes[0]]}, {...data, nodes:[node('Event','c')]},
+    {...data, nodes:[node('Siraj Event','c')], edges:[]}, {...data, extra:'bad'} ];
   for (const value of invalid) { await load(value); assert.match(state(), /rejected/); assert.equal(descendants(elements['record-results'],'button').length,0); }
   // Bounded adjacency, incoming/outgoing navigation and self links, all local.
   const hub = node('Person','hub'), places = Array.from({length:150},(_,i)=>node('Place','p'+i));
