@@ -12,6 +12,11 @@ class SirajEvent(Document):
 	def before_validate(self):
 		set_display_name(self, "title_en", "title_ar")
 
+	def before_delete(self):
+		from siraj_research.utils.relationship_delete import block_delete_if_referenced
+
+		block_delete_if_referenced(self.doctype, self.name)
+
 	def validate(self):
 		if not (str(self.get("title_ar") or "").strip() or str(self.get("title_en") or "").strip()):
 			frappe.throw(

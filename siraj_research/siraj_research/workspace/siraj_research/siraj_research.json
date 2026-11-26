@@ -911,6 +911,16 @@
    "type": "Link",
    "link_to": "Data Group",
    "link_type": "DocType"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Relationship Type Allowed Pair",
+   "link_count": 0,
+   "onboard": 0,
+   "type": "Link",
+   "link_to": "Relationship Type Allowed Pair",
+   "link_type": "DocType"
   }
  ],
  "modified": "2026-11-18 12:00:00.000000",

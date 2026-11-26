@@ -21,7 +21,9 @@
   "cb_semantics",
   "applies_to_subject",
   "applies_to_object",
-  "is_hierarchical"
+  "is_hierarchical",
+  "sb_allowed_pairs",
+  "allowed_pairs"
  ],
  "fields": [
   {
@@ -146,6 +148,20 @@
    "label": "Is hierarchical",
    "default": "0",
    "description": "Marks containment types ('located in', 'contains', 'member of') so the graph view can draw them as a hierarchy."
+  },
+  {
+   "fieldname": "sb_allowed_pairs",
+   "fieldtype": "Section Break",
+   "label": "Allowed pairs"
+  },
+  {
+   "fieldname": "allowed_pairs",
+   "fieldtype": "Table",
+   "label": "Allowed pairs",
+   "options": "Relationship Type Allowed Pair",
+   "no_copy": 1,
+   "columns": 3,
+   "description": "One row per allowed (subject_doctype, object_doctype) pair. Pair membership is enforced in the Relationship controller (docs/decisions/relationship-consolidation.md §3.1). The legacy applies_to_subject/applies_to_object Links are deprecated and unread."
   }
  ],
  "permissions": [

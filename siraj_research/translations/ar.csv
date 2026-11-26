@@ -1931,3 +1931,23 @@ You do not have write access to these coordinates.,ليست لديك صلاحي�
 "Zero pair (0,0) shown — this often means ""unknown"" in legacy data. Confirm before interpreting.",يظهر الزوج الصفري (0،0) — وغالباً ما يعني «غير معروف» في البيانات القديمة. تحقّق قبل تفسيره.
 offline data,بيانات غير متصلة
 {0} available,{0} متاح
+A relationship '{0}' → '{1}' already exists for this type.,يوجد بالفعل علاقة '{0}' ← '{1}' لهذا النوع.
+A symmetric relationship for '{0}' → '{1}' already exists.,يوجد بالفعل علاقة متناظرة من '{0}' ← '{1}'.
+Relationship type '{0}' does not allow a {1} → {2} link.,نوع العلاقة '{0}' لا يسمح بربط {1} ← {2}.
+A non-hierarchical relationship cannot link a record to itself.,لا يمكن للعلاقات غير الهرمية ربط سجل بنفسه.
+Allowed object endpoint DocType.,نوع المستند المسموح به لطرف الهدف.
+Allowed pairs,الأزواج المسموح بها
+Allowed subject endpoint DocType. One row = one allowed ordered pair.,نوع المستند المسموح به لطرف المفعول. كل صف = زوج مرتب مسموح به.
+Arabic title; paired with Title (English).,العنوان بالعربية؛ مقترن بالعنوان (بالإنجليزية).
+Bilingual title carried over from the consolidated association DocTypes (docs/decisions/relationship-consolidation.md §1.1 Option A). display_name remains the canonical label.,عنوان ثنائي اللغة منقول من أنواع المستندات الموحَّدة للارتباطات (الوثائق/القرارات/توحيد-العلاقات.md §1.1 الخيار أ). يبقى display_name هو التسمية المعيارية.
+Cannot delete {0} {1}: it is referenced by a Relationship.,لا يمكن حذف {0} {1}: فهو مشار إليه بواسطة علاقة.
+Delete blocked,تم منع الحذف
+Display order of the pair within its Relationship Type.,ترتيب عرض الزوج ضمن نوع العلاقة الخاص به.
+Duplicate relationship,علاقة مكررة
+Object doctype,نوع المستند للطرف الهدف
+"One allowed (subject_doctype, object_doctype) pair for a Relationship Type. The full allowed set is the rows of this child table; pair membership is enforced in the Relationship controller (docs/decisions/relationship-consolidation.md §3.1).",زوج مسموح به واحد (subject_doctype، object_doctype) لنوع علاقة. المجموعة المسموح بها الكاملة هي صفوف هذا الجدول الفرعي؛ يتم تطبيق انتماء الزوج في وحدة تحكم العلاقة (الوثائق/القرارات/توحيد-العلاقات.md §3.1).
+"One row per allowed (subject_doctype, object_doctype) pair. Pair membership is enforced in the Relationship controller (docs/decisions/relationship-consolidation.md §3.1). The legacy applies_to_subject/applies_to_object Links are deprecated and unread.",صف واحد لكل زوج مسموح به (subject_doctype، object_doctype). يتم تطبيق انتماء الزوج في وحدة تحكم العلاقة (الوثائق/القرارات/توحيد-العلاقات.md §3.1). روابط applies_to_subject/applies_to_object القديمة أصبحت غير مستخدمة وغير مقروءة.
+Pair not allowed,الزوج غير مسموح به
+Relationship Type Allowed Pair,زوج نوع العلاقة المسموح به
+Self link,ربط ذاتي
+Subject doctype,نوع المستند للطرف الفاعل

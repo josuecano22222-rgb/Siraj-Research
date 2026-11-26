@@ -14,7 +14,13 @@ from siraj_research.utils.military import (
 
 
 class MilitaryUnit(Document):
+	def before_delete(self):
+		from siraj_research.utils.relationship_delete import block_delete_if_referenced
+
+		block_delete_if_referenced(self.doctype, self.name)
+
 	def validate(self):
+		self.validate_parent()
 		self.validate_parent()
 		self.validate_commander()
 		self.validate_personnel()
