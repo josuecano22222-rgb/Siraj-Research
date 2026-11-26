@@ -93,7 +93,7 @@ class ControllerFixtureTest(unittest.TestCase):
 				row = {"name": name, "docstatus": 0, **doc.values}
 
 				def matches(field, value):
-					if isinstance(value, (list, tuple)):
+					if isinstance(value, list | tuple):
 						op, operand = value
 						if op == "in":
 							return row.get(field) in operand

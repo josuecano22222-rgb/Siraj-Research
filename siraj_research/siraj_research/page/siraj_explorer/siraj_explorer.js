@@ -2873,7 +2873,7 @@ class SirajExplorer {
 			{ id: 'deployments',   label: __('Deployments'),     glyph: 'Operational Deployment', group: __('Military') },
 			{ id: 'missions',      label: __('Missions'),        glyph: 'Mission',              group: __('Military') },
 			{ id: 'exercises',     label: __('Training exercises'), glyph: 'Training Exercise', group: __('Military') },
-			{ id: 'events',        label: __('Research events'), glyph: 'Siraj Event',       group: __('Research') },
+			{ id: 'events',        label: __('Siraj events'), glyph: 'Siraj Event',       group: __('Research') },
 			{ id: 'relationships', label: __('Relationships'),   glyph: 'Relationship',         group: __('Research') },
 			{ id: 'sources',       label: __('Sources'),         glyph: 'Source',               group: __('Research') },
 		];
