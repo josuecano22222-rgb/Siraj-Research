@@ -202,3 +202,37 @@ def test_extract_if_zip_extracts_clean_archive(boundary_env, tmp_path):
 	extracted = gi._extract_if_zip(zip_path, workdir)
 	assert len(extracted) == 1
 	assert extracted[0].name == "layer.geojson"
+
+
+def test_max_upload_bytes_lowered_to_100_mib_g5(boundary_env):
+	bi, gi, _fake, _state, _site_private = boundary_env
+	assert gi.MAX_UPLOAD_BYTES == 100 * 1024 * 1024
+	assert bi.MAX_UPLOAD_BYTES == 100 * 1024 * 1024
+
+
+def test_upload_file_rejects_dot_and_dotdot_filenames_g5(boundary_env):
+	bi, _gi, fake, state, _site_private = boundary_env
+	state["is_admin"] = True
+	payload = base64.b64encode(b"{}").decode("ascii")
+	for bad_name in ("..", ".", "../..", "dir/..", "dir/.", ""):
+		with pytest.raises(fake.ValidationError):
+			bi.upload_file(bad_name, payload)
+
+
+def test_same_name_uploads_do_not_overwrite_g5(boundary_env):
+	bi, gi, _fake, state, site_private = boundary_env
+	state["is_admin"] = True
+	upload_root = (site_private / gi.UPLOAD_SUBDIR).resolve()
+
+	first = bi.upload_file("boundaries.geojson", base64.b64encode(b'{"id": 1}').decode("ascii"))
+	second = bi.upload_file("boundaries.geojson", base64.b64encode(b'{"id": 2}').decode("ascii"))
+
+	p1 = Path(first["path"]).resolve()
+	p2 = Path(second["path"]).resolve()
+	assert p1 != p2
+	assert p1.is_relative_to(upload_root)
+	assert p2.is_relative_to(upload_root)
+	assert p1.name.endswith("_boundaries.geojson")
+	assert p2.name.endswith("_boundaries.geojson")
+	assert p1.read_bytes() == b'{"id": 1}'
+	assert p2.read_bytes() == b'{"id": 2}'

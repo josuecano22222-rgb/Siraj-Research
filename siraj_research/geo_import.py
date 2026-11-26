@@ -19,6 +19,7 @@ import io
 import json
 import re
 import stat
+import uuid
 import zipfile
 from collections.abc import Iterable
 from pathlib import Path
@@ -71,7 +72,7 @@ def deps_ok() -> tuple[bool, list[str]]:
 # ---------------------------------------------------------------------------
 
 UPLOAD_SUBDIR = "siraj_boundary_uploads"
-MAX_UPLOAD_BYTES = 500 * 1024 * 1024  # 500 MiB raw upload ceiling
+MAX_UPLOAD_BYTES = 100 * 1024 * 1024  # 100 MiB raw upload ceiling
 MAX_ZIP_MEMBERS = 256
 MAX_ZIP_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024  # 2 GiB total uncompressed ceiling
 
@@ -87,9 +88,18 @@ def _save_upload(filedata: bytes, filename: str) -> Path:
     """Write the uploaded bytes to the site's private directory and return
     the path. Caller is responsible for cleanup.
     """
+    if not filename or not isinstance(filename, str):
+        frappe.throw("Invalid upload filename.", frappe.ValidationError)
+    base_name = filename.replace("\\", "/").rsplit("/", 1)[-1]
+    if base_name in {"", ".", ".."}:
+        frappe.throw("Invalid upload filename.", frappe.ValidationError)
+    safe_name = re.sub(r"[^A-Za-z0-9._-]", "_", base_name).lstrip(".")
+    if not safe_name:
+        frappe.throw("Invalid upload filename.", frappe.ValidationError)
     root = _upload_root()
-    safe_name = re.sub(r"[^A-Za-z0-9._-]", "_", filename)
-    out = root / safe_name
+    out = (root / f"{uuid.uuid4().hex}_{safe_name}").resolve()
+    if not out.is_relative_to(root) or out == root:
+        frappe.throw("Invalid upload filename.", frappe.ValidationError)
     out.write_bytes(filedata)
     return out
 

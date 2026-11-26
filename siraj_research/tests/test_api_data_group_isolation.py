@@ -768,8 +768,17 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		frappe.set_user(GD_ADMIN_USER)
 		st = boundary_import.status("ISO-TEST-BND")
 		self.assertIn("import_status", st)
-		uploaded = boundary_import.upload_file("probe.geojson", base64.b64encode(b"{}").decode("ascii"))
+		self.assertEqual(boundary_import.MAX_UPLOAD_BYTES, 100 * 1024 * 1024)
+		for bad_name in ("..", ".", "../.."):
+			with self.assertRaises(frappe.ValidationError):
+				boundary_import.upload_file(bad_name, base64.b64encode(b"{}").decode("ascii"))
+		uploaded = boundary_import.upload_file("probe.geojson", base64.b64encode(b'{"n":1}').decode("ascii"))
+		uploaded_2 = boundary_import.upload_file("probe.geojson", base64.b64encode(b'{"n":2}').decode("ascii"))
 		self._upload_paths.append(uploaded.get("path", ""))
+		self._upload_paths.append(uploaded_2.get("path", ""))
+		self.assertNotEqual(uploaded["path"], uploaded_2["path"])
+		self.assertEqual(Path(uploaded["path"]).read_bytes(), b'{"n":1}')
+		self.assertEqual(Path(uploaded_2["path"]).read_bytes(), b'{"n":2}')
 		# File inside private/siraj_boundary_uploads that was not uploaded raises ValidationError (not found), not PermissionError.
 		missing_inside = Path(frappe.get_site_path("private")) / boundary_import.UPLOAD_SUBDIR / "missing_probe.geojson"
 		with self.assertRaises(frappe.ValidationError):
