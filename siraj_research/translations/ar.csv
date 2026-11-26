@@ -1906,6 +1906,12 @@ Online setup queued — polling bootstrap_last_status.,أُدرج الإعداد
 Local-only preparation queued (online setup disabled).,أُدرج الإعداد المحلي فقط في قائمة الانتظار (الإعداد عبر الإنترنت معطل).
 Administrator role required for offline bootstrap.,يتطلب الإعداد غير المتصل صلاحية المسؤول.
 Offline bootstrap is already running.,الإعداد غير المتصل قيد التشغيل بالفعل.
+Offline bootstrap complete.,اكتمل الإعداد غير المتصل.
+Offline bootstrap failed — check bootstrap_last_status and worker logs.,فشل الإعداد غير المتصل — راجع bootstrap_last_status وسجلات العامل.
+Offline bootstrap stopped by administrator.,أوقف المسؤول الإعداد غير المتصل.
+Offline bootstrap completed with download failures — offline lock skipped.,اكتمل الإعداد غير المتصل مع إخفاق بعض التنزيلات — جرى تخطي قفل الوضع غير المتصل.
+Bootstrap status stale,حالة التهيئة قديمة
+Bootstrap is still marked running after 30 minutes (possibly stale if the worker stopped). Run Online Setup again to recover or reload.,لا تزال التهيئة مُسجلة قيد التشغيل بعد 30 دقيقة (قد تكون عالقة إذا توقف العامل). شغّل الإعداد عبر الإنترنت مجدداً للاستعادة أو أعد تحميل الصفحة.
 Online setup is disabled. Run a local-only preparation (no downloads)?,الإعداد عبر الإنترنت معطل. هل تريد تشغيل إعداد محلي فقط (من دون تنزيلات)؟
 "Online setup may download wheels, tiles and packages.",قد ينزّل الإعداد عبر الإنترنت حزم بايثون والبلاطات والحزم الأخرى.
 Out,تصغير

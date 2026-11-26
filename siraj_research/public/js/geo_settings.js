@@ -3,6 +3,62 @@
 	'use strict';
 	const t = s => (typeof __ === 'function' ? __(s) : s);
 	const POLL_INTERVAL_MS = 2000;
+	const MAX_POLL_DURATION_MS = 30 * 60 * 1000; // 30 minutes max browser polling window
+
+	function isFormCurrent(frm) {
+		if (!frm || frm._siraj_unloaded) return false;
+		if (typeof cur_frm !== 'undefined' && cur_frm !== null && cur_frm !== frm) {
+			return false;
+		}
+		if (frm.$wrapper && typeof frm.$wrapper.is === 'function' && !frm.$wrapper.is(':visible')) {
+			return false;
+		}
+		return true;
+	}
+
+	function stopPolling(frm) {
+		if (frm && frm._siraj_bootstrap_poll) {
+			clearTimeout(frm._siraj_bootstrap_poll);
+			frm._siraj_bootstrap_poll = null;
+		}
+		if (frm) {
+			frm._siraj_poll_started_at = null;
+		}
+	}
+
+	function statusColor(status) {
+		if (status === 'stopped by user' || status === 'failed' || status === 'enqueue failed') {
+			return 'red';
+		}
+		if (status === 'complete_with_failures') {
+			return 'orange';
+		}
+		return 'green';
+	}
+
+	function showTerminalAlert(status) {
+		if (status === 'failed' || status === 'enqueue failed') {
+			frappe.show_alert({
+				message: t('Offline bootstrap failed — check bootstrap_last_status and worker logs.'),
+				indicator: 'red',
+			});
+		} else if (status === 'stopped by user') {
+			frappe.show_alert({
+				message: t('Offline bootstrap stopped by administrator.'),
+				indicator: 'orange',
+			});
+		} else if (status === 'complete_with_failures') {
+			frappe.show_alert({
+				message: t('Offline bootstrap completed with download failures — offline lock skipped.'),
+				indicator: 'orange',
+			});
+		} else {
+			frappe.show_alert({
+				message: t('Offline bootstrap complete.'),
+				indicator: 'green',
+			});
+		}
+	}
 
 	function applyControls(frm) {
 		const running = !!frm.doc.bootstrap_running;
@@ -11,7 +67,7 @@
 		if (running) {
 			frm.page.set_indicator(t('Bootstrap running'), 'orange');
 		} else if (status) {
-			frm.page.set_indicator(t(status), status === 'stopped by user' ? 'red' : 'green');
+			frm.page.set_indicator(t(status), statusColor(status));
 		}
 		const stopButton = frm.fields_dict.stop_bootstrap;
 		if (stopButton && stopButton.$wrapper) {
@@ -34,14 +90,39 @@
 	}
 
 	function pollBootstrapStatus(frm) {
+		if (!isFormCurrent(frm)) {
+			stopPolling(frm);
+			return;
+		}
+		if (!frm._siraj_poll_started_at) {
+			frm._siraj_poll_started_at = Date.now();
+		}
 		if (frm._siraj_bootstrap_poll) {
 			clearTimeout(frm._siraj_bootstrap_poll);
 			frm._siraj_bootstrap_poll = null;
 		}
 		frm._siraj_bootstrap_poll = setTimeout(async () => {
 			frm._siraj_bootstrap_poll = null;
+			if (!isFormCurrent(frm)) {
+				stopPolling(frm);
+				return;
+			}
+			if (Date.now() - frm._siraj_poll_started_at > MAX_POLL_DURATION_MS) {
+				stopPolling(frm);
+				frm.page.set_indicator(t('Bootstrap status stale'), 'orange');
+				frappe.show_alert({
+					message: t('Bootstrap is still marked running after 30 minutes (possibly stale if the worker stopped). Run Online Setup again to recover or reload.'),
+					indicator: 'orange',
+				});
+				return;
+			}
+			const wasRunning = !!frm.doc.bootstrap_running;
 			try {
 				const latest = await frappe.db.get_doc('Geo Settings');
+				if (!isFormCurrent(frm)) {
+					stopPolling(frm);
+					return;
+				}
 				if (latest) {
 					frm.doc.bootstrap_running = latest.bootstrap_running ? 1 : 0;
 					frm.doc.bootstrap_last_status = latest.bootstrap_last_status || '';
@@ -55,10 +136,17 @@
 				}
 				if (frm.doc.bootstrap_running) {
 					pollBootstrapStatus(frm);
+				} else {
+					stopPolling(frm);
+					if (wasRunning) {
+						showTerminalAlert(frm.doc.bootstrap_last_status || 'complete');
+					}
 				}
 			} catch (_) {
-				if (frm.doc.bootstrap_running) {
+				if (frm.doc.bootstrap_running && isFormCurrent(frm)) {
 					pollBootstrapStatus(frm);
+				} else {
+					stopPolling(frm);
 				}
 			}
 		}, POLL_INTERVAL_MS);
@@ -66,13 +154,17 @@
 
 	frappe.ui.form.on('Geo Settings', {
 		refresh(frm) {
+			frm._siraj_unloaded = false;
 			applyControls(frm);
 			if (frm.doc.bootstrap_running) {
 				pollBootstrapStatus(frm);
-			} else if (frm._siraj_bootstrap_poll) {
-				clearTimeout(frm._siraj_bootstrap_poll);
-				frm._siraj_bootstrap_poll = null;
+			} else {
+				stopPolling(frm);
 			}
+		},
+
+		onload_post_render(frm) {
+			frm._siraj_unloaded = false;
 		},
 
 		online_setup_enabled(frm) {
@@ -107,6 +199,7 @@
 						frm.doc.bootstrap_running = 1;
 						frm.doc.bootstrap_last_status = 'queued';
 						frm.doc.bootstrap_stop_requested = 0;
+						frm._siraj_poll_started_at = Date.now();
 						applyControls(frm);
 						frappe.show_alert({
 							message: result && result.online_setup_enabled === false

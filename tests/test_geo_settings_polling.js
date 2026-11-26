@@ -1,4 +1,4 @@
-// Unit test for C-04 (HD-2): geo_settings.js polling of bootstrap_running / bootstrap_last_status.
+// Unit test for C-04 & G3: geo_settings.js polling lifecycle, terminal alerts, form-current guard, and stale-running handling.
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
@@ -13,6 +13,7 @@ const clearedTimers = [];
 const alerts = [];
 const indicators = [];
 const xcalls = [];
+let nowMs = 100000;
 
 function makeWrapper() {
 	const state = { visible: true, classes: new Set(), attrs: {} };
@@ -26,6 +27,8 @@ function makeWrapper() {
 
 const sandbox = {
 	__: (s) => s,
+	Date: { now: () => nowMs },
+	cur_frm: null,
 	setTimeout: (fn, ms) => {
 		const id = scheduledTimers.length + 1;
 		scheduledTimers.push({ id, fn, ms });
@@ -59,21 +62,16 @@ const sandbox = {
 vm.runInNewContext(source, sandbox, { filename: 'geo_settings.js' });
 assert(handlers && typeof handlers.refresh === 'function', 'Geo Settings form handlers registered');
 
-(async () => {
-	const pollSnapshots = [
-		{ bootstrap_running: 1, bootstrap_last_status: 'running', bootstrap_stop_requested: 0 },
-		{ bootstrap_running: 0, bootstrap_last_status: 'complete', bootstrap_stop_requested: 0 },
-	];
-	let pollIdx = 0;
-	sandbox.frappe.db.get_doc = async () => pollSnapshots[Math.min(pollIdx++, pollSnapshots.length - 1)];
-
-	const frm = {
+function makeForm(overrides = {}) {
+	return {
+		doctype: 'Geo Settings',
 		doc: {
 			active_boundary_dataset: 'ISO-TEST-BND',
 			online_setup_enabled: 1,
 			bootstrap_running: 0,
 			bootstrap_last_status: '',
 			bootstrap_stop_requested: 0,
+			...overrides,
 		},
 		fields_dict: {
 			stop_bootstrap: { $wrapper: makeWrapper() },
@@ -85,8 +83,6 @@ assert(handlers && typeof handlers.refresh === 'function', 'Geo Settings form ha
 		},
 		save: () => Promise.resolve(),
 		reload_doc() {
-			const snap = pollSnapshots[Math.min(pollIdx, pollSnapshots.length - 1)];
-			Object.assign(this.doc, snap);
 			handlers.refresh(this);
 			return Promise.resolve();
 		},
@@ -94,8 +90,19 @@ assert(handlers && typeof handlers.refresh === 'function', 'Geo Settings form ha
 		refresh_fields() {},
 		trigger(ev) { if (handlers[ev]) handlers[ev](this); },
 	};
+}
 
-	// Trigger Run Online Setup -> queues background job and starts polling.
+(async () => {
+	// 1. Happy path: queue -> running -> complete shows green completion alert and stops polling.
+	const pollSnapshots = [
+		{ bootstrap_running: 1, bootstrap_last_status: 'running', bootstrap_stop_requested: 0 },
+		{ bootstrap_running: 0, bootstrap_last_status: 'complete', bootstrap_stop_requested: 0 },
+	];
+	let pollIdx = 0;
+	sandbox.frappe.db.get_doc = async () => pollSnapshots[Math.min(pollIdx++, pollSnapshots.length - 1)];
+
+	const frm = makeForm();
+	sandbox.cur_frm = frm;
 	handlers.run_online_setup(frm);
 	await new Promise((r) => setImmediate(r));
 	await new Promise((r) => setImmediate(r));
@@ -103,35 +110,80 @@ assert(handlers && typeof handlers.refresh === 'function', 'Geo Settings form ha
 	assert.strictEqual(xcalls[0].method, 'siraj_research.offline_bootstrap.run_online_setup');
 	assert(scheduledTimers.length >= 1, 'polling timer scheduled after queueing run_online_setup');
 
-	// Tick 1: still running (bootstrap_running = 1, bootstrap_last_status = 'running') -> schedules next poll.
-	const firstTimer = scheduledTimers[scheduledTimers.length - 1];
-	await firstTimer.fn();
+	await scheduledTimers[scheduledTimers.length - 1].fn();
 	assert.strictEqual(frm.doc.bootstrap_running, 1);
-	assert.strictEqual(frm.doc.bootstrap_last_status, 'running');
-	assert.strictEqual(
-		frm.fields_dict.stop_bootstrap.$wrapper.state.visible,
-		true,
-		'stop_bootstrap button is visible while bootstrap_running is truthy'
-	);
-	const countAfterFirstTick = scheduledTimers.length;
-	assert(countAfterFirstTick >= 2, 'second poll scheduled while bootstrap_running == 1');
+	assert.strictEqual(frm.fields_dict.stop_bootstrap.$wrapper.state.visible, true);
 
-	// Tick 2: finished (bootstrap_running = 0, bootstrap_last_status = 'complete') -> stops polling.
-	const secondTimer = scheduledTimers[scheduledTimers.length - 1];
-	await secondTimer.fn();
+	const alertsBeforeComplete = alerts.length;
+	const timersBeforeComplete = scheduledTimers.length;
+	await scheduledTimers[scheduledTimers.length - 1].fn();
 	assert.strictEqual(frm.doc.bootstrap_running, 0);
 	assert.strictEqual(frm.doc.bootstrap_last_status, 'complete');
-	assert.strictEqual(
-		scheduledTimers.length,
-		countAfterFirstTick,
-		'polling stops once bootstrap_running becomes 0'
-	);
+	assert.strictEqual(scheduledTimers.length, timersBeforeComplete, 'polling stops once bootstrap_running becomes 0');
+	const completeAlerts = alerts.slice(alertsBeforeComplete);
 	assert(
-		indicators.some((i) => i.label === 'complete' && i.color === 'green'),
-		'indicator reflects final bootstrap_last_status'
+		completeAlerts.some((a) => a.indicator === 'green' && /complete/i.test(a.message)),
+		'completion alert shown when bootstrap finishes cleanly'
 	);
 
-	console.log('geo_settings.js polling: queued start, running poll, stop button visibility, and terminal completion verified.');
+	// 2. Failure transition: running -> failed shows red failure alert and red indicator.
+	const frmFail = makeForm({ bootstrap_running: 1, bootstrap_last_status: 'running' });
+	sandbox.cur_frm = frmFail;
+	sandbox.frappe.db.get_doc = async () => ({
+		bootstrap_running: 0,
+		bootstrap_last_status: 'failed',
+		bootstrap_stop_requested: 0,
+	});
+	handlers.refresh(frmFail);
+	const alertsBeforeFail = alerts.length;
+	await scheduledTimers[scheduledTimers.length - 1].fn();
+	const failAlerts = alerts.slice(alertsBeforeFail);
+	assert(
+		failAlerts.some((a) => a.indicator === 'red' && /failed/i.test(a.message)),
+		'failure alert shown when bootstrap terminates with failed status'
+	);
+	assert(
+		indicators.some((i) => i.label === 'failed' && i.color === 'red'),
+		'indicator is red on failed status'
+	);
+
+	// 3. Navigating away (cur_frm !== frm) stops polling without calling get_doc or scheduling another timer.
+	const frmAway = makeForm({ bootstrap_running: 1, bootstrap_last_status: 'running' });
+	sandbox.cur_frm = frmAway;
+	let awayCalls = 0;
+	sandbox.frappe.db.get_doc = async () => { awayCalls += 1; return { bootstrap_running: 1, bootstrap_last_status: 'running' }; };
+	handlers.refresh(frmAway);
+	const awayTimer = scheduledTimers[scheduledTimers.length - 1];
+	const timersBeforeAway = scheduledTimers.length;
+	sandbox.cur_frm = makeForm(); // User navigated to another form!
+	await awayTimer.fn();
+	assert.strictEqual(awayCalls, 0, 'poll does not fetch when form is no longer current');
+	assert.strictEqual(scheduledTimers.length, timersBeforeAway, 'polling stops when form is no longer current');
+
+	// 4. Stale running state exceeding maximum poll duration stops polling and shows a visible warning message.
+	nowMs = 200000;
+	const frmStale = makeForm({ bootstrap_running: 1, bootstrap_last_status: 'queued' });
+	sandbox.cur_frm = frmStale;
+	sandbox.frappe.db.get_doc = async () => ({
+		bootstrap_running: 1,
+		bootstrap_last_status: 'queued',
+		bootstrap_stop_requested: 0,
+	});
+	handlers.refresh(frmStale);
+	const staleTimer = scheduledTimers[scheduledTimers.length - 1];
+	const alertsBeforeStale = alerts.length;
+	// Advance clock past MAX_POLL_DURATION_MS (e.g., +2 hours).
+	nowMs += 2 * 60 * 60 * 1000 + 5000;
+	const timersBeforeStaleTick = scheduledTimers.length;
+	await staleTimer.fn();
+	assert.strictEqual(scheduledTimers.length, timersBeforeStaleTick, 'polling stops after max poll duration');
+	const staleAlerts = alerts.slice(alertsBeforeStale);
+	assert(
+		staleAlerts.some((a) => /stale|timed out|still marked running/i.test(a.message)),
+		'visible message shown when running state appears stale / exceeds max poll duration'
+	);
+
+	console.log('geo_settings.js polling: completion/failure alerts, form-current guard, and max-duration stale handling verified.');
 })().catch((err) => {
 	console.error(err);
 	process.exit(1);
