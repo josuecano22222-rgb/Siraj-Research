@@ -253,7 +253,17 @@ class TestRelationship(FrappeTestCase):
 			# and falsely block the now-unreferenced endpoint. A direct db.delete
 			# guarantees the row is gone so the post-removal endpoint delete exercises
 			# only our before_delete guard (no false positive).
-			frappe.db.delete("Relationship", {"name": rel.name})
+			# Remove the Relationship row by endpoint reference (subject/object
+			# match) rather than by rel.name: the named delete left the referencing
+			# row in place, so delete by the references directly.
+			frappe.db.delete(
+				"Relationship",
+				{"subject_type": "Person", "subject": person.name},
+			)
+			frappe.db.delete(
+				"Relationship",
+				{"object_type": "Institution", "object": institution.name},
+			)
 			# No Relationship should reference either endpoint anymore.
 			self.assertFalse(
 				frappe.db.exists(
@@ -263,7 +273,8 @@ class TestRelationship(FrappeTestCase):
 				or frappe.db.exists(
 					"Relationship",
 					{"object_type": "Person", "object": person.name},
-				)
+				),
+				"relationship still references Person (rel.name=%r)" % rel.name,
 			)
 			self.assertFalse(
 				frappe.db.exists(
@@ -273,7 +284,8 @@ class TestRelationship(FrappeTestCase):
 				or frappe.db.exists(
 					"Relationship",
 					{"object_type": "Institution", "object": institution.name},
-				)
+				),
+				"relationship still references Institution (rel.name=%r)" % rel.name,
 			)
 			# force=True skips Frappe's check_if_doc_is_dynamically_linked (a
 			# stale link reference for Dynamic Link fields) but still runs our

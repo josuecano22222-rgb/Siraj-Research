@@ -296,10 +296,13 @@ class TestRelationshipEnforcement(FrappeTestCase):
                     ).insert(ignore_permissions=True)
                     with self.assertRaises(frappe.ValidationError):
                         frappe.delete_doc(doctype, endpoint.name, ignore_permissions=True)
-                    # subject/object are Dynamic Link fields: Frappe's delete machinery
-                    # can leave the row's link reference detectable, so remove the row
-                    # with a direct hard delete rather than frappe.delete_doc.
-                    frappe.db.delete("Relationship", {"name": rel_subject.name})
+                    # Remove the Relationship rows by endpoint reference (subject/object
+                    # match) rather than by name: the named delete left the referencing
+                    # row in place, so delete by the references directly.
+                    frappe.db.delete(
+                        "Relationship",
+                        {"subject_type": doctype, "subject": endpoint.name},
+                    )
 
                     # Object side: endpoint is the object.
                     rel_object = self._make_relationship(
@@ -307,7 +310,10 @@ class TestRelationshipEnforcement(FrappeTestCase):
                     ).insert(ignore_permissions=True)
                     with self.assertRaises(frappe.ValidationError):
                         frappe.delete_doc(doctype, endpoint.name, ignore_permissions=True)
-                    frappe.db.delete("Relationship", {"name": rel_object.name})
+                    frappe.db.delete(
+                        "Relationship",
+                        {"object_type": doctype, "object": endpoint.name},
+                    )
 
                     # No Relationship should reference the endpoint anymore.
                     self.assertFalse(
@@ -318,7 +324,9 @@ class TestRelationshipEnforcement(FrappeTestCase):
                         or frappe.db.exists(
                             "Relationship",
                             {"object_type": doctype, "object": endpoint.name},
-                        )
+                        ),
+                        "relationship still references %s (rel_subject.name=%r, rel_object.name=%r)"
+                        % (doctype, rel_subject.name, rel_object.name),
                     )
 
                     # force=True skips Frappe's check_if_doc_is_dynamically_linked
