@@ -6,7 +6,15 @@ from frappe import _
 
 from siraj_research.report_access import can_read_link, readable_rows
 
-ENTITY_TYPES = ("Person", "Institution", "Place", "Research Event", "Source")
+ENTITY_TYPES = (
+	"Person",
+	"Institution",
+	"Place",
+	"Siraj Event",
+	"Source",
+	"Military Unit",
+	"Operational Deployment",
+)
 
 
 def execute(filters=None):

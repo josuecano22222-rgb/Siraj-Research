@@ -1,0 +1,65 @@
+{
+ "doctype": "DocType",
+ "name": "Relationship Type Allowed Pair",
+ "module": "Siraj Research",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "subject_doctype",
+  "object_doctype",
+  "sort_order"
+ ],
+ "fields": [
+  {
+   "fieldname": "subject_doctype",
+   "fieldtype": "Link",
+   "label": "Subject doctype",
+   "options": "DocType",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "columns": 3,
+   "description": "Allowed subject endpoint DocType. One row = one allowed ordered pair."
+  },
+  {
+   "fieldname": "object_doctype",
+   "fieldtype": "Link",
+   "label": "Object doctype",
+   "options": "DocType",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "columns": 3,
+   "description": "Allowed object endpoint DocType."
+  },
+  {
+   "fieldname": "sort_order",
+   "fieldtype": "Int",
+   "label": "Sort order",
+   "default": "100",
+   "columns": 1,
+   "description": "Display order of the pair within its Relationship Type."
+  }
+ ],
+ "permissions": [],
+ "links": [],
+ "actions": [],
+ "states": [],
+ "sort_field": "sort_order",
+ "sort_order": "ASC",
+ "row_format": "Dynamic",
+ "autoname": "hash",
+ "istable": 1,
+ "editable_grid": 1,
+ "in_create": 0,
+ "grid_page_length": 30,
+ "rows_threshold_for_grid_search": 30,
+ "description": "One allowed (subject_doctype, object_doctype) pair for a Relationship Type. The full allowed set is the rows of this child table; pair membership is enforced in the Relationship controller (docs/decisions/relationship-consolidation.md §3.1).",
+ "issingle": 0,
+ "creation": "2026-11-24 00:00:00.000000",
+ "modified": "2026-11-24 00:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "docstatus": 0,
+ "idx": 0
+}

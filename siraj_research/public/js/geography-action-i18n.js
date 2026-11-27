@@ -5,7 +5,7 @@
 (() => {
 	'use strict';
 
-	const DOCTYPES = ['Person', 'Institution', 'Place', 'Research Event'];
+	const DOCTYPES = ['Person', 'Institution', 'Place', 'Siraj Event'];
 	const GROUP = 'Geography';
 	const ACTION = 'Open geographic explorer';
 

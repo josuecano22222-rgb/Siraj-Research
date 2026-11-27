@@ -5,7 +5,7 @@ participants and sources — the hub that people, units, institutions and
 places hang off.
 
 **Prerequisites.** Steps 2–6 (hierarchy, a Source, at least one Person);
-open `/app/research-event`.
+open `/app/siraj-event`.
 
 ---
 
@@ -35,7 +35,7 @@ a decade → `decade`. The “as stated” string always survives untouched.
 
 ## 7.2 Worked example
 
-1. `/app/research-event` → New → Title (Arabic) `عملية سيف القدس`
+1. `/app/siraj-event` → New → Title (Arabic) `عملية سيف القدس`
    → Display name `Operation Sword of Jerusalem` → Event type
    `Military operation`.
 2. Start (as stated) `12 Ramadan 1419` → comparable `1999-04-27`,
@@ -67,7 +67,7 @@ instead of linked.
 المركز الذي تتعلّق به الأفراد والوحدات والمؤسسات والأماكن.
 
 **المقدّمات.** الخطوتان 2–6 (تسلسل، مصدر، فرد واحد على الأقل)؛ فتح
-`/app/research-event`.
+`/app/siraj-event`.
 
 ---
 
@@ -97,7 +97,7 @@ instead of linked.
 
 ## 7.2 مثال عملي
 
-1. `/app/research-event` → جديد → Title (Arabic) `عملية سيف القدس`
+1. `/app/siraj-event` → جديد → Title (Arabic) `عملية سيف القدس`
    → Display name `Operation Sword of Jerusalem` → النوع `Military
    operation`.
 2. Start كما ورد `12 رمضان 1419` → موحّد `1999-04-27` دقة `day` →

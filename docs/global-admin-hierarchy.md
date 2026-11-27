@@ -23,7 +23,7 @@ or using the Siraj Explorer map resolves the point to
   returns bilingual levels, P-Codes, linked DocType names, gaps, confidence and
   provenance. Local polygons win; online fallback is marked `medium`.
 - Forms: `public/js/siraj-hierarchy.js` renders a chain panel below the coordinate
-  map on Person, Institution, Place, Research Event, Siraj Event, Military Unit
+  map on Person, Institution, Place, Siraj Event, Military Unit
   and Operational Deployment. It refreshes on map picks and debounced manual
   coordinate edits.
 - Map field: each coordinate-bearing DocType now has a native Frappe
@@ -39,7 +39,7 @@ or using the Siraj Explorer map resolves the point to
 - Offline: when the server is unreachable, the panel uses `window.SirajGeo` and
   labels values `offline` / `medium` confidence.
 
-Institution, Research Event and Operational Deployment received the missing
+Institution, Siraj Event and Operational Deployment received the missing
 hierarchy Link fields additively; `bench migrate` adds their columns.
 
 ## 1. Architecture at a glance

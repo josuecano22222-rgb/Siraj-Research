@@ -20,12 +20,21 @@ from siraj_research.utils.family import build_family_summary
 
 
 class TestPersonFamily(FrappeTestCase):
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		if not frappe.db.exists("Data Group", "GD"):
+			frappe.get_doc({"doctype": "Data Group", "group_name": "GD"}).insert(
+				ignore_permissions=True
+			)
+
 	def make_person(self, **kwargs) -> frappe.Document:
 		payload = {
 			"doctype": "Person",
 			"name_ar": "اختبار بيانات العائلة",
 			"birth_date": "1950-01-01",
 			"marital_status": "Single",
+			"data_group": "GD",
 		}
 		payload.update(kwargs)
 		doc = frappe.get_doc(payload)
@@ -33,7 +42,7 @@ class TestPersonFamily(FrappeTestCase):
 		return doc
 
 	def test_profile_is_saveable_without_optional_person_details(self):
-		doc = frappe.get_doc({"doctype": "Person"})
+		doc = frappe.get_doc({"doctype": "Person", "data_group": "GD"})
 		doc.insert()
 		doc.reload()
 		self.assertFalse(doc.name_ar)

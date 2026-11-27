@@ -48,7 +48,7 @@ coordinates). Both are selected as *active datasets* in Geo Settings.
 
 ## 2.2 Coordinate auto-fill (the core mechanic)
 
-Every mapped DocType (Person, Place, Institution, Research Event,
+Every mapped DocType (Person, Place, Institution, Siraj Event,
 Military Unit, …) carries the same geography block:
 
 | Field | Meaning | Notes |
@@ -149,7 +149,7 @@ hierarchy records** معروف.
 
 ## 2.2 التعبئة التلقائية للإحداثيات (الآلية الأساسية)
 
-كل نوع مُرسَّ (Person، Place، Institution، Research Event، Military Unit…)
+كل نوع مُرسَّ (Person، Place، Institution، Siraj Event، Military Unit…)
 يحمل كتلة جغرافيا مماثلة:
 
 | المعنى | الصيغة/ملاحظات |

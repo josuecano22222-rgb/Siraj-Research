@@ -19,18 +19,36 @@ def load(path, name, injected):
 	return module
 
 
+class _StubDoesNotExistError(Exception):
+	pass
+
+
 class FrappeStub(types.SimpleNamespace):
 	def __init__(self):
+		self.exceptions = types.SimpleNamespace(DoesNotExistError=_StubDoesNotExistError)
 		self._ = lambda s: s
+		self.whitelist = lambda *a, **kw: (lambda fn: fn)
 		self.rows = {}
 		self.denied = set()
 		self.db = types.SimpleNamespace(
 			exists=lambda dt, name: any(r["name"] == name for r in self.rows.get(dt, []))
 		)
 		self.meta = {}
+		self.title_fields = {}
 		for p in (ROOT / "siraj_research/siraj_research/doctype").glob("*/*.json"):
 			d = json.loads(p.read_text(encoding="utf-8"))
 			self.meta[d["name"]] = {f["fieldname"] for f in d.get("fields", [])} | {"name"}
+			self.title_fields[d["name"]] = d.get("title_field") or "name"
+
+	def get_meta(self, doctype):
+		if doctype not in self.meta:
+			raise _StubDoesNotExistError(f"DocType {doctype} not found")
+		fields = self.meta[doctype]
+		title_field = self.title_fields.get(doctype, "name")
+		return types.SimpleNamespace(
+			get_title_field=lambda: title_field,
+			has_field=lambda fn: fn in fields,
+		)
 
 	def has_permission(
 		self,
@@ -44,6 +62,8 @@ class FrappeStub(types.SimpleNamespace):
 		debug=False,
 		ignore_share_permissions=False,
 	):
+		if doctype not in self.meta and doctype not in self.denied:
+			raise _StubDoesNotExistError(f"DocType {doctype} not found")
 		return doctype not in self.denied and (doctype, doc) not in self.denied
 
 	def get_list(self, doctype, fields, filters, order_by, limit_start, limit_page_length):
@@ -115,7 +135,7 @@ class ReportTest(unittest.TestCase):
 			{"name": "p2", "workflow_state": "Verified"},
 			{"name": "p3", "workflow_state": "In Review"},
 		]
-		self.frappe.denied = {("Person", "p2"), "Research Event"}
+		self.frappe.denied = {("Person", "p2"), "Siraj Event"}
 		_, rows = self.report("data_quality_&_verification_summary").execute()
 		person = next(row for row in rows if row["doctype_name"] == "Person")
 		self.assertEqual(
@@ -127,12 +147,33 @@ class ReportTest(unittest.TestCase):
 			),
 			(2, 1, 1, 0),
 		)
-		self.assertNotIn("Research Event", [row["doctype_name"] for row in rows])
+		self.assertNotIn("Siraj Event", [row["doctype_name"] for row in rows])
 
 	def test_batches_do_not_drop_visible_rows(self):
 		self.frappe.rows["Person"] = [{"name": "p" + str(i)} for i in range(5)]
 		self.frappe.denied = {("Person", "p1")}
 		self.assertEqual(len(list(self.access.readable_rows("Person", [], page_size=2))), 4)
+
+	def test_geo_quality_report_isolates_rows_and_rejects_non_located_doctype(self):
+		geo_quality = load("siraj_research/geo_quality.py", "test_geo_quality", self.injected)
+		self.frappe.rows["Person"] = [
+			{"name": "p-gd", "display_name": "GD Analyst", "latitude": None, "longitude": None},
+			{"name": "p-gc", "display_name": "GC Secret", "latitude": None, "longitude": None},
+		]
+		self.frappe.rows["Military Unit"] = [
+			{"name": "u-gd", "unit_name": "GD Brigade", "latitude": 0.0, "longitude": 0.0},
+		]
+		self.frappe.denied = {("Person", "p-gc"), "SIRAJ Settings"}
+
+		# Every row approved by readable_rows(dt, ...) returns its sample regardless of SIRAJ Settings.
+		report = geo_quality.quality_report()
+		self.assertEqual(report["totals"]["Person"]["total"], 1)
+		self.assertEqual([r["name"] for r in report["samples"]["Person"]], ["p-gd"])
+		self.assertEqual(report["samples"]["Military Unit"][0]["label"], "GD Brigade")
+
+		# Non-located SIRAJ DocType ("Source") and non-located system DocType ("User") both return empty.
+		self.assertEqual(geo_quality.quality_report("Source"), {"totals": {}, "samples": {}})
+		self.assertEqual(geo_quality.quality_report("User"), {"totals": {}, "samples": {}})
 
 
 if __name__ == "__main__":

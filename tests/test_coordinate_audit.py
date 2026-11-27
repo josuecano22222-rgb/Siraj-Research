@@ -91,7 +91,7 @@ class CoordinateAuditTest(unittest.TestCase):
 		self.assertNotIn("0000", str(report))
 		self.assertEqual(len(calls), 1)
 		self.assertEqual(calls[0][1], ("tabPerson", "latitude", "longitude"))
-		self.assertEqual(report["doctypes"]["Research Event"]["status"], "doctype_missing")
+		self.assertEqual(report["doctypes"]["Siraj Event"]["status"], "doctype_missing")
 
 	def test_unknown_db_or_missing_columns_stops_before_record_scan(self):
 		fake = types.SimpleNamespace(

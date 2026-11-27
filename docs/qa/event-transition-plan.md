@@ -1,12 +1,18 @@
 # Event identity transition: design and release gates
 
+**Status: superseded.** The transition planned below was superseded by the
+`Siraj Event` decision in `docs/decisions/2026-11-siraj-fixes.md`: `Siraj
+Event` is now the single SIRAJ event DocType, the former SIRAJ event DocType
+was deleted via a guarded patch, and Frappe's core `Event` calendar identity
+is untouched. The plan below is preserved for history; it was never executed.
+
 **Status: design/inventory only, not an executable migration.** Do not run `bench migrate`, reload Event metadata, rename/delete DocTypes, seed or disable hooks as a consequence of this document. The local prototype is not in this delivery. The expanded inventory below is mock-tested only; any execution needs separate approval.
 
 ## Why this happens and intended ownership
 
 Frappe DocType identities are global within a site. Both Frappe's calendar and this app registered the exact identity `Event`; a module label does not namespace it. The owner observed `Event` module `Siraj Research`, SIRAJ metadata and no Event rows on the test date. Calendar columns remained physically present, but calendar fields were absent in effective metadata. Frappe 15.126.1's Google Calendar insert hook expects `sync_with_google_calendar`; the attempted fixture failed there. ERPNext 15.125.0 also supplies an Event `after_insert` integration expecting calendar participants. In addition, Frappe's Event query and document permission hooks assume calendar `event_type`, owner and participants. SIRAJ's similarly named `event_type` has different semantics. Administrator bypass is not evidence these hooks work for other users.
 
-The **Frappe framework** should own the global `Event` calendar identity; historical research events should use a distinct global SIRAJ DocType, proposed `SIRAJ Research Event`. The new name is not yet accepted as collision-free on the actual site. A global Frappe rename is not safe: it could rewrite references intended for the calendar. Adding missing fields or disabling hooks is not equivalent to restoring Frappe's controller, metadata, permissions and integrations.
+The **Frappe framework** should own the global `Event` calendar identity; historical research events should use a distinct global SIRAJ DocType (the identity ultimately shipped as `Siraj Event`). The new name was not yet accepted as collision-free on the actual site at the time. A global Frappe rename is not safe: it could rewrite references intended for the calendar. Adding missing fields or disabling hooks is not equivalent to restoring Frappe's controller, metadata, permissions and integrations.
 
 ## Potentially affected material and decision points
 

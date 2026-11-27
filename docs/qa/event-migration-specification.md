@@ -1,10 +1,17 @@
 # Event identity transition — non-mutating specification
 
+**Status: superseded.** The transition proposed below was superseded by the
+`Siraj Event` decision in `docs/decisions/2026-11-siraj-fixes.md`: `Siraj
+Event` is now the single SIRAJ event DocType, the former SIRAJ event DocType
+was deleted via a guarded patch, and Frappe's core `Event` calendar identity
+is untouched. The specification below is preserved for history; it was never
+executed and remains a non-executable proposal.
+
 **Review status: PROPOSAL; further review required, incomplete for the actual site and not executable.** This specifies the proposed categories and gates but cannot list the owner's actual records, custom fields, hooks or integrations because the agent cannot access the site. No data was read from it here. No migration, metadata reload, schema change, SQL update, cleanup or rollback command is authorized by this specification. Previously reported zero Event rows and zero counts for a fixed subset of references were point-in-time observations, not a complete dependency or rollback inventory.
 
 ## Identities and source of truth
 
-At committed app revision `4cf349b`, SIRAJ's standard metadata defines global `Event`, module `Siraj Research`, in `siraj_research/siraj_research/doctype/event/event.json`. Frappe v15.126.1 defines the same global `Event` in module `Desk` as its calendar DocType. Its `event_type` is a calendar Select (`Private`/`Public`), whereas SIRAJ's is a Link to `Event Type`; the semantics conflict. The recommended architecture is Frappe-owned `Event` for calendars and a distinct **proposed** `SIRAJ Research Event` (module `Siraj Research`) for historical research. The destination definition exists only as an incomplete, uncommitted worktree prototype; it is not a shipped DocType and actual destination availability/custom collisions are unknown. Do not globally rename `Event`, as unrelated calendar references may be rewritten.
+At committed app revision `4cf349b`, SIRAJ's standard metadata defines global `Event`, module `Siraj Research`, in `siraj_research/siraj_research/doctype/event/event.json`. Frappe v15.126.1 defines the same global `Event` in module `Desk` as its calendar DocType. Its `event_type` is a calendar Select (`Private`/`Public`), whereas SIRAJ's is a Link to `Event Type`; the semantics conflict. The recommended architecture is Frappe-owned `Event` for calendars and a distinct **proposed** dedicated SIRAJ event DocType (module `Siraj Research`) for historical research — the identity ultimately shipped as `Siraj Event`. The destination definition existed only as an incomplete, uncommitted worktree prototype; it was not shipped under that proposed name, and actual destination availability/custom collisions were unknown at the time. Do not globally rename `Event`, as unrelated calendar references may be rewritten.
 
 ## Field mapping — committed source, proposed same-name destination
 

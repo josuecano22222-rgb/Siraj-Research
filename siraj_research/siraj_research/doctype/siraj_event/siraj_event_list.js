@@ -1,7 +1,7 @@
 // Copyright (c) 2026, SIRAJ and contributors
 // Presentation only; permissions and workflow rules remain server-side.
 frappe.provide("frappe.listview_settings");
-frappe.listview_settings["Research Event"] = {
+frappe.listview_settings["Siraj Event"] = {
 	add_fields: ["workflow_state"],
 	get_indicator(doc) {
 		const colors = {

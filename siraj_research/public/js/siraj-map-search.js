@@ -28,7 +28,7 @@
 	// broaden a filter instead of applying it.
 	const RECORD_TYPES = [
 		['', 'All types'], ['Person', 'Person'], ['Institution', 'Institution'],
-		['Place', 'Place'], ['Research Event', 'Research Event'],
+		['Place', 'Place'], ['Siraj Event', 'Siraj Event'],
 		['Military Unit', 'Military Unit'], ['Operational Deployment', 'Operational Deployment'],
 	];
 

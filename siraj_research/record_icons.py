@@ -18,7 +18,7 @@ COLOURS: dict[str, str] = {
 	"Person":              "#3577c0",  # steel-blue — biography
 	"Institution":         "#8262b0",  # purple — organisations
 	"Place":               "#188c7e",  # teal — geography
-	"Research Event":      "#d08733",  # ochre — events
+	"Siraj Event":         "#d08733",  # ochre — events
 	"Source":              "#aa6b85",  # plum — sources
 	"Military Unit":       "#c3564b",  # brick-red — combat units (all echelons incl. Division)
 	"Operational Deployment": "#867e45",  # olive — active ops
@@ -46,7 +46,7 @@ GLYPHS: dict[str, str] = {
 	"Person":              '<circle cx="12" cy="8" r="3"/><path d="M5 19c0-4 3-6 7-6s7 2 7 6"/>',
 	"Institution":         '<path d="M3 9h18L12 3 3 9Zm2 1v8m5-8v8m4-8v8m5-8v8M3 20h18"/>',
 	"Place":               '<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11Z"/><circle cx="12" cy="10" r="2"/>',
-	"Research Event":      '<path d="M12 2l2.5 6 6.5.5-5 4 1.5 6.5-5.5-3.5L6.5 19 8 12.5l-5-4L9.5 8Z"/>',
+	"Siraj Event":         '<path d="M12 2l2.5 6 6.5.5-5 4 1.5 6.5-5.5-3.5L6.5 19 8 12.5l-5-4L9.5 8Z"/>',
 	"Source":              '<path d="M6 3h9l3 3v15H6Z"/><path d="M15 3v4h3"/><path d="M9 10h6M9 14h6M9 18h4"/>',
 	"Military Unit":       '<path d="M12 2 20 5v6c0 5-3 8-8 11-5-3-8-6-8-11V5Z"/><path d="M12 7v10M7 12h10"/>',
 	# Divisions are now Military Unit records (echelon='Division'); they use
@@ -160,7 +160,7 @@ RECORDS: dict[str, dict] = {
 	"Person":               {"colour": COLOURS["Person"],              "glyph": GLYPHS["Person"],              "category": "actor"},
 	"Institution":          {"colour": COLOURS["Institution"],         "glyph": GLYPHS["Institution"],         "category": "actor"},
 	"Place":                {"colour": COLOURS["Place"],               "glyph": GLYPHS["Place"],               "category": "geo"},
-	"Research Event":       {"colour": COLOURS["Research Event"],      "glyph": GLYPHS["Research Event"],      "category": "event"},
+	"Siraj Event":          {"colour": COLOURS["Siraj Event"],         "glyph": GLYPHS["Siraj Event"],         "category": "event"},
 	"Source":               {"colour": COLOURS["Source"],              "glyph": GLYPHS["Source"],              "category": "evidence"},
 	"Military Unit":        {"colour": COLOURS["Military Unit"],       "glyph": GLYPHS["Military Unit"],       "category": "unit"},
 	"Operational Deployment": {"colour": COLOURS["Operational Deployment"], "glyph": GLYPHS["Operational Deployment"], "category": "operation"},
@@ -199,7 +199,7 @@ INTERNAL = {
 #: delivered in bootinfo.siraj_record_meta.build; the client compares its
 #: window.SIRAJ_BUILD against this value on boot and shows a reload banner
 #: when they differ (catches stale bundles after bench build).
-SIRAJ_BUILD = "2026-11-20.hierarchy-ui.d.19"
+SIRAJ_BUILD = "2026-11-24.siraj-event.hd1.1"
 
 
 #: DocTypes that carry coordinate fields and a per-form map editor.
@@ -244,19 +244,6 @@ COORDINATE_DOCS: dict[str, dict] = {
 		"uncertainty_field": "geo_uncertainty_m",
 		"linked_place_field": "parent_place",
 		"silhouette": "pin",
-		"admin_fields": {
-			"country": "country", "governorate": "governorate", "district": "district",
-			"municipality": "municipality", "village": "village", "community": "community",
-		},
-	},
-	"Research Event": {
-		"map_field": "geo_point",
-		"origin_confirmed_field": "coordinate_origin_confirmed",
-		"lat_field": "latitude",
-		"lon_field": "longitude",
-		"uncertainty_field": "geo_uncertainty_m",
-		"linked_place_field": "place",
-		"silhouette": "star",
 		"admin_fields": {
 			"country": "country", "governorate": "governorate", "district": "district",
 			"municipality": "municipality", "village": "village", "community": "community",

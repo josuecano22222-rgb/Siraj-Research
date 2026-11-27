@@ -19,7 +19,7 @@ Accepted formats: `lat, lon` · `lat lon` · `lat; lon` · hemisphere suffixes (
 |---|---|---|---|
 | **Regions** | Admin Boundary rows (active dataset first) + the hierarchy registry (Country → Community) + ERPNext Country | `name_en`, `name_ar`, `local_name`, `label_en`, `label_ar`, `pcode` | bbox → `fitBounds` with a dashed rectangle; else centroid → fly; popup carries level, pcode, dataset and the parent chain |
 | **Places** | Gazetteer Place (active dataset first) | `name_en`, `name_ar`, `asciiname`, `pcode` | fly to point; popup shows bilingual name, feature code, pcode, exact coordinates |
-| **Records** | The same GEO_TYPES pins the map already draws (Person, Institution, Place, Research Event, Military Unit, Operational Deployment) | title field (`display_name`/`unit_name`/…) | fly; popup has the exact stored point and an **Open record** button |
+| **Records** | The same GEO_TYPES pins the map already draws (Person, Institution, Place, Siraj Event, Military Unit, Operational Deployment) | title field (`display_name`/`unit_name`/…) | fly; popup has the exact stored point and an **Open record** button |
 | **Coordinates** | Parsed server-side (above) | — | fly to zoom 16, precision dot, exact strings + DMS rendering; the payload now also carries `admin_chain`, `missing_levels`, `on_land`, `nearest_place`, `nearby` (haversine distances, 1 dp) and the resolve `warnings` |
 
 `levels=0..5` filters regions; `types=` filters records; `limit` caps each group (max 25).

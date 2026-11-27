@@ -14,7 +14,7 @@
 | 4 | Individuals | Persons + family + marital gating | `/app/person` |
 | 5 | Organizations | Institutions (bilingual, typed) | `/app/institution` |
 | 6 | Military units | Units with parent + commander | `/app/military-unit` |
-| 7 | Events | Events with honest date precision | `/app/research-event` |
+| 7 | Events | Events with honest date precision | `/app/siraj-event` |
 | 8 | Relationships | Typed, directed, sourced links | `/app/relationship`, `/app/relationship-type` |
 | 9 | Supporting data | Tags, evidence, import/export, quality loop | workspace + SIRAJ Settings |
 | 10 | Searching | List, global, map search, cascade | `/app/siraj-explorer` |
@@ -45,7 +45,7 @@ Never claim `exact` you don’t have; `app` = approximately.
 | Place | Display name, Place type, Admin level |
 | Institution | Name (Arabic), Type |
 | Military unit | Unit name, Echelon, Status |
-| Research event | Title (Arabic), Event type |
+| Siraj event | Title (Arabic), Event type |
 | Relationship | Type, Subject, Object |
 
 ## Provenance on every claim
@@ -88,7 +88,7 @@ bench build --app siraj_research        # only after JS changes
 | 4 | الأفراد | أشخاص + أسرة + بوابة الحالة | `/app/person` |
 | 5 | المؤسسات | مؤسسات ثنائية مصنّفة | `/app/institution` |
 | 6 | الوحدات | وحدة باب وقائد | `/app/military-unit` |
-| 7 | الأحداث | أحداث بصدق الدقة | `/app/research-event` |
+| 7 | الأحداث | أحداث بصدق الدقة | `/app/siraj-event` |
 | 8 | العلاقات | مُنمَّطة موجَّهة مسنَدة | `/app/relationship` |
 | 9 | بيانات أخرى | وسوم وأدلة واستيراد وجودة | مساحة العمل + الإعدادات |
 | 10 | البحث | قوائم + عام + خريطة + تسلسل | `/app/siraj-explorer` |

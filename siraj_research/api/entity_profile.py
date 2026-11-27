@@ -12,6 +12,7 @@ import frappe
 from frappe import _
 from frappe.model.meta import get_meta
 
+from siraj_research.api.map_relations import _relatable_doctypes
 from siraj_research.profile_presentation import compute_quality_scores, organise_profile
 
 # Layout-only fieldtypes we never render as values. "Table" is deliberately
@@ -27,6 +28,22 @@ VALUE_FIELDTYPES = {
     "Phone", "Email", "Geolocation",
 }
 PASSWORD_PLACEHOLDER = "••••••"
+INBOUND_LINKS_CAP = 200
+# Non-connection Link fields (system/provenance) excluded even when their target
+# DocType is an entity (e.g. primary_source -> Source belongs to Provenance,
+# amended_from -> self belongs to Frappe amendment history).
+NON_GRAPH_LINK_FIELDS = frozenset({
+    "amended_from",
+})
+
+
+def _inbound_numeric_count(item):
+    c = item.get("count")
+    if isinstance(c, int):
+        return c
+    if isinstance(c, str) and c.endswith("+") and c[:-1].isdigit():
+        return int(c[:-1])
+    return 0
 
 
 def _field_label(f):
@@ -48,25 +65,25 @@ def _fmt_value(doc, f):
     if ft in ("Attach", "Attach Image", "Image"):
         return {"type": "attach", "url": val}
     if ft == "Link":
-        # Resolve title of the linked doc if permitted.
+        # Resolve title of the linked doc if permitted; redact ID (name=None) when unreadable.
         try:
-            if frappe.has_permission(f.options, "read"):
+            if frappe.has_permission(f.options, "read", doc=val):
                 title = frappe.db.get_value(f.options, val, frappe.get_meta(f.options).get_title_field() or "name") or val
-                return {"type": "link", "doctype": f.options, "name": val, "title": title}
+                return {"type": "link", "doctype": f.options, "name": val, "title": title, "restricted": False}
         except Exception:
             pass
-        return {"type": "link", "doctype": f.options, "name": val, "title": val}
+        return {"type": "link", "doctype": f.options, "name": None, "title": _("Restricted"), "restricted": True}
     if ft == "Dynamic Link":
         target_doctype = doc.get(f.options)
         if not target_doctype:
             return val
         try:
-            if frappe.has_permission(target_doctype, "read"):
+            if frappe.has_permission(target_doctype, "read", doc=val):
                 title = frappe.db.get_value(target_doctype, val, frappe.get_meta(target_doctype).get_title_field() or "name") or val
-                return {"type": "link", "doctype": target_doctype, "name": val, "title": title}
+                return {"type": "link", "doctype": target_doctype, "name": val, "title": title, "restricted": False}
         except Exception:
             pass
-        return {"type": "link", "doctype": target_doctype, "name": val, "title": val}
+        return {"type": "link", "doctype": target_doctype, "name": None, "title": _("Restricted"), "restricted": True}
     if ft == "Select":
         # Do not translate here. The profile keeps the recorded value and the
         # client translates controlled vocabulary through __(); see
@@ -83,7 +100,7 @@ def get_entity_profile(doctype, name, **kwargs):
     (relationships, outbound_links, inbound_links), location, activity,
     network_summary, permissions.
     """
-    if not frappe.has_permission(doctype, "read", name):
+    if not frappe.has_permission(doctype, "read", doc=name):
         frappe.throw(_("Not permitted to read {0} {1}").format(doctype, name),
                      frappe.PermissionError)
 
@@ -124,17 +141,8 @@ def get_entity_profile(doctype, name, **kwargs):
             continue
         if f.hidden:
             continue
-        # permlevel: skip fields at higher permlevels the user cannot read.
-        # frappe.has_permission(doctype, 'read', doc=name, permlevel=N) is the
-        # supported v15 check; fall back to allowing permlevel 0 (the common
-        # case) when anything goes wrong.
-        try:
-            if f.permlevel and f.permlevel > 0:
-                if not frappe.has_permission(doctype, "read", doc=name, permlevel=f.permlevel):
-                    continue
-        except TypeError:
-            # Older signatures don't accept permlevel= kwarg; be permissive.
-            pass
+        if (f.permlevel or 0) > 0 and not doc.has_permlevel_access_to(f.fieldname, f, "read"):
+            continue
         val = _fmt_value(doc, f)
         entry = {
             "fieldname": f.fieldname,
@@ -151,20 +159,24 @@ def get_entity_profile(doctype, name, **kwargs):
     sections = [s for s in sections if s["fields"]]
 
     # ---- Child tables ----
+    allowed_permlevels = set(doc.get_permlevel_access("read"))
     children = {}
     for f in meta.fields:
         if f.fieldtype == "Table" and f.options:
+            if (f.permlevel or 0) > 0 and not doc.has_permlevel_access_to(f.fieldname, f, "read"):
+                continue
             rows = []
             rmeta = get_meta(f.options)
-            column_order = [
-                rf.fieldname for rf in rmeta.fields
-                if rf.fieldtype not in SKIP_FIELDTYPES and not rf.hidden
+            readable_child_fields = [
+                rf for rf in rmeta.fields
+                if rf.fieldtype not in SKIP_FIELDTYPES
+                and not rf.hidden
+                and ((rf.permlevel or 0) == 0 or (rf.permlevel or 0) in allowed_permlevels)
             ]
+            column_order = [rf.fieldname for rf in readable_child_fields]
             for r in (doc.get(f.fieldname) or [])[:50]:
                 row = {}
-                for rf in rmeta.fields:
-                    if rf.fieldtype in SKIP_FIELDTYPES or rf.hidden:
-                        continue
+                for rf in readable_child_fields:
                     v = _fmt_value(r, rf)
                     if v is not None:
                         row[rf.fieldname] = {
@@ -183,13 +195,24 @@ def get_entity_profile(doctype, name, **kwargs):
     relationships = _authored_relationships(doctype, name)
 
     # ---- Connections: structural outbound (Link / Dynamic Link fields on this doc) ----
+    # Reuse the app's relatable/entity allowlist (_relatable_doctypes from map_relations)
+    # for both Link and Dynamic Link edges so vocabulary, workflow, tenant (Data Group),
+    # and Frappe core (Country, Language, DocType) targets never appear as graph nodes.
+    allowed_outbound_doctypes = _relatable_doctypes()
     outbound = []
     for f in meta.fields:
-        if f.fieldtype == "Link" and f.options and f.get(f.fieldname, None):
+        if f.fieldname in NON_GRAPH_LINK_FIELDS:
+            continue
+        if (f.permlevel or 0) > 0 and not doc.has_permlevel_access_to(f.fieldname, f, "read"):
+            continue
+        if f.fieldtype == "Link" and f.options in allowed_outbound_doctypes and doc.get(f.fieldname):
             val = doc.get(f.fieldname)
             if val:
                 target_dt = f.options
-                can_read = frappe.has_permission(target_dt, "read")
+                try:
+                    can_read = bool(frappe.has_permission(target_dt, "read", doc=val))
+                except Exception:
+                    can_read = False
                 title = val
                 if can_read:
                     try:
@@ -197,15 +220,19 @@ def get_entity_profile(doctype, name, **kwargs):
                     except Exception:
                         pass
                 outbound.append({
-                    "field": f.fieldname, "label": _field_label(f), "doctype": target_dt, "name": val,
+                    "field": f.fieldname, "label": _field_label(f), "doctype": target_dt,
+                    "name": val if can_read else None,
                     "title": title if can_read else _("Restricted"),
                     "restricted": not can_read,
                 })
         elif f.fieldtype == "Dynamic Link" and doc.get(f.options):
             target_dt = doc.get(f.options)
             val = doc.get(f.fieldname)
-            if val and target_dt:
-                can_read = frappe.has_permission(target_dt, "read")
+            if val and target_dt in allowed_outbound_doctypes:
+                try:
+                    can_read = bool(frappe.has_permission(target_dt, "read", doc=val))
+                except Exception:
+                    can_read = False
                 title = val
                 if can_read:
                     try:
@@ -213,7 +240,8 @@ def get_entity_profile(doctype, name, **kwargs):
                     except Exception:
                         pass
                 outbound.append({
-                    "field": f.fieldname, "label": _field_label(f), "doctype": target_dt, "name": val,
+                    "field": f.fieldname, "label": _field_label(f), "doctype": target_dt,
+                    "name": val if can_read else None,
                     "title": title if can_read else _("Restricted"),
                     "restricted": not can_read,
                 })
@@ -263,11 +291,17 @@ def get_entity_profile(doctype, name, **kwargs):
     except Exception:
         pass
     try:
-        activity["attachments"] = frappe.get_all(
-            "File", filters={"attached_to_doctype": doctype, "attached_to_name": name},
-            fields=["name", "file_name", "file_url", "file_type", "creation"],
-            order_by="creation desc", limit=10,
-        )
+        if frappe.has_permission("File", "read"):
+            raw_files = frappe.get_list(
+                "File",
+                filters={"attached_to_doctype": doctype, "attached_to_name": name},
+                fields=["name", "file_name", "file_url", "file_type", "creation"],
+                order_by="creation desc",
+                limit=10,
+            )
+            activity["attachments"] = [
+                row for row in raw_files if frappe.has_permission("File", "read", doc=row["name"])
+            ]
     except Exception:
         pass
 
@@ -275,16 +309,18 @@ def get_entity_profile(doctype, name, **kwargs):
     rel_by_type = {}
     for r in relationships:
         rel_by_type[r.get("relationship_type")] = rel_by_type.get(r.get("relationship_type"), 0) + 1
+    has_capped_inbound = any(x.get("capped") for x in inbound)
+    total_inbound = sum(_inbound_numeric_count(x) for x in inbound)
     network_summary = {
         "relationship_count": len(relationships),
         "by_type": rel_by_type,
         "outbound_count": len(outbound),
-        "inbound_count": sum(x["count"] for x in inbound),
+        "inbound_count": f"{total_inbound}+" if has_capped_inbound else total_inbound,
     }
 
     # ---- Permissions for actions ----
     perms = {
-        "can_write": frappe.has_permission(doctype, "write", name),
+        "can_write": frappe.has_permission(doctype, "write", doc=name),
         "can_create": frappe.has_permission("Relationship", "create"),
     }
 
@@ -339,6 +375,8 @@ def get_entity_profile(doctype, name, **kwargs):
 
 def _authored_relationships(doctype, name):
     out = []
+    if not frappe.has_permission("Relationship", "read"):
+        return out
     for side, other_type_field, other_field, dir_label in [
         ("subject", "object_type", "object", "outbound"),
         ("object", "subject_type", "subject", "inbound"),
@@ -346,18 +384,26 @@ def _authored_relationships(doctype, name):
         try:
             rows = frappe.get_list(
                 "Relationship",
-                filters={side: name, side + "_type": doctype},
+                filters={side: name, side + "_type": doctype, "docstatus": ("<", 2)},
                 fields=["name", "subject", "subject_type", "object", "object_type",
                         "relationship_type", "direction", "start_date", "end_date",
                         "description", "workflow_state", "docstatus"],
                 limit=100,
             )
         except Exception:
+            frappe.log_error(
+                title=f"SIRAJ entity_profile authored_relationships failed ({side})",
+            )
             continue
         for r in rows:
+            if not frappe.has_permission("Relationship", "read", doc=r["name"]):
+                continue
             other_dt = r.get(other_type_field)
             other_name = r.get(other_field)
-            can_read = bool(other_dt) and frappe.has_permission(other_dt, "read")
+            try:
+                can_read = bool(other_dt and other_name and frappe.has_permission(other_dt, "read", doc=other_name))
+            except Exception:
+                can_read = False
             title = other_name
             if can_read and other_dt:
                 try:
@@ -370,7 +416,7 @@ def _authored_relationships(doctype, name):
                 "direction": r.get("direction"),
                 "relationship_type": r.get("relationship_type"),
                 "counterpart_doctype": other_dt,
-                "counterpart_name": other_name,
+                "counterpart_name": other_name if can_read else None,
                 "counterpart_title": title if can_read else _("Restricted"),
                 "counterpart_restricted": not can_read,
                 "start_date": r.get("start_date"),
@@ -415,16 +461,37 @@ def _inbound_links(doctype, name):
             continue
         seen.add(target_dt)
         if not frappe.has_permission(target_dt, "read"):
-            out.append({"doctype": target_dt, "count": None, "sample": [], "restricted": True})
             continue
         or_filters = []
         for f in linking_fields:
             or_filters.append([f["fieldname"], "=", name])
+        capped = False
         try:
-            count = frappe.db.count(target_dt, filters={"docstatus": ("<", 2)}, or_filters=or_filters) if or_filters else 0
-            sample = frappe.get_list(target_dt, or_filters=or_filters,
-                                     fields=["name"], limit=5) if count else []
+            cap = max(1, int(INBOUND_LINKS_CAP))
+            rows = (
+                frappe.get_list(
+                    target_dt,
+                    filters={"docstatus": ("<", 2)},
+                    or_filters=or_filters,
+                    fields=["name"],
+                    limit=cap + 1,
+                )
+                if or_filters
+                else []
+            )
+            if len(rows) > cap:
+                capped = True
+                count = f"{cap}+"
+                sample = rows[:5]
+            else:
+                count = len(rows)
+                sample = rows[:5]
+        except frappe.PermissionError:
+            continue
         except Exception:
+            frappe.log_error(
+                title=f"SIRAJ entity_profile inbound_links failed for {target_dt}",
+            )
             count = 0
             sample = []
         title_field = frappe.get_meta(target_dt).get_title_field() or "name"
@@ -435,5 +502,11 @@ def _inbound_links(doctype, name):
                 sample_titles.append({"name": s["name"], "title": t})
             except Exception:
                 sample_titles.append({"name": s["name"], "title": s["name"]})
-        out.append({"doctype": target_dt, "count": count, "sample": sample_titles, "restricted": False})
+        out.append({
+            "doctype": target_dt,
+            "count": count,
+            "capped": capped,
+            "sample": sample_titles,
+            "restricted": False,
+        })
     return out[:20]

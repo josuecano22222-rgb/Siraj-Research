@@ -52,6 +52,7 @@ async function sign(raw, pair) {
  await assert.rejects(()=>open(original,{...trust,revoked_snapshot_ids:[body().snapshot_id]},now));
  const badPayloads = [null, {}, {...body().payload,nodes:'wrong'},
   {...body().payload,nodes:[{doctype:'Person',name:'fixture'},{doctype:'Person',name:'fixture'}]},
+  {...body().payload,nodes:[{doctype:'Siraj Event',name:'fixture'}],scope:{...body().payload.scope,included_types:['Siraj Event']}},
   {...body().payload,scope:{...body().payload.scope,included_types:[]}},
   {...body().payload,scope:{...body().payload.scope,omitted_types:['Person']}},
   {...body().payload,edges:[{source:{doctype:'Person',name:'fixture'},target:{doctype:'Person',name:'missing'},type:''}]},

@@ -55,7 +55,17 @@
   "online_fallback_when",
   "cb_resolve",
   "online_user_agent",
-  "online_min_interval_s"
+  "online_min_interval_s",
+  "sb_offline_bootstrap",
+  "bootstrap_running",
+  "bootstrap_last_status",
+  "cb_offline_bootstrap",
+  "stop_bootstrap",
+  "bootstrap_stop_requested",
+  "sb_online_setup",
+  "online_setup_enabled",
+  "cb_online_setup",
+  "run_online_setup"
  ],
  "fields": [
   {

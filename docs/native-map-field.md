@@ -18,7 +18,7 @@ label:     Map (point)
 ```
 
 This field has been added additively to every SIRAJ DocType that has
-`latitude`/`longitude`, including Person, Institution, Place, Research Event,
+`latitude`/`longitude`, including Person, Institution, Place,
 Siraj Event, Military Unit, Operational Deployment and the six administrative
 level DocTypes. `bench migrate` adds its column; no existing data is changed.
 

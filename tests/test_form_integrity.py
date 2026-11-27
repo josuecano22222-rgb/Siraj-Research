@@ -30,6 +30,7 @@ class FormIntegrityTest(unittest.TestCase):
 		document_module.Document = type("Document", (), {})
 		frappe = types.ModuleType("frappe")
 		frappe.db = types.SimpleNamespace(get_value=lambda *args: 1)
+		frappe.get_all = lambda *args, **kwargs: []  # no allowed_pairs rows yet
 		path = ROOT / "siraj_research/siraj_research/doctype/relationship/relationship.py"
 		spec = importlib.util.spec_from_file_location("relationship_controller_test", path)
 		module = importlib.util.module_from_spec(spec)
@@ -45,6 +46,10 @@ class FormIntegrityTest(unittest.TestCase):
 		record = module.Relationship()
 		record.relationship_type = "Colleague"
 		record.direction = "Directed"  # A client-supplied value must not win.
+		record.subject_type = "Person"
+		record.object_type = "Person"
+		record.subject = "p1"
+		record.object = "p2"
 		record.validate()
 		self.assertEqual(record.direction, "Symmetric")
 		frappe.db.get_value = lambda *args: 0

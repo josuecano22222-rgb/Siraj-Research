@@ -1187,8 +1187,7 @@ Reports & Analytics,التقارير والتحليلات
 Require a source before publishing,اشتراط مصدر قبل النشر
 Required by Nominatim. Include a contact address; a generic browser agent may be blocked.,مطلوب في Nominatim. أدرج عنوان اتصال؛ قد يُحظر وكيل المتصفح العام.
 Research,الأبحاث
-Research Event,حدث بحثي
-Research events,الأحداث البحثية
+Siraj events,أحداث سراج
 Research significance,الأهمية البحثية
 "Research-documented historical events that connect persons, places and institutions. Distinct from the Frappe calendar Event.",أحداث تاريخية موثّقة بحثيًا تربط الأشخاص والأماكن والمؤسسات. تختلف عن حدث التقويم في Frappe.
 Researcher's notes,ملاحظات الباحث
@@ -1244,6 +1243,7 @@ Seat,المقر
 Secondary,ثانوي
 Section,القسم
 Seeded by the application; cannot be renamed or deleted.,مبذور بواسطة التطبيق؛ لا يمكن إعادة تسميته أو حذفه.
+At least one of Title (Arabic) or Title (English) is required.,مطلوب إدخال العنوان (بالعربية) أو العنوان (بالإنجليزية) على الأقل.
 Select a local pack and enter valid bounds and zooms.,اختر حزمة محلية وأدخل نطاقات وتكبيرات صالحة.
 Select a mapped record first.,اختر سجلًا موضّعًا أولًا.
 Select a marker to inspect its record. Clusters show the number of nearby points. Online tiles are optional.,اختر علامة لفحص سجلها. التجميعات تُظهر عدد النقاط القريبة.
@@ -1526,7 +1526,6 @@ Total Persons,إجمالي الأشخاص
 Total Places,إجمالي الأماكن
 Total Records,إجمالي السجلات
 Total Relationships,إجمالي العلاقات
-Total Research Events,إجمالي الأحداث البحثية
 Total Sources,إجمالي المصادر
 Total: {0},المجموع: {0}
 Training,تدريب
@@ -1864,6 +1863,7 @@ Group Name,اسم المجموعة
 Shared Record,سجل مشترك
 A Data Group membership is required.,يلزم الانضمام إلى مجموعة بيانات.
 Data Group cannot be changed after creation.,لا يمكن تغيير مجموعة البيانات بعد الإنشاء.
+Linked records must belong to the same Data Group.,يجب أن تنتمي السجلات المرتبطة إلى مجموعة البيانات نفسها.
 Data Isolation,عزل البيانات
 (all countries — pick a parent to narrow),(كل الدول — اختر أصلاً لتضييق النتائج)
 Administrative auto-fill,الملء التلقائي للتقسيمات الإدارية
@@ -1901,6 +1901,16 @@ Online setup disabled — Run Online Setup will only use local data.,الإعد�
 Online setup disabled: preparation will use local data only.,الإعداد عبر الإنترنت معطل: سيستخدم الإعداد البيانات المحلية فقط.
 Online setup failed,فشل الإعداد عبر الإنترنت
 Online setup finished — see bootstrap_last_status.,اكتمل الإعداد عبر الإنترنت — راجع bootstrap_last_status.
+Online setup queued — polling bootstrap_last_status.,أُدرج الإعداد عبر الإنترنت في قائمة الانتظار — تجري متابعة bootstrap_last_status.
+Local-only preparation queued (online setup disabled).,أُدرج الإعداد المحلي فقط في قائمة الانتظار (الإعداد عبر الإنترنت معطل).
+Administrator role required for offline bootstrap.,يتطلب الإعداد غير المتصل صلاحية المسؤول.
+Offline bootstrap is already running.,الإعداد غير المتصل قيد التشغيل بالفعل.
+Offline bootstrap complete.,اكتمل الإعداد غير المتصل.
+Offline bootstrap failed — check bootstrap_last_status and worker logs.,فشل الإعداد غير المتصل — راجع bootstrap_last_status وسجلات العامل.
+Offline bootstrap stopped by administrator.,أوقف المسؤول الإعداد غير المتصل.
+Offline bootstrap completed with download failures — offline lock skipped.,اكتمل الإعداد غير المتصل مع إخفاق بعض التنزيلات — جرى تخطي قفل الوضع غير المتصل.
+Bootstrap status stale,حالة التهيئة قديمة
+Bootstrap is still marked running after 30 minutes (possibly stale if the worker stopped). Run Online Setup again to recover or reload.,لا تزال التهيئة مُسجلة قيد التشغيل بعد 30 دقيقة (قد تكون عالقة إذا توقف العامل). شغّل الإعداد عبر الإنترنت مجدداً للاستعادة أو أعد تحميل الصفحة.
 Online setup is disabled. Run a local-only preparation (no downloads)?,الإعداد عبر الإنترنت معطل. هل تريد تشغيل إعداد محلي فقط (من دون تنزيلات)؟
 "Online setup may download wheels, tiles and packages.",قد ينزّل الإعداد عبر الإنترنت حزم بايثون والبلاطات والحزم الأخرى.
 Out,تصغير
@@ -1921,3 +1931,23 @@ You do not have write access to these coordinates.,ليست لديك صلاحي�
 "Zero pair (0,0) shown — this often means ""unknown"" in legacy data. Confirm before interpreting.",يظهر الزوج الصفري (0،0) — وغالباً ما يعني «غير معروف» في البيانات القديمة. تحقّق قبل تفسيره.
 offline data,بيانات غير متصلة
 {0} available,{0} متاح
+A relationship '{0}' → '{1}' already exists for this type.,يوجد بالفعل علاقة '{0}' ← '{1}' لهذا النوع.
+A symmetric relationship for '{0}' → '{1}' already exists.,يوجد بالفعل علاقة متناظرة من '{0}' ← '{1}'.
+Relationship type '{0}' does not allow a {1} → {2} link.,نوع العلاقة '{0}' لا يسمح بربط {1} ← {2}.
+A non-hierarchical relationship cannot link a record to itself.,لا يمكن للعلاقات غير الهرمية ربط سجل بنفسه.
+Allowed object endpoint DocType.,نوع المستند المسموح به لطرف الهدف.
+Allowed pairs,الأزواج المسموح بها
+Allowed subject endpoint DocType. One row = one allowed ordered pair.,نوع المستند المسموح به لطرف المفعول. كل صف = زوج مرتب مسموح به.
+Arabic title; paired with Title (English).,العنوان بالعربية؛ مقترن بالعنوان (بالإنجليزية).
+Bilingual title carried over from the consolidated association DocTypes (docs/decisions/relationship-consolidation.md §1.1 Option A). display_name remains the canonical label.,عنوان ثنائي اللغة منقول من أنواع المستندات الموحَّدة للارتباطات (الوثائق/القرارات/توحيد-العلاقات.md §1.1 الخيار أ). يبقى display_name هو التسمية المعيارية.
+Cannot delete {0} {1}: it is referenced by a Relationship.,لا يمكن حذف {0} {1}: فهو مشار إليه بواسطة علاقة.
+Delete blocked,تم منع الحذف
+Display order of the pair within its Relationship Type.,ترتيب عرض الزوج ضمن نوع العلاقة الخاص به.
+Duplicate relationship,علاقة مكررة
+Object doctype,نوع المستند للطرف الهدف
+"One allowed (subject_doctype, object_doctype) pair for a Relationship Type. The full allowed set is the rows of this child table; pair membership is enforced in the Relationship controller (docs/decisions/relationship-consolidation.md §3.1).",زوج مسموح به واحد (subject_doctype، object_doctype) لنوع علاقة. المجموعة المسموح بها الكاملة هي صفوف هذا الجدول الفرعي؛ يتم تطبيق انتماء الزوج في وحدة تحكم العلاقة (الوثائق/القرارات/توحيد-العلاقات.md §3.1).
+"One row per allowed (subject_doctype, object_doctype) pair. Pair membership is enforced in the Relationship controller (docs/decisions/relationship-consolidation.md §3.1). The legacy applies_to_subject/applies_to_object Links are deprecated and unread.",صف واحد لكل زوج مسموح به (subject_doctype، object_doctype). يتم تطبيق انتماء الزوج في وحدة تحكم العلاقة (الوثائق/القرارات/توحيد-العلاقات.md §3.1). روابط applies_to_subject/applies_to_object القديمة أصبحت غير مستخدمة وغير مقروءة.
+Pair not allowed,الزوج غير مسموح به
+Relationship Type Allowed Pair,زوج نوع العلاقة المسموح به
+Self link,ربط ذاتي
+Subject doctype,نوع المستند للطرف الفاعل

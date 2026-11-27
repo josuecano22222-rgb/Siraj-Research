@@ -105,3 +105,88 @@ def stamp_and_lock_data_group(doc, method: str | None = None) -> None:
 	original = frappe.db.get_value(doc.doctype, doc.name, DATA_GROUP_FIELD)
 	if doc.get(DATA_GROUP_FIELD) != original:
 		frappe.throw(_("Data Group cannot be changed after creation."), frappe.PermissionError)
+
+
+def _collect_scoped_link_targets(
+	container,
+	scoped_set: frozenset[str],
+	targets_by_dt: dict[str, set[str]],
+) -> None:
+	meta = frappe.get_meta(container.doctype)
+	if not meta:
+		return
+	for df in meta.fields:
+		ft = df.fieldtype
+		if ft == "Link":
+			target_dt = df.options
+			if target_dt in scoped_set:
+				val = container.get(df.fieldname)
+				if val:
+					targets_by_dt.setdefault(target_dt, set()).add(str(val))
+		elif ft == "Dynamic Link":
+			type_field = df.options
+			target_dt = container.get(type_field) if type_field else None
+			if target_dt in scoped_set:
+				val = container.get(df.fieldname)
+				if val:
+					targets_by_dt.setdefault(target_dt, set()).add(str(val))
+
+
+def validate_same_data_group_links(doc, method: str | None = None) -> None:
+	"""Reject Link / Dynamic Link references to scoped records in another Data Group (HD-4).
+
+	Wired on ``validate`` for all ``SCOPED_DOCTYPES`` so it runs inside
+	``Document.run_before_save_methods`` AFTER ``before_validate``
+	(``stamp_and_lock_data_group``) has stamped/locked ``doc.data_group`` and
+	AFTER ``Document._validate_links`` has verified target existence. Covers
+	parent fields and all child-table rows (evaluated against parent
+	``doc.data_group``) for every role including ``SIRAJ Official`` and
+	``Administrator``.
+	"""
+	from siraj_research.hooks import SCOPED_DOCTYPES
+
+	scoped_set = frozenset(SCOPED_DOCTYPES)
+	if doc.doctype not in scoped_set:
+		return
+
+	source_group = (doc.get(DATA_GROUP_FIELD) or "").strip()
+
+	targets_by_dt: dict[str, set[str]] = {}
+	_collect_scoped_link_targets(doc, scoped_set, targets_by_dt)
+	for child in doc.get_all_children():
+		_collect_scoped_link_targets(child, scoped_set, targets_by_dt)
+
+	if not targets_by_dt:
+		return
+
+	if not source_group:
+		frappe.throw(
+			_("Linked records must belong to the same Data Group."),
+			frappe.PermissionError,
+		)
+
+	# Single justified exception to Invariant 1 (recorded in HD-4 / C-03a):
+	# perform ONE batched ``frappe.get_all`` per referenced scoped target DocType
+	# selecting only ``("name", "data_group")`` so we can detect and reject
+	# cross-group or blank-group links across ALL roles (including SIRAJ Official
+	# and Administrator, where permission-scoped ``get_list`` would return
+	# cross-group rows instead of distinguishing them). Target names/titles are
+	# NEVER interpolated into the raised error message.
+	for target_dt, names in targets_by_dt.items():
+		rows = frappe.get_all(
+			target_dt,
+			filters={"name": ["in", sorted(names)]},
+			fields=["name", DATA_GROUP_FIELD],
+			limit_page_length=0,
+		)
+		group_by_name = {
+			row["name"]: (row.get(DATA_GROUP_FIELD) or "").strip()
+			for row in rows
+		}
+		for target_name in names:
+			target_group = group_by_name.get(target_name, "")
+			if not target_group or target_group != source_group:
+				frappe.throw(
+					_("Linked records must belong to the same Data Group."),
+					frappe.PermissionError,
+				)

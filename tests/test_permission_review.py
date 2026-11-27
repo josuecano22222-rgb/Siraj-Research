@@ -67,7 +67,7 @@ class PermissionReviewTest(unittest.TestCase):
 			with self.subTest(args=args), self.assertRaises(ValueError):
 				m.inspect_permissions(*args)
 		data = m.inspect_permissions("limited")
-		self.assertEqual(data["doctypes"]["Research Event"]["status"], "doctype_missing")
+		self.assertEqual(data["doctypes"]["Siraj Event"]["status"], "doctype_missing")
 		self.assertEqual(f.session.user, "Administrator")
 
 	def test_restores_user_on_hook_error(self):

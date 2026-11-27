@@ -18,7 +18,7 @@ ENTITIES = {
 	"Person": "display_name",
 	"Institution": "display_name",
 	"Place": "display_name",
-	"Research Event": "display_name",
+	"Siraj Event": "display_name",
 	"Source": "display_name",
 	"Military Unit": "unit_name",
 	"Operational Deployment": "deployment_name",
@@ -45,8 +45,10 @@ DETAIL_FIELDS = {
 		"authentication_level",
 	),
 	"Place": ("place_type", "country", "governorate", "workflow_state", "authentication_level"),
-	"Research Event": (
+	"Siraj Event": (
+		"display_name",
 		"event_type",
+		"start_date",
 		"start_date_as_stated",
 		"place",
 		"documentation_level",
@@ -67,13 +69,13 @@ DETAIL_FIELDS = {
 	"Mission": ("mission_type", "status", "area", "workflow_state"),
 	"Training Exercise": ("training_type", "assessment", "location", "workflow_state"),
 }
-GEO_TYPES = ("Person", "Institution", "Place", "Research Event", "Military Unit", "Operational Deployment")
-GRAPH_TYPES = ("Person", "Institution", "Place", "Research Event", "Source", "Military Unit", "Operational Deployment")
+GEO_TYPES = ("Person", "Institution", "Place", "Siraj Event", "Military Unit", "Operational Deployment")
+GRAPH_TYPES = ("Person", "Institution", "Place", "Siraj Event", "Source", "Military Unit", "Operational Deployment")
 STRUCTURES = {
 	"people": ("Person", ("nationality", "classification", "workflow_state")),
 	"institutions": ("Institution", ("institution_type", "place", "governance_system")),
 	"places": ("Place", ("country", "place_type", "geo_precision")),
-	"events": ("Research Event", ("event_type", "place", "documentation_level")),
+	"events": ("Siraj Event", ("event_type", "place", "documentation_level")),
 	"relationships": ("Relationship", ("relationship_type", "direction", "authentication_level")),
 	"sources": ("Source", ("source_type", "source_reliability", "workflow_state")),
 	"forces": ("Military Unit", ("echelon", "status", "classification")),
@@ -95,8 +97,9 @@ def _entity_rows(types, extra_fields=(), include_details=False):
 	for doctype in types:
 		title = ENTITIES[doctype]
 		details = DETAIL_FIELDS.get(doctype, ()) if include_details else ()
-		rows, cut = _records(doctype, [title, *extra_fields, *details])
-		meta = frappe.get_meta(doctype) if details else None
+		query_fields = list(dict.fromkeys([title, *extra_fields, *details]))
+		rows, cut = _records(doctype, query_fields)
+		meta = frappe.get_meta(doctype) if (details and rows) else None
 		if cut:
 			truncated.append(doctype)
 		for row in rows:
@@ -236,7 +239,8 @@ def record_detail(doctype, name):
 	if not frappe.has_permission(doctype, "read"):
 		frappe.throw(_("Not permitted to read {0}").format(_(doctype)), frappe.PermissionError)
 	title = ENTITIES.get(doctype, "display_name")
-	rows = readable_rows(doctype, (title, *DETAIL_FIELDS[doctype]), filters={"name": name})
+	query_fields = tuple(dict.fromkeys((title, *DETAIL_FIELDS[doctype])))
+	rows = readable_rows(doctype, query_fields, filters={"name": name})
 	row = next(rows, None)
 	if row is None:
 		frappe.throw(_("Record not found or not permitted"), frappe.PermissionError)
@@ -259,15 +263,13 @@ STRUCTURE_MAX_CHILDREN = 24
 
 def _structure_counts(rows, dimensions, title_field=None):
 	"""Count all permitted rows in one streaming pass, without a record cutoff."""
-	root = {"count": 0, "groups": {}, "skipped": 0}
+	root = {"count": 0, "groups": {}}
 	for row in rows:
 		# get_list removes fields hidden by Frappe field-level permissions.
-		# Silently skip rows whose grouping field the current user can't read
-		# instead of throwing a hard PermissionError — the chart still renders
-		# for the fields they *can* see, and the skipped count is reported.
+		# Fail closed when a requested grouping dimension is unreadable so
+		# restricted fields are never silently misreported as missing values.
 		if any(field not in row for field in dimensions):
-			root["skipped"] += 1
-			continue
+			frappe.throw(_("A structure grouping field is not readable."), frappe.PermissionError)
 		node = root
 		node["count"] += 1
 		for field in dimensions:
@@ -503,7 +505,7 @@ def structure_data(source="people"):
 		return _composite(source)
 	if source == "units":
 		return _hierarchy("Military Unit", "unit_name", "parent_unit")
-	# 'regions' / 'regions-units' removed 2026-11 (now Places / Units × Operations).
+	# 'regions' / 'regions-units' removed 2026-11 (now Places / Units x Operations).
 	if source not in STRUCTURES:
 		frappe.throw(_("Unknown structure source"), frappe.ValidationError)
 	doctype, dimensions = STRUCTURES[source]
@@ -513,6 +515,13 @@ def structure_data(source="people"):
 	# Drop any dimension that no longer exists on the DocType (schema drift).
 	meta = frappe.get_meta(doctype)
 	valid_dimensions = tuple(f for f in dimensions if meta.get_field(f))
+	get_permitted = getattr(meta, "get_permitted_fieldnames", None)
+	if callable(get_permitted) and any(
+		int(getattr(meta.get_field(f), "permlevel", 0) or 0) for f in valid_dimensions
+	):
+		permitted = set(get_permitted(permission_type="read"))
+		if any(f not in permitted for f in valid_dimensions):
+			frappe.throw(_("A structure grouping field is not readable."), frappe.PermissionError)
 	root = _structure_counts(readable_rows(doctype, (*valid_dimensions, title)), valid_dimensions, title)
 	labels = [(meta.get_field(f).label or f) for f in valid_dimensions]
 	return {
@@ -521,5 +530,5 @@ def structure_data(source="people"):
 		"count": root["count"],
 		"truncated": False,
 		"group_count": len(root["groups"]),
-		"children": _structure_children(root, dimensions),
+		"children": _structure_children(root, valid_dimensions),
 	}

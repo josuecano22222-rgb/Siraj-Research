@@ -99,6 +99,10 @@ class TestAutoFillDefaults(FrappeTestCase):
         )
 
     def _insert_probe(self, lat, lon, suffix):
+        if not frappe.db.exists("Data Group", "GD"):
+            frappe.get_doc({"doctype": "Data Group", "group_name": "GD"}).insert(
+                ignore_permissions=True
+            )
         doc = frappe.get_doc(
             {
                 "doctype": "Place",
@@ -109,6 +113,7 @@ class TestAutoFillDefaults(FrappeTestCase):
                 # Exact literals — never rounded (standing precision rule).
                 "latitude": lat,
                 "longitude": lon,
+                "data_group": "GD",
             }
         )
         doc.insert(ignore_permissions=True)

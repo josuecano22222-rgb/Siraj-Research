@@ -1,10 +1,203 @@
 # Copyright (c) 2026, SIRAJ and contributors
 # For license information, please see license.txt
 
+import frappe
 from frappe.tests.utils import FrappeTestCase
+
+from siraj_research.utils.relationship_rules import duplicate_key, pair_allowed
 
 
 class TestRelationship(FrappeTestCase):
 	def test_doctype_loads(self):
 		"""The DocType exists, its JSON is valid and its controller imports."""
 		self.assertTrue(frappe.get_meta("Relationship").fields)
+
+	# ------------------------------------------------------------------
+	# Pair enforcement (docs/decisions/relationship-consolidation.md §3.2)
+	# ------------------------------------------------------------------
+
+	def _make_endpoint(self, doctype, name, data_group="GD"):
+		"""Create a minimal endpoint record so a Relationship can link to it."""
+		field = {
+			"Person": ("name_en", "name_ar"),
+			"Institution": ("name_en", "name_ar"),
+			"Place": ("name_en", "name_ar"),
+			"Siraj Event": ("title_en", "title_ar"),
+			"Military Unit": ("unit_name", "unit_name_ar"),
+		}.get(doctype, ("name_en", "name_ar"))
+		doc = frappe.get_doc({"doctype": doctype, field[0]: name, "data_group": data_group})
+		return doc.insert(ignore_permissions=True)
+
+	def _make_type(self, code, *, symmetric=False, pairs=None, hierarchical=False):
+		"""Create (or fetch) a Relationship Type with allowed-pair child rows."""
+		label = f"PhaseR {code}"
+		if frappe.db.exists("Relationship Type", label):
+			doc = frappe.get_doc("Relationship Type", label)
+		else:
+			doc = frappe.get_doc(
+				{
+					"doctype": "Relationship Type",
+					"code": code,
+					"label_en": label,
+					"label_ar": f"مرحلة {code}",
+					"is_symmetric": 1 if symmetric else 0,
+					"is_hierarchical": 1 if hierarchical else 0,
+				}
+			).insert(ignore_permissions=True)
+		doc.delete_all("Relationship Type Allowed Pair")
+		for idx, (subject_doctype, object_doctype) in enumerate(pairs or [], start=1):
+			doc.append(
+				"allowed_pairs",
+				{
+					"subject_doctype": subject_doctype,
+					"object_doctype": object_doctype,
+					"sort_order": idx,
+				},
+			)
+		doc.save(ignore_permissions=True)
+		return doc
+
+	def _allowed_pairs(self, rel_type_name):
+		return [
+			(row.subject_doctype, row.object_doctype)
+			for row in frappe.get_all(
+				"Relationship Type Allowed Pair",
+				filters={"parenttype": "Relationship Type", "parent": rel_type_name},
+				fields=["subject_doctype", "object_doctype"],
+			)
+		]
+
+	def _make_relationship(self, rel_type, subject_type, subject, object_type, object_name, **kw):
+		payload = {
+			"doctype": "Relationship",
+			"relationship_type": rel_type,
+			"subject_type": subject_type,
+			"subject": subject,
+			"object_type": object_type,
+			"object": object_name,
+			"naming_series": "REL-.####",
+			"data_group": kw.pop("data_group", "GD"),
+		}
+		payload.update(kw)
+		return frappe.get_doc(payload)
+
+	def test_invalid_pair_rejected(self):
+		"""A Relationship whose (subject, object) pair is not allowed must be rejected."""
+		rt = self._make_type("PAIR_INVALID", pairs=[("Person", "Institution")])
+		person = self._make_endpoint("Person", "PR Invalid Pair Person")
+		institution = self._make_endpoint("Institution", "PR Invalid Pair Inst")
+		place = self._make_endpoint("Place", "PR Invalid Pair Place")
+		try:
+			with self.assertRaises(frappe.ValidationError):
+				self._make_relationship(
+					rt.name, "Person", person.name, "Place", place.name
+				).insert(ignore_permissions=True)
+			# The allowed pair (Person, Institution) still saves.
+			ok = self._make_relationship(
+				rt.name, "Person", person.name, "Institution", institution.name
+			).insert(ignore_permissions=True)
+			self.assertEqual(ok.subject, person.name)
+		finally:
+			for doc in (person, institution, place):
+				if frappe.db.exists(doc.doctype, doc.name):
+					frappe.delete_doc(doc.doctype, doc.name, force=True, ignore_permissions=True)
+
+	def test_duplicate_rejected_directed(self):
+		"""A directed Relationship with the same ordered pair is a duplicate."""
+		rt = self._make_type("DUP_DIRECTED", pairs=[("Person", "Institution")])
+		person = self._make_endpoint("Person", "PR Dup Directed Person")
+		institution = self._make_endpoint("Institution", "PR Dup Directed Inst")
+		try:
+			first = self._make_relationship(
+				rt.name, "Person", person.name, "Institution", institution.name
+			).insert(ignore_permissions=True)
+			with self.assertRaises(frappe.ValidationError):
+				self._make_relationship(
+					rt.name, "Person", person.name, "Institution", institution.name
+				).insert(ignore_permissions=True)
+			# The reverse direction is a distinct edge for a directed type.
+			reverse = self._make_relationship(
+				rt.name, "Institution", institution.name, "Person", person.name
+			)
+			# (Institution, Person) is not an allowed pair for this directed type.
+			with self.assertRaises(frappe.ValidationError):
+				reverse.insert(ignore_permissions=True)
+			self.assertTrue(first.name)
+		finally:
+			for doc in (person, institution):
+				if frappe.db.exists(doc.doctype, doc.name):
+					frappe.delete_doc(doc.doctype, doc.name, force=True, ignore_permissions=True)
+
+	def test_symmetric_normalization(self):
+		"""A symmetric type treats (A→B) and (B→A) as the same edge."""
+		rt = self._make_type(
+			"SYM_NORM", symmetric=True, pairs=[("Person", "Institution"), ("Institution", "Person")]
+		)
+		person = self._make_endpoint("Person", "PR Sym Norm Person")
+		institution = self._make_endpoint("Institution", "PR Sym Norm Inst")
+		try:
+			first = self._make_relationship(
+				rt.name, "Person", person.name, "Institution", institution.name
+			).insert(ignore_permissions=True)
+			self.assertEqual(first.direction, "Symmetric")
+			# The mirror orientation is a duplicate of the same symmetric edge.
+			with self.assertRaises(frappe.ValidationError):
+				self._make_relationship(
+					rt.name, "Institution", institution.name, "Person", person.name
+				).insert(ignore_permissions=True)
+			# Confirm the helper agrees the two orientations share one key.
+			k1 = duplicate_key(rt.name, "Person", person.name, "Institution", institution.name, symmetric=True)
+			k2 = duplicate_key(rt.name, "Institution", institution.name, "Person", person.name, symmetric=True)
+			self.assertEqual(k1, k2)
+		finally:
+			for doc in (person, institution):
+				if frappe.db.exists(doc.doctype, doc.name):
+					frappe.delete_doc(doc.doctype, doc.name, force=True, ignore_permissions=True)
+
+	def test_self_link_rejected_non_hierarchical(self):
+		"""A non-hierarchical Relationship cannot link a record to itself."""
+		rt = self._make_type("SELF_LINK", pairs=[("Person", "Person")])
+		person = self._make_endpoint("Person", "PR Self Link Person")
+		try:
+			with self.assertRaises(frappe.ValidationError):
+				self._make_relationship(
+					rt.name, "Person", person.name, "Person", person.name
+				).insert(ignore_permissions=True)
+		finally:
+			if frappe.db.exists("Person", person.name):
+				frappe.delete_doc("Person", person.name, force=True, ignore_permissions=True)
+
+	def test_pair_allowed_helper_matches_child_rows(self):
+		"""The pure helper and the seeded child rows agree on allowed pairs."""
+		rt = self._make_type("HELPER_MATCH", pairs=[("Person", "Institution")])
+		rows = self._allowed_pairs(rt.name)
+		self.assertTrue(pair_allowed(rows, "Person", "Institution", symmetric=False))
+		self.assertFalse(pair_allowed(rows, "Institution", "Person", symmetric=False))
+
+	# ------------------------------------------------------------------
+	# Endpoint delete blocking (§8)
+	# ------------------------------------------------------------------
+
+	def test_endpoint_delete_blocked_when_relationships_exist(self):
+		"""Deleting an endpoint that a Relationship references is blocked."""
+		rt = self._make_type("DEL_BLOCK", pairs=[("Person", "Institution")])
+		person = self._make_endpoint("Person", "PR Del Block Person")
+		institution = self._make_endpoint("Institution", "PR Del Block Inst")
+		rel = self._make_relationship(
+			rt.name, "Person", person.name, "Institution", institution.name
+		).insert(ignore_permissions=True)
+		try:
+			# Subject delete is blocked.
+			with self.assertRaises(frappe.ValidationError):
+				frappe.delete_doc("Person", person.name, force=True, ignore_permissions=True)
+			# Object delete is blocked.
+			with self.assertRaises(frappe.ValidationError):
+				frappe.delete_doc("Institution", institution.name, force=True, ignore_permissions=True)
+			# Removing the relationship first unblocks the delete.
+			frappe.delete_doc("Relationship", rel.name, force=True, ignore_permissions=True)
+			frappe.delete_doc("Person", person.name, force=True, ignore_permissions=True)
+			frappe.delete_doc("Institution", institution.name, force=True, ignore_permissions=True)
+		finally:
+			for doctype, name in (("Person", person.name), ("Institution", institution.name)):
+				if frappe.db.exists(doctype, name):
+					frappe.delete_doc(doctype, name, force=True, ignore_permissions=True)

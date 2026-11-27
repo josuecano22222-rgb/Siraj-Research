@@ -9,6 +9,8 @@
   "sb_edge",
   "naming_series",
   "display_name",
+  "title_en",
+  "title_ar",
   "cb_edge",
   "relationship_type",
   "direction",
@@ -79,6 +81,24 @@
    "in_preview": 1
   },
   {
+   "fieldname": "title_en",
+   "fieldtype": "Data",
+   "label": "Title (English)",
+   "in_list_view": 1,
+   "search_index": 1,
+   "length": 140,
+   "description": "Bilingual title carried over from the consolidated association DocTypes (docs/decisions/relationship-consolidation.md §1.1 Option A). display_name remains the canonical label."
+  },
+  {
+   "fieldname": "title_ar",
+   "fieldtype": "Data",
+   "label": "Title (Arabic)",
+   "in_list_view": 1,
+   "search_index": 1,
+   "length": 140,
+   "description": "Arabic title; paired with Title (English)."
+  },
+  {
    "fieldname": "cb_edge",
    "fieldtype": "Column Break",
    "label": ""
@@ -118,7 +138,7 @@
    "fieldname": "subject_type",
    "fieldtype": "Select",
    "label": "Subject type",
-   "options": "Person\nInstitution\nPlace\nSiraj Event\nResearch Event\nSource\nMilitary Unit\nOperational Deployment\nTraining Exercise\nMission",
+   "options": "Person\nInstitution\nPlace\nSiraj Event\nSource\nMilitary Unit\nOperational Deployment\nTraining Exercise\nMission",
    "reqd": 1,
    "default": "Person",
    "in_standard_filter": 1,
@@ -149,7 +169,7 @@
    "fieldname": "object_type",
    "fieldtype": "Select",
    "label": "Object type",
-   "options": "Person\nInstitution\nPlace\nSiraj Event\nResearch Event\nSource\nMilitary Unit\nOperational Deployment\nTraining Exercise\nMission",
+   "options": "Person\nInstitution\nPlace\nSiraj Event\nSource\nMilitary Unit\nOperational Deployment\nTraining Exercise\nMission",
    "reqd": 1,
    "default": "Institution",
    "in_standard_filter": 1,

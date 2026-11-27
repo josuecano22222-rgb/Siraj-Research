@@ -1,0 +1,108 @@
+# Remediation Progress Tracker
+
+Branch: `arena/4bf5fef5-siraj-research` (base `ed889345be12eb41a05ccddf7d811557d4123573`).
+
+## 1. Work Item Status
+
+Every item carries an honest verification tag:
+- `verified: mock/static` — verified via pure-Python `pytest`, Node/jsdom suites, static JSON/AST/Ruff checks, and `frappe 15.128.0` source inspection; **not** yet verified against a live MariaDB/Redis bench.
+- `verified: live bench` — verified via GitHub Actions `server.yml` or a live MariaDB-backed `bench --site frappe.com` run.
+
+| Phase | Item | Commit | Status | Verification | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **0** | `P0-docs` | `744bbb9` | Done | `verified: mock/static` | Finalized `2026-11-siraj-fixes.md`, `baseline.md`, and `progress.md` after Gate 0 approval (items A–F). |
+| **1** | `C-13` | `f1ac55f` | Done | `verified: mock/static` | Added `import frappe` in all 48 `doctype/*/test_*.py`, removed `F821` from `pyproject.toml`, and added `tests/test_doctype_test_imports.py` (`+1` passed, `+49` subtests vs baseline; `0` `F821` repo-wide). |
+| **1** | `C-17` | `51de08f` | Done | `verified: mock/static` | Stamped `data_group="GD"` on scoped DocTypes in `setup/test_data.py` (+ fixed stale `Person.positions` child table, `Place.place_name`, and `Unit Classification.category="Line"` schema drift in `test_data.py`). Full `pytest` moved from `35 failed, 440 passed` to `29 failed, 447 passed` (`tests/test_fixture_controllers.py` now green; 2 drifted schema-count assertions in `test_test_data.py` remain for `C-16`/Phase 3 L4). |
+| **1** | `C-18` | `70e2d93` | Done | `verified: mock/static` | Set `"default": "Draft"` on `workflow_state` across all 15 standalone relation DocTypes (`Siraj Event` deferred to Phase 3 L1 per plan). Full `pytest` moved from `29 failed, 447 passed` to `14 failed, 447 passed, 353 subtests passed` (+15 passing subtests). |
+| **1** | `C-25` | `8f313a7` *(+ doc sync)* | Done | `verified: live bench` | Added real `FrappeTestCase` adversarial isolation suite `siraj_research/tests/test_api_data_group_isolation.py` + `siraj_research/tests/_isolation_fixtures.py` covering all 39 `@frappe.whitelist` callables across `GD`, `GC`, unassigned, `SIRAJ Viewer`, `SIRAJ Researcher`, and `SIRAJ Official`, predictable ID guessing (`PER-0001`, `PLC-0001`, `EVT-0001`), cross-group `Link`/`Dynamic Link` saves, non-admin `offline_bootstrap`/`boundary_import` boundaries, `tearDownClass` cache cleanup, and `@unittest.expectedFailure` markers for Phase 2 (`C-01`, `C-02`, `C-03a`, `C-03b`, `C-04`, `C-05`, `C-07`, `C-08`, `C-12`), plus local AST/smoke verifier `tests/test_whitelist_coverage.py` (`+3` passed -> `14 failed, 450 passed, 4 skipped`). **Verified on live MariaDB bench via GitHub Actions `server.yml` run `45528321233`: `Ran 15 tests in 4.245s — OK (expected failures=9)`** (and surfaced 6 pre-existing `data_group` MandatoryErrors across `test_audit_api`, `test_auto_fill_defaults`, `test_role_visibility`, `test_quality_scoring`, `test_demo_data`, and `test_person_family`). **GATE 1** |
+| **2** | `C-01` | `b4f31f5`, `0440211` | Done | `verified: live bench` | Replaced `frappe.get_all` with per-DocType `readable_rows` + valid schema field selection (`b4f31f5`); Gate 2 item 6 (`0440211`) removed the secondary `SIRAJ Settings` sample gate and bare `except Exception` wrappers and added non-located DocType tests. |
+| **2** | `C-02` | `8c8fe85`..`a7e31a3`, `c8ce561` | Done | `verified: live bench` | Enforced `doc=` checks (`8c8fe85`), Gate 2 items (`51c1352`..`b71ea3a`), and Gate 2 follow-ups `F1` (`5877da7`), `F2` (`ff400f3`), `F3` (`1f0eec8`), `F4` (`a7e31a3`), `F5` (`91930e0` — 0 bench fixture errors across all 9 modules), plus `c8ce561` reverting non-enforced `F401`/`SIM115` cleanup. |
+| **2** | `C-03a` | `a39ce52`, `d2dd859` | Done | `verified: live bench` | Central `validate_same_data_group_links` wired on `validate` across all `SCOPED_DOCTYPES` (`permissions.py` + `hooks.py`), covering `Link`, `Dynamic Link`, and child-table row links with one batched read per target DocType and generic target-redacting `PermissionError`; bypasses & Frappe `15.128.0` hook order documented in `2026-11-siraj-fixes.md`; `test_07` promoted + `test_23` (including live `Data Import` CSV rejection in `d2dd859`) verified green (`server.yml` run `45707569986`). |
+| **2** | `C-03b` | `c5742ec`, `d2dd859` | Done | `verified: live bench` | Moved `OperationalDeployment` `current_deployment` mutation from `validate` to `on_update` + cleared on `on_trash` and unit reassignment; added `"role"` and `frappe.get_list` scoping to `CommandAppointment.validate_overlap`; permission-guarded `Person.validate_family` sibling name autofill; verified `MilitaryUnit` (`get_descendants` only) and `utils/military.py` (`0` whitelisted); `test_08` promoted (`server.yml` run `45707569986`). |
+| **2** | `C-04a` | `08c0d72` | Done | `verified: live bench` | Aligned `geo_settings.json` `field_order` with all 59 fields (`server.yml` run `45674085310`: `test_api_data_group_isolation` `OK (expected failures=9)`). |
+| **2** | `C-04` | `701c3eb` | Done | `verified: live bench` | `offline_bootstrap.py` (`_require_admin` role check on `run_online_setup`/`request_stop`/`clear_stop`, `max_zoom` clamped `0..14`, `frappe.enqueue` on `"long"` queue with `job_id="siraj_offline_bootstrap"` refusing concurrent runs) + `geo_settings.js` polling & stop-button visibility (`HD-2`). `test_09` promoted (`server.yml` run `45709270156`: `expected failures=4`). |
+| **2** | `C-05` | `4f500f9` | Done | `verified: live bench` | `boundary_import.py` (`dependencies` admin gate, `start_import` `resolve().is_relative_to` path confinement incl. symlink escape, `upload_file` `MAX_UPLOAD_BYTES` cap) + `geo_import._extract_if_zip` symlink/member-count/uncompressed-size checks. `test_10` promoted (`server.yml` run `45710381684`: `expected failures=3`). |
+| **2** | `C-06` | `2e6823d` | Done | `verified: live bench` | `data_group_scope.js` bound per scoped DocType name without touching `cur_frm` at load time + `tests/test_data_group_scope.js` (`server.yml` run `45710917350`: `expected failures=3`). |
+| **2** | `C-07` | `e38823f` | Done | `verified: live bench` | `sweep_points` `Place` read permission check, JSON string parsing, and `500` point cap. `test_12` promoted (`server.yml` run `45711568229`: `expected failures=2`). |
+| **2** | `C-08` | `697fb57` | Done | `verified: live bench` | `map_relations.py` `_("...").format`, `diagnostics.py` `frappe.get_app_path`, `visualization.py:structure_data` `PermissionError` on unreadable `permlevel` + consistent `valid_dimensions` (`HD-5`). `test_14` promoted (`server.yml` run `45712720716`: `expected failures=1`). |
+| **2** | `C-12` | `b931290`, `cdfa5af` | Done | `verified: live bench` | `shared_record.json` added 4 `SIRAJ` roles + `SIRAJ Official` alongside `Group Member` and `System Manager`, `share: 0` on all non-admin roles (`HD-3`); `test_shared_record.py` unchanged and green; `test_15` promoted (`0` `expectedFailure` remaining). |
+| **2** | `G1`–`G6` | `ab0ed9f`, `d0e90ea`, `abd1f9e`, `8d24ca1`, `86f3db4`, `bf780ac` | Done | `verified: live bench` | Gate 2 follow-ups: `G1` stale `bootstrap_running` recovery via RQ `get_job_status` + `finally` + enqueue rollback; `G2` live non-superuser `SIRAJ Administrator` test for `prepare_offline_site`; `G3` `geo_settings.js` polling lifecycle/alerts/stale warning; `G4` AST ban on `frappe.only_for`; `G5` `100 MiB` upload cap, `.`/`..` filename rejection, UUID-prefixed non-overwriting uploads; `G6` aligned `boundary_import._assert_admin` with `offline_bootstrap._require_admin` (`System Manager`, `SIRAJ Administrator` — closing `SIRAJ Reviewer` `Boundary Dataset` write leak). |
+| **2** | `H1`–`H3` | `087c631`, `65ba0b1`, `1ddd79d`, `7045694`, `e1ffd4e` | Done | `verified: live bench` | Gate 2 closure items: `H1` per-item validation in `sweep_points` against malformed triples/NaN/Inf; `H2` idempotency guard in `data_group_scope.js` (`frappe._sirajDataGroupScopeBound`) + double-load test; `H3` clean `npm install` + `MutationObserver` wait in `test_explorer_sections.js` + gitignored `siraj_research/public/node_modules` (legitimate Frappe `build.py:326–331` asset symlink) and `siraj_research/public/data/`. **GATE 2 CLOSED** (`server.yml` `45768222052` + `green` bench). |
+| **3** | `P3-0` | `82a142c` | Done | `verified: live bench` | Grepped `hooks.py`, `patches.txt`, commands, workflows, docs, and `tests/` (`0` runtime/hook/patch/workflow imports; found `tests/scan_committed_event_fixture.py:21` importing `event_reference_review`); deleted 12 `setup/event_*.py` + 12 `tests/test_event_*.py` + `tests/scan_committed_event_fixture.py`, and inlined `PlanError`, `_validate_value`, `_same`, `_index` into `coordinate_transition.py` per **Decision C** (`server.yml` `45769960953` green). |
+| **3** | `L1` | `091eab7`..`caddd4d` | Done | `verified: live bench` | Unified `Siraj Event` schema/controller/list/test (`EVT-.####`, `display_name`, `title_ar`/`title_en` controller validation, `Datetime` `start_date`/`end_date` + `*_as_stated`/`*_precision`, single `place` link dropping `linked_place` on `Siraj Event` only, `status`, `significance`, `image`/`image_url`/`image_alt`, `researcher_notes` at `permlevel 1`, `SIRAJ Reviewer` `write`/`create` at level `0`, `share: 0` on non-admin roles, `workflow_state` default `"Draft"`), deleted `doctype/research_event` + `total_research_events`, `[post_model_sync]` deletion patch `v2_1.delete_research_event` per **Decision E** (verified on `frappe.com` + CI `Server` `45779077745`), `hooks.py` + `data_group_scope.js` lockstep, `relationship.json`, workspace, `add_an_event`, `ar.csv`, `demo_data.py` + `test_data.py` unified `Siraj Event` seeding, `map_relations.get_entity_network` non-existent seed `db.exists` guard, `DoesNotExistError` guard in `report_access.py`/`geo_quality.py`/`visualization.py`, and live tests for `researcher_notes` `permlevel 1` on **both** `entity_profile` and `relationship_profile`. **APPROVED (`caddd4d`).** |
+| **3** | `J1`–`J4` + `L2` | `b88d7b0`, `e8c8aea`, `9e5b13c` | Done | `verified: live bench` | `J1`: kept strict non-empty guard in `delete_research_event.py` + exact `frappe.db.delete` console snippet + `test_siraj_event.py` (`5/5 OK` on `frappe.com`). `J2`: registered `teardown_isolation_world` via `cls.addClassCleanup(..., commit=True)` + `or_filters` catching legacy name-keyed `Siraj Event` rows + `TestZIsolationFixtureCleanup` (`25/25 OK` on `frappe.com`). `J4`: confirmed `git status` clean after `migrate` on `frappe.com`. `L2`: switched backend Python registries, `visualization.py`, `geo_quality.py`, `map_relations.py` (+ live indistinguishability test), `relationship_profile.py`, reports, `setup/*.py`, `lookups.json`, and lockstep tests (`0` runtime `"Research Event"` refs in backend Python). **VERIFIED ON `frappe.com` & CI (`45788866743`).** |
+| **3** | `L3` | pending | In Review | `verified: mock/static` *(live CI + `frappe.com` review pending)* | Switched frontend/offline JS & pages (`geography-action-i18n.js`, `siraj-audit.js`, `siraj-map-search.js`, `snapshot_verify.js`, `siraj_diagnostics.html`), bumped `SIRAJ_BUILD` (`2026-11-24.siraj-event.hd1.1`) across `record_icons.py`, `siraj-record-meta.js`, `siraj-map.js` + `SIRAJ_EXPLORER_BUILD` (`2026-11-24.phase4.graph.hd1.1`), and updated JS tests (`test_geography_action_i18n.js`, `test_map_search_ui.js`, `test_coordinate_map.js`, `test_signed_snapshot_crypto.js`). **STOP after `L3` for review.** |
+| **3** | `L4` | pending | Todo | — | Retarget `demo_content.py`, `demo_data.py`, `test_data.py`, Python/JS tests, and event docs to `Siraj Event`. **STOP after `L4` for review. GATE 3** |
+| **Post-P3** | `Admin-gate consolidation` | deferred | Deferred | — | Deferred to **after Phase 3**: consolidate `siraj_research.offline_bootstrap._require_admin` and `siraj_research.api.boundary_import._assert_admin` (both enforcing `("System Manager", "SIRAJ Administrator")`) into a shared admin-role helper module. |
+| **4** | `C-09` | pending | Todo | — | Remove explicit `frappe.db.commit()` from 3 legacy patches + timestamp backup filename. |
+| **4** | `C-10` | pending | Todo | — | Delete 4 `deploy_*.py` scripts + `patches/d15-to-d17.patch` + update `docs/installation.md:386` (HD-6). |
+| **4** | `C-11` | pending | Todo | — | Build-stamp parity test (`record_icons.SIRAJ_BUILD`, `siraj-record-meta.js`, `siraj-map.js`, `SIRAJ_EXPLORER_BUILD`). |
+| **4** | `C-16` | pending | Todo | — | Repair drifted `Command Region`, `Military Unit.region`, and `master_data` `new_doc` Python tests. |
+| **4** | `C-26` | pending | Todo | — | Non-empty `__init__.py` on 4 `Person` child DocTypes, resolve `test_no_inline_svg.py`, and resolve `numpy` in `test_geo_import.py`. |
+| **4** | `C-19` | pending | Todo | — | Repair 4 failing JS suites + generate `package-lock.json`. **GATE 4** |
+| **5** | `C-20` | pending | Todo | — | `pyproject.toml` dev deps (`pytest`, `numpy`, `ruff`, `cryptography`) + repo-wide Ruff clean + `ci.yml` full lint. |
+| **5** | `C-21` | pending | Todo | — | `ci.yml` remove all `--ignore` flags, `npm ci`, discover all non-browser JS suites, separate Chromium job. |
+| **5** | `C-22` | pending | Todo | — | `server.yml` remove `continue-on-error`, remove dead `failids` ref, run `bench --site test_site run-tests --app siraj_research`. |
+| **5** | `C-23` | pending | Todo | — | Ground `README.md` and `docs/*.md` in actual v2.1+ commands, role matrix, and single `Siraj Event` DocType. |
+| **5** | `C-24` | pending | Optional | — | Optional `siraj_explorer.js` bundle split (only if all gates green). **GATE 5** |
+
+---
+
+## 2. Scoped Gate 3 Grep Commands & Current Counts
+
+Per Gate 0 item B, `linked_place` stays on `Military Unit`, `Admin Boundary`, `Gazetteer Place`, and the generic `linked_place_field` config key, and is dropped **only on `Siraj Event`**.
+
+### Exact Gate 3 Verification Commands
+1. **Zero `Research Event` / `research_event` / `research-event` references** (excluding `docs/decisions/`, `patches/d15-to-d17.patch` until `C-10`, `deploy_*.py` until `C-10`, and the deletion patch itself):
+   ```bash
+   git grep -n -E "Research Event|research_event|research-event" \
+     -- ':!docs/decisions/*' ':!siraj_research/patches/*/delete_*research_event*.py' \
+        ':!patches/d15-to-d17.patch' ':!deploy_*.py'
+   ```
+   - **Current count at Phase 0:** `199` matching lines across `57` files (`42` under `siraj_research/`, `15` under `tests/` and `docs/`).
+2. **Zero `linked_place` references on `Siraj Event`** (schema, `setup/demo_data.py` `Siraj Event` block, `setup/test_data.py` `Siraj Event` block, `visualization.py` `Siraj Event` entries):
+   ```bash
+   git grep -n "linked_place" -- \
+     siraj_research/siraj_research/doctype/siraj_event/ \
+     && python3 -c '
+   import json, re, pathlib
+   d = json.loads(pathlib.Path("siraj_research/siraj_research/doctype/siraj_event/siraj_event.json").read_text())
+   assert all(f.get("fieldname") != "linked_place" for f in d["fields"])
+   assert "linked_place" not in d.get("field_order", [])
+   demo = pathlib.Path("siraj_research/setup/demo_data.py").read_text()
+   siraj_block = demo.split("# -- Siraj Events")[1].split("refs =")[0] if "# -- Siraj Events" in demo else demo
+   assert "linked_place" not in siraj_block
+   '
+   ```
+   - **Current count at Phase 0:** `3` lines (`siraj_event.json:90`, `siraj_event.json:297`, `setup/demo_data.py:512`).
+
+---
+
+## 3. Phase 3 Recorded Decisions & Historical Notes
+
+1. **Decision C (`siraj_research/setup/coordinate_transition.py` & `setup/event_*.py`) — DECIDED:**
+   - Inspected `siraj_research/setup/coordinate_transition.py` (`1–183`) and grepped the entire repository for `coordinate_transition`:
+     - **Runtime callers:** **`0`** (`hooks.py`, `patches.txt`, CLI commands, API endpoints, DocType controllers, and workflows never import `coordinate_transition`).
+     - **Non-runtime references:** `tests/test_coordinate_shared.py:8` (imports `audit` to verify exact-decimal parity between `utils/coordinates.py`, `visualization.py`, and the offline coordinate planner), `tests/test_coordinate_transition.py:6` (imports `PlanError`, `audit`, `prepare`, `transition`), and `docs/qa/coordinate-migration.md:34`.
+   - **Action in Phase 3 `P3-0`:** Inline the three pure helpers (`PlanError`, `_same`, `_index` + `_validate_value`) directly into `siraj_research/setup/coordinate_transition.py` when deleting the 12 `siraj_research/setup/event_*.py` and 11 `tests/test_event_*.py` files (retargeting `"Research Event"` to `"Siraj Event"` in `L2`/`L4`), keeping `test_coordinate_shared.py` and `test_coordinate_transition.py` intact and passing.
+2. **Decision E (`HD-1` `[post_model_sync]` `Research Event` deletion patch) — DECIDED:**
+   - In the `[post_model_sync]` deletion patch (`L1`):
+     1. If `tabResearch Event` exists and contains any rows (`COUNT(*) > 0`), **raise** with a clear error aborting migration so no data is ever lost silently.
+     2. Delete the `DocType` metadata record via `frappe.delete_doc("DocType", "Research Event", force=True)` when present.
+     3. Execute `DROP TABLE` **only if** the live MariaDB bench test shows `tabResearch Event` survives `frappe.delete_doc("DocType", "Research Event", force=True)` (and never call `frappe.db.commit()` explicitly). Verify on **both** a fresh site (`install-app`) and an already-migrated site (`migrate`).
+   - **`J1` Non-Empty Table Policy — DECIDED & RECORDED:**
+     - `v2_1.delete_research_event` **keeps the strict non-empty guard** and **never deletes rows silently**.
+     - When `SELECT COUNT(*) FROM \`tabResearch Event\`` is non-zero, `execute()` raises `RuntimeError` containing the exact `bench --site <site> console` cleanup snippet using `frappe.db.delete`:
+       ```python
+       frappe.db.delete("Evidence", {"parenttype": "Research Event"})
+       frappe.db.delete("Research Event", {})
+       frappe.db.commit()
+       ```
+       Using `frappe.db.delete` avoids MariaDB `SQL_SAFE_UPDATES = 1` (`ERROR 1175`) encountered under raw `bench mariadb -e "DELETE ..."` and removes child `Evidence` rows before deleting parent `Research Event` rows. `test_siraj_event.py` asserts that the `RuntimeError` message includes all three lines and executes those exact `frappe.db.delete` calls to prove the subsequent `delete_research_event.execute()` succeeds cleanly.
+   - **`J2` Isolation Suite Fixture Hygiene — DECIDED & RECORDED:**
+     - Root cause of earlier leaked fixture rows on `frappe.com`: `FrappeTestCase` relies on `_rollback_db` in `addClassCleanup`, which rolls back uncommitted transactions. In `TestApiDataGroupIsolation`, `test_24` calls `offline_bootstrap.prepare_offline_site`, which invokes `frappe.db.commit()` (`offline_bootstrap.py:116,315,335`), committing the `setUpClass` `build_isolation_world()` rows (and `test_15`'s `"GD Researcher Note"` `Shared Record`) past `_rollback_db` (specifically: `2` `Siraj Event` rows `"GC Classified Briefing"`/`"GD Public Convoy"`, `2`–`3` `Place` rows, `2` `Person` rows, `2` `Institution` rows, `2` `Source` rows, `3` `Military Unit` rows, `1` `Operational Deployment` row, `1` `Command Appointment` row, `2` `Relationship` rows, `3` `Shared Record` rows, `Boundary Dataset` `"ISO-TEST-BND"`, and `8` `iso-*@example.com` test `User` + `User Permission` rows).
+     - Fix: `TestApiDataGroupIsolation.setUpClass` registers `cls.addClassCleanup(teardown_isolation_world, cls.world, cls._upload_paths, commit=True)` **before** `build_isolation_world(cls.world)`, sweeping both newly created and any pre-existing signature-matched fixture rows (`Command Appointment`, `Operational Deployment`, `Relationship`, `Siraj Event`, `Shared Record`, child-before-parent `Military Unit`, `Institution`, `Person`, `Place`, `Source`, `Boundary Dataset` `"ISO-TEST-BND"`, `"ISO-PROBE-CATEGORY"`, and the `8` `ISOLATION_TEST_USERS` + their `User Permission` rows), and `TestZIsolationFixtureCleanup` at the end of `test_api_data_group_isolation.py` asserts zero fixture rows, test users, or `User Permission` rows remain after `tearDownClass`.
+3. **Admin-Role Helper Consolidation — DEFERRED TO AFTER PHASE 3:**
+   - Consolidating `siraj_research.offline_bootstrap._require_admin` and `siraj_research.api.boundary_import._assert_admin` (aligned to `("System Manager", "SIRAJ Administrator")` in `G6`) into a shared module is deferred until **after Phase 3**.
+4. **Resolved Baseline Note (Historical — fixed in `F5` `91930e0`):**
+   - Run `45528321233` had surfaced `data_group` `MandatoryError`s in 6 bench test modules; fixed in `F5` (`91930e0`) — all 10 bench modules (`75` tests) now pass with `0` errors on `server.yml`.

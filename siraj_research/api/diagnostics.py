@@ -57,7 +57,7 @@ def asset_hashes() -> dict:
 	from pathlib import Path
 
 	out = {}
-	public_root = Path(__file__).resolve().parent.parent.parent / "public"
+	public_root = Path(frappe.get_app_path("siraj_research", "public"))
 	# Source files (used when the bundle cannot be resolved — e.g. before
 	# the first bench build on a fresh checkout, or when ?v= cache-bust
 	# is used instead of hashed filenames).

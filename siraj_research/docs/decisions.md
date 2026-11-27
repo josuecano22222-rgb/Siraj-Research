@@ -29,8 +29,13 @@
 **Decision:** Use **option (b) — derive structural connections from ordinary Link fields**
 (`parent_unit`, `unit_of_deployment`, `mission_of_deployment`, `place_of_event`,
 `commander`, `linked_place`, etc.) and keep Relationship endpoint DocTypes as-is
-(Person, Institution, Place, Research Event, Source). We do **not** extend
+(Person, Institution, Place, Siraj Event, Source). We do **not** extend
 Relationship.subject_type/object_type Select options in this turn.
+
+**Superseded note:** at the time of this decision the event endpoint was the
+former SIRAJ event DocType; it was later consolidated into the single `Siraj
+Event` DocType (see `docs/decisions/2026-11-siraj-fixes.md`), which is the
+event endpoint today.
 
 **Why:**
 - Military Unit (including Division-level rows via `echelon='Division'`),

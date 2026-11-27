@@ -1,36 +1,170 @@
-/* Geo Settings: online setup gate + cooperative bootstrap stop control. */
+/* Geo Settings: online setup gate + cooperative bootstrap stop & status polling. */
 (() => {
 	'use strict';
 	const t = s => (typeof __ === 'function' ? __(s) : s);
+	const POLL_INTERVAL_MS = 2000;
+	const MAX_POLL_DURATION_MS = 30 * 60 * 1000; // 30 minutes max browser polling window
+
+	function isFormCurrent(frm) {
+		if (!frm || frm._siraj_unloaded) return false;
+		if (typeof cur_frm !== 'undefined' && cur_frm !== null && cur_frm !== frm) {
+			return false;
+		}
+		if (frm.$wrapper && typeof frm.$wrapper.is === 'function' && !frm.$wrapper.is(':visible')) {
+			return false;
+		}
+		return true;
+	}
+
+	function stopPolling(frm) {
+		if (frm && frm._siraj_bootstrap_poll) {
+			clearTimeout(frm._siraj_bootstrap_poll);
+			frm._siraj_bootstrap_poll = null;
+		}
+		if (frm) {
+			frm._siraj_poll_started_at = null;
+		}
+	}
+
+	function statusColor(status) {
+		if (status === 'stopped by user' || status === 'failed' || status === 'enqueue failed') {
+			return 'red';
+		}
+		if (status === 'complete_with_failures') {
+			return 'orange';
+		}
+		return 'green';
+	}
+
+	function showTerminalAlert(status) {
+		if (status === 'failed' || status === 'enqueue failed') {
+			frappe.show_alert({
+				message: t('Offline bootstrap failed — check bootstrap_last_status and worker logs.'),
+				indicator: 'red',
+			});
+		} else if (status === 'stopped by user') {
+			frappe.show_alert({
+				message: t('Offline bootstrap stopped by administrator.'),
+				indicator: 'orange',
+			});
+		} else if (status === 'complete_with_failures') {
+			frappe.show_alert({
+				message: t('Offline bootstrap completed with download failures — offline lock skipped.'),
+				indicator: 'orange',
+			});
+		} else {
+			frappe.show_alert({
+				message: t('Offline bootstrap complete.'),
+				indicator: 'green',
+			});
+		}
+	}
+
+	function applyControls(frm) {
+		const running = !!frm.doc.bootstrap_running;
+		const status = frm.doc.bootstrap_last_status || '';
+		const onlineAllowed = frm.doc.online_setup_enabled !== 0;
+		if (running) {
+			frm.page.set_indicator(t('Bootstrap running'), 'orange');
+		} else if (status) {
+			frm.page.set_indicator(t(status), statusColor(status));
+		}
+		const stopButton = frm.fields_dict.stop_bootstrap;
+		if (stopButton && stopButton.$wrapper) {
+			stopButton.$wrapper.toggle(running && !frm.doc.bootstrap_stop_requested);
+		}
+		const runButton = frm.fields_dict.run_online_setup;
+		if (runButton && runButton.$wrapper) {
+			runButton.$wrapper.toggle(!running);
+			runButton.$wrapper.toggleClass('btn-default', !onlineAllowed);
+		}
+		const hint = frm.fields_dict.online_setup_enabled;
+		if (hint && hint.$wrapper) {
+			hint.$wrapper.attr(
+				'title',
+				onlineAllowed
+					? t('Online setup may download wheels, tiles and packages.')
+					: t('Online setup disabled: preparation will use local data only.')
+			);
+		}
+	}
+
+	function pollBootstrapStatus(frm) {
+		if (!isFormCurrent(frm)) {
+			stopPolling(frm);
+			return;
+		}
+		if (!frm._siraj_poll_started_at) {
+			frm._siraj_poll_started_at = Date.now();
+		}
+		if (frm._siraj_bootstrap_poll) {
+			clearTimeout(frm._siraj_bootstrap_poll);
+			frm._siraj_bootstrap_poll = null;
+		}
+		frm._siraj_bootstrap_poll = setTimeout(async () => {
+			frm._siraj_bootstrap_poll = null;
+			if (!isFormCurrent(frm)) {
+				stopPolling(frm);
+				return;
+			}
+			if (Date.now() - frm._siraj_poll_started_at > MAX_POLL_DURATION_MS) {
+				stopPolling(frm);
+				frm.page.set_indicator(t('Bootstrap status stale'), 'orange');
+				frappe.show_alert({
+					message: t('Bootstrap is still marked running after 30 minutes (possibly stale if the worker stopped). Run Online Setup again to recover or reload.'),
+					indicator: 'orange',
+				});
+				return;
+			}
+			const wasRunning = !!frm.doc.bootstrap_running;
+			try {
+				const latest = await frappe.db.get_doc('Geo Settings');
+				if (!isFormCurrent(frm)) {
+					stopPolling(frm);
+					return;
+				}
+				if (latest) {
+					frm.doc.bootstrap_running = latest.bootstrap_running ? 1 : 0;
+					frm.doc.bootstrap_last_status = latest.bootstrap_last_status || '';
+					frm.doc.bootstrap_stop_requested = latest.bootstrap_stop_requested ? 1 : 0;
+					frm.refresh_fields && frm.refresh_fields([
+						'bootstrap_running',
+						'bootstrap_last_status',
+						'bootstrap_stop_requested',
+					]);
+					applyControls(frm);
+				}
+				if (frm.doc.bootstrap_running) {
+					pollBootstrapStatus(frm);
+				} else {
+					stopPolling(frm);
+					if (wasRunning) {
+						showTerminalAlert(frm.doc.bootstrap_last_status || 'complete');
+					}
+				}
+			} catch (_) {
+				if (frm.doc.bootstrap_running && isFormCurrent(frm)) {
+					pollBootstrapStatus(frm);
+				} else {
+					stopPolling(frm);
+				}
+			}
+		}, POLL_INTERVAL_MS);
+	}
 
 	frappe.ui.form.on('Geo Settings', {
 		refresh(frm) {
-			const running = !!frm.doc.bootstrap_running;
-			const status = frm.doc.bootstrap_last_status || '';
-			const onlineAllowed = frm.doc.online_setup_enabled !== 0;
-			if (running) {
-				frm.page.set_indicator(t('Bootstrap running'), 'orange');
-			} else if (status) {
-				frm.page.set_indicator(t(status), status === 'stopped by user' ? 'red' : 'green');
+			frm._siraj_unloaded = false;
+			applyControls(frm);
+			if (frm.doc.bootstrap_running) {
+				pollBootstrapStatus(frm);
+			} else {
+				stopPolling(frm);
 			}
-			const stopButton = frm.fields_dict.stop_bootstrap;
-			if (stopButton && stopButton.$wrapper) {
-				stopButton.$wrapper.toggle(!running && !frm.doc.bootstrap_stop_requested);
-			}
-			const runButton = frm.fields_dict.run_online_setup;
-			if (runButton && runButton.$wrapper) {
-				runButton.$wrapper.toggle(!running);
-				runButton.$wrapper.toggleClass('btn-default', !onlineAllowed);
-			}
-			const hint = frm.fields_dict.online_setup_enabled;
-			if (hint && hint.$wrapper) {
-				hint.$wrapper.attr(
-					'title',
-					onlineAllowed
-						? t('Online setup may download wheels, tiles and packages.')
-						: t('Online setup disabled: preparation will use local data only.')
-				);
-			}
+		},
+
+		onload_post_render(frm) {
+			frm._siraj_unloaded = false;
 		},
 
 		online_setup_enabled(frm) {
@@ -60,18 +194,20 @@
 								message: result.message || result.error,
 								indicator: 'red',
 							});
-						} else if (result && result.online_setup_enabled === false) {
-							frappe.show_alert({
-								message: t('Local-only preparation finished (online setup disabled).'),
-								indicator: 'orange',
-							});
-						} else {
-							frappe.show_alert({
-								message: t('Online setup finished — see bootstrap_last_status.'),
-								indicator: 'green',
-							});
+							return;
 						}
-						frm.reload_doc();
+						frm.doc.bootstrap_running = 1;
+						frm.doc.bootstrap_last_status = 'queued';
+						frm.doc.bootstrap_stop_requested = 0;
+						frm._siraj_poll_started_at = Date.now();
+						applyControls(frm);
+						frappe.show_alert({
+							message: result && result.online_setup_enabled === false
+								? t('Local-only preparation queued (online setup disabled).')
+								: t('Online setup queued — polling bootstrap_last_status.'),
+							indicator: result && result.online_setup_enabled === false ? 'orange' : 'blue',
+						});
+						pollBootstrapStatus(frm);
 					}).catch(err => frappe.msgprint({
 						title: t('Online setup failed'),
 						message: err && err.message ? err.message : String(err),

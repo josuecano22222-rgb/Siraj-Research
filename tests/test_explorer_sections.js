@@ -213,7 +213,7 @@ w.frappe = {
 				{file_name: 'unsafe.txt', file_url: 'javascript:alert(1)'},
 			], comments: [], versions: []},
 			permissions: {can_write: true, can_create: true},
-			network_summary: {relationship_count: 1, outbound_count: 1, inbound_count: 0},
+			network_summary: {relationship_count: 1, outbound_count: 1, inbound_count: '200+'},
 		}};
 		return {message: {}};
 	},
@@ -223,6 +223,21 @@ w.eval(fs.readFileSync(root + 'siraj_research/public/js/siraj-map/siraj-filters.
 w.eval(fs.readFileSync(root + 'siraj_research/public/js/siraj-profile-fields.js', 'utf8'));
 w.eval(fs.readFileSync(root + 'siraj_research/siraj_research/page/siraj_explorer/siraj_explorer.js', 'utf8'));
 const wait = () => new Promise((resolve) => setTimeout(resolve, 40));
+const waitForSelector = (selector, timeoutMs = 8000) => new Promise((resolve, reject) => {
+	if ($(selector).length) return resolve();
+	const timer = setTimeout(() => {
+		observer.disconnect();
+		reject(new Error(`Timed out waiting for selector: ${selector}`));
+	}, timeoutMs);
+	const observer = new w.MutationObserver(() => {
+		if ($(selector).length) {
+			clearTimeout(timer);
+			observer.disconnect();
+			resolve();
+		}
+	});
+	observer.observe(w.document.body, { childList: true, subtree: true });
+});
 const tab = (label) => $('.sx-panel-tabs button').filter((i, node) => $(node).text().indexOf(label) !== -1).first();
 
 (async () => {
@@ -270,11 +285,13 @@ const tab = (label) => $('.sx-panel-tabs button').filter((i, node) => $(node).te
 
 	// Entity panel: the same conventions apply to the remaining tabs.
 	$('button').filter((i, node) => $(node).text() === 'Geographic map').trigger('click');
-	await new Promise((resolve) => setTimeout(resolve, 3000));
+	await waitForSelector('.sx-record-item');
 	$('.sx-record-item').first().trigger('click');
-	await wait();
+	await waitForSelector('[data-tab-pane]');
 	assert($('[data-tab-pane]').length, 'entity detail panel opened');
 	assert($('[data-tab-pane="overview"]').text().includes('موثّق'), 'entity status translated');
+	assert($('[data-tab-pane="overview"]').text().includes('202+'), 'network summary sums numeric + N+ inbound_count without concatenation');
+	assert(!$('[data-tab-pane="overview"]').text().includes('2200+'), 'network summary never string-concatenates 2 + "200+"');
 	tab('الصلات').trigger('click');
 	await wait();
 	const connections = $('[data-tab-pane="connections"]');

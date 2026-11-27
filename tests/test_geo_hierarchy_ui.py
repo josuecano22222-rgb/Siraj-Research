@@ -92,7 +92,7 @@ def test_field_values_and_apply_to_doc_fill_only_empty_fields(monkeypatch, linke
 
 @pytest.mark.parametrize("doctype, expected", [
     ("institution", ["country", "governorate", "district", "municipality", "village", "community"]),
-    ("research_event", ["country", "governorate", "district", "municipality", "village", "community"]),
+    ("siraj_event", ["country", "governorate", "district", "municipality", "village", "community"]),
     ("operational_deployment", ["country", "governorate", "district", "municipality", "village", "community"]),
 ])
 def test_additive_hierarchy_fields_exist_on_all_geo_doctypes(doctype, expected):
@@ -106,7 +106,7 @@ def test_additive_hierarchy_fields_exist_on_all_geo_doctypes(doctype, expected):
 def test_coordinate_registry_covers_every_geo_doctype():
     from siraj_research.record_icons import COORDINATE_DOCS
 
-    for doctype in ("Person", "Institution", "Place", "Research Event", "Siraj Event",
+    for doctype in ("Person", "Institution", "Place", "Siraj Event",
                     "Military Unit", "Operational Deployment"):
         assert doctype in COORDINATE_DOCS
         assert COORDINATE_DOCS[doctype]["admin_fields"]["community"] == "community"

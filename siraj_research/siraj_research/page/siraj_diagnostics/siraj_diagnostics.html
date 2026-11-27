@@ -224,7 +224,7 @@
     const cfg = window.sirajCoordinateDocs || window.SIRAJ_COORDINATE_DOCS_ACTIVE;
     if(!cfg) return setRes(tr,false,'no coordinate config on window');
     const keys = Object.keys(cfg);
-    const required = ['Person','Institution','Place','Research Event','Military Unit','Operational Deployment'];
+    const required = ['Person','Institution','Place','Siraj Event','Military Unit','Operational Deployment'];
     const missing = required.filter(k => !cfg[k]);
     if(missing.length) return setRes(tr,false,'missing DocTypes: '+missing.join(', '));
     const badField = required.filter(k => cfg[k] && !cfg[k].lat_field);

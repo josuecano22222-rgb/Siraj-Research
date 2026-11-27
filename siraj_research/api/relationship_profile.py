@@ -12,7 +12,6 @@ from frappe.model.meta import get_meta
 
 from siraj_research.profile_presentation import organise_profile
 
-
 # Fieldtypes we render directly (everything structural/break/button is skipped).
 SKIP_FIELDTYPES = {
 	"Section Break", "Column Break", "Tab Break", "HTML", "Button",
@@ -32,7 +31,7 @@ _ENDPOINT_TITLES = {
 	"Person": "display_name",
 	"Institution": "display_name",
 	"Place": "display_name",
-	"Research Event": "display_name",
+	"Siraj Event": "display_name",
 	"Source": "display_name",
 	"Military Unit": "unit_name",
 	"Operational Deployment": "deployment_name",
@@ -54,25 +53,25 @@ def _fmt_value(doc, f):
 		return {"type": "attach", "url": val}
 	if ft == "Link":
 		try:
-			if frappe.has_permission(f.options, "read"):
+			if frappe.has_permission(f.options, "read", doc=val):
 				title_field = frappe.get_meta(f.options).get_title_field() or "name"
 				title = frappe.db.get_value(f.options, val, title_field) or val
-				return {"type": "link", "doctype": f.options, "name": val, "title": title}
+				return {"type": "link", "doctype": f.options, "name": val, "title": title, "restricted": False}
 		except Exception:
 			pass
-		return {"type": "link", "doctype": f.options, "name": val, "title": val}
+		return {"type": "link", "doctype": f.options, "name": None, "title": _("Restricted"), "restricted": True}
 	if ft == "Dynamic Link":
 		target_doctype = doc.get(f.options)
 		if not target_doctype:
 			return val
 		try:
-			if frappe.has_permission(target_doctype, "read"):
+			if frappe.has_permission(target_doctype, "read", doc=val):
 				title_field = frappe.get_meta(target_doctype).get_title_field() or "name"
 				title = frappe.db.get_value(target_doctype, val, title_field) or val
-				return {"type": "link", "doctype": target_doctype, "name": val, "title": title}
+				return {"type": "link", "doctype": target_doctype, "name": val, "title": title, "restricted": False}
 		except Exception:
 			pass
-		return {"type": "link", "doctype": target_doctype, "name": val, "title": val}
+		return {"type": "link", "doctype": target_doctype, "name": None, "title": _("Restricted"), "restricted": True}
 	if ft == "Select":
 		# Preserve the recorded option; profile_presentation marks it as
 		# translatable so the client can show source/translation side by side.
@@ -156,6 +155,8 @@ def get_relationship_profile(name, **kwargs):
 		):
 			# Endpoints are rendered separately in the endpoints tab.
 			continue
+		if (f.permlevel or 0) > 0 and not doc.has_permlevel_access_to(f.fieldname, f, "read"):
+			continue
 		val = _fmt_value(doc, f)
 		if val is None:
 			continue
@@ -169,6 +170,7 @@ def get_relationship_profile(name, **kwargs):
 		sections.append(cur)
 
 	# ---- Child tables (evidence + external identifiers) ----
+	allowed_permlevels = set(doc.get_permlevel_access("read"))
 	children = {}
 	for table_meta in meta.get_table_fields():
 		fn = table_meta.fieldname
@@ -181,6 +183,7 @@ def get_relationship_profile(name, **kwargs):
 			if cf.fieldtype not in SKIP_FIELDTYPES
 			and cf.fieldtype != "Table"
 			and not cf.hidden
+			and ((cf.permlevel or 0) == 0 or (cf.permlevel or 0) in allowed_permlevels)
 		]
 		out_rows = []
 		for row in rows:
@@ -219,11 +222,10 @@ def get_relationship_profile(name, **kwargs):
 	}
 
 	# ---- Permissions ----
-	# frappe.has_permission signature: (doctype, ptype="read", doc=None,
-	# user=None, ...) — pass the doc as a positional arg (entity_profile uses the
-	# same shape; v15 does NOT accept a `name=` kwarg).
+	# frappe.has_permission signature: (doctype=None, ptype="read", doc=None,
+	# user=None, ...) — pass explicit `doc=` keyword (v15 does NOT accept `name=`).
 	permissions = {
-		"can_write": bool(frappe.has_permission("Relationship", "write", doc)),
+		"can_write": bool(frappe.has_permission("Relationship", "write", doc=doc)),
 		"can_create": bool(frappe.has_permission("Relationship", "create")),
 	}
 

@@ -29,9 +29,9 @@ def test_spec_volumes_match_content():
     assert len(C.PLACES) == C.SPEC["places"] == 12
     assert len(C.SOURCES) == C.SPEC["sources"] == 10
     assert len(C.UNITS) == C.SPEC["military_units"] == 6
-    assert len(C.RESEARCH_EVENTS) == C.SPEC["research_events"]
+    assert len(C.SIRAJ_EVENT_DATE_PRECISION) == C.SPEC["siraj_event_date_precision"]
     assert len(C.SIRAJ_EVENTS) == C.SPEC["siraj_events"]
-    assert (len(C.RESEARCH_EVENTS) + len(C.SIRAJ_EVENTS)
+    assert (len(C.SIRAJ_EVENT_DATE_PRECISION) + len(C.SIRAJ_EVENTS)
             == C.SPEC["events_total"] == 15)
 
 
@@ -65,7 +65,7 @@ def test_content_is_fictional():
         haystack += [row["en"], row["ar"]]
     for row in C.INSTITUTIONS:
         haystack += [row["en"], row["ar"]]
-    for row in C.RESEARCH_EVENTS:
+    for row in C.SIRAJ_EVENT_DATE_PRECISION:
         haystack += [row["en"], row["ar"]]
     for row in C.SIRAJ_EVENTS:
         haystack += [row["title"]]
@@ -91,9 +91,9 @@ def test_edge_cases_present():
     ocean = places["pl07"]
     assert (ocean["lat"], ocean["lng"]) == C.OCEAN_STATION == (31.6, 33.8)
     # uncertain dates: approximate + decade + a person with `uncertain`
-    precisions = {e["sprec"] for e in C.RESEARCH_EVENTS}
+    precisions = {e["sprec"] for e in C.SIRAJ_EVENT_DATE_PRECISION}
     assert {"approximate", "decade"} <= precisions
-    assert any(e["sas"] == "circa 1947" for e in C.RESEARCH_EVENTS)
+    assert any(e["sas"] == "circa 1947" for e in C.SIRAJ_EVENT_DATE_PRECISION)
     assert any(p["bprec"] == "uncertain" for p in C.PERSONS)
 
 
@@ -124,7 +124,7 @@ def test_relationship_endpoints_resolve():
              "I": {i["key"] for i in C.INSTITUTIONS},
              "Pl": {p["key"] for p in C.PLACES},
              "U": {u["key"] for u in C.UNITS},
-             "E": {e["key"] for e in C.RESEARCH_EVENTS},
+             "E": {e["key"] for e in C.SIRAJ_EVENT_DATE_PRECISION},
              "S": {e["key"] for e in C.SIRAJ_EVENTS},
              "Src": {s["key"] for s in C.SOURCES}}
     for rel in C.RELATIONSHIPS:

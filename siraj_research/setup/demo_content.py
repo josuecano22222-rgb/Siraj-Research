@@ -30,7 +30,7 @@ SPEC = {
     "places": 12,
     "sources": 10,
     "military_units": 6,
-    "research_events": 9,
+    "siraj_event_date_precision": 9,
     "siraj_events": 6,
     "events_total": 15,
     "unit_levels": 3,
@@ -416,10 +416,10 @@ UNITS = [
 ]
 
 # --------------------------------------------------------------------------
-# Research Events (9) — date-precision showcase: day/year + the two
+# Siraj Events — archival batch (9) — date-precision showcase: day/year + the two
 # uncertain-date edges (e05 approximate "circa", e06 decade "1960s").
 # --------------------------------------------------------------------------
-RESEARCH_EVENTS = [
+SIRAJ_EVENT_DATE_PRECISION = [
     dict(key="e01", en="Founding of the University of the Western Provinces",
          ar="تأسیس جامعة المحافظات الغربية", etype="founding",
          start=dt.datetime(1962, 3, 15), sas="15 March 1962",
@@ -507,7 +507,7 @@ SIRAJ_EVENTS = [
 
 # --------------------------------------------------------------------------
 # Relationships (24) — every confidence code exercised; endpoint kinds:
-# P=Person I=Institution Pl=Place E=Research Event S=Siraj Event
+# P=Person I=Institution Pl=Place E=Siraj Event (archival) S=Siraj Event
 # U=Military Unit Src=Source. subject/object are "kind:key" references.
 # --------------------------------------------------------------------------
 RELATIONSHIPS = [

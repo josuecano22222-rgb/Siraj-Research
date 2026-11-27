@@ -14,6 +14,11 @@ class Person(Document):
 	def before_validate(self):
 		set_display_name(self, "name_en", "name_ar")
 
+	def before_delete(self):
+		from siraj_research.utils.relationship_delete import block_delete_if_referenced
+
+		block_delete_if_referenced(self.doctype, self.name)
+
 	def validate(self):
 		self.validate_military()
 		self.validate_service_status()
@@ -161,10 +166,13 @@ class Person(Document):
 					title=_("Family data"),
 				)
 			if not row.sibling_name and row.person:
-				# Convenience only: fill the visible name from the linked Person.
-				row.sibling_name = frappe.db.get_value(
-					"Person", row.person, "display_name"
-				) or frappe.db.get_value("Person", row.person, "name_en") or row.person
+				# Convenience only: fill the visible name from the linked Person when readable.
+				if frappe.has_permission("Person", "read", doc=row.person):
+					row.sibling_name = (
+						frappe.db.get_value("Person", row.person, "display_name")
+						or frappe.db.get_value("Person", row.person, "name_en")
+						or row.person
+					)
 
 		# Derived, recomputed on every save so every surface agrees.
 		self.is_grandparent = derive_is_grandparent(

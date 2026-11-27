@@ -39,7 +39,7 @@ region's data ([map-search.md](../map-search.md)).
   coarser levels win ties. Text never fabricates coordinates — a
   swapped order returns an error with a *Use …* suggestion.
 - **Scope select:** Everything / Regions / Places / Records; **type
-  select** filters records (Person, Institution, Place, Research Event,
+  select** filters records (Person, Institution, Place, Siraj Event,
   Military Unit, Operational Deployment); **levels** filter regions.
 
 ## 10.3 Worked example

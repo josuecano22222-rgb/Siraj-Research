@@ -4,15 +4,65 @@ Records, decisions and journals can contain sensitive values and identifiers.
 This is a rehearsal, not a migration executor or proof of physical rollback.
 """
 
+from __future__ import annotations
+
 import copy
+import json
 from collections import Counter
 
-from siraj_research.setup.event_snapshot_projection import _index, _same
-from siraj_research.setup.event_transition_plan import PlanError
 from siraj_research.utils.coordinates import parse_coordinate
 
-TYPES = ("Person", "Institution", "Place", "Research Event", "Military Unit", "Operational Deployment")
+TYPES = ("Person", "Institution", "Place", "Siraj Event", "Military Unit", "Operational Deployment")
 MAX_LENGTH = 140
+
+
+class PlanError(ValueError):
+	"""An incomplete, ambiguous or conflicting candidate must not be planned."""
+
+
+def _validate_value(value):
+	if value is None or isinstance(value, str | bool | int):
+		return
+	if isinstance(value, float):
+		json.dumps(value, allow_nan=False)
+		return
+	if isinstance(value, list):
+		for item in value:
+			_validate_value(item)
+		return
+	if isinstance(value, dict) and all(isinstance(key, str) for key in value):
+		for item in value.values():
+			_validate_value(item)
+		return
+	raise ValueError("Snapshot contains a non-JSON value")
+
+
+def _same(a, b):
+	return json.dumps(
+		a, sort_keys=True, ensure_ascii=True, allow_nan=False, separators=(",", ":")
+	) == json.dumps(b, sort_keys=True, ensure_ascii=True, allow_nan=False, separators=(",", ":"))
+
+
+def _index(rows):
+	if not isinstance(rows, list):
+		raise PlanError("Snapshot must be a list")
+	result = {}
+	for row in rows:
+		if not isinstance(row, dict) or set(row) != {"doctype", "name", "values"}:
+			raise PlanError("Invalid snapshot row")
+		if not all(
+			isinstance(row[k], str) and row[k] and row[k] == row[k].strip() for k in ("doctype", "name")
+		) or not isinstance(row["values"], dict):
+			raise PlanError("Invalid snapshot identity or values")
+		try:
+			_validate_value(row["values"])
+		except (ValueError, RecursionError):
+			raise PlanError("Unsupported snapshot value") from None
+		key = (row["doctype"], row["name"])
+		if key in result:
+			raise PlanError("Duplicate snapshot identity")
+		result[key] = copy.deepcopy(row)
+	return result
 
 
 def _parse(value):
