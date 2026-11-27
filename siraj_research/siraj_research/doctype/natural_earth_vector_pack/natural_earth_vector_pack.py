@@ -52,6 +52,8 @@ def get_catalog_layers(scale: str | None = None) -> list:
 @frappe.whitelist()
 def refresh_status(docname: str | None = None) -> dict:
     """Re-read the pack manifest and refresh the doc's statistics."""
+    if not frappe.has_permission("Natural Earth Vector Pack", "write"):
+        frappe.throw("Administrator role required", frappe.PermissionError)
     doc = frappe.get_doc("Natural Earth Vector Pack", docname) if docname \
         else frappe.get_doc("Natural Earth Vector Pack", frappe.form_dict.name)
     stats = nev.pack_stats()
@@ -82,11 +84,11 @@ def run_provision(docname: str | None = None) -> dict:
     from a background job (the admin UI wraps it in ``enqueue`` when the
     ``run_in_background`` flag is set).
     """
-    doc = frappe.get_doc("Natural Earth Vector Pack", docname) if docname \
-        else frappe.get_doc("Natural Earth Vector Pack", frappe.form_dict.name)
-
     if not frappe.has_permission("Natural Earth Vector Pack", "write"):
         frappe.throw("Administrator role required", frappe.PermissionError)
+
+    doc = frappe.get_doc("Natural Earth Vector Pack", docname) if docname \
+        else frappe.get_doc("Natural Earth Vector Pack", frappe.form_dict.name)
 
     scales = _scales_from_doc(doc)
     if not scales:

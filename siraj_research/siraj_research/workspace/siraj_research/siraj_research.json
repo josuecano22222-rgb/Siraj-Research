@@ -595,6 +595,16 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Natural Earth Vector Pack",
+   "link_count": 0,
+   "onboard": 1,
+   "type": "Link",
+   "link_to": "Natural Earth Vector Pack",
+   "link_type": "DocType"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Gazetteer Place",
    "link_count": 0,
    "onboard": 0,
