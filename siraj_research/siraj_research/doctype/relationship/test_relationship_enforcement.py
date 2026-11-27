@@ -354,8 +354,7 @@ class TestRelationshipEnforcement(FrappeTestCase):
                             "Relationship",
                             {"object_type": doctype, "object": endpoint.name},
                         ),
-                        "relationship still references %s (rel_subject=%r, rel_object=%r)"
-                        % (doctype, rel_subject_name, rel_object_name),
+                        f"relationship still references {doctype} (rel_subject={rel_subject_name!r}, rel_object={rel_object_name!r})",
                     )
 
                     # force=True skips Frappe's check_if_doc_is_dynamically_linked
@@ -399,11 +398,11 @@ class TestRelationshipEnforcement(FrappeTestCase):
                     person = self._make_endpoint("Person", f"PR Guard {side} Person {doctype}")
                     try:
                         if side == "subject":
-                            rel = self._make_relationship(
+                            self._make_relationship(
                                 rt.name, doctype, endpoint.name, "Person", person.name
                             ).insert(ignore_permissions=True)
                         else:
-                            rel = self._make_relationship(
+                            self._make_relationship(
                                 rt.name, "Person", person.name, doctype, endpoint.name
                             ).insert(ignore_permissions=True)
                         with self.assertRaises(frappe.ValidationError) as ctx:

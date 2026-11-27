@@ -1,6 +1,8 @@
 # Copyright (c) 2026, SIRAJ and contributors
 # For license information, please see license.txt
 
+from typing import ClassVar
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
@@ -19,7 +21,7 @@ class TestRelationship(FrappeTestCase):
 	# Title fields read from each endpoint DocType's JSON (authoritative).
 	# Person/Institution/Place -> name_en/name_ar; Siraj Event -> title_en/title_ar;
 	# Military Unit -> unit_name only (there is NO unit_name_ar field).
-	ENDPOINT_TITLE_FIELDS = {
+	ENDPOINT_TITLE_FIELDS: ClassVar[dict] = {
 		"Person": ("name_en", "name_ar"),
 		"Institution": ("name_en", "name_ar"),
 		"Place": ("name_en", "name_ar"),
@@ -28,13 +30,13 @@ class TestRelationship(FrappeTestCase):
 	}
 	# (vocab DocType, endpoint Link field, vocab code) for endpoints that require a
 	# type link. Institution/Place also require name_ar; Siraj Event does not.
-	ENDPOINT_VOCAB = {
+	ENDPOINT_VOCAB: ClassVar[dict] = {
 		"Institution": ("Institution Type", "institution_type", "PR_INST_TYPE"),
 		"Place": ("Place Type", "place_type", "PR_PLACE_TYPE"),
 		"Siraj Event": ("Event Type", "event_type", "PR_EVENT_TYPE"),
 	}
 	# Remaining required Select/Int fields for Military Unit (read from its JSON).
-	ENDPOINT_REQUIRED_FIELDS = {
+	ENDPOINT_REQUIRED_FIELDS: ClassVar[dict] = {
 		"Military Unit": {"echelon": "Brigade", "status": "Active", "direct_personnel": 100},
 	}
 
@@ -299,7 +301,7 @@ class TestRelationship(FrappeTestCase):
 					"Relationship",
 					{"object_type": "Person", "object": person.name},
 				),
-				"relationship still references Person (rel.name=%r)" % (rel_name,),
+				f"relationship still references Person (rel.name={rel_name!r})",
 			)
 			self.assertFalse(
 				frappe.db.exists(
@@ -310,7 +312,7 @@ class TestRelationship(FrappeTestCase):
 					"Relationship",
 					{"object_type": "Institution", "object": institution.name},
 				),
-				"relationship still references Institution (rel.name=%r)" % (rel_name,),
+				f"relationship still references Institution (rel.name={rel_name!r})",
 			)
 			# force=True skips Frappe's check_if_doc_is_dynamically_linked but
 			# still runs our on_trash guard; with no Relationship referencing the
