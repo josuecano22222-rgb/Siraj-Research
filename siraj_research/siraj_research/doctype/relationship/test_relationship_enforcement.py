@@ -306,6 +306,11 @@ class TestRelationshipEnforcement(FrappeTestCase):
                         frappe.delete_doc(doctype, endpoint.name, ignore_permissions=True)
                     frappe.delete_doc("Relationship", rel_object.name, force=True, ignore_permissions=True)
 
+                    # subject/object are Dynamic Link fields: Frappe caches the
+                    # link reference, so clear the DB cache before the post-removal
+                    # delete so check_if_doc_is_dynamically_linked re-queries.
+                    frappe.db.clear_cache()
+
                     # After removing the relationships, the delete succeeds.
                     frappe.delete_doc(doctype, endpoint.name, ignore_permissions=True)
                     self.assertFalse(frappe.db.exists(doctype, endpoint.name))
