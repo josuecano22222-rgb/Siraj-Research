@@ -280,7 +280,12 @@ class TestRelationshipEnforcement(FrappeTestCase):
 
     def test_endpoint_delete_blocked_all_doctypes_both_sides(self):
         """Deleting an endpoint referenced by a Relationship is blocked on both
-        the subject and object side, for every endpoint DocType."""
+        the subject and object side, for every endpoint DocType.
+
+        Each subtest creates its own endpoint + Person, and the Relationship
+        rows it creates are deleted by their captured names, so cleanup removes
+        only what this test inserted.
+        """
         for doctype in ALL_ENDPOINTS:
             with self.subTest(doctype=doctype):
                 rt = self._make_type(
@@ -294,25 +299,47 @@ class TestRelationshipEnforcement(FrappeTestCase):
                     rel_subject = self._make_relationship(
                         rt.name, doctype, endpoint.name, "Person", person.name
                     ).insert(ignore_permissions=True)
+                    rel_subject_name = rel_subject.name
+                    self.assertTrue(
+                        rel_subject_name,
+                        "rel_subject.name not set after insert: %r" % (rel_subject_name,),
+                    )
+                    self.assertTrue(
+                        frappe.db.exists("Relationship", rel_subject_name),
+                        "rel_subject row %r not found after insert" % (rel_subject_name,),
+                    )
                     with self.assertRaises(frappe.ValidationError):
                         frappe.delete_doc(doctype, endpoint.name, ignore_permissions=True)
-                    # Remove the Relationship rows by endpoint reference (subject/object
-                    # match) rather than by name: the named delete left the referencing
-                    # row in place, so delete by the references directly.
-                    frappe.db.delete(
-                        "Relationship",
-                        {"subject_type": doctype, "subject": endpoint.name},
-                    )
 
                     # Object side: endpoint is the object.
                     rel_object = self._make_relationship(
                         rt.name, "Person", person.name, doctype, endpoint.name
                     ).insert(ignore_permissions=True)
+                    rel_object_name = rel_object.name
+                    self.assertTrue(
+                        rel_object_name,
+                        "rel_object.name not set after insert: %r" % (rel_object_name,),
+                    )
+                    self.assertTrue(
+                        frappe.db.exists("Relationship", rel_object_name),
+                        "rel_object row %r not found after insert" % (rel_object_name,),
+                    )
                     with self.assertRaises(frappe.ValidationError):
                         frappe.delete_doc(doctype, endpoint.name, ignore_permissions=True)
-                    frappe.db.delete(
-                        "Relationship",
-                        {"object_type": doctype, "object": endpoint.name},
+
+                    # Remove the specific Relationship rows created by this test,
+                    # by their captured names (not by endpoint reference).
+                    frappe.db.delete("Relationship", {"name": rel_subject_name})
+                    frappe.db.delete("Relationship", {"name": rel_object_name})
+
+                    # The Relationship rows themselves are gone after removal.
+                    self.assertFalse(
+                        frappe.db.exists("Relationship", rel_subject_name),
+                        "rel_subject row %r still exists after removal" % (rel_subject_name,),
+                    )
+                    self.assertFalse(
+                        frappe.db.exists("Relationship", rel_object_name),
+                        "rel_object row %r still exists after removal" % (rel_object_name,),
                     )
 
                     # No Relationship should reference the endpoint anymore.
@@ -325,13 +352,11 @@ class TestRelationshipEnforcement(FrappeTestCase):
                             "Relationship",
                             {"object_type": doctype, "object": endpoint.name},
                         ),
-                        "relationship still references %s (rel_subject.name=%r, rel_object.name=%r)"
-                        % (doctype, rel_subject.name, rel_object.name),
+                        "relationship still references %s" % doctype,
                     )
 
                     # force=True skips Frappe's check_if_doc_is_dynamically_linked
-                    # (a stale link reference for Dynamic Link fields) but still
-                    # runs our before_delete guard; with no Relationship
+                    # but still runs our before_delete guard; with no Relationship
                     # referencing the endpoint, the guard passes and the delete
                     # succeeds.
                     frappe.delete_doc(doctype, endpoint.name, force=True, ignore_permissions=True)
@@ -340,6 +365,56 @@ class TestRelationshipEnforcement(FrappeTestCase):
                     self._cleanup(endpoint, person)
                     raise
                 self._cleanup(person)
+
+    # ------------------------------------------------------------------
+    # §8 our before_delete guard blocks even with force=True
+    # ------------------------------------------------------------------
+
+    # Substring of block_delete_if_referenced's ValidationError message.
+    GUARD_MESSAGE_FRAGMENT = "it is referenced by a Relationship"
+
+    def test_before_delete_guard_blocks_force_delete(self):
+        """Our before_delete guard (block_delete_if_referenced) blocks the
+        delete even with force=True.
+
+        force=True skips Frappe's built-in check_if_doc_is_dynamically_linked
+        (the only other thing that could raise a ValidationError on delete),
+        so the only thing that can raise here is our before_delete guard.
+        Asserting the exception message matches block_delete_if_referenced
+        proves OUR guard -- not Frappe's dynamic-link check -- blocks the delete.
+
+        Run for all five endpoint DocTypes on both the subject and object side.
+        """
+        for doctype in ALL_ENDPOINTS:
+            for side in ("subject", "object"):
+                with self.subTest(doctype=doctype, side=side):
+                    rt = self._make_type(
+                        f"PR_GUARD_{side.upper()}",
+                        pairs=[(doctype, "Person"), ("Person", doctype)],
+                    )
+                    endpoint = self._make_endpoint(doctype, f"PR Guard {side} {doctype}")
+                    person = self._make_endpoint("Person", f"PR Guard {side} Person {doctype}")
+                    try:
+                        if side == "subject":
+                            rel = self._make_relationship(
+                                rt.name, doctype, endpoint.name, "Person", person.name
+                            ).insert(ignore_permissions=True)
+                        else:
+                            rel = self._make_relationship(
+                                rt.name, "Person", person.name, doctype, endpoint.name
+                            ).insert(ignore_permissions=True)
+                        with self.assertRaises(frappe.ValidationError) as ctx:
+                            frappe.delete_doc(
+                                doctype, endpoint.name, force=True, ignore_permissions=True
+                            )
+                        self.assertIn(
+                            GUARD_MESSAGE_FRAGMENT, str(ctx.exception),
+                            "block exception did not come from block_delete_if_referenced",
+                        )
+                    except Exception:
+                        self._cleanup(endpoint, person)
+                        raise
+                    self._cleanup(endpoint, person)
 
     # ------------------------------------------------------------------
     # Migration-window tolerance: a type with NO pairs skips enforcement
