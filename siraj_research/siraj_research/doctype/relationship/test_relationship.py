@@ -97,7 +97,7 @@ class TestRelationship(FrappeTestCase):
 					"is_hierarchical": 1 if hierarchical else 0,
 				}
 			).insert(ignore_permissions=True)
-		doc.delete_all("Relationship Type Allowed Pair")
+		doc.set("allowed_pairs", [])  # clear any existing child rows before re-seeding
 		for idx, (subject_doctype, object_doctype) in enumerate(pairs or [], start=1):
 			doc.append(
 				"allowed_pairs",
