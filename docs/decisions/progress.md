@@ -48,6 +48,23 @@ Every item carries an honest verification tag:
 
 ---
 
+## 1b. Phase R Build Status (`docs/decisions/relationship-consolidation.md` §10)
+
+| Step | Item | Commit | Status | Verification | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **0** | test-fixture fix + CI wiring + live enforcement tests + tolerance decision | *(this commit)* | Done | `verified: live bench` *(Server JOB dispatch pending)* | Fixed `_make_endpoint` in `test_relationship.py` to set the real title fields + all required fields for all five endpoint DocTypes (read from each JSON; Military Unit has **no** `unit_name_ar`; Institution/Place need `name_ar` + type link; Siraj Event needs `event_type`; Military Unit needs `echelon`/`status`/`direct_personnel`). **Test-fixture fix — no assertion weakened.** Added `test_relationship` + new `test_relationship_enforcement` module to `server.yml`. New live tests (each seeds its own type + pair): invalid pair rejected; directed duplicate; symmetric duplicate both orientations; self-update accepted; self-link rejected once pairs exist; cross-group rejected on subject **and** object (HD-4, controller-layer via `validate_same_data_group_links`); endpoint delete blocked for all five DocTypes on both sides; no-pairs tolerance documented by `test_no_pairs_type_skips_enforcement` (**decision: keep tolerance**, proven by test; step 3 seeds pairs for every type). |
+| **1** | pair/duplicate/HD-4/delete-block tests | `67cf993` | Done | `verified: live bench` | Pair-enforcement, duplicate, HD-4 both-endpoints (`test_21`) and endpoint delete-block tests landed; merged in PR #10. |
+| **2** | schema + pair table + controller | `0b63a1a`, `eb1dafd` | Done | `verified: live bench` | `Relationship Type Allowed Pair` child table + `Relationship` controller (`validate_allowed_pair`, `validate_duplicate`); missing child-table controller fixed in `eb1dafd`; all 7 CI gates green. Merged in PR #10 (`b05aecb`). |
+| **3** | seed the 14 ordered pairs + pairs for every seeded type | pending | Todo | — | Seed §3.3's 14 ordered pairs + pairs for every other `Relationship Type` seeded in `master_data.py`/`test_data.py`/`_isolation_fixtures.py`; symmetric types swap-closed; idempotent on an existing site. |
+| **4** | convert 36 `ASSOCIATIONS` rows → `Relationship` rows | pending | Todo | — | `ASSOCIATION_TYPE` map preserving role/provenance/workflow state/`data_group`; `Relationship` count 24 → 60; update `test_demo_data.py` + `test_demo_data_structure.py` per §12. |
+| **5** | remove 14 names from `SCOPED_DOCTYPES` | pending | Todo | — | `hooks.py` + `data_group_scope.js` mirror; keep `Person Position`; parity test + isolation suite + whitelist/permission review; `Relationship` stays scoped. |
+| **6** | workspace shortcuts + `ar.csv` | pending | Todo | — | Remove 14 workspace shortcuts + `ar.csv` entries (keep `Person Position`, add `Relationship Type Allowed Pair`); **LF line endings**; run `test_translations` + workspace test. |
+| **7** | `fix_doctype_cleanup.py` tolerance | pending | Todo | — | Guard loops with `frappe.db.exists("DocType", name)` + `continue` when absent; clean no-op on a site where the 14 are gone. |
+| **8** | strict-guard deletion patch (DESTRUCTIVE) | pending | **Gated** | — | `[post_model_sync]` patch iterating the 14 names: absent → `continue`; rows present → raise with exact `frappe.db.delete` command; then `delete_doc(force=True)`; then `DROP TABLE` only if still exists. **Requires explicit user approval before starting.** Run `bench --site frappe.com siraj-research remove-demo-data` BEFORE pulling. |
+| **9** | indexes via `on_doctype_update` | pending | Todo | — | `frappe.db.add_index` for `(subject_type, subject)`, `(object_type, object)`, `(data_group)`, `(relationship_type)`; idempotent; verify with `SHOW INDEX`; record Invariant 3 exception; **no unique DB index**. |
+
+---
+
 ## 2. Scoped Gate 3 Grep Commands & Current Counts
 
 Per Gate 0 item B, `linked_place` stays on `Military Unit`, `Admin Boundary`, `Gazetteer Place`, and the generic `linked_place_field` config key, and is dropped **only on `Siraj Event`**.

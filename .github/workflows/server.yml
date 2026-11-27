@@ -136,7 +136,9 @@ jobs:
             test_map_search_api \
             test_person_family \
             siraj_research.siraj_research.doctype.shared_record.test_shared_record \
-            siraj_research.siraj_research.doctype.siraj_event.test_siraj_event
+            siraj_research.siraj_research.doctype.siraj_event.test_siraj_event \
+            siraj_research.siraj_research.doctype.relationship.test_relationship \
+            siraj_research.siraj_research.doctype.relationship.test_relationship_enforcement
           do
             if [[ "$module" == siraj_research.* ]]; then
               target_module="$module"

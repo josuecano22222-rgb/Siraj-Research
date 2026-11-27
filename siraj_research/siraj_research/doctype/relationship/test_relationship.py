@@ -16,17 +16,70 @@ class TestRelationship(FrappeTestCase):
 	# Pair enforcement (docs/decisions/relationship-consolidation.md §3.2)
 	# ------------------------------------------------------------------
 
+	# Title fields read from each endpoint DocType's JSON (authoritative).
+	# Person/Institution/Place -> name_en/name_ar; Siraj Event -> title_en/title_ar;
+	# Military Unit -> unit_name only (there is NO unit_name_ar field).
+	ENDPOINT_TITLE_FIELDS = {
+		"Person": ("name_en", "name_ar"),
+		"Institution": ("name_en", "name_ar"),
+		"Place": ("name_en", "name_ar"),
+		"Siraj Event": ("title_en", "title_ar"),
+		"Military Unit": ("unit_name", None),
+	}
+	# (vocab DocType, endpoint Link field, vocab code) for endpoints that require a
+	# type link. Institution/Place also require name_ar; Siraj Event does not.
+	ENDPOINT_VOCAB = {
+		"Institution": ("Institution Type", "institution_type", "PR_INST_TYPE"),
+		"Place": ("Place Type", "place_type", "PR_PLACE_TYPE"),
+		"Siraj Event": ("Event Type", "event_type", "PR_EVENT_TYPE"),
+	}
+	# Remaining required Select/Int fields for Military Unit (read from its JSON).
+	ENDPOINT_REQUIRED_FIELDS = {
+		"Military Unit": {"echelon": "Brigade", "status": "Active", "direct_personnel": 100},
+	}
+
+	@staticmethod
+	def _ensure_data_group(name):
+		if not frappe.db.exists("Data Group", name):
+			frappe.get_doc({"doctype": "Data Group", "group_name": name}).insert(
+				ignore_permissions=True
+			)
+
+	@staticmethod
+	def _ensure_vocab(doctype, code):
+		label = f"PR Fix {code}"
+		if frappe.db.exists(doctype, label):
+			return label
+		frappe.get_doc(
+			{
+				"doctype": doctype,
+				"label_en": label,
+				"label_ar": f"اختبار {code}",
+				"code": code,
+			}
+		).insert(ignore_permissions=True)
+		return label
+
 	def _make_endpoint(self, doctype, name, data_group="GD"):
-		"""Create a minimal endpoint record so a Relationship can link to it."""
-		field = {
-			"Person": ("name_en", "name_ar"),
-			"Institution": ("name_en", "name_ar"),
-			"Place": ("name_en", "name_ar"),
-			"Siraj Event": ("title_en", "title_ar"),
-			"Military Unit": ("unit_name", "unit_name_ar"),
-		}.get(doctype, ("name_en", "name_ar"))
-		doc = frappe.get_doc({"doctype": doctype, field[0]: name, "data_group": data_group})
-		return doc.insert(ignore_permissions=True)
+		"""Create a minimal endpoint record so a Relationship can link to it.
+
+		Sets the DocType's real title fields (from its JSON) plus every other
+		required field, so the insert succeeds for all five endpoint DocTypes
+		without weakening any assertion. This is a test-fixture fix: the previous
+		helper referenced a nonexistent ``unit_name_ar`` field and omitted the
+		required type links / Select fields for Institution, Place, Siraj Event and
+		Military Unit, which would have failed the first time these tests ran on CI.
+		"""
+		self._ensure_data_group(data_group)
+		title_en, title_ar = self.ENDPOINT_TITLE_FIELDS.get(doctype, ("name_en", "name_ar"))
+		payload = {"doctype": doctype, "data_group": data_group, title_en: name}
+		if title_ar:
+			payload[title_ar] = name
+		vocab_doctype, vocab_field, vocab_code = self.ENDPOINT_VOCAB.get(doctype, (None, None, None))
+		if vocab_doctype:
+			payload[vocab_field] = self._ensure_vocab(vocab_doctype, vocab_code)
+		payload.update(self.ENDPOINT_REQUIRED_FIELDS.get(doctype, {}))
+		return frappe.get_doc(payload).insert(ignore_permissions=True)
 
 	def _make_type(self, code, *, symmetric=False, pairs=None, hierarchical=False):
 		"""Create (or fetch) a Relationship Type with allowed-pair child rows."""
