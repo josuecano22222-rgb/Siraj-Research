@@ -126,6 +126,17 @@ class TestRelationshipEnforcement(FrappeTestCase):
             if doc is None:
                 continue
             if frappe.db.exists(doc.doctype, doc.name):
+                # Remove Relationship rows referencing this doc first, so the
+                # on_trash delete-block guard does not block the endpoint delete.
+                # Deletes only rows matching this doc's name (rows this test
+                # created), by endpoint reference.
+                for subject_field, object_field in (
+                    ("subject_type", "subject"), ("object_type", "object")
+                ):
+                    frappe.db.delete(
+                        "Relationship",
+                        {subject_field: doc.doctype, object_field: doc.name},
+                    )
                 try:
                     frappe.delete_doc(doc.doctype, doc.name, force=True, ignore_permissions=True)
                 except frappe.ValidationError:

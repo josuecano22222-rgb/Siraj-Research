@@ -134,6 +134,23 @@ class TestRelationship(FrappeTestCase):
 		payload.update(kw)
 		return frappe.get_doc(payload)
 
+	@staticmethod
+	def _delete_relationships_for(*docs):
+		"""Remove Relationship rows referencing any of these docs so the
+		on_trash delete-block guard does not block endpoint cleanup.
+
+		Deletes only rows matching these docs' names (the rows this test
+		created), by endpoint reference.
+		"""
+		for doc in docs:
+			if doc is None:
+				continue
+			for subject_field, object_field in (("subject_type", "subject"), ("object_type", "object")):
+				frappe.db.delete(
+					"Relationship",
+					{subject_field: doc.doctype, object_field: doc.name},
+				)
+
 	def test_invalid_pair_rejected(self):
 		"""A Relationship whose (subject, object) pair is not allowed must be rejected."""
 		rt = self._make_type("PAIR_INVALID", pairs=[("Person", "Institution")])
@@ -151,6 +168,7 @@ class TestRelationship(FrappeTestCase):
 			).insert(ignore_permissions=True)
 			self.assertEqual(ok.subject, person.name)
 		finally:
+			self._delete_relationships_for(person, institution, place)
 			for doc in (person, institution, place):
 				if frappe.db.exists(doc.doctype, doc.name):
 					frappe.delete_doc(doc.doctype, doc.name, force=True, ignore_permissions=True)
@@ -177,6 +195,7 @@ class TestRelationship(FrappeTestCase):
 				reverse.insert(ignore_permissions=True)
 			self.assertTrue(first.name)
 		finally:
+			self._delete_relationships_for(person, institution)
 			for doc in (person, institution):
 				if frappe.db.exists(doc.doctype, doc.name):
 					frappe.delete_doc(doc.doctype, doc.name, force=True, ignore_permissions=True)
@@ -203,6 +222,7 @@ class TestRelationship(FrappeTestCase):
 			k2 = duplicate_key(rt.name, "Institution", institution.name, "Person", person.name, symmetric=True)
 			self.assertEqual(k1, k2)
 		finally:
+			self._delete_relationships_for(person, institution)
 			for doc in (person, institution):
 				if frappe.db.exists(doc.doctype, doc.name):
 					frappe.delete_doc(doc.doctype, doc.name, force=True, ignore_permissions=True)
@@ -217,6 +237,7 @@ class TestRelationship(FrappeTestCase):
 					rt.name, "Person", person.name, "Person", person.name
 				).insert(ignore_permissions=True)
 		finally:
+			self._delete_relationships_for(person)
 			if frappe.db.exists("Person", person.name):
 				frappe.delete_doc("Person", person.name, force=True, ignore_permissions=True)
 
@@ -297,6 +318,7 @@ class TestRelationship(FrappeTestCase):
 			frappe.delete_doc("Person", person.name, force=True, ignore_permissions=True)
 			frappe.delete_doc("Institution", institution.name, force=True, ignore_permissions=True)
 		finally:
+			self._delete_relationships_for(person, institution)
 			for doctype, name in (("Person", person.name), ("Institution", institution.name)):
 				if frappe.db.exists(doctype, name):
 					frappe.delete_doc(doctype, name, force=True, ignore_permissions=True)
