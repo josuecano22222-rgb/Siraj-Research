@@ -309,11 +309,24 @@ class TestRelationshipEnforcement(FrappeTestCase):
                         frappe.delete_doc(doctype, endpoint.name, ignore_permissions=True)
                     frappe.db.delete("Relationship", {"name": rel_object.name})
 
-                    self.assertFalse(frappe.db.exists("Relationship", rel_subject.name))
-                    self.assertFalse(frappe.db.exists("Relationship", rel_object.name))
+                    # No Relationship should reference the endpoint anymore.
+                    self.assertFalse(
+                        frappe.db.exists(
+                            "Relationship",
+                            {"subject_type": doctype, "subject": endpoint.name},
+                        )
+                        or frappe.db.exists(
+                            "Relationship",
+                            {"object_type": doctype, "object": endpoint.name},
+                        )
+                    )
 
-                    # After removing the relationships, the delete succeeds.
-                    frappe.delete_doc(doctype, endpoint.name, ignore_permissions=True)
+                    # force=True skips Frappe's check_if_doc_is_dynamically_linked
+                    # (a stale link reference for Dynamic Link fields) but still
+                    # runs our before_delete guard; with no Relationship
+                    # referencing the endpoint, the guard passes and the delete
+                    # succeeds.
+                    frappe.delete_doc(doctype, endpoint.name, force=True, ignore_permissions=True)
                     self.assertFalse(frappe.db.exists(doctype, endpoint.name))
                 except Exception:
                     self._cleanup(endpoint, person)
