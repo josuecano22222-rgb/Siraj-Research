@@ -23,6 +23,7 @@ input {width:8rem} button,select,input {font:inherit;padding:.25rem} #map {flex:
 <label for="lat" id="latLabel">Latitude</label><input id="lat" inputmode="decimal" autocomplete="off">
 <label for="lon" id="lonLabel">Longitude</label><input id="lon" inputmode="decimal" autocomplete="off">
 <button id="go" type="button">Go</button><button id="fit" type="button">Fit area</button>
+<label for="basemap" id="basemapLabel">Basemap</label><select id="basemap"><option value="raster">Raster</option><option value="vector">Natural Earth Vector</option></select>
 <span class="hint" id="hint">Basemap imagery only; no SIRAJ records. Click the map to select or measure.</span>
 </header>
 <div id="map" role="region" aria-label="Offline map"></div>

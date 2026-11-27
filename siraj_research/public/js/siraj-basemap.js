@@ -6,6 +6,8 @@
  *   - satellite: Esri World Imagery
  *   - hybrid: Esri World Imagery + Esri World Reference Overlay (labels/borders)
  *   - offline: Natural Earth polygons (already in the map as offlineLayer)
+ *   - nevector: full Natural Earth Vector basemap (cultural + physical,
+ *     scale-tiered; built lazily by SirajNeVector)
  *
  * Persists the last choice per-browser so reloads keep the user's preference.
  * Includes a toolbar group builder (.toolbarGroup(toolbar)) that adds a
@@ -46,6 +48,11 @@
 			icon: 'basemap_offline',
 			tooltip: () => __('Offline (Natural Earth, low detail)'),
 		},
+		nevector: {
+			label: () => __('Natural Earth Vector'),
+			icon: 'basemap_nevector',
+			tooltip: () => __('Natural Earth Vector basemap (cultural + physical)'),
+		},
 	};
 
 	function loadMode() {
@@ -68,6 +75,7 @@
 			hybridLayer: null,
 			hybridOverlay: null,
 			offlineLayer: opts.offlineLayer || null,    // Natural Earth GeoJSON
+			nevectorCtrl: null,                          // SirajNeVector controller
 			onChange: opts.onChange || (() => {}),
 			_buttons: new Map(),
 		};
@@ -81,6 +89,10 @@
 				if (layer && map.hasLayer(layer)) map.removeLayer(layer);
 			});
 			if (state.offlineLayer && map.hasLayer(state.offlineLayer)) map.removeLayer(state.offlineLayer);
+			// Hide the Natural Earth Vector basemap when switching to another mode.
+			if (which !== 'nevector' && state.nevectorCtrl) {
+				try { state.nevectorCtrl.setVisible(false); } catch (_) {}
+			}
 
 			if (which === 'standard') {
 				if (state.standardLayer) state.standardLayer.addTo(map);
@@ -107,6 +119,17 @@
 				if (state.hybridOverlay) state.hybridOverlay.addTo(map);
 			} else if (which === 'offline') {
 				if (state.offlineLayer) state.offlineLayer.addTo(map);
+			} else if (which === 'nevector') {
+				// Build the vector basemap lazily; reuse the controller afterwards.
+				if (!state.nevectorCtrl && window.SirajNeVector) {
+					const engine = opts.engine || (map.getStyle ? 'maplibre' : 'leaflet');
+					window.SirajNeVector.attach(map, { engine }).then(ctrl => {
+						state.nevectorCtrl = ctrl;
+						ctrl.setVisible(true);
+					}).catch(e => console.warn('[SirajBasemap] nevector build failed:', e));
+				} else if (state.nevectorCtrl) {
+					state.nevectorCtrl.setVisible(true);
+				}
 			}
 		}
 
@@ -138,6 +161,8 @@
 			},
 			/** Register the offline/Natural Earth layer. */
 			setOfflineLayer(layer) { state.offlineLayer = layer; },
+			/** Register a pre-built SirajNeVector controller (optional). */
+			setNeVectorCtrl(ctrl) { state.nevectorCtrl = ctrl || null; },
 		/** Append a Basemap group to a sirajToolbar instance.
 		 * toolbar.group(label) returns a chain API; toolbar._buttons stores the
 		 * DOM button keyed by spec.key after add() runs, so we fetch the button

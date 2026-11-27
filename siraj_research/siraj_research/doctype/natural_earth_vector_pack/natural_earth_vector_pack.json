@@ -1,0 +1,171 @@
+{
+  "actions": [],
+  "allow_guest_to_view": false,
+  "autoname": "hash",
+  "creation": "2026-11-24 00:00:00.000000",
+  "developer_mode": 1,
+  "doc_type": "DocType",
+  "docstatus": 0,
+  "doctype": "DocType",
+  "editing_modified_by": "frappe",
+  "editing_modified_on": "2026-11-24 00:00:00.000000",
+  "fields": [
+    {
+      "description": "Provisioning source for the vector pack.",
+      "fieldname": "source",
+      "fieldtype": "Select",
+      "options": "git_clone\nlocal_mirror",
+      "default": "git_clone",
+      "label": "Provision Source"
+    },
+    {
+      "description": "Directory containing a local Natural Earth GeoJSON mirror (required for local_mirror). Must live inside the site.",
+      "fieldname": "mirror_path",
+      "fieldtype": "Data",
+      "label": "Mirror Directory"
+    },
+    {
+      "description": "Include the 1:110m tier in the pack.",
+      "fieldname": "scale_110m",
+      "fieldtype": "Check",
+      "label": "1:110m"
+    },
+    {
+      "description": "Include the 1:50m tier in the pack.",
+      "fieldname": "scale_50m",
+      "fieldtype": "Check",
+      "label": "1:50m"
+    },
+    {
+      "description": "Include the 1:10m tier in the pack (~1.1 GB download).",
+      "fieldname": "scale_10m",
+      "fieldtype": "Check",
+      "label": "1:10m"
+    },
+    {
+      "description": "Optional explicit layer list (JSON array of catalog file names). Empty means the full catalog for the selected scales.",
+      "fieldname": "layers_json",
+      "fieldtype": "Long Text",
+      "label": "Layers (JSON, optional)"
+    },
+    {
+      "fieldname": "sb_status",
+      "fieldtype": "Section Break",
+      "label": "Pack Status"
+    },
+    {
+      "description": "Current provisioning state.",
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "options": "Empty\nProvisioning\nReady\nFailed",
+      "default": "Empty",
+      "label": "Status"
+    },
+    {
+      "depends_on": "eval:doc.status == 'Failed'",
+      "description": "Error detail from the last provisioning run.",
+      "fieldname": "message",
+      "fieldtype": "Long Text",
+      "label": "Message"
+    },
+    {
+      "description": "Timestamp of the last successful provisioning run.",
+      "fieldname": "last_provisioned",
+      "fieldtype": "Datetime",
+      "label": "Last Provisioned"
+    },
+    {
+      "description": "Log of the last provisioning run.",
+      "fieldname": "provision_log",
+      "fieldtype": "Long Text",
+      "label": "Provision Log"
+    },
+    {
+      "fieldname": "sb_stats",
+      "fieldtype": "Section Break",
+      "label": "Pack Statistics"
+    },
+    {
+      "description": "Layers present in the provisioned pack.",
+      "fieldname": "file_count",
+      "fieldtype": "Int",
+      "label": "Packed Files"
+    },
+    {
+      "description": "Total bytes of the provisioned pack.",
+      "fieldname": "total_bytes",
+      "fieldtype": "Int",
+      "label": "Packed Bytes"
+    },
+    {
+      "description": "Offline ZIP archive compiled from the pack is present.",
+      "fieldname": "zip_ready",
+      "fieldtype": "Check",
+      "label": "Offline ZIP Ready"
+    },
+    {
+      "description": "Site-local pack location (read-only).",
+      "fieldname": "pack_location",
+      "fieldtype": "Data",
+      "read_only": 1,
+      "label": "Pack Location"
+    }
+  ],
+  "indexes": [],
+  "is_published": 0,
+  "is_single": 0,
+  "is_table": 0,
+  "is_template": 0,
+  "modified": "2026-11-24 00:00:00.000000",
+  "name": "Natural Earth Vector Pack",
+  "owner": "frappe",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "import": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "SIRAJ Administrator",
+      "select": 1,
+      "share": 1,
+      "write": 1
+    },
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "import": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "select": 1,
+      "share": 1,
+      "write": 1
+    },
+    {
+      "create": 0,
+      "delete": 0,
+      "email": 0,
+      "export": 1,
+      "import": 0,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "SIRAJ Researcher",
+      "select": 1,
+      "share": 0,
+      "write": 0
+    }
+  ],
+  "rename_field_map": {},
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "title_field": "status",
+  "track_changes": 1
+}

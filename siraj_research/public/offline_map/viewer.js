@@ -4,10 +4,10 @@
     const c = window.SIRAJ_OFFLINE_MAP;
     const el = id => document.getElementById(id);
     const messages = {
-        en: {language:'Language', mode:'Click mode', point:'Point', distance:'Distance', area:'Area', undo:'Undo point', clear:'Clear', lat:'Latitude', lon:'Longitude', go:'Go', fit:'Fit area',
+        en: {language:'Language', mode:'Click mode', basemapLabel:'Basemap', raster:'Raster', vector:'Natural Earth Vector', point:'Point', distance:'Distance', area:'Area', undo:'Undo point', clear:'Clear', lat:'Latitude', lon:'Longitude', go:'Go', fit:'Fit area',
             hint:'Basemap imagery only; no SIRAJ records. Click the map to select or measure.', initial:'Tiles are available only where included in this package.', invalid:'Enter decimal latitude from −85.05112878 to 85.05112878 and longitude from −180 to 180.',
             selected:'Latitude: {0}, longitude: {1}', length:'Approximate distance: {0} km ({1} points)', surface:'Approximate area: {0} km² ({1} points)', need2:'Click at least two points to measure distance.', need3:'Click at least three points to measure area.', maximum:'The measurement is limited to 500 points.', offline:'Offline map'},
-        ar: {language:'اللغة', mode:'وضع النقر', point:'نقطة', distance:'المسافة', area:'المساحة', undo:'التراجع عن نقطة', clear:'مسح', lat:'خط العرض', lon:'خط الطول', go:'انتقال', fit:'عرض المنطقة',
+        ar: {language:'اللغة', mode:'وضع النقر', basemapLabel:'الخيار', raster:'صوري', vector:'متجهات الأرض الطبيعية', point:'نقطة', distance:'المسافة', area:'المساحة', undo:'التراجع عن نقطة', clear:'مسح', lat:'خط العرض', lon:'خط الطول', go:'انتقال', fit:'عرض المنطقة',
             hint:'صور الخريطة فقط؛ لا تتضمن سجلات سراج. انقر لتحديد نقطة أو للقياس.', initial:'تتوفر مربعات الخريطة فقط حيث تتضمنها الحزمة.', invalid:'أدخل خط عرض عشرياً بين −85.05112878 و85.05112878 وخط طول بين −180 و180.',
             selected:'خط العرض: {0}، خط الطول: {1}', length:'المسافة التقريبية: {0} كم ({1} نقطة)', surface:'المساحة التقريبية: {0} كم² ({1} نقطة)', need2:'انقر نقطتين على الأقل لقياس المسافة.', need3:'انقر ثلاث نقاط على الأقل لقياس المساحة.', maximum:'القياس محدود بـ 500 نقطة.', offline:'خريطة دون اتصال'}
     };
@@ -16,9 +16,50 @@
     const map = L.map('map', {minZoom: c.minzoom, maxZoom: c.maxzoom}).setView(c.center, c.minzoom);
     const attribution = document.createElement('span');
     attribution.textContent = c.attribution;
-    L.tileLayer('tiles/{z}/{x}/{y}.' + c.extension, {minZoom: c.minzoom, maxZoom: c.maxzoom,
+    const tileLayer = L.tileLayer('tiles/{z}/{x}/{y}.' + c.extension, {minZoom: c.minzoom, maxZoom: c.maxzoom,
         attribution: attribution.innerHTML}).addTo(map);
     L.control.scale({imperial: false}).addTo(map);
+    /* Natural Earth Vector basemap (bundled 1:110m tier, public domain).
+     * Loaded from the app's static assets so it works fully offline. */
+    const NE_BASE = '/assets/siraj_research/natural_earth/110m';
+    const NE_ROLES = [
+        ['ocean', 'ne_110m_ocean.geojson', {style:{color:'#d4e4f0', fillColor:'#d4e4f0', fillOpacity:0.9}}],
+        ['land', 'ne_110m_land.geojson', {style:{color:'#7a6a4f', fillColor:'#e8e4cf', fillOpacity:1}}],
+        ['lakes', 'ne_110m_lakes.geojson', {style:{color:'#5b8db8', fillColor:'#5b8db8', fillOpacity:0.8}}],
+        ['countries', 'ne_110m_admin_0_countries.geojson', {style:{color:'#7a6a4f', fillColor:'#d9d0b8', fillOpacity:0.6}}],
+        ['boundaries', 'ne_110m_admin_0_boundary_lines_land.geojson', {style:{color:'#7a6a4f', weight:0.6}}],
+        ['admin1', 'ne_110m_admin_1_states_provinces_lines.geojson', {style:{color:'#9a8b6e', weight:0.4, dashArray:'2 1'}}],
+        ['rivers', 'ne_110m_rivers_lake_centerlines.geojson', {style:{color:'#5b8db8', weight:0.6}}],
+        ['places', 'ne_110m_populated_places_simple.geojson', {}],
+    ];
+    const neGroups = {};
+    async function setBasemap(mode) {
+        if (mode === 'raster') {
+            Object.values(neGroups).forEach(g => map.removeLayer(g));
+            if (!map.hasLayer(tileLayer)) tileLayer.addTo(map);
+            map.attributionControl.setAttribution(c.attribution);
+            return;
+        }
+        if (map.hasLayer(tileLayer)) map.removeLayer(tileLayer);
+        map.attributionControl.setAttribution('Natural Earth Vector (public domain)');
+        for (const [role, file, styleCfg] of NE_ROLES) {
+            if (neGroups[role]) continue;
+            try {
+                const res = await fetch(NE_BASE + '/' + file);
+                if (!res.ok) continue;
+                const gj = await res.json();
+                const cfg = Object.assign({}, styleCfg);
+                if (role === 'places') {
+                    cfg.pointToLayer = (feature, latlng) => L.circleMarker(latlng, {radius: 2, color: '#555', fillColor: '#555'});
+                    cfg.onEachFeature = (feature, layer) => {
+                        if (feature.properties && feature.properties.name) layer.bindPopup('<b>' + feature.properties.name + '</b>');
+                    };
+                }
+                neGroups[role] = L.geoJSON(gj, cfg).addTo(map);
+            } catch (_) { /* layer optional */ }
+        }
+    }
+    el('basemap').addEventListener('change', () => setBasemap(el('basemap').value));
     const limit = 85.0511287798066;
     function number(text) {
         const normalized = text.trim().replace(/[٠-٩]/g, n => String(n.charCodeAt(0) - 0x660))
@@ -56,7 +97,8 @@
         lang = el('language').value === 'ar' ? 'ar' : 'en';
         document.documentElement.lang = lang;
         document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-        for (const [id, key] of Object.entries({languageLabel:'language', modeLabel:'mode', undo:'undo', clear:'clear', latLabel:'lat', lonLabel:'lon', go:'go', fit:'fit', hint:'hint'})) el(id).textContent = t(key);
+        for (const [id, key] of Object.entries({languageLabel:'language', modeLabel:'mode', basemapLabel:'basemapLabel', undo:'undo', clear:'clear', latLabel:'lat', lonLabel:'lon', go:'go', fit:'fit', hint:'hint'})) el(id).textContent = t(key);
+        for (const option of el('basemap').options) option.textContent = t(option.value === 'vector' ? 'vector' : 'raster');
         for (const option of el('mode').options) option.textContent = t(option.value);
         el('map').setAttribute('aria-label', t('offline'));
         redraw();
