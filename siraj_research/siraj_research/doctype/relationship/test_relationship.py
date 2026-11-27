@@ -242,14 +242,14 @@ class TestRelationship(FrappeTestCase):
 		try:
 			# Subject delete is blocked.
 			with self.assertRaises(frappe.ValidationError):
-				frappe.delete_doc("Person", person.name, force=True, ignore_permissions=True)
+				frappe.delete_doc("Person", person.name, ignore_permissions=True)
 			# Object delete is blocked.
 			with self.assertRaises(frappe.ValidationError):
-				frappe.delete_doc("Institution", institution.name, force=True, ignore_permissions=True)
+				frappe.delete_doc("Institution", institution.name, ignore_permissions=True)
 			# Removing the relationship first unblocks the delete.
 			frappe.delete_doc("Relationship", rel.name, force=True, ignore_permissions=True)
-			frappe.delete_doc("Person", person.name, force=True, ignore_permissions=True)
-			frappe.delete_doc("Institution", institution.name, force=True, ignore_permissions=True)
+			frappe.delete_doc("Person", person.name, ignore_permissions=True)
+			frappe.delete_doc("Institution", institution.name, ignore_permissions=True)
 		finally:
 			for doctype, name in (("Person", person.name), ("Institution", institution.name)):
 				if frappe.db.exists(doctype, name):

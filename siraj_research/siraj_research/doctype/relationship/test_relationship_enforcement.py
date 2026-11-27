@@ -295,7 +295,7 @@ class TestRelationshipEnforcement(FrappeTestCase):
                         rt.name, doctype, endpoint.name, "Person", person.name
                     ).insert(ignore_permissions=True)
                     with self.assertRaises(frappe.ValidationError):
-                        frappe.delete_doc(doctype, endpoint.name, force=True, ignore_permissions=True)
+                        frappe.delete_doc(doctype, endpoint.name, ignore_permissions=True)
                     frappe.delete_doc("Relationship", rel_subject.name, force=True, ignore_permissions=True)
 
                     # Object side: endpoint is the object.
@@ -303,11 +303,11 @@ class TestRelationshipEnforcement(FrappeTestCase):
                         rt.name, "Person", person.name, doctype, endpoint.name
                     ).insert(ignore_permissions=True)
                     with self.assertRaises(frappe.ValidationError):
-                        frappe.delete_doc(doctype, endpoint.name, force=True, ignore_permissions=True)
+                        frappe.delete_doc(doctype, endpoint.name, ignore_permissions=True)
                     frappe.delete_doc("Relationship", rel_object.name, force=True, ignore_permissions=True)
 
                     # After removing the relationships, the delete succeeds.
-                    frappe.delete_doc(doctype, endpoint.name, force=True, ignore_permissions=True)
+                    frappe.delete_doc(doctype, endpoint.name, ignore_permissions=True)
                     self.assertFalse(frappe.db.exists(doctype, endpoint.name))
                 except Exception:
                     self._cleanup(endpoint, person)
