@@ -169,7 +169,7 @@ def validate_manifest(manifest: dict) -> dict:
     return manifest
 
 
-def read_manifest() -> Optional[dict]:
+def read_manifest() -> dict | None:
     path = manifest_path()
     if not path.is_file():
         return None
@@ -218,7 +218,7 @@ def _clone_repo(dest: Path) -> Path:
     return dest
 
 
-def _fetch_file(mirror: Path, name: str) -> Optional[Path]:
+def _fetch_file(mirror: Path, name: str) -> Path | None:
     """Locate ``name`` inside the mirror tree; returns None when absent."""
     rel = Path("geojson") / name
     candidate = mirror / rel
@@ -316,7 +316,7 @@ def provision_pack(scales, layers=None, source="git_clone", mirror_path=None,
     return manifest
 
 
-def build_zip(manifest: Optional[dict] = None) -> Optional[Path]:
+def build_zip(manifest: dict | None = None) -> Path | None:
     """Compile the provisioned pack into the offline ZIP archive."""
     manifest = manifest or read_manifest()
     if not manifest:
@@ -345,7 +345,7 @@ def available_scales() -> list:
     return sorted(scales)
 
 
-def available_layers(scale: Optional[str] = None) -> list:
+def available_layers(scale: str | None = None) -> list:
     """Catalog layers available on the server, merged pack + bundle.
 
     Returns entries with ``name``, ``scale``, ``source`` ("bundle"/"pack")
@@ -372,7 +372,7 @@ def available_layers(scale: Optional[str] = None) -> list:
     return result
 
 
-def layer_file_path(name: str) -> Optional[Path]:
+def layer_file_path(name: str) -> Path | None:
     """Resolve a layer file on disk (pack first, then bundle)."""
     name = _require_catalog_file(name)
     pack = pack_root() / name
@@ -384,7 +384,7 @@ def layer_file_path(name: str) -> Optional[Path]:
     return None
 
 
-def read_layer(name: str) -> Optional[str]:
+def read_layer(name: str) -> str | None:
     """Return the GeoJSON text for a layer, or None when unavailable."""
     path = layer_file_path(name)
     if path is None:
@@ -392,7 +392,7 @@ def read_layer(name: str) -> Optional[str]:
     return path.read_text()
 
 
-def layer_etag(name: str) -> Optional[str]:
+def layer_etag(name: str) -> str | None:
     path = layer_file_path(name)
     if path is None:
         return None

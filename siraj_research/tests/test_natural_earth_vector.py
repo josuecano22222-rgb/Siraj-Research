@@ -82,7 +82,7 @@ class TestBundledTier:
     def test_unknown_layer_raises(self):
         try:
             nev.read_layer("ne_99m_not_a_layer.geojson")
-            assert False, "unknown layer must raise"
+            raise AssertionError("unknown layer must raise")
         except nev.NaturalEarthPackError:
             pass
 
@@ -118,14 +118,14 @@ class TestManifestValidation:
         del m["layers"]
         try:
             nev.validate_manifest(m)
-            assert False
+            raise AssertionError()
         except nev.NaturalEarthPackError:
             pass
 
     def test_bad_scale(self):
         try:
             nev.validate_manifest(self._base(scales=["99m"]))
-            assert False
+            raise AssertionError()
         except nev.NaturalEarthPackError:
             pass
 
@@ -133,7 +133,7 @@ class TestManifestValidation:
         try:
             nev.validate_manifest(self._base(layers={"ne_bad.geojson": {"sha256": "x"}},
                                              stats={"file_count": 1, "total_bytes": 0}))
-            assert False
+            raise AssertionError()
         except nev.NaturalEarthPackError:
             pass
 
@@ -142,7 +142,7 @@ class TestManifestValidation:
             nev.validate_manifest(self._base(
                 layers={"ne_110m_land.geojson": {"sha256": "ab", "bytes": 1}},
                 stats={"file_count": 5, "total_bytes": 1}))
-            assert False
+            raise AssertionError()
         except nev.NaturalEarthPackError:
             pass
 
@@ -216,7 +216,7 @@ class TestLocalMirrorProvisioning:
                 source="local_mirror",
                 mirror_path=str(outside),
             )
-            assert False, "mirror outside the site must be rejected"
+            raise AssertionError("mirror outside the site must be rejected")
         except nev.NaturalEarthPackError:
             pass
 
@@ -228,7 +228,7 @@ class TestLocalMirrorProvisioning:
                 source="local_mirror",
                 mirror_path=str(self.mirror),
             )
-            assert False, "no provisionable layers must raise"
+            raise AssertionError("no provisionable layers must raise")
         except nev.NaturalEarthPackError:
             pass
 
@@ -273,7 +273,7 @@ class TestApiEndpoints:
         try:
             with mock.patch.object(frappe.session, "user", "Guest"):
                 provision()
-            assert False, "Guest must be rejected"
+            raise AssertionError("Guest must be rejected")
         except frappe.PermissionError:
             pass
 

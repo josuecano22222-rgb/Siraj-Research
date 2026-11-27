@@ -117,7 +117,7 @@ def run_provision(docname: str | None = None) -> dict:
     except nev.NaturalEarthPackError as exc:
         doc.status = "Failed"
         doc.message = str(exc)
-        doc.provision_log = "\n".join(log_lines + [f"ERROR: {exc}"])
+        doc.provision_log = "\n".join([*log_lines, f"ERROR: {exc}"])
         doc.save(ignore_permissions=True)
         frappe.throw(f"Provisioning failed: {exc}", frappe.ValidationError)
 

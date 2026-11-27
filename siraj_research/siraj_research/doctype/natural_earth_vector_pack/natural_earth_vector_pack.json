@@ -1,14 +1,30 @@
 {
   "actions": [],
-  "allow_guest_to_view": false,
+  "allow_import": 1,
   "autoname": "hash",
   "creation": "2026-11-24 00:00:00.000000",
-  "developer_mode": 1,
-  "doc_type": "DocType",
+  "description": "Administrative tool for provisioning the Natural Earth Vector pack (cultural + physical GeoJSON at the 1:10m / 1:50m / 1:110m scales) into site private storage and compiling the offline ZIP archive.",
   "docstatus": 0,
   "doctype": "DocType",
-  "editing_modified_by": "frappe",
-  "editing_modified_on": "2026-11-24 00:00:00.000000",
+  "editable_grid": 0,
+  "field_order": [
+    "source",
+    "mirror_path",
+    "scale_110m",
+    "scale_50m",
+    "scale_10m",
+    "layers_json",
+    "sb_status",
+    "status",
+    "message",
+    "last_provisioned",
+    "provision_log",
+    "sb_stats",
+    "file_count",
+    "total_bytes",
+    "zip_ready",
+    "pack_location"
+  ],
   "fields": [
     {
       "description": "Provisioning source for the vector pack.",
@@ -111,12 +127,15 @@
       "label": "Pack Location"
     }
   ],
-  "indexes": [],
-  "is_published": 0,
-  "is_single": 0,
-  "is_table": 0,
-  "is_template": 0,
+  "icon": "globe",
+  "idx": 0,
+  "issingle": 0,
+  "istable": 0,
+  "links": [],
   "modified": "2026-11-24 00:00:00.000000",
+  "modified_by": "frappe",
+  "module": "Siraj Research",
+  "naming_rule": "Hash",
   "name": "Natural Earth Vector Pack",
   "owner": "frappe",
   "permissions": [
@@ -163,9 +182,13 @@
       "write": 0
     }
   ],
-  "rename_field_map": {},
+  "quick_entry": 0,
+  "row_format": "Jagged",
+  "search_fields": ["name", "status", "source"],
+  "show_title_field_in_link": 1,
   "sort_field": "creation",
   "sort_order": "DESC",
+  "states": [],
   "title_field": "status",
   "track_changes": 1
 }
