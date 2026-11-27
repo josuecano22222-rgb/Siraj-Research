@@ -246,13 +246,15 @@ class TestRelationship(FrappeTestCase):
 			# Object delete is blocked.
 			with self.assertRaises(frappe.ValidationError):
 				frappe.delete_doc("Institution", institution.name, ignore_permissions=True)
-			# Removing the relationship first unblocks the delete.
-			frappe.delete_doc("Relationship", rel.name, force=True, ignore_permissions=True)
-			# subject/object are Dynamic Link fields: Frappe caches the link
-			# reference, so clear the DB cache before the post-removal delete so
-			# check_if_doc_is_dynamically_linked re-queries and does not falsely
-			# block the now-unreferenced endpoint.
-			frappe.db.clear_cache()
+			# Removing the relationship first unblocks the delete. Use a direct hard
+			# delete on the Relationship row: subject/object are Dynamic Link
+			# fields, so Frappe's own delete machinery (frappe.delete_doc) can leave
+			# the row's link reference detectable to check_if_doc_is_dynamically_linked
+			# and falsely block the now-unreferenced endpoint. A direct db.delete
+			# guarantees the row is gone so the post-removal endpoint delete exercises
+			# only our before_delete guard (no false positive).
+			frappe.db.delete("Relationship", {"name": rel.name})
+			self.assertFalse(frappe.db.exists("Relationship", rel.name))
 			frappe.delete_doc("Person", person.name, ignore_permissions=True)
 			frappe.delete_doc("Institution", institution.name, ignore_permissions=True)
 		finally:

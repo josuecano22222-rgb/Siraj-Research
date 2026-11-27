@@ -296,7 +296,10 @@ class TestRelationshipEnforcement(FrappeTestCase):
                     ).insert(ignore_permissions=True)
                     with self.assertRaises(frappe.ValidationError):
                         frappe.delete_doc(doctype, endpoint.name, ignore_permissions=True)
-                    frappe.delete_doc("Relationship", rel_subject.name, force=True, ignore_permissions=True)
+                    # subject/object are Dynamic Link fields: Frappe's delete machinery
+                    # can leave the row's link reference detectable, so remove the row
+                    # with a direct hard delete rather than frappe.delete_doc.
+                    frappe.db.delete("Relationship", {"name": rel_subject.name})
 
                     # Object side: endpoint is the object.
                     rel_object = self._make_relationship(
@@ -304,12 +307,10 @@ class TestRelationshipEnforcement(FrappeTestCase):
                     ).insert(ignore_permissions=True)
                     with self.assertRaises(frappe.ValidationError):
                         frappe.delete_doc(doctype, endpoint.name, ignore_permissions=True)
-                    frappe.delete_doc("Relationship", rel_object.name, force=True, ignore_permissions=True)
+                    frappe.db.delete("Relationship", {"name": rel_object.name})
 
-                    # subject/object are Dynamic Link fields: Frappe caches the
-                    # link reference, so clear the DB cache before the post-removal
-                    # delete so check_if_doc_is_dynamically_linked re-queries.
-                    frappe.db.clear_cache()
+                    self.assertFalse(frappe.db.exists("Relationship", rel_subject.name))
+                    self.assertFalse(frappe.db.exists("Relationship", rel_object.name))
 
                     # After removing the relationships, the delete succeeds.
                     frappe.delete_doc(doctype, endpoint.name, ignore_permissions=True)
