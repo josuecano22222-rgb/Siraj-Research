@@ -411,7 +411,7 @@ class TestRelationshipEnforcement(FrappeTestCase):
                                 doctype, endpoint.name, force=True, ignore_permissions=True
                             )
                         self.assertIn(
-                            GUARD_MESSAGE_FRAGMENT, str(ctx.exception),
+                            self.GUARD_MESSAGE_FRAGMENT, str(ctx.exception),
                             "block exception did not come from block_delete_if_referenced",
                         )
                     except Exception:
