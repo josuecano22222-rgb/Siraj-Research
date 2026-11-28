@@ -36,6 +36,7 @@ from siraj_research.api import (
 	entity_profile,
 	geo_package,
 	geo_resolve,
+	location_cascade,
 	map_relations,
 	map_search,
 	natural_earth_vector,
@@ -1375,6 +1376,24 @@ class TestZIsolationFixtureCleanup(FrappeTestCase):
 
 		unknown = natural_earth_vector.layer("ne_99m_missing.geojson")
 		self.assertEqual(unknown.status_code, 404)
+
+		# Country intelligence endpoints (public, read-only).
+		nl_profile = natural_earth_vector.country_profile(code="NLD")
+		self.assertEqual(nl_profile["code"], "NLD")
+		self.assertEqual(natural_earth_vector.country_profile(code="XXX"), None)
+		pt_profile = natural_earth_vector.country_profile(
+			longitude=-9.1393, latitude=38.7223)  # Lisbon
+		self.assertEqual(pt_profile["code"], "PRT")
+
+		choro = natural_earth_vector.country_choropleth("Person", agg="count")
+		self.assertIn("classByKey", choro)
+		self.assertIn("valueByKey", choro)
+
+		# Location cascade resolves a coordinate to the full hierarchy chain.
+		chain = location_cascade.resolve_location_chain(
+			latitude=31.5, longitude=34.45, use_online=0)
+		self.assertIn("country_enrichment", chain)
+		self.assertIn("levels", chain)
 
 		# Admin-gated endpoints reject Guest.
 		frappe.set_user("Guest")
