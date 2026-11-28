@@ -199,6 +199,7 @@ def seed_test_data():
 		)
 		gov = add(
 			"Governorate",
+			name="TEST_GOV",
 			code="TEST_GOV",
 			label_ar="اختبار محافظة",
 			label_en="TEST Governorate",
@@ -206,6 +207,7 @@ def seed_test_data():
 		)
 		district = add(
 			"District",
+			name="TEST_DIST",
 			code="TEST_DIST",
 			label_ar="اختبار قضاء",
 			label_en="TEST District",
@@ -214,6 +216,7 @@ def seed_test_data():
 		)
 		municipality = add(
 			"Municipality",
+			name="TEST_MUNI",
 			code="TEST_MUNI",
 			label_ar="اختبار بلدية",
 			label_en="TEST Municipality",
@@ -223,6 +226,7 @@ def seed_test_data():
 		)
 		village = add(
 			"Village",
+			name="TEST_VIL",
 			code="TEST_VIL",
 			label_ar="اختبار قرية",
 			label_en="TEST Village",
@@ -233,6 +237,7 @@ def seed_test_data():
 		)
 		community = add(
 			"Community",
+			name="TEST_COMM",
 			code="TEST_COMM",
 			label_ar="اختبار مجتمع",
 			label_en="TEST Community",
