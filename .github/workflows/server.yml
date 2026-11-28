@@ -165,7 +165,15 @@ jobs:
             # the innermost frame (_bootstrap._gcd_import), hiding the cause.
             grep -E "^(FAIL|ERROR|UNEXPECTED SUCCESS): " /tmp/server-tests.log | head -20 | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}' > /tmp/failids-encoded.txt
             awk '/^(FAIL|ERROR|UNEXPECTED SUCCESS): /{n++} n==1{print} n==2{exit}' /tmp/server-tests.log | head -80 | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}' | head -c 4500 > /tmp/failures-encoded.txt
-            echo "::error title=run-tests failures::$(cat /tmp/results-encoded.txt)$(cat /tmp/failids-encoded.txt)$(cat /tmp/failures-encoded.txt)"
+            # Echo the first ERROR block's exception LINE (the exception class +
+            # message) so the root exception is visible at a glance, not buried in
+            # traceback frames. grep -m1 = first match only. The character class
+            # [A-Za-z_.] matches names like KeyError, SomeModule.Error, MyException.
+            EXC=$(grep -m1 -E "^[A-Za-z_.]+(Error|Exception):" /tmp/server-tests.log || true)
+            EXC_ENC=$(printf '%s' "$EXC" | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}')
+            echo "--- first exception line ---"
+            echo "$EXC"
+            echo "::error title=run-tests failures::$(cat /tmp/results-encoded.txt)$(cat /tmp/failids-encoded.txt)$(cat /tmp/failures-encoded.txt)$EXC_ENC"
           else
             echo "::notice title=run-tests passed::$(cat /tmp/results-encoded.txt)"
           fi

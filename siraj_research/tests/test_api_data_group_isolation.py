@@ -36,6 +36,7 @@ from siraj_research.api import (
 	entity_profile,
 	geo_package,
 	geo_resolve,
+	location_cascade,
 	map_relations,
 	map_search,
 	natural_earth_vector,
@@ -90,7 +91,7 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 	def tearDown(self):
 		frappe.set_user("Administrator")
 
-	def test_01_all_48_whitelisted_callables_registered_in_frappe_whitelisted(self):
+	def test_01_all_51_whitelisted_callables_registered_in_frappe_whitelisted(self):
 		"""Every endpoint in ALL_WHITELISTED_ENDPOINTS is registered in frappe.whitelisted."""
 		geo_meta = frappe.get_meta("Geo Settings")
 		for fn in (
@@ -107,7 +108,7 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		):
 			self.assertIsNotNone(geo_meta.get_field(fn), f"Geo Settings missing field {fn}")
 
-		self.assertEqual(len(ALL_WHITELISTED_ENDPOINTS), 48)
+		self.assertEqual(len(ALL_WHITELISTED_ENDPOINTS), 51)
 		for mod_name, fn_qualname in ALL_WHITELISTED_ENDPOINTS:
 			mod = frappe.get_module(mod_name)
 			if "." in fn_qualname:
@@ -1375,6 +1376,24 @@ class TestZIsolationFixtureCleanup(FrappeTestCase):
 
 		unknown = natural_earth_vector.layer("ne_99m_missing.geojson")
 		self.assertEqual(unknown.status_code, 404)
+
+		# Country intelligence endpoints (public, read-only).
+		nl_profile = natural_earth_vector.country_profile(code="NLD")
+		self.assertEqual(nl_profile["code"], "NLD")
+		self.assertEqual(natural_earth_vector.country_profile(code="XXX"), None)
+		pt_profile = natural_earth_vector.country_profile(
+			longitude=-9.1393, latitude=38.7223)  # Lisbon
+		self.assertEqual(pt_profile["code"], "PRT")
+
+		choro = natural_earth_vector.country_choropleth("Person", agg="count")
+		self.assertIn("classByKey", choro)
+		self.assertIn("valueByKey", choro)
+
+		# Location cascade resolves a coordinate to the full hierarchy chain.
+		chain = location_cascade.resolve_location_chain(
+			latitude=31.5, longitude=34.45, use_online=0)
+		self.assertIn("country_enrichment", chain)
+		self.assertIn("levels", chain)
 
 		# Admin-gated endpoints reject Guest.
 		frappe.set_user("Guest")

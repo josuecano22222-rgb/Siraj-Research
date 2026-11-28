@@ -73,7 +73,7 @@ def _positions(value: Any):
     if (
         isinstance(value, list)
         and len(value) >= 2
-        and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in value[:2])
+        and all(isinstance(v, int | float) and not isinstance(v, bool) for v in value[:2])
     ):
         yield value[0], value[1]
     elif isinstance(value, list):
@@ -143,7 +143,7 @@ def _point_in_geometry(lon: float, lat: float, geometry: dict) -> bool:
                     return {key: floats(child) for key, child in value.items()}
                 if isinstance(value, list):
                     return [floats(child) for child in value]
-                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                if isinstance(value, int | float) and not isinstance(value, bool):
                     return float(value)
                 return value
 
@@ -202,7 +202,7 @@ def _clean_label(value: Any) -> str:
 def _clean_number(value: Any) -> float | int | None:
     if value is None or isinstance(value, bool):
         return None
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return value if math.isfinite(float(value)) else None
     return None
 
@@ -393,7 +393,7 @@ def classify(values: list, method: str = "quantile", classes: int = 5) -> dict:
     numbers = sorted(
         float(value)
         for value in values
-        if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(float(value))
+        if isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(float(value))
     )
     if not numbers:
         return {
@@ -537,7 +537,7 @@ def aggregate_site_data(
             numbers = [
                 float(record[value_key])
                 for record in items
-                if isinstance(record.get(value_key), (int, float))
+                if isinstance(record.get(value_key), int | float)
                 and not isinstance(record.get(value_key), bool)
                 and math.isfinite(float(record[value_key]))
             ]
@@ -559,7 +559,7 @@ def choropleth_from_values(
     entries = [
         (code, value)
         for code, value in values_by_code.items()
-        if code and isinstance(value, (int, float)) and not isinstance(value, bool)
+        if code and isinstance(value, int | float) and not isinstance(value, bool)
         and math.isfinite(float(value))
     ]
     classification = classify([value for _code, value in entries], method, classes)
