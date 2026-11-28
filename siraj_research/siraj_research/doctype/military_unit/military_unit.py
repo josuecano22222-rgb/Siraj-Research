@@ -14,11 +14,6 @@ from siraj_research.utils.military import (
 
 
 class MilitaryUnit(Document):
-	def before_delete(self):
-		from siraj_research.utils.relationship_delete import block_delete_if_referenced
-
-		block_delete_if_referenced(self.doctype, self.name)
-
 	def validate(self):
 		self.validate_parent()
 		self.validate_parent()
@@ -52,6 +47,10 @@ class MilitaryUnit(Document):
 				frappe.throw(_("Row {0}: quantity must be greater than zero.").format(row.idx))
 
 	def on_trash(self):
+		from siraj_research.utils.relationship_delete import block_delete_if_referenced
+
+		block_delete_if_referenced(self.doctype, self.name)
+
 		"""rules.delete blocked by dependents — Frappe blocks Links, not child rows
 		and not a tree's children, so both are checked here."""
 		if frappe.db.exists(self.doctype, {"parent_unit": self.name}):

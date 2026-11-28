@@ -112,6 +112,7 @@ boot_session = "siraj_research.record_icons.boot_session"
 doctype_js = {
 	"Boundary Dataset": "public/js/boundary_dataset.js",
 	"Geo Settings": "public/js/geo_settings.js",
+	"Natural Earth Vector Pack": "public/js/natural_earth_vector_pack.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # Standard per-DocType tree scripts live beside their DocType JSON files.

@@ -105,7 +105,7 @@ class Relationship(Document):
 					"relationship_type": self.relationship_type,
 					"name": ["!=", self.name or ""],
 				},
-				fields=["name", "subject_type", "subject", "object_type", "object"],
+				fields=["name", "relationship_type", "subject_type", "subject", "object_type", "object"],
 				limit_page_length=0,
 			)
 			for row in existing:

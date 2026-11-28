@@ -243,6 +243,12 @@ kbd {
 }
 
 /* Print: hide toolbars/docks so only the map prints. */
+/* Natural Earth Vector choropleth legend */
+.ne-legend { padding: .4rem .6rem; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-size: .85em; }
+.ne-legend-title { font-weight: 600; margin-bottom: .3rem; }
+.ne-legend-row { display: flex; align-items: center; gap: .4rem; margin: .1rem 0; }
+.ne-legend-swatch { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+
 @media print {
 	.sx-stats-dock, .sx-coord-readout, .sx-minimap, .leaflet-control-container,
 	.sx-time-slider, .sx-multi-bar { display: none !important; }

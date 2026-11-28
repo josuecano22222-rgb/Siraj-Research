@@ -1951,3 +1951,54 @@ Pair not allowed,الزوج غير مسموح به
 Relationship Type Allowed Pair,زوج نوع العلاقة المسموح به
 Self link,ربط ذاتي
 Subject doctype,نوع المستند للطرف الفاعل
+Administrative tool for provisioning the Natural Earth Vector pack (cultural + physical GeoJSON at the 1:10m / 1:50m / 1:110m scales) into site private storage and compiling the offline ZIP archive.,أداة إدارية لتوفير حزمة متجهات الأرض الطبيعية (بيانات جيو JSON ثقافية وطبيعية بمقاييس 1:10م / 1:50م / 1:110م) في مساحة التخزين الخاصة للموقع وتجميع ملف ZIP للاستخدام دون اتصال.
+Available scales,المقاييس المتاحة
+Current provisioning state.,حالة التوفير الحالية.
+Directory containing a local Natural Earth GeoJSON mirror (required for local_mirror). Must live inside the site.,دليل يحتوي على نسخة محلية من بيانات Natural Earth الجيو JSON (مطلوب لـ local_mirror). يجب أن يكون داخل الموقع.
+Empty,فارغ
+Error detail from the last provisioning run.,تفاصيل الخطأ من آخر تشغيل للتوفير.
+Fill full layer list,ملء قائمة الطبقات الكاملة
+Full catalog layer list filled (optional — empty means full catalog).,تم ملء قائمة طبقات الكتالوج الكامل (اختياري — فارغ يعني الكتالوج الكامل).
+Include the 1:10m tier in the pack (~1.1 GB download).,تضمين مستوى 1:10م في الحزمة (تنزيل ~1.1 غيغابايت).
+Include the 1:110m tier in the pack.,تضمين مستوى 1:110م في الحزمة.
+Include the 1:50m tier in the pack.,تضمين مستوى 1:50م في الحزمة.
+Last Provisioned,آخر توفير
+"Layers (JSON, optional)",الطبقات (JSON، اختياري)
+Layers present in the provisioned pack.,الطبقات الموجودة في الحزمة المقدمة.
+Log of the last provisioning run.,سجل آخر تشغيل للتوفير.
+Message,الرسالة
+Mirror Directory,دليل النسخة
+Natural Earth Vector,متجهات الأرض الطبيعية
+Natural Earth Vector Pack,حزمة متجهات الأرض الطبيعية
+Natural Earth Vector basemap (cultural + physical),طبقة الأساس لمتجهات الأرض الطبيعية (ثقافية + طبيعية)
+Nothing to provision,لا يوجد ما يمكن توفيره
+Offline ZIP,ZIP دون اتصال
+Offline ZIP Ready,ZIP دون اتصال جاهز
+Offline ZIP archive compiled from the pack is present.,يوجد ملف ZIP دون اتصال مجمّع من الحزمة.
+Optional explicit layer list (JSON array of catalog file names). Empty means the full catalog for the selected scales.,قائمة طبقات صريحة اختيارية (مصفوفة JSON من أسماء ملفات الكتالوج). فارغ يعني الكتالوج الكامل للمقاييس المختارة.
+Pack Location,موقع الحزمة
+Pack Statistics,إحصائيات الحزمة
+Pack Status,حالة الحزمة
+Packed Bytes,البايتات المعبأة
+Packed Files,الملفات المعبأة
+Packed files,الملفات المعبأة
+Provision Log,سجل التوفير
+Provision Natural Earth Vector pack,توفير حزمة متجهات الأرض الطبيعية
+Provision Source,مصدر التوفير
+Provision pack,توفير الحزمة
+Provision the Natural Earth Vector pack,توفير حزمة متجهات الأرض الطبيعية
+Provisioning,قيد التوفير
+Provisioning complete,اكتمل التوفير
+Provisioning failed. See the Message field.,فشل التوفير. انظر حقل الرسالة.
+Provisioning source for the vector pack.,مصدر التوفير لحزمة المتجهات.
+Ready,جاهز
+Refresh status,تحديث الحالة
+Scales,المقاييس
+Select at least one scale tier.,اختر مستوى مقاييس واحدًا على الأقل.
+Site-local pack location (read-only).,موقع الحزمة المحلي للموقع (للقراءة فقط).
+The 1:10m tier is ~1.1 GB and will take several minutes.,مستوى 1:10م يبلغ ~1.1 غيغابايت وسيستغرق عدة دقائق.
+Timestamp of the last successful provisioning run.,التواريخ الزمنية لآخر تشغيل توفير ناجح.
+Total bytes of the provisioned pack.,إجمالي البايتات للحزمة المقدمة.
+built,تم الإنشاء
+not built,لم يتم الإنشاء
+ready,جاهز

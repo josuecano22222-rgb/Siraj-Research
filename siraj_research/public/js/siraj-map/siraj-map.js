@@ -124,6 +124,12 @@
 				{ id: 'background', type: 'background', paint: { 'background-color': '#e8e4cf' } },
 			],
 		},
+		nevector: {
+			label: 'Natural Earth Vector',
+			icon: '🌍',
+			sources: {},
+			layers: [],
+		},
 	};
 
 	class BasemapControl {
@@ -163,6 +169,10 @@
 		onChange(fn) { this._onChange = fn; }
 		_apply(key) {
 			const map = this._map; if (!map) return;
+			// Hide the Natural Earth Vector basemap when switching to another style.
+			if (key !== 'nevector' && this._nevector) {
+				try { this._nevector.setVisible(false); } catch (_) {}
+			}
 			const style = map.getStyle();
 			// Remove existing basemap sources/layers
 			['basemap','sat','labels'].forEach(sid => {
@@ -177,6 +187,17 @@
 			const firstLayerId = style.layers.find(l => l.id !== 'background')?.id;
 			if (key === 'offline') {
 				map.addLayer({ id:'background', type:'background', paint:{'background-color':'#e8e4cf'} });
+				return;
+			}
+			if (key === 'nevector') {
+				// Full Natural Earth Vector basemap, built lazily by SirajNeVector.
+				if (!this._nevector && window.SirajNeVector) {
+					window.SirajNeVector.attach(map, { engine: 'maplibre', zoom: map.getZoom() })
+						.then(ctrl => { this._nevector = ctrl; ctrl.setVisible(true); })
+						.catch(e => console.warn('[SIRAJ Map] nevector build failed:', e));
+				} else if (this._nevector) {
+					this._nevector.setVisible(true);
+				}
 				return;
 			}
 			for (const [sid, src] of Object.entries(spec.sources)) {

@@ -1,6 +1,8 @@
 # Copyright (c) 2026, SIRAJ and contributors
 # For license information, please see license.txt
 
+from typing import ClassVar
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
@@ -16,17 +18,70 @@ class TestRelationship(FrappeTestCase):
 	# Pair enforcement (docs/decisions/relationship-consolidation.md §3.2)
 	# ------------------------------------------------------------------
 
+	# Title fields read from each endpoint DocType's JSON (authoritative).
+	# Person/Institution/Place -> name_en/name_ar; Siraj Event -> title_en/title_ar;
+	# Military Unit -> unit_name only (there is NO unit_name_ar field).
+	ENDPOINT_TITLE_FIELDS: ClassVar[dict] = {
+		"Person": ("name_en", "name_ar"),
+		"Institution": ("name_en", "name_ar"),
+		"Place": ("name_en", "name_ar"),
+		"Siraj Event": ("title_en", "title_ar"),
+		"Military Unit": ("unit_name", None),
+	}
+	# (vocab DocType, endpoint Link field, vocab code) for endpoints that require a
+	# type link. Institution/Place also require name_ar; Siraj Event does not.
+	ENDPOINT_VOCAB: ClassVar[dict] = {
+		"Institution": ("Institution Type", "institution_type", "PR_INST_TYPE"),
+		"Place": ("Place Type", "place_type", "PR_PLACE_TYPE"),
+		"Siraj Event": ("Event Type", "event_type", "PR_EVENT_TYPE"),
+	}
+	# Remaining required Select/Int fields for Military Unit (read from its JSON).
+	ENDPOINT_REQUIRED_FIELDS: ClassVar[dict] = {
+		"Military Unit": {"echelon": "Brigade", "status": "Active", "direct_personnel": 100},
+	}
+
+	@staticmethod
+	def _ensure_data_group(name):
+		if not frappe.db.exists("Data Group", name):
+			frappe.get_doc({"doctype": "Data Group", "group_name": name}).insert(
+				ignore_permissions=True
+			)
+
+	@staticmethod
+	def _ensure_vocab(doctype, code):
+		label = f"PR Fix {code}"
+		if frappe.db.exists(doctype, label):
+			return label
+		frappe.get_doc(
+			{
+				"doctype": doctype,
+				"label_en": label,
+				"label_ar": f"اختبار {code}",
+				"code": code,
+			}
+		).insert(ignore_permissions=True)
+		return label
+
 	def _make_endpoint(self, doctype, name, data_group="GD"):
-		"""Create a minimal endpoint record so a Relationship can link to it."""
-		field = {
-			"Person": ("name_en", "name_ar"),
-			"Institution": ("name_en", "name_ar"),
-			"Place": ("name_en", "name_ar"),
-			"Siraj Event": ("title_en", "title_ar"),
-			"Military Unit": ("unit_name", "unit_name_ar"),
-		}.get(doctype, ("name_en", "name_ar"))
-		doc = frappe.get_doc({"doctype": doctype, field[0]: name, "data_group": data_group})
-		return doc.insert(ignore_permissions=True)
+		"""Create a minimal endpoint record so a Relationship can link to it.
+
+		Sets the DocType's real title fields (from its JSON) plus every other
+		required field, so the insert succeeds for all five endpoint DocTypes
+		without weakening any assertion. This is a test-fixture fix: the previous
+		helper referenced a nonexistent ``unit_name_ar`` field and omitted the
+		required type links / Select fields for Institution, Place, Siraj Event and
+		Military Unit, which would have failed the first time these tests ran on CI.
+		"""
+		self._ensure_data_group(data_group)
+		title_en, title_ar = self.ENDPOINT_TITLE_FIELDS.get(doctype, ("name_en", "name_ar"))
+		payload = {"doctype": doctype, "data_group": data_group, title_en: name}
+		if title_ar:
+			payload[title_ar] = name
+		vocab_doctype, vocab_field, vocab_code = self.ENDPOINT_VOCAB.get(doctype, (None, None, None))
+		if vocab_doctype:
+			payload[vocab_field] = self._ensure_vocab(vocab_doctype, vocab_code)
+		payload.update(self.ENDPOINT_REQUIRED_FIELDS.get(doctype, {}))
+		return frappe.get_doc(payload).insert(ignore_permissions=True)
 
 	def _make_type(self, code, *, symmetric=False, pairs=None, hierarchical=False):
 		"""Create (or fetch) a Relationship Type with allowed-pair child rows."""
@@ -44,7 +99,7 @@ class TestRelationship(FrappeTestCase):
 					"is_hierarchical": 1 if hierarchical else 0,
 				}
 			).insert(ignore_permissions=True)
-		doc.delete_all("Relationship Type Allowed Pair")
+		doc.set("allowed_pairs", [])  # clear any existing child rows before re-seeding
 		for idx, (subject_doctype, object_doctype) in enumerate(pairs or [], start=1):
 			doc.append(
 				"allowed_pairs",
@@ -81,6 +136,23 @@ class TestRelationship(FrappeTestCase):
 		payload.update(kw)
 		return frappe.get_doc(payload)
 
+	@staticmethod
+	def _delete_relationships_for(*docs):
+		"""Remove Relationship rows referencing any of these docs so the
+		on_trash delete-block guard does not block endpoint cleanup.
+
+		Deletes only rows matching these docs' names (the rows this test
+		created), by endpoint reference.
+		"""
+		for doc in docs:
+			if doc is None:
+				continue
+			for subject_field, object_field in (("subject_type", "subject"), ("object_type", "object")):
+				frappe.db.delete(
+					"Relationship",
+					{subject_field: doc.doctype, object_field: doc.name},
+				)
+
 	def test_invalid_pair_rejected(self):
 		"""A Relationship whose (subject, object) pair is not allowed must be rejected."""
 		rt = self._make_type("PAIR_INVALID", pairs=[("Person", "Institution")])
@@ -98,6 +170,7 @@ class TestRelationship(FrappeTestCase):
 			).insert(ignore_permissions=True)
 			self.assertEqual(ok.subject, person.name)
 		finally:
+			self._delete_relationships_for(person, institution, place)
 			for doc in (person, institution, place):
 				if frappe.db.exists(doc.doctype, doc.name):
 					frappe.delete_doc(doc.doctype, doc.name, force=True, ignore_permissions=True)
@@ -124,6 +197,7 @@ class TestRelationship(FrappeTestCase):
 				reverse.insert(ignore_permissions=True)
 			self.assertTrue(first.name)
 		finally:
+			self._delete_relationships_for(person, institution)
 			for doc in (person, institution):
 				if frappe.db.exists(doc.doctype, doc.name):
 					frappe.delete_doc(doc.doctype, doc.name, force=True, ignore_permissions=True)
@@ -150,6 +224,7 @@ class TestRelationship(FrappeTestCase):
 			k2 = duplicate_key(rt.name, "Institution", institution.name, "Person", person.name, symmetric=True)
 			self.assertEqual(k1, k2)
 		finally:
+			self._delete_relationships_for(person, institution)
 			for doc in (person, institution):
 				if frappe.db.exists(doc.doctype, doc.name):
 					frappe.delete_doc(doc.doctype, doc.name, force=True, ignore_permissions=True)
@@ -164,6 +239,7 @@ class TestRelationship(FrappeTestCase):
 					rt.name, "Person", person.name, "Person", person.name
 				).insert(ignore_permissions=True)
 		finally:
+			self._delete_relationships_for(person)
 			if frappe.db.exists("Person", person.name):
 				frappe.delete_doc("Person", person.name, force=True, ignore_permissions=True)
 
@@ -179,25 +255,72 @@ class TestRelationship(FrappeTestCase):
 	# ------------------------------------------------------------------
 
 	def test_endpoint_delete_blocked_when_relationships_exist(self):
-		"""Deleting an endpoint that a Relationship references is blocked."""
+		"""Deleting an endpoint that a Relationship references is blocked.
+
+		Non-force deletes are blocked (Frappe's dynamic-link check raises
+		LinkExistsError, a ValidationError subclass). After removing the
+		Relationship row, the post-removal endpoint delete uses force=True, which
+		skips Frappe's dynamic-link check but still runs our on_trash guard.
+		"""
 		rt = self._make_type("DEL_BLOCK", pairs=[("Person", "Institution")])
 		person = self._make_endpoint("Person", "PR Del Block Person")
 		institution = self._make_endpoint("Institution", "PR Del Block Inst")
 		rel = self._make_relationship(
 			rt.name, "Person", person.name, "Institution", institution.name
 		).insert(ignore_permissions=True)
+		# Diagnostic: rel.name is captured but is NOT a reliable handle on the
+		# persisted row (evidence: prior CI annotation 'REL-0029' is not false'
+		# when deleting by rel.name left the row in place). The Relationship row
+		# is therefore removed by endpoint reference -- matching this test's own
+		# unique endpoint names -- which deletes only the row this test created.
+		rel_name = rel.name
 		try:
-			# Subject delete is blocked.
+			# Subject delete is blocked (non-force: Frappe's dynamic-link check).
 			with self.assertRaises(frappe.ValidationError):
-				frappe.delete_doc("Person", person.name, force=True, ignore_permissions=True)
-			# Object delete is blocked.
+				frappe.delete_doc("Person", person.name, ignore_permissions=True)
+			# Object delete is blocked (non-force).
 			with self.assertRaises(frappe.ValidationError):
-				frappe.delete_doc("Institution", institution.name, force=True, ignore_permissions=True)
-			# Removing the relationship first unblocks the delete.
-			frappe.delete_doc("Relationship", rel.name, force=True, ignore_permissions=True)
+				frappe.delete_doc("Institution", institution.name, ignore_permissions=True)
+			# Remove the Relationship row created by this test, by endpoint
+			# reference (subject + object match this test's endpoints).
+			frappe.db.delete(
+				"Relationship",
+				{
+					"subject_type": "Person", "subject": person.name,
+					"object_type": "Institution", "object": institution.name,
+				},
+			)
+			# The Relationship row itself is gone after removal (check 3):
+			# no Relationship references either endpoint by name.
+			self.assertFalse(
+				frappe.db.exists(
+					"Relationship",
+					{"subject_type": "Person", "subject": person.name},
+				)
+				or frappe.db.exists(
+					"Relationship",
+					{"object_type": "Person", "object": person.name},
+				),
+				f"relationship still references Person (rel.name={rel_name!r})",
+			)
+			self.assertFalse(
+				frappe.db.exists(
+					"Relationship",
+					{"subject_type": "Institution", "subject": institution.name},
+				)
+				or frappe.db.exists(
+					"Relationship",
+					{"object_type": "Institution", "object": institution.name},
+				),
+				f"relationship still references Institution (rel.name={rel_name!r})",
+			)
+			# force=True skips Frappe's check_if_doc_is_dynamically_linked but
+			# still runs our on_trash guard; with no Relationship referencing the
+			# endpoints, the guard passes and the deletes succeed.
 			frappe.delete_doc("Person", person.name, force=True, ignore_permissions=True)
 			frappe.delete_doc("Institution", institution.name, force=True, ignore_permissions=True)
 		finally:
+			self._delete_relationships_for(person, institution)
 			for doctype, name in (("Person", person.name), ("Institution", institution.name)):
 				if frappe.db.exists(doctype, name):
 					frappe.delete_doc(doctype, name, force=True, ignore_permissions=True)

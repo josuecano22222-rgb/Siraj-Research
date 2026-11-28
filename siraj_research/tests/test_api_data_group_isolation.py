@@ -38,7 +38,11 @@ from siraj_research.api import (
 	geo_resolve,
 	map_relations,
 	map_search,
+	natural_earth_vector,
 	relationship_profile,
+)
+from siraj_research.siraj_research.doctype.natural_earth_vector_pack import (
+	natural_earth_vector_pack,
 )
 from siraj_research.tests._isolation_fixtures import (
 	ALL_WHITELISTED_ENDPOINTS,
@@ -1348,6 +1352,47 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 
 class TestZIsolationFixtureCleanup(FrappeTestCase):
 	"""End-of-module verification (J2): zero isolation fixture rows or users remain after tearDownClass."""
+
+	def test_20_natural_earth_vector_endpoints_registered_and_gated(self):
+		"""Natural Earth Vector: public read endpoints + admin-gated provisioning."""
+		frappe.set_user("Administrator")
+
+		catalog = natural_earth_vector.catalog()
+		self.assertEqual(catalog["layer_count"], 206)
+		self.assertIn("110m", catalog["available_scales"])
+
+		manifest = natural_earth_vector.manifest()
+		self.assertIn("bundle", manifest)
+		self.assertIn("110m", manifest["available_scales"])
+
+		index = natural_earth_vector.index("110m")
+		self.assertEqual(index["count"], 32)
+
+		# Bundled tier is served without provisioning.
+		resp = natural_earth_vector.layer("ne_110m_land.geojson")
+		self.assertEqual(resp.status_code, 200)
+		self.assertEqual(resp.get_data(as_text=True).lstrip()[0], "{")
+
+		unknown = natural_earth_vector.layer("ne_99m_missing.geojson")
+		self.assertEqual(unknown.status_code, 404)
+
+		# Admin-gated endpoints reject Guest.
+		frappe.set_user("Guest")
+		for fn in (natural_earth_vector.status, natural_earth_vector.provision):
+			with self.assertRaises(frappe.PermissionError):
+				fn()
+
+		# DocType controller: catalog read is public, mutations are admin-gated.
+		frappe.set_user("Administrator")
+		layers = natural_earth_vector_pack.get_catalog_layers("110m")
+		self.assertEqual(len(layers), 32)
+
+		frappe.set_user("Guest")
+		with self.assertRaises(frappe.PermissionError):
+			natural_earth_vector_pack.refresh_status("nope")
+		with self.assertRaises(frappe.PermissionError):
+			natural_earth_vector_pack.run_provision("nope")
+		frappe.set_user("Administrator")
 
 	def test_z_no_isolation_fixture_rows_or_users_remain(self):
 		frappe.set_user("Administrator")

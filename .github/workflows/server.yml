@@ -74,28 +74,55 @@ jobs:
         working-directory: /home/runner/frappe-bench
         run: |
           set -Eeuo pipefail
-          trap 'echo "::error title=Install app and site failed::exit $? at: $BASH_COMMAND"' ERR
-          bench get-app siraj_research $GITHUB_WORKSPACE
-          bench setup requirements --dev
-          bench new-site --db-root-password root --admin-password admin test_site
-          bench --site test_site install-app siraj_research
-          # Only this app's bundle is needed for run-tests; skipping the
-          # full multi-app build keeps the job fast and avoids the
-          # historical full-build failure mode.
-          bench build --app siraj_research
+          LOG=/tmp/server-install.log
+          : > "$LOG"
+          # tee all install output to $LOG so the failure tail is readable in
+          # the job output and uploadable as an artifact (CI logs are often not
+          # retrievable from outside the job). Capture the real exit code via
+          # PIPESTATUS so a failing bench command does not get masked by tee.
+          set +e
+          {
+            echo "=== install start $(date -u) ==="
+            bench get-app siraj_research $GITHUB_WORKSPACE
+            bench setup requirements --dev
+            bench new-site --db-root-password root --admin-password admin test_site
+            bench --site test_site install-app siraj_research
+            # Only this app's bundle is needed for run-tests; skipping the
+            # full multi-app build keeps the job fast and avoids the
+            # historical full-build failure mode.
+            bench build --app siraj_research
+            echo "=== install end $(date -u) ==="
+          } 2>&1 | tee "$LOG"
+          rc=${PIPESTATUS[0]}
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo "::error title=Install app and site failed::exit $rc"
+            echo "--- last 80 lines of $LOG ---"
+            tail -80 "$LOG"
+            exit "$rc"
+          fi
         env:
           CI: 'Yes'
+
+      - name: Upload install log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-install-log
+          path: /tmp/server-install.log
+          if-no-files-found: ignore
 
       - name: Run Frappe server tests
         working-directory: /home/runner/frappe-bench
         run: |
           echo "::notice title=server tests::step started (head ${GITHUB_SHA::8})"
           bench --site test_site set-config allow_tests true
-          # The runner shell runs with -e; || status=$? keeps going on failure.
-          # Scope = release-gate modules (a bare --app run would also pull in
-          # the eight modules CI deliberately ignores). Run logs are sign-in
-          # gated for API readers, so per-module results and the failing tail
-          # are re-emitted as annotations (%0A = newline).
+          # Each module's exit code is captured via PIPESTATUS so the loop keeps
+          # going on failure. Scope = release-gate modules (a bare --app run
+          # would also pull in the eight modules CI deliberately ignores). Run
+          # logs are sign-in gated for API readers, so per-module results and the
+          # failing tail are re-emitted as annotations (%0A = newline) and the
+          # full log is uploaded as an artifact.
           status=0
           : > /tmp/server-tests.log
           for module in \
@@ -109,18 +136,28 @@ jobs:
             test_map_search_api \
             test_person_family \
             siraj_research.siraj_research.doctype.shared_record.test_shared_record \
-            siraj_research.siraj_research.doctype.siraj_event.test_siraj_event
+            siraj_research.siraj_research.doctype.siraj_event.test_siraj_event \
+            siraj_research.siraj_research.doctype.relationship.test_relationship \
+            siraj_research.siraj_research.doctype.relationship.test_relationship_enforcement
           do
-            echo "=== $module ===" >> /tmp/server-tests.log
             if [[ "$module" == siraj_research.* ]]; then
               target_module="$module"
             else
               target_module="siraj_research.tests.$module"
             fi
-            bench --site test_site run-tests --module "$target_module" >> /tmp/server-tests.log 2>&1 || status=1
+            # tee run-tests output to the log so it is visible in the job output
+            # and uploadable as an artifact; capture the real exit code via
+            # PIPESTATUS so a failing module is not masked by tee.
+            { echo "=== $module ==="; bench --site test_site run-tests --module "$target_module"; } 2>&1 | tee -a /tmp/server-tests.log
+            rc=${PIPESTATUS[0]}
+            if [ "$rc" -ne 0 ]; then
+              status=1
+            fi
           done
           grep -E "^(=== |Ran [0-9]+ test|OK.*|FAILED \()" /tmp/server-tests.log | tail -40 | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}' > /tmp/results-encoded.txt
           if [ "$status" -ne 0 ]; then
+            echo "--- last 80 lines of /tmp/server-tests.log ---"
+            tail -80 /tmp/server-tests.log
             # List every FAIL / ERROR / UNEXPECTED SUCCESS header plus the first full traceback.
             grep -E "^(FAIL|ERROR|UNEXPECTED SUCCESS): " /tmp/server-tests.log | head -20 | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}' > /tmp/failids-encoded.txt
             awk '/^(FAIL|ERROR|UNEXPECTED SUCCESS): /{n++} n==1{print} n==2{exit}' /tmp/server-tests.log | tail -40 | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}' | head -c 4500 > /tmp/failures-encoded.txt
@@ -131,3 +168,11 @@ jobs:
           exit "$status"
         env:
           TYPE: server
+
+      - name: Upload server tests log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-tests-log
+          path: /tmp/server-tests.log
+          if-no-files-found: ignore
