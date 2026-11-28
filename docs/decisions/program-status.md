@@ -13,8 +13,8 @@
 
 | Item | Status | Commit / PR proving it | Evidence |
 | :--- | :--- | :--- | :--- |
-| **P0a** Close PR #17 (no merge); drop `_fill_missing_mandatory`; revert seed name-guessing; keep `ensure_hierarchy_autoname` | **in progress** | PR #17 closed (this session); `ensure_hierarchy_autoname` = `10ac8c3` | `gh pr close 17`; `install.py` `ensure_hierarchy_autoname` + `hooks.py` after_migrate entry kept |
-| **P0b** Read-only `report_schema_drift` diagnostic + unit test (stub) | **todo** | — | — |
+| **P0a** Close PR #17 (no merge); drop `_fill_missing_mandatory`; revert seed name-guessing; keep `ensure_hierarchy_autoname` | **done** | PR #17 closed (this session); revert commit `47fcf4d`; `ensure_hierarchy_autoname` = `10ac8c3` (kept) | `gh pr close 17`; `test_data.py` reverted to `d03f6ac` state (46 deletions: `_fill_missing_mandatory` + `doc.name` guessing); data_group stamping + `ensure_hierarchy_autoname` kept |
+| **P0b** Read-only `report_schema_drift` diagnostic + unit test (stub) | **done** | `report_schema_drift` + `DRIFT_DOCTYPHS` in `install.py`; `tests/test_report_schema_drift.py` (4 tests, green) | `bench --site <site> execute siraj_research.setup.install.report_schema_drift`; lists Custom Fields / required fields not in app JSON + autoname drift; writes nothing; ruff clean |
 | **P0c** User runs `report_schema_drift` on frappe.com; remove stray Custom Fields only on instruction | **todo** | — | awaiting user output |
 | **P0d** Acceptance: Server JOB green on main (2 consecutive runs) + `test_api_data_group_isolation` green on bench | **todo** | — | — |
 | **P1** Consolidate 14 binary association DocTypes into `Relationship` (Person Position stays) | **todo** | design = `docs/decisions/relationship-consolidation.md` (PROPOSAL, no code) | steps 3–7, 9 first; step 8 only after explicit approval |

@@ -207,3 +207,129 @@ def setup(password: str, commit: bool = True):
 	if commit:
 		frappe.db.commit()
 	return {"groups": len(DATA_GROUPS), "users": sum(map(len, SECTION_USERS.values()))}
+
+
+# --- P0b: read-only schema-drift diagnostic -------------------------------
+#
+# DocTypes whose live schema is compared against the on-disk app JSON. The
+# five admin-hierarchy DocTypes (whose autoname is field:code and which
+# commonly carry site-added Custom Fields) plus the core entity/record
+# DocTypes. Run via:
+#
+#     bench --site <site> execute siraj_research.setup.install.report_schema_drift
+#
+DRIFT_DOCTYPHS = (
+	"Governorate",
+	"District",
+	"Municipality",
+	"Village",
+	"Community",
+	"Person",
+	"Institution",
+	"Place",
+	"Siraj Event",
+	"Military Unit",
+	"Relationship",
+)
+
+
+def _doctype_json(doctype):
+	"""Read a DocType's on-disk app JSON. Returns a dict, or None if absent."""
+	import json
+	import os
+
+	snake = doctype.replace(" ", "_").lower()
+	base = frappe.get_app_path("siraj_research", "siraj_research")
+	path = os.path.join(base, "doctype", snake, snake + ".json")
+	if not os.path.isfile(path):
+		return None
+	with open(path, encoding="utf-8") as fh:
+		return json.load(fh)
+
+
+def report_schema_drift(doctypes=DRIFT_DOCTYPHS):
+	"""Read-only schema-drift diagnostic. Returns a dict of findings; writes nothing.
+
+	For each DocType, compares the live meta + Custom Fields + autoname
+	against the on-disk app JSON and reports:
+
+	- ``custom_fields``: Custom Field names not defined in the JSON.
+	- ``required_not_in_json``: live fields that are mandatory/reqd but not
+	  defined in the JSON (site-added required fields the seed does not know).
+	- ``autoname_drift``: live ``autoname`` differs from the JSON's autoname.
+	- ``json_autoname`` / ``live_autoname``: the values compared.
+
+	This exists so drift on a site that carries manual customization or stale
+	DocType definitions is *visible* rather than papered over by a seeder
+	guessing placeholder values. It performs no writes.
+	"""
+	findings = {}
+	for dt in doctypes:
+		json_meta = _doctype_json(dt)
+		json_fields = {}
+		json_autoname = None
+		if json_meta:
+			json_autoname = json_meta.get("autoname")
+			for f in json_meta.get("fields", []):
+				json_fields[f.get("fieldname")] = f
+
+		# Live meta (guard: a missing DocType raises in frappe.get_meta).
+		live_meta = None
+		try:
+			live_meta = frappe.get_meta(dt)
+		except Exception:
+			live_meta = None
+		live_autoname = live_meta.autoname if live_meta else None
+		live_fields = {}
+		if live_meta:
+			for f in live_meta.get_fields():
+				live_fields[f.fieldname] = f
+
+		# Custom Fields (site-added rows) not present in the app JSON.
+		custom_fields = []
+		try:
+			cf_rows = frappe.db.get_all(
+				"Custom Field",
+				{"dt": dt},
+				"fieldname, fieldtype, label, mandatory, reqd",
+			)
+		except Exception:
+			cf_rows = []
+		for row in cf_rows:
+			fname = row.get("fieldname")
+			if fname and fname not in json_fields:
+				custom_fields.append(fname)
+
+		# Required (mandatory/reqd) live fields not defined in the app JSON.
+		# ``meta.get_fields()`` returns Field objects (attribute access), not
+		# dicts, so read via getattr.
+		required_not_in_json = []
+		for fname, f in live_fields.items():
+			if (getattr(f, "mandatory", None) or getattr(f, "reqd", None)) and fname not in json_fields:
+				required_not_in_json.append(fname)
+
+		autoname_drift = bool(json_autoname) and (live_autoname or "") != (json_autoname or "")
+		findings[dt] = {
+			"custom_fields": sorted(custom_fields),
+			"required_not_in_json": sorted(required_not_in_json),
+			"autoname_drift": autoname_drift,
+			"json_autoname": json_autoname,
+			"live_autoname": live_autoname,
+			"json_field_count": len(json_fields),
+			"live_field_count": len(live_fields),
+		}
+
+	# Human-readable bench output (stdout only; no DB writes).
+	for dt, info in findings.items():
+		flags = []
+		if info["custom_fields"]:
+			flags.append("custom_fields=" + ",".join(info["custom_fields"]))
+		if info["required_not_in_json"]:
+			flags.append("required_not_in_json=" + ",".join(info["required_not_in_json"]))
+		if info["autoname_drift"]:
+			flags.append(
+				f"autoname_drift (json={info['json_autoname']!r} live={info['live_autoname']!r})"
+			)
+		status = "DRIFT: " + "; ".join(flags) if flags else "OK"
+		print(f"[siraj schema-drift] {dt}: {status}")
+	return findings
