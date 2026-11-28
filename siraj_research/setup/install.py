@@ -282,8 +282,13 @@ def report_schema_drift(doctypes=DRIFT_DOCTYPHS):
 		live_autoname = live_meta.autoname if live_meta else None
 		live_fields = {}
 		if live_meta:
-			for f in live_meta.get_fields():
-				live_fields[f.fieldname] = f
+			# Frappe v15 Meta exposes fields via the ``.fields`` attribute
+			# (a list of frappe._dict rows), NOT a ``get_fields()`` method.
+			# Each row is dict-style (``.get``/``[]``).
+			for f in live_meta.fields:
+				fname = f.get("fieldname")
+				if fname:
+					live_fields[fname] = f
 
 		# Custom Fields (site-added rows) not present in the app JSON.
 		custom_fields = []
@@ -301,11 +306,10 @@ def report_schema_drift(doctypes=DRIFT_DOCTYPHS):
 				custom_fields.append(fname)
 
 		# Required (mandatory/reqd) live fields not defined in the app JSON.
-		# ``meta.get_fields()`` returns Field objects (attribute access), not
-		# dicts, so read via getattr.
+		# ``meta.fields`` rows are dict-style, so read via ``.get``.
 		required_not_in_json = []
 		for fname, f in live_fields.items():
-			if (getattr(f, "mandatory", None) or getattr(f, "reqd", None)) and fname not in json_fields:
+			if (f.get("mandatory") or f.get("reqd")) and fname not in json_fields:
 				required_not_in_json.append(fname)
 
 		autoname_drift = bool(json_autoname) and (live_autoname or "") != (json_autoname or "")

@@ -19,21 +19,34 @@ from unittest import mock
 _STUB_KEYS = ("frappe", "frappe.db", "frappe.modules", "frappe.modules.import_file")
 
 
-class _FakeField:
+class _FakeField(dict):
+	"""A DocField row.
+
+	Frappe's ``meta.fields`` items are ``frappe._dict`` rows: dict-style
+	access (``.get``, ``[]``) is the canonical surface, so the stub is a
+	plain dict to faithfully model that contract (this is what makes the
+	test catch a ``getattr``-based impl, which fails on plain dicts).
+	"""
+
 	def __init__(self, fieldname, fieldtype="Data", mandatory=0, reqd=0):
-		self.fieldname = fieldname
-		self.fieldtype = fieldtype
-		self.mandatory = mandatory
-		self.reqd = reqd
+		super().__init__(
+			fieldname=fieldname,
+			fieldtype=fieldtype,
+			mandatory=mandatory,
+			reqd=reqd,
+		)
 
 
 class _FakeMeta:
+	"""Frappe v15 ``Meta``: fields are exposed via the ``.fields`` attribute
+	(a list of dict-style rows), NOT via a ``get_fields()`` method. The
+	diagnostic must read ``meta.fields`` — a ``get_fields()`` call crashes on
+	the live site with ``AttributeError: 'Meta' object has no attribute
+	'get_fields'``."""
+
 	def __init__(self, autoname, fields):
 		self.autoname = autoname
-		self._fields = fields
-
-	def get_fields(self):
-		return list(self._fields)
+		self.fields = list(fields)
 
 
 class TestReportSchemaDrift(unittest.TestCase):
