@@ -272,11 +272,11 @@ class TestApiEndpoints(FrappeTestCase):
     def test_provision_endpoint_requires_admin(self):
         from siraj_research.api.natural_earth_vector import provision
         try:
-            with mock.patch.object(frappe.session, "user", "Guest"):
+            frappe.set_user("Guest")
+            with self.assertRaises(frappe.PermissionError):
                 provision()
-            raise AssertionError("Guest must be rejected")
-        except frappe.PermissionError:
-            pass
+        finally:
+            frappe.set_user("Administrator")
 
 
 class TestDocTypeController(FrappeTestCase):
