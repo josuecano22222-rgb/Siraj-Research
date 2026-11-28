@@ -93,7 +93,7 @@ class TestResolveLocationChainPlace(FrappeTestCase):
                 place_doctype="Place", place_name="Empty"
             )
         self.assertIn("error", payload)
-        self.assertIn("no_coordinates", payload["warnings"])
+        self.assertIn("place_no_coordinates", payload["warnings"])
 
 
 class TestResolveLocationChainPermissions(FrappeTestCase):

@@ -9,6 +9,7 @@ Run on a live bench with:
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest import mock
 
 import frappe
@@ -22,12 +23,13 @@ from siraj_research.geo_doc_events import (
 
 
 def _doc(**values):
-    doc = mock.MagicMock()
-    doc.doctype = "Siraj Event"
-    doc.name = "EVT-001"
-    doc.flags = mock.MagicMock(siraj_hierarchy_resolved=False)
+    """A real object (not a MagicMock) so hasattr/getattr reflect set fields."""
+    doc = SimpleNamespace(
+        doctype="Siraj Event", name="EVT-001",
+        flags=SimpleNamespace(siraj_hierarchy_resolved=False),
+    )
     for key, value in values.items():
-        doc.__dict__[key] = value
+        setattr(doc, key, value)
     return doc
 
 
@@ -35,11 +37,13 @@ class TestCoordsFromLinkedPlace(FrappeTestCase):
     def test_fetches_coordinates_from_linked_place(self):
         cfg = {"linked_place_field": "place"}
         doc = _doc(place="PL-001")
-        with mock.patch.object(frappe.db, "exists", return_value=True), \
-                mock.patch.object(
-                    frappe.db, "get_value",
-                    return_value=(48.85, 2.35),
-                ):
+        mock_db = mock.MagicMock()
+        mock_db.exists.return_value = True
+        mock_db.get_value.return_value = (48.85, 2.35)
+        with mock.patch(
+            "siraj_research.geo_doc_events._linked_place_doctype",
+            return_value="Place",
+        ), mock.patch("siraj_research.geo_doc_events.frappe.db", mock_db):
             lat, lon = _coords_from_linked_place(doc, cfg)
         self.assertEqual((lat, lon), (48.85, 2.35))
 
@@ -63,9 +67,7 @@ class TestLinkedPlaceDoctype(FrappeTestCase):
         meta = mock.MagicMock()
         meta.get_field.return_value = df
         doc = _doc()
-        with mock.patch.object(
-            frappe, "get_meta", return_value=meta
-        ):
+        with mock.patch.object(frappe, "get_meta", return_value=meta):
             self.assertEqual(
                 _linked_place_doctype(doc, {}, "place"), "Gazetteer Place"
             )
@@ -104,4 +106,4 @@ class TestNaturalEarthCountryFallback(FrappeTestCase):
         cfg = {"admin_fields": {}}
         doc = _doc()
         _apply_natural_earth_country_fallback(doc, cfg, 48.85, 2.35)
-        self.assertFalse(hasattr(doc, "country") or doc.country)
+        self.assertIsNone(getattr(doc, "country", None))
