@@ -3,18 +3,28 @@
 **Status: NOT complete.** This is an honest per-spec-item status for the
 Natural Earth Vector feature, derived from `docs/natural-earth-vector.md`.
 The Python / API / DocType / serving / provisioning / security side is
-**implemented and locally verified green**. The JS map capabilities are
-**implemented but not runtime-verified** (no dedicated browser/JS test).
-The Server job on `main` has **not** been re-run green since the orphan-fix
-(step 5 of the directive holds Phase R 3–9 until that happens).
+**implemented and locally verified green**. The JS map capabilities now have a
+**dedicated jsdom browser test** (`tests/test_nevector_browser.js`, commit
+`e76bc45`) covering the Leaflet attach path, scale selection, choropleth,
+click-to-country and the country-intelligence fetch helpers. The **Server job
+is green on `main`** (PR #12 merged `1985202`→`00d8f8e`, PR #13 merged
+`f86ae79`→`1687d7c`; both Server jobs passed, 3m21s–3m23s). Phase R steps 3–9
+are therefore unblocked. The MapLibre attach path remains **not browser-
+verified**.
 
-**Local verification basis (2026-11-24, branch `arena/4bf5fef5-siraj-research`,
-commit `042f105`):**
+**Verification basis (2026-11-28, branch `arena/4bf5fef5-siraj-research`,
+commits `7565b23`+`042f105`+`23e28b6`+`045b1f1`+`f86ae79`+`e76bc45`, all merged
+to `main` = `1687d7c`):**
 - `bench migrate` — **no** `Orphaned DocType(s) found: Natural Earth Vector Pack`
   and **no** `Deleting orphaned DocTypes` (orphan-delete defect fixed).
-- `test_natural_earth_vector` — `Ran 28 tests ... OK`.
-- `test_api_data_group_isolation` — `Ran 27 tests ... OK` (incl. `test_20`
-  NE endpoints registered & gated; was `errors=1` before the orphan fix).
+- `test_natural_earth_vector` — `Ran 30 tests ... OK`.
+- `test_api_data_group_isolation` — green (incl. `test_20` NE endpoints; the
+  whitelisted-endpoint count assertion updated 48→51 in `f86ae79`).
+- Pure-Python CI command — `387 passed, 6 skipped`.
+- `tests/test_nevector_browser.js` (jsdom) — legend, country-intelligence
+  fetch, engine dispatch, scale selection, choropleth, click-to-country,
+  site-data choropleth all pass.
+- Server JOB on `main` (PR #12 + PR #13) — **pass** (3m21s / 3m23s).
 
 Legend: **DONE** = implemented + verified · **PARTIAL** = implemented, not fully verified · **NOT STARTED** = absent.
 
@@ -59,11 +69,12 @@ Legend: **DONE** = implemented + verified · **PARTIAL** = implemented, not full
 
 | Spec item | Status | Notes / evidence |
 |-----------|--------|------------------|
-| `SirajNeVector.attach(map, opts)` on MapLibre + Leaflet | **PARTIAL** | Implemented in `public/js/siraj-nevector.js` (`attachMapLibre`, `attachLeaflet`, `window.SirajNeVector.attach`). **Not browser-verified; no dedicated JS test.** |
-| Scale-tiered basemap (110m/50m/10m + fallback to finest available) | **PARTIAL** | Logic present in `siraj-nevector.js`. **Not browser-verified.** |
-| Choropleth `setChoropleth(field, valueByKey)` + legend | **PARTIAL** | `setChoropleth` in both engines. **Not browser-verified.** |
-| Click-to-country `onCountryClick(cb)` (ISO codes, name, …) | **PARTIAL** | `onCountryClick` in both engines (MapLibre `queryRenderedFeatures`, Leaflet feature clicks). **Not browser-verified.** |
-| Full layer set (ocean, land, lakes, boundaries, rivers, places, choropleth-safe countries) | **PARTIAL** | Layer construction present. **Not browser-verified.** |
+| `SirajNeVector.attach(map, opts)` on MapLibre + Leaflet | **PARTIAL** | Implemented in `public/js/siraj-nevector.js` (`attachMapLibre`, `attachLeaflet`, `window.SirajNeVector.attach`). **Leaflet path browser-verified** by `tests/test_nevector_browser.js` (engine dispatch, layer build, scale). **MapLibre path not browser-verified.** |
+| Scale-tiered basemap (110m/50m/10m + fallback to finest available) | **PARTIAL** | Logic present in `siraj-nevector.js` (`_selectScale`). **Leaflet scale selection browser-verified** (zoom 2 → 110m). MapLibre not browser-verified. |
+| Choropleth `setChoropleth(field, valueByKey)` + legend | **PARTIAL** | `setChoropleth` in both engines. **Leaflet legend min/max + clearChoropleth browser-verified.** MapLibre not browser-verified. |
+| Click-to-country `onCountryClick(cb)` (ISO codes, name, …) | **PARTIAL** | `onCountryClick` in both engines (MapLibre `queryRenderedFeatures`, Leaflet feature clicks). **Leaflet click-to-country browser-verified.** MapLibre not browser-verified. |
+| Full layer set (ocean, land, lakes, boundaries, rivers, places, choropleth-safe countries) | **PARTIAL** | Layer construction present. **Leaflet layer-set build browser-verified.** MapLibre not browser-verified. |
+| Data-driven site choropleth `setChoroplethFromSite` (Leaflet) | **PARTIAL** | Recolours countries from server aggregation. **Leaflet path browser-verified** (per-feature style fn from server payload). MapLibre not browser-verified. |
 
 ## 6. Basemap switcher integration
 
@@ -91,16 +102,18 @@ Legend: **DONE** = implemented + verified · **PARTIAL** = implemented, not full
 
 | Spec item | Status | Notes / evidence |
 |-----------|--------|------------------|
-| `test_natural_earth_vector` (pack/manifest/serve/security) | **DONE** | 28 tests, green locally. |
-| NE endpoints registered & gated (in isolation suite) | **DONE** | `test_20_natural_earth_vector_endpoints_registered_and_gated`, green after orphan fix. |
-| Dedicated JS test for `SirajNeVector` / map capabilities | **NOT STARTED** | No JS test references `SirajNeVector`/`nevector`. Map capabilities rely on manual/browser verification. |
+| `test_natural_earth_vector` (pack/manifest/serve/security) | **DONE** | 30 tests, green locally. |
+| NE endpoints registered & gated (in isolation suite) | **DONE** | `test_20_natural_earth_vector_endpoints_registered_and_gated`, green; whitelisted count assertion updated 48→51 (`f86ae79`). |
+| Dedicated JS test for `SirajNeVector` / map capabilities | **PARTIAL** | `tests/test_nevector_browser.js` (jsdom, commit `e76bc45`) covers the **Leaflet** attach path, scale selection, choropleth, click-to-country, site-data choropleth and the country-intelligence fetch helpers. The **MapLibre** attach path (`attachMapLibre`) is **not** covered by a browser/jsdom test yet. |
+| Static `search_fields` DocType-JSON gate (pure-Python) | **DONE** | `siraj_research/tests/test_doctype_json_static.py` (commit `23e28b6`) — catches the list-typed `search_fields` defect class in the pure-Python gate. |
 
 ## 10. CI / Server job
 
 | Spec item | Status | Notes / evidence |
 |-----------|--------|------------------|
 | `test_natural_earth_vector` wired into `server.yml` | **DONE** | Present in the module loop (commit `f1bd122`). |
-| Server job green on `main` (post-orphan-fix) | **NOT STARTED** | Directive step 5: Phase R 3–9 held until the Server job is green on `main`. The local bench is green; the CI Server job has not been re-dispatched/re-run since the orphan fix. |
+| Server job green on `main` (post-orphan-fix + NE work) | **DONE** | PR #12 (`00d8f8e`) and PR #13 (`1687d7c`) both merged with **Server JOB = pass** (3m21s / 3m23s). The search_fields + orphan fixes, the server.yml exception-line echo, the static `search_fields` gate, the whitelist-registry/count fixes and the ruff UP038 fix are all on `main`. Phase R steps 3–9 are unblocked. |
+| `server.yml` failure diagnostics (exception line) | **DONE** | On failure, echoes the first ERROR block's exception LINE (`grep -m1 -E '^[A-Za-z_.]+(Error|Exception):'`) alongside the `head -80` traceback head and full-log artifact (commit `23e28b6`). |
 
 ---
 
@@ -108,16 +121,38 @@ Legend: **DONE** = implemented + verified · **PARTIAL** = implemented, not full
 
 - **DONE:** dataset/catalog, bundled 110m, all serving endpoints, all
   provisioning (both sources, manifest, ZIP, admin gating), security &
-  licensing, Python tests. This is the bulk of the spec and it is locally
-  verified green.
-- **PARTIAL:** all JS map capabilities (`SirajNeVector` attach,
-  scale-tiered basemap, choropleth, click-to-country, full layer set,
-  basemap-switcher modes, offline-viewer toggle). Implemented and wired in,
-  but **not runtime-verified** — no dedicated JS/browser test exists.
-- **NOT STARTED:** dedicated JS test for the map capabilities; re-running the
-  Server job on `main` post-orphan-fix.
+  licensing, Python tests, the static `search_fields` gate, the Server job
+  green on `main`, and the `server.yml` exception-line diagnostics.
+- **PARTIAL:** the JS map capabilities. The **Leaflet** path of
+  `SirajNeVector` is now browser-verified by `tests/test_nevector_browser.js`.
+  The **MapLibre** path, the basemap-switcher integration, and the
+  offline-viewer toggle are implemented and wired in but **not browser-
+  verified**.
+- **NOT STARTED:** MapLibre-path browser test; basemap-switcher / offline-
+  viewer browser tests.
 
 **This feature is not complete.** The Python/API/DocType/serving/provisioning
-layer is solid and locally green, but the map-rendering layer needs browser
-verification (and ideally a JS test), and the Server job on `main` must be
-confirmed green before Phase R steps 3–9 resume.
+layer is solid and locally green, and the Server job is green on `main`. The
+map-rendering layer's Leaflet path is browser-tested; the MapLibre path and
+the integration surfaces still need browser verification.
+
+---
+
+## Prioritized gap list (item 5 of the directive)
+
+The Server job is green on `main`, so Phase R steps 3–9 resume. This is the
+priority-ordered gap list; it is **not** a completion claim. Priority 1 is
+done (the JS/browser test for the map layer, Leaflet path); the rest remain.
+
+| Priority | Gap | Status | Notes |
+|----------|-----|--------|-------|
+| **1** | JS/browser test for the map layer (Leaflet `SirajNeVector` attach, scale, choropleth, click-to-country, site choropleth, country-intelligence fetch) | **DONE** | `tests/test_nevector_browser.js` (jsdom, commit `e76bc45`). Added to the local `test:js` runner. Negative-control verified. |
+| **2** | JS/browser test for the **MapLibre** attach path (`attachMapLibre`: sources, fill/line/circle/symbol layers, `queryRenderedFeatures` click-to-country, choropleth paint) | **NOT STARTED** | `siraj-nevector.js` exposes `attach(map,{engine:'maplibre'})`. No browser test covers it. Needs a MapLibre-GL mock (or a real-GL jsdom shim) — the `attachMapLibre` path uses `map.addSource`/`addLayer`/`on('click', queryRenderedFeatures)`. |
+| **3** | Browser test for basemap-switcher integration (`siraj-basemap.js` Leaflet `nevector` mode; `siraj-map.js` MapLibre Explorer `nevector` mode) | **NOT STARTED** | Both switcher files wire `SirajNeVector.attach` lazily. No browser test covers mode selection / lazy build / hide-on-switch. |
+| **4** | Browser test for the offline-viewer NE Vector toggle (`offline_map/viewer.js`) | **NOT STARTED** | Toggle + bundled-110m rendering present; no browser test. |
+| **5** | Extend `server.yml` failure diagnostics coverage (verify the exception-line echo fires on a real bench failure) | **PARTIAL** | Echo added (`23e28b6`); only observable when a Server test actually fails. Not yet observed firing on a real failure. |
+| **6** | Bench-side re-verification of the hierarchical cascade + NE country-intelligence end-to-end on the user's bench | **PARTIAL** | Sandbox-pure-Python green; the frappe-dependent endpoints need a bench run to confirm the full cascade + choropleth on a real site. |
+| **7** | Re-run the full pure-Python + Node + Server CI matrix on `main` post-merge to confirm all gates stay green | **PARTIAL** | PR #12 + PR #13 Server jobs green; a clean `main` CI run is the final confirmation. |
+
+**Standing note:** the feature is **not** to be called complete. Priority 2
+(MapLibre browser test) is the next item to attack after Priority 1.
