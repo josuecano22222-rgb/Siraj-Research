@@ -22,13 +22,21 @@
 
 	function configFor(doctype) {
 		const fromBoot = (window.sirajCoordinateDocs && window.sirajCoordinateDocs[doctype]) || {};
+		// Standard admin-field names so the live cascade also covers custom
+		// DocTypes that use the conventional field group but have no boot
+		// registry entry (the backend resolves them via build_cfg_from_meta).
+		const standardAdminFields = {
+			country: 'country', governorate: 'governorate', district: 'district',
+			municipality: 'municipality', village: 'village', community: 'community',
+			place_name: 'place_name',
+		};
 		return Object.assign({
 			lat_field: 'latitude',
 			lon_field: 'longitude',
 			map_field: 'geo_point',
 			origin_confirmed_field: 'coordinate_origin_confirmed',
 			uncertainty_field: 'geo_uncertainty_m',
-			admin_fields: {},
+			admin_fields: standardAdminFields,
 		}, fromBoot);
 	}
 
@@ -78,6 +86,34 @@
 				await window.SirajHierarchy.refreshForm(frm, cfg, lat, lon, { force: true });
 			}
 		} catch (_) { /* display failure must not undo coordinates */ }
+	}
+
+	/* Location-selection cascade: when a linked Place is picked, fetch its
+	 * coordinates and resolve the full hierarchy from them — so selecting a
+	 * location auto-populates country/province/city just like typing
+	 * coordinates. */
+	async function resolveFromPlace(frm, cfg) {
+		const linkedField = cfg.linked_place_field;
+		if (!linkedField) return;
+		const placeName = frm.doc && frm.doc[linkedField];
+		if (!placeName) return;
+		const df = field(frm, linkedField);
+		const placeDoctype = (df && df.df && df.df.options) || 'Place';
+		try {
+			const values = await frappe.db.get_value(
+				placeDoctype, placeName, ['latitude', 'longitude']
+			);
+			if (!values || values.latitude == null || values.longitude == null) return;
+			await guarded(frm, async () => {
+				try {
+					await frm.set_value({
+						[cfg.lat_field]: values.latitude,
+						[cfg.lon_field]: values.longitude,
+					});
+				} catch (_) { /* keep the selection even if coord copy fails */ }
+			});
+			await showHierarchy(frm, cfg, values.latitude, values.longitude);
+		} catch (_) { /* never block the form on a place cascade */ }
 	}
 
 	async function fromMap(frm, cfg) {
@@ -182,6 +218,9 @@
 			[cfg.lon_field](frm) { toMap(frm, cfg); },
 			[cfg.origin_confirmed_field](frm) { toMap(frm, cfg); },
 		};
+		if (cfg.linked_place_field) {
+			handlers[cfg.linked_place_field] = (frm) => resolveFromPlace(frm, cfg);
+		}
 		frappe.ui.form.on(doctype, handlers);
 	}
 
@@ -200,7 +239,10 @@
 		});
 	}
 
-	window.SirajGeoPoint = { configFor, fromMap, toMap, attach, firstPoint: () => core() && core().firstPoint };
+	window.SirajGeoPoint = {
+		configFor, fromMap, toMap, attach, resolveFromPlace,
+		firstPoint: () => core() && core().firstPoint,
+	};
 	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
 	else boot();
 })();

@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 
 import frappe
+from frappe.model.document import Document
 
 from siraj_research import natural_earth_vector as nev
 from siraj_research.natural_earth_catalog import (
@@ -18,6 +19,21 @@ from siraj_research.natural_earth_catalog import (
     all_layers,
     catalog_summary,
 )
+
+
+class NaturalEarthVectorPack(Document):
+    """DocType controller for the Natural Earth Vector Pack admin DocType.
+
+    Frappe's ``remove_orphan_doctypes`` (run on every migrate) resolves the
+    controller by importing this module and looking up a class whose name is
+    the scrubbed DocType name (``NaturalEarthVectorPack``). If that class is
+    absent, the import is treated as failed and the DocType is deleted as an
+    "orphan" — so this class must exist even though the whitelisted entry
+    points below are module-level functions (preserving the existing call
+    surface for tests, API and the admin UI).
+    """
+
+    pass
 
 
 def _scales_from_doc(doc) -> list:

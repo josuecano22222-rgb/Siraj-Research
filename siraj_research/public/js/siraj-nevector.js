@@ -24,12 +24,24 @@
  *   /api/method/siraj_research.api.natural_earth_vector.layer?layer=<name>
  * which serves the bundled 1:110m tier out of the box and any provisioned
  * 50m/10m pack tiers from private storage.
+ *
+ * 5. Country intelligence + data-driven choropleth: country facts (capital,
+ *    population, GDP, area, Arabic name) and site-data choropleths that
+ *    aggregate Siraj records onto Natural Earth countries — so the map is
+ *    driven by the application's own data rather than caller-supplied values.
  */
 (() => {
 	'use strict';
 
 	const LAYER_API = '/api/method/siraj_research.api.natural_earth_vector.layer';
 	const MANIFEST_API = '/api/method/siraj_research.api.natural_earth_vector.manifest';
+	const COUNTRY_PROFILE_API = '/api/method/siraj_research.api.natural_earth_vector.country_profile';
+	const CHOROPLETH_API = '/api/method/siraj_research.api.natural_earth_vector.country_choropleth';
+
+	/* The admin-0 countries layer exposes ADM0_A3 as a feature property for
+	 * every country (ISO_A3 is '-99' for 5, e.g. France), so it is the
+	 * reliable join key for the data-driven choropleth. */
+	const COUNTRY_JOIN_FIELD = 'ADM0_A3';
 
 	/* Which catalog file fills each basemap role, per scale tier. The first
 	 * candidate that is available on the server wins; missing roles are
@@ -81,6 +93,46 @@
 			.catch(e => { _layerPromises.delete(name); throw e; });
 		_layerPromises.set(name, p);
 		return p;
+	}
+
+	/* Generic JSON GET for the country-intelligence endpoints. Returns null
+	 * on any failure so callers can degrade gracefully (e.g. no API). */
+	function _fetchJSON(url) {
+		return fetch(url)
+			.then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+			.catch(e => { console.warn('[SirajNeVector] request failed:', url, e.message); return null; });
+	}
+
+	/**
+	 * Fetch normalized country facts from the bundled Natural Earth pack.
+	 * Pass an ISO_A3 `code`, or a `longitude` + `latitude` coordinate pair.
+	 * Returns null when the code/coordinate matches no country (e.g. ocean).
+	 */
+	function fetchCountryProfile(opts) {
+		opts = opts || {};
+		const params = new URLSearchParams();
+		if (opts.code) params.set('code', opts.code);
+		if (opts.longitude != null) params.set('longitude', opts.longitude);
+		if (opts.latitude != null) params.set('latitude', opts.latitude);
+		const qs = params.toString();
+		return _fetchJSON(COUNTRY_PROFILE_API + (qs ? '?' + qs : ''));
+	}
+
+	/**
+	 * Fetch a data-driven choropleth: aggregates Siraj site records of
+	 * `doctype` onto Natural Earth countries. Returns
+	 * {method, classes, breaks, min, max, empty, valueByKey, classByKey,
+	 *  matchedCount, unmatchedCount, recordCount} or null on failure.
+	 */
+	function fetchSiteChoropleth(doctype, opts) {
+		opts = opts || {};
+		const params = new URLSearchParams();
+		params.set('doctype', doctype);
+		if (opts.agg) params.set('agg', opts.agg);
+		if (opts.value_field) params.set('value_field', opts.value_field);
+		if (opts.method) params.set('method', opts.method);
+		if (opts.classes) params.set('classes', opts.classes);
+		return _fetchJSON(CHOROPLETH_API + '?' + params.toString());
 	}
 
 	function _selectScale(zoom, available, tiers) {
@@ -264,6 +316,27 @@
 			map.on('click', state._clickHandler);
 		}
 
+		/* Data-driven choropleth: aggregate Siraj site records of `doctype`
+		 * onto countries server-side, then colour the countries layer. The
+		 * values arrive already keyed by ADM0_A3 so every country matches. */
+		async function setChoroplethFromSite(doctype, opts2) {
+			opts2 = opts2 || {};
+			const payload = await fetchSiteChoropleth(doctype, opts2);
+			if (!payload || payload.empty || !payload.valueByKey) {
+				return null;
+			}
+			const painted = setChoropleth(COUNTRY_JOIN_FIELD, payload.valueByKey, opts2);
+			return { payload, painted };
+		}
+
+		/* Fetch normalized country facts for a clicked country feature. */
+		function countryProfile(feature) {
+			if (!feature || !feature.properties) return Promise.resolve(null);
+			const code = feature.properties.ADM0_A3 || feature.properties.ISO_A3;
+			if (!code) return Promise.resolve(null);
+			return fetchCountryProfile({ code });
+		}
+
 		async function setScale(scale) {
 			return _build(scale || state.scale);
 		}
@@ -289,16 +362,18 @@
 			 'ne-admin1', 'ne-rivers', 'ne-places', 'ne-place-labels'].forEach(_removeLayer);
 		}
 
-		return _fetchManifest().then(m => {
-			const initialZoom = opts.zoom != null ? opts.zoom :
-				(map.getZoom ? map.getZoom() : 4);
-			return _build(_selectScale(initialZoom, m.available, m.tiers));
-		}).then(loaded => ({
-			engine: 'maplibre',
-			setScale, setVisible, currentScale,
-			setChoropleth, clearChoropleth, onCountryClick, destroy,
-			_loaded: loaded,
-		}));
+			return _fetchManifest().then(m => {
+				const initialZoom = opts.zoom != null ? opts.zoom :
+					(map.getZoom ? map.getZoom() : 4);
+				return _build(_selectScale(initialZoom, m.available, m.tiers));
+			}).then(loaded => ({
+				engine: 'maplibre',
+				setScale, setVisible, currentScale,
+				setChoropleth, clearChoropleth,
+				setChoroplethFromSite, countryProfile,
+				onCountryClick, destroy,
+				_loaded: loaded,
+			}));
 	}
 
 	/* ---------------- Leaflet controller (offline viewer) ---------------- */
@@ -409,6 +484,36 @@
 			state.countryCb = fn;
 		}
 
+		/* Data-driven choropleth (Leaflet offline viewer): recolour the
+		 * countries group from a server-side Siraj site-data aggregation. */
+		async function setChoroplethFromSite(doctype, opts2) {
+			opts2 = opts2 || {};
+			const payload = await fetchSiteChoropleth(doctype, opts2);
+			if (!payload || payload.empty || !payload.valueByKey) {
+				return null;
+			}
+			const painted = setChoropleth(COUNTRY_JOIN_FIELD, payload.valueByKey, opts2);
+			if (state.groups.countries) {
+				state.groups.countries.setStyle(feature => {
+					const code = feature.properties && (feature.properties.ADM0_A3 || feature.properties.ISO_A3);
+					const value = payload.valueByKey[code];
+					const t = (painted.max === painted.min) ? 0.5
+						: (value - painted.min) / (painted.max - painted.min);
+					const idx = Math.min(CHOROPLETH_COLORS.length - 1,
+						Math.max(0, Math.round(t * (CHOROPLETH_COLORS.length - 1))));
+					return { color: '#7a6a4f', fillColor: CHOROPLETH_COLORS[idx], fillOpacity: 0.6 };
+				});
+			}
+			return { payload, painted };
+		}
+
+		function countryProfile(feature) {
+			if (!feature || !feature.properties) return Promise.resolve(null);
+			const code = feature.properties.ADM0_A3 || feature.properties.ISO_A3;
+			if (!code) return Promise.resolve(null);
+			return fetchCountryProfile({ code });
+		}
+
 		async function setScale(scale) {
 			return _build(scale || state.scale);
 		}
@@ -424,23 +529,30 @@
 
 		function destroy() { _clearGroups(); }
 
-		return _fetchManifest().then(m => {
-			const initialZoom = opts.zoom != null ? opts.zoom :
-				(map.getZoom ? map.getZoom() : 4);
-			return _build(_selectScale(initialZoom, m.available, m.tiers));
-		}).then(loaded => ({
-			engine: 'leaflet',
-			setScale, setVisible, currentScale,
-			setChoropleth, clearChoropleth, onCountryClick, destroy,
-			_loaded: loaded,
-		}));
+			return _fetchManifest().then(m => {
+				const initialZoom = opts.zoom != null ? opts.zoom :
+					(map.getZoom ? map.getZoom() : 4);
+				return _build(_selectScale(initialZoom, m.available, m.tiers));
+			}).then(loaded => ({
+				engine: 'leaflet',
+				setScale, setVisible, currentScale,
+				setChoropleth, clearChoropleth,
+				setChoroplethFromSite, countryProfile,
+				onCountryClick, destroy,
+				_loaded: loaded,
+			}));
 	}
 
 	/* ---------------- Public API ---------------- */
 
 	window.SirajNeVector = {
 		CHOROPLETH_COLORS,
+		CHOROPLETH_JOIN_FIELD: COUNTRY_JOIN_FIELD,
 		choroplethLegend,
+		/** Fetch normalized country facts (capital, pop, GDP, area, Arabic name). */
+		fetchCountryProfile,
+		/** Fetch a data-driven Siraj site-data choropleth payload. */
+		fetchSiteChoropleth,
 		/** Attach a Natural Earth Vector basemap controller to a map instance. */
 		attach(map, opts) {
 			opts = opts || {};
