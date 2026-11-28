@@ -16,6 +16,7 @@ from siraj_research.natural_earth_geography import (
     class_index,
     classify,
     country_profile,
+    enrich_country,
     find_country,
     geodesic_area_m2,
     iso_code,
@@ -198,6 +199,55 @@ class TestSiteDataAggregation(unittest.TestCase):
         self.assertTrue(payload["empty"])
         self.assertEqual(payload["breaks"], [])
         self.assertEqual(payload["valueByKey"], {})
+
+
+class TestCountryEnrichment(unittest.TestCase):
+    def test_enrich_by_code(self):
+        enriched = enrich_country("NLD")
+        self.assertIsNotNone(enriched)
+        self.assertEqual(enriched["name"], "Netherlands")
+        self.assertEqual(enriched["name_ar"], "هولندا")
+        self.assertEqual(enriched["iso_a3"], "NLD")
+        self.assertEqual(enriched["adm0_code"], "NLD")
+        self.assertEqual(enriched["provenance"], "natural_earth_bundle")
+
+    def test_enrich_by_english_name(self):
+        enriched = enrich_country("France")
+        self.assertEqual(enriched["name"], "France")
+        self.assertEqual(enriched["iso_a3"], "FRA")  # falls back from -99
+
+    def test_enrich_by_arabic_name(self):
+        enriched = enrich_country("هولندا")
+        self.assertEqual(enriched["name"], "Netherlands")
+
+    def test_enrich_unknown_returns_none(self):
+        self.assertIsNone(enrich_country("Atlantis"))
+        self.assertIsNone(enrich_country(""))
+        self.assertIsNone(enrich_country(None))
+
+    def test_enrich_chain_country_uses_resolved_name(self):
+        from siraj_research.natural_earth_geography import enrich_chain_country
+
+        result = {"lat": 4.9, "lon": 52.37,
+                  "by_field": {"country": {"name": "Netherlands"}}}
+        enriched = enrich_chain_country(result)
+        self.assertEqual(enriched["name"], "Netherlands")
+        self.assertEqual(enriched["name_ar"], "هولندا")
+
+    def test_enrich_chain_country_falls_back_to_coordinate(self):
+        # Coordinate over a country with no resolved name: NE identifies it.
+        from siraj_research.natural_earth_geography import enrich_chain_country
+
+        result = {"lat": 48.85, "lon": 2.35, "by_field": {"country": {}}}
+        enriched = enrich_chain_country(result)
+        self.assertEqual(enriched["name"], "France")
+        self.assertEqual(enriched["iso_a3"], "FRA")
+
+    def test_enrich_chain_country_ocean_returns_none(self):
+        from siraj_research.natural_earth_geography import enrich_chain_country
+
+        result = {"lat": -30.0, "lon": -30.0, "by_field": {"country": {}}}
+        self.assertIsNone(enrich_chain_country(result))
 
 
 if __name__ == "__main__":

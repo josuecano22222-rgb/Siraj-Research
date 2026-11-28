@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -452,7 +453,11 @@ def distance_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 @lru_cache(maxsize=2)
 def _country_names() -> dict[str, str]:
-    """Map lower-cased NE country names/aliases -> ADM0_A3 join code."""
+    """Map lower-cased NE country names/aliases -> ADM0_A3 join code.
+
+    Includes English (``NAME``/``NAME_LONG``/``ADMIN``) and Arabic
+    (``NAME_AR``) aliases so name-based lookups work in both languages.
+    """
     mapping: dict[str, str] = {}
     for properties, _bbox, _geometry in _country_index():
         code = adm0_code(properties)
@@ -460,6 +465,7 @@ def _country_names() -> dict[str, str]:
             properties.get("NAME"),
             properties.get("NAME_LONG"),
             properties.get("ADMIN"),
+            properties.get("NAME_AR"),
         }:
             if isinstance(alias, str) and alias.strip():
                 mapping.setdefault(alias.strip().lower(), code)
@@ -572,3 +578,73 @@ def choropleth_from_values(
         "classByKey": color_map,
         "matchedCount": len(entries),
     }
+
+
+# ---------------------------------------------------------------------------
+# Country enrichment (for the hierarchical cascade)
+# ---------------------------------------------------------------------------
+
+def enrich_country(name_or_code: Any) -> dict | None:
+    """Return Natural Earth country facts for a name or ISO code.
+
+    Used to enrich (and globally fall back for) the country level of the
+    hierarchical cascade: when a coordinate falls outside Siraj's scoped
+    reference countries, this still yields a country name, Arabic name, ISO
+    codes and population. Looks up by ISO_A3/adm0 code first, then by English
+    name (case-insensitive). Returns ``None`` when nothing matches.
+    """
+    if not name_or_code:
+        return None
+    value = str(name_or_code).strip()
+    if not value:
+        return None
+    # Try as a code first (ISO_A3 / ADM0_A3 / ISO_A2).
+    if re.fullmatch(r"[A-Za-z]{2,3}", value):
+        profile = country_profile(code=value)
+        if profile:
+            return _enrichment_from_profile(profile)
+    # Fall back to an English (or Arabic) name match.
+    code = _country_names().get(value.lower())
+    if code:
+        profile = country_profile(code=code)
+        if profile:
+            return _enrichment_from_profile(profile)
+    return None
+
+
+def _enrichment_from_profile(profile: dict) -> dict:
+    return {
+        "name": profile.get("name") or "",
+        "name_ar": profile.get("name_ar") or "",
+        "name_long": profile.get("name_long") or "",
+        "iso_a2": profile.get("iso_a2") or "",
+        "iso_a3": profile.get("code") or "",
+        "adm0_code": profile.get("adm0_code") or "",
+        "sovereign": profile.get("sovereign") or "",
+        "continent": profile.get("continent") or "",
+        "population_estimate": profile.get("population_estimate"),
+        "provenance": "natural_earth_bundle",
+    }
+
+
+def enrich_chain_country(result: dict) -> dict | None:
+    """Enrich the country level of a resolved chain with Natural Earth facts.
+
+    Reads the resolved country name/code from a ``display_resolution``-style
+    result; when the country is a gap (e.g. a coordinate outside Siraj's
+    scoped reference countries) it falls back to identifying the country
+    straight from the coordinate via the bundled Natural Earth pack. Returns
+    ``None`` when no country can be determined.
+    """
+    country_row = (result.get("by_field") or {}).get("country") or {}
+    name = country_row.get("name") or country_row.get("label_en")
+    code = country_row.get("code") or country_row.get("pcode")
+    lat, lon = result.get("lat"), result.get("lon")
+    if not name and lat is not None and lon is not None:
+        ne_country = find_country(float(lon), float(lat))
+        if ne_country:
+            code = code or iso_code(ne_country)
+            name = name or ne_country.get("NAME")
+    if not (name or code):
+        return None
+    return enrich_country(code or name)

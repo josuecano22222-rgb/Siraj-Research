@@ -167,6 +167,55 @@ def field_values(doctype: str, result: dict) -> dict[str, Any]:
     return values
 
 
+def build_cfg_from_meta(doctype: str) -> dict:
+    """Derive a COORDINATE_DOCS-style config from any DocType's meta.
+
+    Lets the cascade cover **any** DocType that carries the location field
+    group (latitude/longitude + the standard administrative Link fields), not
+    only the six registered in ``COORDINATE_DOCS``. Returns an empty dict when
+    the DocType has no coordinate fields. Reuses the registered config when
+    the DocType is already known.
+    """
+    if not doctype:
+        return {}
+    registered = dict(COORDINATE_DOCS.get(doctype) or {})
+    if registered:
+        return registered
+    if frappe is None:
+        return {}
+    try:
+        meta = frappe.get_meta(doctype)
+    except Exception:  # pragma: no cover - defensive
+        return {}
+    if not (meta.has_field("latitude") and meta.has_field("longitude")):
+        return {}
+    admin_fields = {}
+    for level_field in ("country", "governorate", "district", "municipality",
+                        "village", "community"):
+        if meta.has_field(level_field):
+            admin_fields[level_field] = level_field
+    if meta.has_field("place_name"):
+        admin_fields["place_name"] = "place_name"
+    elif meta.has_field("location"):
+        admin_fields["place_name"] = "location"
+    if not admin_fields:
+        return {}
+    linked_place_field = None
+    for candidate in ("place", "birthplace", "linked_place"):
+        if meta.has_field(candidate):
+            linked_place_field = candidate
+            break
+    return {
+        "map_field": "geo_point" if meta.has_field("geo_point") else None,
+        "origin_confirmed_field": "coordinate_origin_confirmed",
+        "lat_field": "latitude",
+        "lon_field": "longitude",
+        "uncertainty_field": "geo_uncertainty_m",
+        "linked_place_field": linked_place_field,
+        "admin_fields": admin_fields,
+    }
+
+
 def apply_to_doc(doc, *, result: dict | None = None, create_missing: bool = True,
                  use_online: bool = False) -> dict:
     """Fill only empty hierarchy fields on ``doc``; never overwrite research."""
