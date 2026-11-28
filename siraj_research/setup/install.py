@@ -70,6 +70,38 @@ def after_install():
 
 	print("SIRAJ reference data:", seed_master_data())
 
+
+# Admin-hierarchy DocTypes whose name is derived from their ``code`` field.
+HIERARCHY_AUTONAME_DOCTYPHS = ("Governorate", "District", "Municipality", "Village", "Community")
+
+
+def ensure_hierarchy_autoname():
+	"""Align the admin-hierarchy DocTypes' ``autoname`` with the on-disk JSON.
+
+	Frappe's DocType sync does **not** update ``autoname`` for DocTypes that
+	already exist in the database -- ``autoname`` is only applied at first
+	creation. Sites created before the hierarchy JSON shipped
+	``autoname: field:code`` therefore keep the default ``field:name``, so
+	inserting a hierarchy record that carries ``code`` but no ``name`` throws
+	"<Doctype> Name is required" at ``set_new_name`` (the root cause of the
+	``test_23`` seeding failure). This idempotent migrate hook sets
+	``autoname = field:code`` for the five hierarchy DocTypes so the DB
+	matches the JSON. Safe to re-run; no-op once aligned.
+	"""
+	changed = []
+	for dt in HIERARCHY_AUTONAME_DOCTYPHS:
+		if not frappe.db.exists("DocType", dt):
+			continue
+		if (frappe.get_meta(dt).autoname or "") != "field:code":
+			frappe.db.set_value("DocType", dt, "autoname", "field:code")
+			frappe.clear_cache(doctype=dt)
+			changed.append(dt)
+	if changed:
+		frappe.db.commit()
+		print("SIRAJ hierarchy autoname set to field:code:", ", ".join(changed))
+	return changed
+
+
 GROUP_MEMBER_ROLE = "Group Member"
 APP_ADMIN_ROLE = "SIRAJ Administrator"
 OFFICIAL_ROLE = "SIRAJ Official"
