@@ -90,7 +90,7 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 	def tearDown(self):
 		frappe.set_user("Administrator")
 
-	def test_01_all_39_whitelisted_callables_registered_in_frappe_whitelisted(self):
+	def test_01_all_48_whitelisted_callables_registered_in_frappe_whitelisted(self):
 		"""Every endpoint in ALL_WHITELISTED_ENDPOINTS is registered in frappe.whitelisted."""
 		geo_meta = frappe.get_meta("Geo Settings")
 		for fn in (
@@ -107,7 +107,7 @@ class TestApiDataGroupIsolation(FrappeTestCase):
 		):
 			self.assertIsNotNone(geo_meta.get_field(fn), f"Geo Settings missing field {fn}")
 
-		self.assertEqual(len(ALL_WHITELISTED_ENDPOINTS), 39)
+		self.assertEqual(len(ALL_WHITELISTED_ENDPOINTS), 48)
 		for mod_name, fn_qualname in ALL_WHITELISTED_ENDPOINTS:
 			mod = frappe.get_module(mod_name)
 			if "." in fn_qualname:

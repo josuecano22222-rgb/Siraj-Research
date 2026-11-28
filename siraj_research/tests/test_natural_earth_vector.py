@@ -14,6 +14,7 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
+import unittest
 from unittest import mock
 
 import frappe
@@ -28,7 +29,7 @@ from siraj_research.natural_earth_catalog import (
 )
 
 
-class TestNaturalEarthCatalog:
+class TestNaturalEarthCatalog(unittest.TestCase):
     def test_full_catalog_size(self):
         assert len(LAYERS) == 206, "catalog must cover the full Natural Earth GeoJSON set"
 
@@ -60,7 +61,7 @@ class TestNaturalEarthCatalog:
         assert scale_for_zoom(20) == "10m"
 
 
-class TestBundledTier:
+class TestBundledTier(unittest.TestCase):
     def test_bundled_manifest_complete(self):
         manifest = nev.bundled_manifest()
         assert manifest["kind"] == "bundle"
@@ -96,7 +97,7 @@ class TestBundledTier:
         assert all(l["source"] == "bundle" for l in layers)
 
 
-class TestManifestValidation:
+class TestManifestValidation(unittest.TestCase):
     def _base(self, **over):
         manifest = {
             "name": "natural_earth_vector",
@@ -147,7 +148,7 @@ class TestManifestValidation:
             pass
 
 
-class TestLocalMirrorProvisioning:
+class TestLocalMirrorProvisioning(unittest.TestCase):
     """Provisioning into a temp pack dir with mocked site paths."""
 
     def setUp(self):
@@ -233,7 +234,7 @@ class TestLocalMirrorProvisioning:
             pass
 
 
-class TestScaleFallback:
+class TestScaleFallback(unittest.TestCase):
     def test_falls_back_to_available_tier(self):
         with mock.patch.object(nev, "available_scales", return_value=["110m"]):
             assert nev.scale_for_zoom_with_fallback(8) == "110m"
@@ -243,7 +244,7 @@ class TestScaleFallback:
             assert nev.scale_for_zoom_with_fallback(2) == "110m"
 
 
-class TestApiEndpoints:
+class TestApiEndpoints(unittest.TestCase):
     def test_layer_endpoint_serves_bundled(self):
         from siraj_research.api.natural_earth_vector import layer
         resp = layer("ne_110m_land.geojson")
@@ -278,7 +279,7 @@ class TestApiEndpoints:
             pass
 
 
-class TestDocTypeController:
+class TestDocTypeController(unittest.TestCase):
     def test_get_catalog_layers(self):
         from siraj_research.natural_earth_vector_pack.natural_earth_vector_pack import (
             get_catalog_layers,

@@ -68,7 +68,10 @@ def pack_root() -> Path:
 
 
 def bundled_root() -> Path:
-    return Path(frappe.local.app_path, "public", "natural_earth", BUNDLED_SCALE).resolve()
+    # frappe.local.app_path is only populated in a request context; use the
+    # get_app_path API so the bundled tier resolves during run-tests / CLI too.
+    return Path(frappe.get_app_path("siraj_research"), "public", "natural_earth",
+                BUNDLED_SCALE).resolve()
 
 
 def manifest_path() -> Path:
