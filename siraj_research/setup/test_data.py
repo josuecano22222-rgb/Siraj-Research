@@ -154,15 +154,6 @@ def seed_test_data():
 		if doctype in OPERATIONAL_TYPES:
 			values["researcher_notes"] = "TEST SAMPLE — fictional data, not a real record."
 		doc = frappe.get_doc({"doctype": doctype, **deepcopy(values)})
-		# ``frappe.get_doc({... "name": ...})`` treats ``name`` as a lookup key and
-		# does not set it as a field on a *new* document, so a site whose DocType
-		# still carries the default ``field:name`` autoname (out of sync with the
-		# on-disk JSON's ``field:code``) would throw "<Doctype> Name is required"
-		# at ``set_new_name``. Set ``doc.name`` explicitly from the supplied
-		# name/code so naming always has a value. Harmless when ``autoname`` is
-		# ``field:code``: Frappe derives the name from ``code`` and overwrites.
-		if not doc.get("name"):
-			doc.name = values.get("name") or values.get("code")
 		doc.insert(ignore_permissions=True)
 		created[doctype] += 1
 		created_names.setdefault(doctype, []).append(doc.name)
