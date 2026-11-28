@@ -154,6 +154,15 @@ def seed_test_data():
 		if doctype in OPERATIONAL_TYPES:
 			values["researcher_notes"] = "TEST SAMPLE — fictional data, not a real record."
 		doc = frappe.get_doc({"doctype": doctype, **deepcopy(values)})
+		# ``frappe.get_doc({... "name": ...})`` treats ``name`` as a lookup key and
+		# does not set it as a field on a *new* document, so a site whose DocType
+		# still carries the default ``field:name`` autoname (out of sync with the
+		# on-disk JSON's ``field:code``) would throw "<Doctype> Name is required"
+		# at ``set_new_name``. Set ``doc.name`` explicitly from the supplied
+		# name/code so naming always has a value. Harmless when ``autoname`` is
+		# ``field:code``: Frappe derives the name from ``code`` and overwrites.
+		if not doc.get("name"):
+			doc.name = values.get("name") or values.get("code")
 		doc.insert(ignore_permissions=True)
 		created[doctype] += 1
 		created_names.setdefault(doctype, []).append(doc.name)
@@ -199,7 +208,6 @@ def seed_test_data():
 		)
 		gov = add(
 			"Governorate",
-			name="TEST_GOV",
 			code="TEST_GOV",
 			label_ar="اختبار محافظة",
 			label_en="TEST Governorate",
@@ -207,7 +215,6 @@ def seed_test_data():
 		)
 		district = add(
 			"District",
-			name="TEST_DIST",
 			code="TEST_DIST",
 			label_ar="اختبار قضاء",
 			label_en="TEST District",
@@ -216,7 +223,6 @@ def seed_test_data():
 		)
 		municipality = add(
 			"Municipality",
-			name="TEST_MUNI",
 			code="TEST_MUNI",
 			label_ar="اختبار بلدية",
 			label_en="TEST Municipality",
@@ -226,7 +232,6 @@ def seed_test_data():
 		)
 		village = add(
 			"Village",
-			name="TEST_VIL",
 			code="TEST_VIL",
 			label_ar="اختبار قرية",
 			label_en="TEST Village",
@@ -237,7 +242,6 @@ def seed_test_data():
 		)
 		community = add(
 			"Community",
-			name="TEST_COMM",
 			code="TEST_COMM",
 			label_ar="اختبار مجتمع",
 			label_en="TEST Community",

@@ -14,6 +14,7 @@ after_install = "siraj_research.setup.install.after_install"
 after_migrate = [
 	"siraj_research.setup.install.ensure_default_workflow_state",
 	"siraj_research.setup.install.sync_insight_widgets",
+	"siraj_research.setup.install.ensure_hierarchy_autoname",
 ]
 
 fixtures = [
