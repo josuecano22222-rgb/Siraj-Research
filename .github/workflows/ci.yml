@@ -28,7 +28,9 @@ jobs:
           cache: pip
 
       - name: Install deps
-        run: pip install pytest cryptography
+        # shapely is the geometry runtime for geo modules (geo_resolve,
+        # governorate_geo); the pure-Python gate exercises shapely calculations.
+        run: pip install pytest cryptography shapely
 
       - name: Run pure-Python tests (no bench required)
         run: |
