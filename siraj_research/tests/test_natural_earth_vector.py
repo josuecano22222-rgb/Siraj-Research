@@ -154,7 +154,9 @@ class TestLocalMirrorProvisioning(FrappeTestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="ne-pack-test-"))
         self.site = self.tmp / "site"
-        self.mirror = self.tmp / "mirror"
+        # The mirror must live inside the site (provision_pack enforces this
+        # path-confinement guard), so place it under the site root.
+        self.mirror = self.site / "mirror"
         (self.mirror / "geojson").mkdir(parents=True)
         self.pack = self.site / "private" / "natural_earth_vector"
         self._patches = [
