@@ -116,8 +116,9 @@ class TestCountryChoroplethAggregation(FrappeTestCase):
             payload = country_choropleth(doctype="Place", agg="count")
 
         assert payload["source"] == "siraj_site_data"
-        assert payload["recordCount"] == 4
-        assert payload["matchedCount"] == 4
+        assert payload["recordCount"] == 4            # records aggregated
+        assert payload["matchedCount"] == 3            # distinct countries colored
+        assert payload["matchedCount"] == len(payload["valueByKey"])
         assert payload["valueByKey"]["FRA"] == 2
         assert payload["valueByKey"]["NLD"] == 1
         assert payload["valueByKey"]["DEU"] == 1

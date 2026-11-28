@@ -257,9 +257,11 @@ def country_choropleth(doctype: str, agg: str = "count",
     - ``classes``: number of choropleth classes (2-9, default 5).
 
     Returns classification breaks, a per-ISO_A3 ``valueByKey`` map, a
-    per-ISO_A3 ``classByKey`` map, and matched/unmatched record counts.
-    Callers without read access to the doctype receive an empty (fail-closed)
-    choropleth rather than any site data.
+    per-ISO_A3 ``classByKey`` map, ``recordCount`` (records aggregated),
+    ``unmatchedCount`` (records with no country), and ``matchedCount``
+    (distinct countries colored). Callers without read access to the
+    doctype receive an empty (fail-closed) choropleth rather than any
+    site data.
     """
     meta = _validate_choropleth_doctype(doctype)
     agg = (agg or "count").strip().lower()
