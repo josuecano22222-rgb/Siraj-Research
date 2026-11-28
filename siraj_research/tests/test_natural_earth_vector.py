@@ -14,10 +14,10 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
-import unittest
 from unittest import mock
 
 import frappe
+from frappe.tests.utils import FrappeTestCase
 
 from siraj_research import natural_earth_vector as nev
 from siraj_research.natural_earth_catalog import (
@@ -29,7 +29,7 @@ from siraj_research.natural_earth_catalog import (
 )
 
 
-class TestNaturalEarthCatalog(unittest.TestCase):
+class TestNaturalEarthCatalog(FrappeTestCase):
     def test_full_catalog_size(self):
         assert len(LAYERS) == 206, "catalog must cover the full Natural Earth GeoJSON set"
 
@@ -61,7 +61,7 @@ class TestNaturalEarthCatalog(unittest.TestCase):
         assert scale_for_zoom(20) == "10m"
 
 
-class TestBundledTier(unittest.TestCase):
+class TestBundledTier(FrappeTestCase):
     def test_bundled_manifest_complete(self):
         manifest = nev.bundled_manifest()
         assert manifest["kind"] == "bundle"
@@ -97,7 +97,7 @@ class TestBundledTier(unittest.TestCase):
         assert all(l["source"] == "bundle" for l in layers)
 
 
-class TestManifestValidation(unittest.TestCase):
+class TestManifestValidation(FrappeTestCase):
     def _base(self, **over):
         manifest = {
             "name": "natural_earth_vector",
@@ -148,7 +148,7 @@ class TestManifestValidation(unittest.TestCase):
             pass
 
 
-class TestLocalMirrorProvisioning(unittest.TestCase):
+class TestLocalMirrorProvisioning(FrappeTestCase):
     """Provisioning into a temp pack dir with mocked site paths."""
 
     def setUp(self):
@@ -234,7 +234,7 @@ class TestLocalMirrorProvisioning(unittest.TestCase):
             pass
 
 
-class TestScaleFallback(unittest.TestCase):
+class TestScaleFallback(FrappeTestCase):
     def test_falls_back_to_available_tier(self):
         with mock.patch.object(nev, "available_scales", return_value=["110m"]):
             assert nev.scale_for_zoom_with_fallback(8) == "110m"
@@ -244,7 +244,7 @@ class TestScaleFallback(unittest.TestCase):
             assert nev.scale_for_zoom_with_fallback(2) == "110m"
 
 
-class TestApiEndpoints(unittest.TestCase):
+class TestApiEndpoints(FrappeTestCase):
     def test_layer_endpoint_serves_bundled(self):
         from siraj_research.api.natural_earth_vector import layer
         resp = layer("ne_110m_land.geojson")
@@ -279,9 +279,9 @@ class TestApiEndpoints(unittest.TestCase):
             pass
 
 
-class TestDocTypeController(unittest.TestCase):
+class TestDocTypeController(FrappeTestCase):
     def test_get_catalog_layers(self):
-        from siraj_research.natural_earth_vector_pack.natural_earth_vector_pack import (
+        from siraj_research.siraj_research.doctype.natural_earth_vector_pack.natural_earth_vector_pack import (
             get_catalog_layers,
         )
         layers = get_catalog_layers("110m")

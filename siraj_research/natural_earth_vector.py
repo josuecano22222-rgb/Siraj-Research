@@ -68,12 +68,12 @@ def pack_root() -> Path:
 
 
 def bundled_root() -> Path:
-    # Bundled assets ship in the app-root public/ (sibling of the package,
-    # where hooks.py lives), not the package public/. frappe.local.app_path
-    # is the package root and is unset outside a request context; use
-    # get_app_source_path (app root) so the bundled tier resolves during
-    # run-tests / CLI as well as requests.
-    return Path(frappe.get_app_source_path(
+    # Bundled assets ship in the app public/ (sibling of the package dir).
+    # frappe.local.app_path equals frappe.get_app_path(app) — the package
+    # root — but is unset outside a request context. get_app_path() resolves
+    # the same directory and works during run-tests / CLI too, so the bundled
+    # 110m tier is found without a request.
+    return Path(frappe.get_app_path(
         "siraj_research", "public", "natural_earth", BUNDLED_SCALE)).resolve()
 
 

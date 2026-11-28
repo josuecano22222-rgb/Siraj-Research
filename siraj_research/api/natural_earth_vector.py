@@ -70,7 +70,7 @@ def manifest():
             for t in ZOOM_TIERS
         ],
         "scale_for_zoom": scale_for_zoom(
-            frappe.utils.as_float(frappe.form_dict.get("zoom") or 4)
+            float(frappe.form_dict.get("zoom") or 4)
         ),
     }
 
