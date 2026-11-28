@@ -138,42 +138,6 @@ def _guard():
 		)
 
 
-def _fill_missing_mandatory(doc):
-	"""Fill empty mandatory fields with type-appropriate placeholders.
-
-	Sites may carry site-specific mandatory Custom Fields (e.g. a locally
-	added ``governorate_name``) that the app's DocType JSON does not define
-	and that ``seed_test_data`` does not set. Without this, ``doc.insert``
-	raises ``MandatoryError`` for the first such field. Scalar fields
-	(Data/Text/Int/Float/Check/Date/...) get a safe default; Link and Select
-	fields are left untouched, since a fabricated value would fail link /
-	option validation worse than the mandatory error.
-	"""
-	filled = []
-	for field in doc.meta.get_fields():
-		if not (getattr(field, "mandatory", None) or getattr(field, "reqd", None)):
-			continue
-		if doc.get(field.fieldname):
-			continue
-		ft = field.fieldtype
-		if ft in ("Data", "Text", "Small Text", "Long Text", "Code", "Color", "Icon"):
-			doc.set(field.fieldname, f"TEST-{doc.doctype}-{field.fieldname}")
-			filled.append(field.fieldname)
-		elif ft in ("Int", "Float", "Currency", "Percent", "Rating"):
-			doc.set(field.fieldname, 0)
-			filled.append(field.fieldname)
-		elif ft == "Check":
-			doc.set(field.fieldname, 0)
-			filled.append(field.fieldname)
-		elif ft in ("Date", "Time"):
-			doc.set(field.fieldname, frappe.utils.nowdate())
-			filled.append(field.fieldname)
-		elif ft == "Datetime":
-			doc.set(field.fieldname, frappe.utils.now_datetime())
-			filled.append(field.fieldname)
-	return filled
-
-
 def seed_test_data():
 	"""Insert one connected, fictional dataset; return counts, never commit here.
 
@@ -190,16 +154,6 @@ def seed_test_data():
 		if doctype in OPERATIONAL_TYPES:
 			values["researcher_notes"] = "TEST SAMPLE — fictional data, not a real record."
 		doc = frappe.get_doc({"doctype": doctype, **deepcopy(values)})
-		# ``frappe.get_doc({... "name": ...})`` treats ``name`` as a lookup key and
-		# does not set it as a field on a *new* document, so a site whose DocType
-		# still carries the default ``field:name`` autoname (out of sync with the
-		# on-disk JSON's ``field:code``) would throw "<Doctype> Name is required"
-		# at ``set_new_name``. Set ``doc.name`` explicitly from the supplied
-		# name/code so naming always has a value. Harmless when ``autoname`` is
-		# ``field:code``: Frappe derives the name from ``code`` and overwrites.
-		if not doc.get("name"):
-			doc.name = values.get("name") or values.get("code")
-		_fill_missing_mandatory(doc)
 		doc.insert(ignore_permissions=True)
 		created[doctype] += 1
 		created_names.setdefault(doctype, []).append(doc.name)
